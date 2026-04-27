@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.component
 
 import androidx.annotation.DrawableRes
@@ -14,7 +24,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -131,9 +142,8 @@ fun LazyGridScope.DownloadGridMenu(
         Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
             GridMenuItem(
                 icon = {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
                     )
                 },
                 title = R.string.downloading,

@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.ui.component
 
 import androidx.activity.compose.BackHandler
@@ -52,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -100,6 +111,7 @@ fun TopSearch(
     windowInsets: WindowInsets = WindowInsets.systemBars,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     focusRequester: FocusRequester = remember { FocusRequester() },
+    leftFocusRequester: FocusRequester? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val animationProgress: Float by animateFloatAsState(
@@ -214,6 +226,7 @@ fun TopSearch(
                     ),
                     interactionSource = interactionSource,
                     focusRequester = focusRequester,
+                    leftFocusRequester = leftFocusRequester,
                 )
 
                 if (animationProgress > 0) {
@@ -247,6 +260,7 @@ private fun SearchBarInputField(
     colors: TextFieldColors,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     focusRequester: FocusRequester = remember { FocusRequester() },
+    leftFocusRequester: FocusRequester? = null,
 ) {
     val focused = interactionSource.collectIsFocusedAsState().value
     val textColor = LocalTextStyle.current.color.takeOrElse {
@@ -270,6 +284,15 @@ private fun SearchBarInputField(
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(focusRequester)
+                .then(
+                    if (leftFocusRequester != null) {
+                        Modifier.focusProperties {
+                            left = leftFocusRequester
+                        }
+                    } else {
+                        Modifier
+                    }
+                )
                 .pointerInput(Unit) {
                     awaitEachGesture {
                         awaitFirstDown(pass = PointerEventPass.Initial)

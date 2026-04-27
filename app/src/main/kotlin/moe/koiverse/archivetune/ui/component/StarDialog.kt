@@ -1,3 +1,15 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.component
 
 import android.content.Intent
@@ -20,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +70,28 @@ fun StarDialog(
                     try {
                         val intent = Intent(
                             Intent.ACTION_VIEW,
+                            Uri.parse("https://t.me/ArchiveTuneGC")
+                        )
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                },
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.telegram),
+                    contentDescription = "Telegram",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(text = "Telegram")
+            }
+            FilledTonalButton(
+                onClick = {
+                    try {
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
                             Uri.parse("https://github.com/koiverse/ArchiveTune")
                         )
                         context.startActivity(intent)
@@ -66,6 +101,7 @@ fun StarDialog(
                     onStar()
                 },
                 colors = ButtonDefaults.buttonColors(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.star),
@@ -77,7 +113,7 @@ fun StarDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onLater) {
+            TextButton(onClick = onLater, shapes = ButtonDefaults.shapes()) {
                 Text(text = "Later")
             }
         }

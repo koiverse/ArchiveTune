@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.viewmodels
 
 import androidx.lifecycle.ViewModel
@@ -14,14 +24,14 @@ import javax.inject.Inject
 class MoodAndGenresViewModel
 @Inject
 constructor() : ViewModel() {
-    val moodAndGenres = MutableStateFlow<List<MoodAndGenres>?>(null)
+    val moodAndGenres = MutableStateFlow<List<MoodAndGenres.Item>?>(null)
 
     init {
         viewModelScope.launch {
             YouTube
-                .moodAndGenres()
+                .explore()
                 .onSuccess {
-                    moodAndGenres.value = it
+                    moodAndGenres.value = it.moodAndGenres
                 }.onFailure {
                     reportException(it)
                 }

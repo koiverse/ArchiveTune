@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.lyrics
 
 import android.content.Context
@@ -17,12 +27,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
@@ -32,51 +38,25 @@ constructor(
     @ApplicationContext private val context: Context,
     private val networkConnectivity: NetworkConnectivityObserver,
 ) {
-    private var lyricsProviders =
+    private val baseProviders =
         listOf(
+            SimpMusicLyricsProvider,
             BetterLyricsProvider,
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
+            PaxsenixAppleMusicLyricsProvider,
+            PaxsenixNeteaseLyricsProvider,
+            PaxsenixSpotifyLyricsProvider,
+            PaxsenixMusixmatchLyricsProvider,
+            PaxsenixKuGouLyricsProvider,
             YouTubeSubtitleLyricsProvider,
-            YouTubeLyricsProvider
+            YouTubeLyricsProvider,
         )
-
-    val preferred =
-        context.dataStore.data
-            .map {
-                it[PreferredLyricsProviderKey].toEnum(PreferredLyricsProvider.LRCLIB)
-            }.distinctUntilChanged()
-            .map {
-                lyricsProviders =
-                    when (it) {
-                        PreferredLyricsProvider.BETTER_LYRICS -> listOf(
-                            BetterLyricsProvider,
-                            LrcLibLyricsProvider,
-                            KuGouLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
-                        PreferredLyricsProvider.LRCLIB -> listOf(
-                            LrcLibLyricsProvider,
-                            BetterLyricsProvider,
-                            KuGouLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
-                        PreferredLyricsProvider.KUGOU -> listOf(
-                            KuGouLyricsProvider,
-                            BetterLyricsProvider,
-                            LrcLibLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
-                    }
-            }
 
     private val cache = LruCache<String, List<LyricsResult>>(MAX_CACHE_SIZE)
     private var currentLyricsJob: Job? = null
 
-    suspend fun getLyrics(mediaMetadata: MediaMetadata): String {
+    suspend fun getLyrics(mediaMetadata: MediaMetadata, preferredProviderOnly: Boolean = false): String {
         currentLyricsJob?.cancel()
 
         val cached = cache.get(mediaMetadata.id)?.firstOrNull()
@@ -87,24 +67,22 @@ constructor(
         
         GlobalLog.append(Log.DEBUG, "LyricsHelper", "Fetching lyrics for ${mediaMetadata.title} (Artist: ${mediaMetadata.artists.joinToString { it.name }}, Album: ${mediaMetadata.album?.title})")
 
-        // Check network connectivity before making network requests
-        // Use synchronous check as fallback if flow doesn't emit
         val isNetworkAvailable = try {
             networkConnectivity.isCurrentlyConnected()
         } catch (e: Exception) {
-            // If network check fails, try to proceed anyway
             true
         }
         
         if (!isNetworkAvailable) {
             GlobalLog.append(Log.WARN, "LyricsHelper", "Network unavailable, aborting lyrics fetch")
-            // Still proceed but return not found to avoid hanging
             return LYRICS_NOT_FOUND
         }
 
+        val ordered = orderedProviders()
+        val providers = if (preferredProviderOnly) listOf(ordered.first()) else ordered
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val deferred = scope.async {
-            for (provider in lyricsProviders) {
+            for (provider in providers) {
                 val enabled = provider.isEnabled(context)
                 
                 if (enabled) {
@@ -117,7 +95,9 @@ constructor(
                             mediaMetadata.duration,
                         )
                         result.onSuccess { lyrics ->
-                            return@async lyrics
+                            if (isMeaningfulLyrics(lyrics)) {
+                                return@async lyrics
+                            }
                         }.onFailure {
                             reportException(it)
                         }
@@ -163,11 +143,13 @@ constructor(
         }
 
         val allResult = mutableListOf<LyricsResult>()
-        currentLyricsJob = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            lyricsProviders.forEach { provider ->
+        val providers = orderedProviders()
+        currentLyricsJob = CoroutineScope(SupervisorJob() + Dispatchers.IO).async {
+            providers.forEach { provider ->
                 if (provider.isEnabled(context)) {
                     try {
-                        provider.getAllLyrics(mediaId, songTitle, songArtists, songAlbum, duration) { lyrics ->
+                        provider.getAllLyrics(mediaId, songTitle, songArtists, songAlbum, duration) lyricsCallback@{ lyrics ->
+                            if (!isMeaningfulLyrics(lyrics)) return@lyricsCallback
                             val result = LyricsResult(provider.name, lyrics)
                             allResult += result
                             callback(result)
@@ -183,13 +165,60 @@ constructor(
         currentLyricsJob?.join()
     }
 
+    private suspend fun orderedProviders(): List<LyricsProvider> {
+        val preferred =
+            context.dataStore.data
+                .first()[PreferredLyricsProviderKey]
+                .toEnum(PreferredLyricsProvider.LRCLIB)
+
+        val first =
+            when (preferred) {
+                PreferredLyricsProvider.LRCLIB -> LrcLibLyricsProvider
+                PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
+                PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
+                PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC -> PaxsenixAppleMusicLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_NETEASE -> PaxsenixNeteaseLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_SPOTIFY -> PaxsenixSpotifyLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> PaxsenixMusixmatchLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_KUGOU -> PaxsenixKuGouLyricsProvider
+            }
+
+        return listOf(first) + baseProviders.filterNot { provider -> provider == first }
+    }
+
+    private fun isMeaningfulLyrics(lyrics: String): Boolean {
+        val normalized =
+            lyrics
+                .replace("\uFEFF", "")
+                .replace(INVISIBLE_CHARS_REGEX, "")
+                .trim { it.isWhitespace() || it == '\u00A0' }
+
+        if (normalized.isEmpty()) return false
+        if (normalized == LYRICS_NOT_FOUND) return false
+
+        val remaining =
+            TIMESTAMP_REGEX
+                .replace(normalized, "")
+                .replace(INVISIBLE_CHARS_REGEX, "")
+                .trim { it.isWhitespace() || it == '\u00A0' }
+
+        return remaining.any { !it.isWhitespace() && it != '\u00A0' }
+    }
+
     fun cancelCurrentLyricsJob() {
         currentLyricsJob?.cancel()
         currentLyricsJob = null
     }
 
+    fun clearCache() {
+        cache.evictAll()
+    }
+
     companion object {
         private const val MAX_CACHE_SIZE = 3
+        private val TIMESTAMP_REGEX = Regex("""\[[0-9]{1,2}:[0-9]{2}(?:\.[0-9]{1,3})?]""")
+        private val INVISIBLE_CHARS_REGEX = Regex("""[\u200B\u200C\u200D\u2060\u00AD]""")
     }
 }
 

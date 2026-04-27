@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.ui.screens
 
 import androidx.annotation.DrawableRes
@@ -28,12 +38,20 @@ sealed class Screens(
 
     object Library : Screens(
         titleId = R.string.filter_library,
-        iconIdInactive = R.drawable.library_music_outlined,
-        iconIdActive = R.drawable.library_music_filled,
+        iconIdInactive = R.drawable.library_outlined,
+        iconIdActive = R.drawable.library_filled,
         route = "library"
     )
 
+    object MoodAndGenres : Screens(
+        titleId = R.string.mood_and_genres,
+        iconIdInactive = R.drawable.style,
+        iconIdActive = R.drawable.style,
+        route = "mood_and_genres"
+    )
+
     companion object {
-        val MainScreens = listOf(Home, Search, Library)
+        val MainScreens = listOf(Home, Search, MoodAndGenres, Library)
+        val TvMainScreens = listOf(Home, Search, Library)
     }
 }

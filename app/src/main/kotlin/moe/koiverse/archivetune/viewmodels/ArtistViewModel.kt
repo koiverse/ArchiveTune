@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.viewmodels
 
 import androidx.compose.runtime.getValue
@@ -74,9 +84,6 @@ class ArtistViewModel @Inject constructor(
             YouTube.artist(artistId)
                 .onSuccess { page ->
                     val filteredSections = page.sections
-                        .filterNot { section ->
-                            section.moreEndpoint?.browseId?.startsWith("MPLAUC") == true
-                        }
                         .map { section ->
                             section.copy(items = section.items.filterExplicit(hideExplicit))
                         }

@@ -1,20 +1,47 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 @file:Suppress("DEPRECATION")
 
 package moe.koiverse.archivetune.playback
 
 import android.app.PendingIntent
+import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.BroadcastReceiver
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothClass
+import android.content.pm.PackageManager
 import android.database.SQLException
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.AudioFocusRequest
 import android.media.AudioAttributes as LegacyAudioAttributes
 import android.media.audiofx.AudioEffect
+import android.media.audiofx.BassBoost
+import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
+import android.media.MediaCodecList
+import android.media.audiofx.Virtualizer
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.os.Binder
+import android.os.PowerManager
+import android.widget.Toast
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -31,10 +58,14 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
+import androidx.media3.datasource.cache.Cache
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -44,11 +75,10 @@ import androidx.media3.exoplayer.analytics.PlaybackStats
 import androidx.media3.exoplayer.analytics.PlaybackStatsListener
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
-import androidx.media3.extractor.ExtractorsFactory
-import androidx.media3.extractor.mkv.MatroskaExtractor
-import androidx.media3.extractor.mp4.FragmentedMp4Extractor
+import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
@@ -57,18 +87,33 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.innertube.models.SongItem
+import moe.koiverse.archivetune.lyrics.LyricsPreloadManager
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
 import moe.koiverse.archivetune.constants.AudioOffload
-import moe.koiverse.archivetune.constants.AudioCrossfadeDurationKey
+import moe.koiverse.archivetune.constants.CrossfadeDurationKey
+import moe.koiverse.archivetune.constants.CrossfadeEnabledKey
+import moe.koiverse.archivetune.constants.CrossfadeGaplessKey
 import moe.koiverse.archivetune.constants.AudioQualityKey
 import moe.koiverse.archivetune.constants.AutoLoadMoreKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
+import moe.koiverse.archivetune.constants.AutoStartOnBluetoothKey
+import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.DiscordTokenKey
+import moe.koiverse.archivetune.constants.EqualizerBandLevelsMbKey
+import moe.koiverse.archivetune.constants.EqualizerBassBoostEnabledKey
+import moe.koiverse.archivetune.constants.EqualizerBassBoostStrengthKey
+import moe.koiverse.archivetune.constants.EqualizerEnabledKey
+import moe.koiverse.archivetune.constants.EqualizerOutputGainEnabledKey
+import moe.koiverse.archivetune.constants.EqualizerOutputGainMbKey
+import moe.koiverse.archivetune.constants.EqualizerSelectedProfileIdKey
+import moe.koiverse.archivetune.constants.EqualizerVirtualizerEnabledKey
+import moe.koiverse.archivetune.constants.EqualizerVirtualizerStrengthKey
 import moe.koiverse.archivetune.constants.EnableDiscordRPCKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.HideVideoKey
@@ -78,13 +123,20 @@ import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleSta
 import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleRepeatMode
 import moe.koiverse.archivetune.constants.MediaSessionConstants.CommandToggleShuffle
 import moe.koiverse.archivetune.constants.PauseListenHistoryKey
+import moe.koiverse.archivetune.constants.PauseOnDeviceMuteKey
+import moe.koiverse.archivetune.constants.PermanentShuffleKey
 import moe.koiverse.archivetune.constants.PersistentQueueKey
+import moe.koiverse.archivetune.constants.PlayerStreamClient
+import moe.koiverse.archivetune.constants.PlayerStreamClientKey
 import moe.koiverse.archivetune.constants.PlayerVolumeKey
 import moe.koiverse.archivetune.constants.RepeatModeKey
 import moe.koiverse.archivetune.constants.ShowLyricsKey
-import moe.koiverse.archivetune.constants.SimilarContent
 import moe.koiverse.archivetune.constants.SkipSilenceKey
+import moe.koiverse.archivetune.constants.MaxSongCacheSizeKey
+import moe.koiverse.archivetune.constants.SmartTrimmerKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
+import moe.koiverse.archivetune.constants.WakelockKey
+import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.Event
 import moe.koiverse.archivetune.db.entities.FormatEntity
@@ -96,10 +148,12 @@ import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.db.entities.AlbumEntity
 import moe.koiverse.archivetune.di.DownloadCache
 import moe.koiverse.archivetune.di.PlayerCache
+import moe.koiverse.archivetune.innertube.PlaybackAuthState
 import moe.koiverse.archivetune.extensions.SilentHandler
 import moe.koiverse.archivetune.extensions.collect
 import moe.koiverse.archivetune.extensions.collectLatest
 import moe.koiverse.archivetune.extensions.currentMetadata
+import moe.koiverse.archivetune.extensions.directorySizeBytes
 import moe.koiverse.archivetune.extensions.findNextMediaItemById
 import moe.koiverse.archivetune.extensions.mediaItems
 import moe.koiverse.archivetune.extensions.metadata
@@ -122,13 +176,18 @@ import moe.koiverse.archivetune.playback.queues.filterVideo
 import moe.koiverse.archivetune.utils.CoilBitmapLoader
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
+import moe.koiverse.archivetune.utils.AuthScopedCacheValue
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
+import moe.koiverse.archivetune.utils.StreamClientUtils
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.utils.get
+import moe.koiverse.archivetune.utils.getAsync
 import moe.koiverse.archivetune.utils.isInternetAvailable
+import moe.koiverse.archivetune.utils.isLocalMediaId
 import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
+import moe.koiverse.archivetune.utils.retryWithoutPlaybackLoginContext
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import dagger.hilt.android.AndroidEntryPoint
@@ -142,6 +201,7 @@ import moe.koiverse.archivetune.constants.LastFMUseNowPlaying
 import moe.koiverse.archivetune.constants.ScrobbleDelayPercentKey
 import moe.koiverse.archivetune.constants.ScrobbleMinSongDurationKey
 import moe.koiverse.archivetune.constants.ScrobbleDelaySecondsKey
+import moe.koiverse.archivetune.constants.TogetherClientIdKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -156,29 +216,39 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import java.io.FileOutputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
+import java.io.Serializable
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.time.LocalDateTime
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.Notification
 import android.os.Build
-import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
+import androidx.core.app.NotificationCompat
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -202,11 +272,35 @@ class MusicService :
     private var audioFocusRequest: AudioFocusRequest? = null
     private var lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
     private var wasPlayingBeforeAudioFocusLoss = false
+    private var pauseOnDeviceMuteEnabled = false
+    private var wasAutoPausedByDeviceMute = false
     private var hasAudioFocus = false
+    private var duckingRecoveryJob: Job? = null
+    private var autoStartOnBluetoothEnabled = false
+    private var bluetoothReceiverRegistered = false
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var wakelockEnabled = false
+    private var audioDeviceCallbackRegistered = false
+    private var audioRouteRecoveryJob: Job? = null
+    private var lastAudioOutputDeviceSignature: String? = null
+    private var lastAudioRouteRecoveryRealtimeMs = 0L
+
+    private val audioDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
+            if (addedDevices.any { it.isSink }) onAudioOutputDeviceChanged()
+        }
+
+        override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
+            if (removedDevices.any { it.isSink }) onAudioOutputDeviceChanged()
+        }
+    }
 
     private var scopeJob = Job()
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
+    private var ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
     private val binder = MusicBinder()
+    private var hasBoundClients = false
+    private var idleStopJob: Job? = null
 
     private lateinit var connectivityManager: ConnectivityManager
     lateinit var connectivityObserver: NetworkConnectivityObserver
@@ -218,56 +312,358 @@ class MusicService :
         AudioQualityKey,
         moe.koiverse.archivetune.constants.AudioQuality.AUTO
     )
+    private val preferredStreamClient by enumPreference(
+        this,
+        PlayerStreamClientKey,
+        PlayerStreamClient.ANDROID_VR
+    )
+    private val playbackUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
+    private val contentLengthCache = ConcurrentHashMap<String, Long>()
+    private val mediaOkHttpClient: OkHttpClient by lazy {
+        OkHttpClient
+            .Builder()
+            .proxy(YouTube.streamProxy)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val host = request.url.host
+                val isYouTubeMediaHost =
+                    host.endsWith("googlevideo.com") ||
+                        host.endsWith("googleusercontent.com") ||
+                        host.endsWith("youtube.com") ||
+                        host.endsWith("youtube-nocookie.com") ||
+                        host.endsWith("ytimg.com")
+
+                if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
+
+                val requestProfile = StreamClientUtils.resolveRequestProfile(request.url)
+                chain.proceed(
+                    StreamClientUtils.applyRequestProfile(
+                        request.newBuilder(),
+                        requestProfile,
+                    ).build()
+                )
+            }.build()
+    }
 
     private var currentQueue: Queue = EmptyQueue
     var queueTitle: String? = null
+    private val persistentStateLock = Any()
+    @Volatile
+    private var isRestoringPersistentState = false
+    @Volatile
+    private var suppressAutoPlayback = false
     private var lastPresenceToken: String? = null
     @Volatile
     private var lastPresenceUpdateTime = 0L
+    @Volatile
+    private var lastLoginRecoveryPrompt: Pair<String, Long>? = null
+    private val playbackStreamRecoveryTracker = PlaybackStreamRecoveryTracker()
+    private var nextHistorySessionToken = 0L
+    private var currentHistorySessionToken = 0L
+    private var currentHistoryMediaId: String? = null
+    private var currentHistoryAccumulatedPlayMs = 0L
+    private var currentHistoryStartedAtElapsedMs: Long? = null
+    private var currentHistoryEventId: Long? = null
+    private var currentHistoryRemoteRegistered = false
+    private var currentHistoryImmediateAttempted = false
+    private var currentHistorySessionQueued = false
+    private var historyThresholdJob: Job? = null
+    private val pendingHistoryFinalizations = mutableMapOf<String, MutableList<PendingHistoryFinalization>>()
+    private val historyRecordingJobs = ConcurrentHashMap<Long, kotlinx.coroutines.Deferred<ImmediateHistoryResult>>()
 
     val currentMediaMetadata = MutableStateFlow<moe.koiverse.archivetune.models.MediaMetadata?>(null)
+    val queueRestoreCompleted = MutableStateFlow(false)
+    val infiniteQueueLoading = MutableStateFlow(false)
     private val currentSong =
         currentMediaMetadata
             .flatMapLatest { mediaMetadata ->
                 database.song(mediaMetadata?.id)
-            }.stateIn(scope, SharingStarted.Lazily, null)
+            }.flowOn(Dispatchers.IO)
+            .stateIn(scope, SharingStarted.Lazily, null)
     private val currentFormat =
         currentMediaMetadata.flatMapLatest { mediaMetadata ->
             database.format(mediaMetadata?.id)
-        }
+        }.flowOn(Dispatchers.IO)
 
     private val normalizeFactor = MutableStateFlow(1f)
     var playerVolume = MutableStateFlow(1f)
+    private val audioFocusVolumeFactor = MutableStateFlow(1f)
+    private var crossfadeAudioProcessor: CrossfadeAudioProcessor? = null
+    private var lyricsPreloadManager: LyricsPreloadManager? = null
+
+    private data class CrossfadeConfig(
+        val enabled: Boolean,
+        val durationSeconds: Float,
+        val gapless: Boolean,
+        val offload: Boolean,
+    )
+
+    private data class PendingHistoryFinalization(
+        val sessionToken: Long,
+        val eventId: Long?,
+        val remoteRegistered: Boolean,
+    )
+
+    private data class ImmediateHistoryResult(
+        val eventId: Long?,
+        val remoteRegistered: Boolean,
+    )
+
+    private fun isAppInForeground(): Boolean {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+        return appProcesses.any { processInfo ->
+            processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
+                processInfo.processName == packageName
+        }
+    }
+
+    private fun promptLoginRecovery(mediaId: String, targetUrl: String) {
+        if (!isAppInForeground()) return
+
+        val now = System.currentTimeMillis()
+        val lastPrompt = lastLoginRecoveryPrompt
+        if (lastPrompt?.first == mediaId && now - lastPrompt.second < 10000L) return
+        lastLoginRecoveryPrompt = mediaId to now
+
+        val deepLink = Uri.parse("archivetune://login?url=${Uri.encode(targetUrl)}")
+        val intent = Intent(Intent.ACTION_VIEW, deepLink, this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+
+        runCatching {
+            startActivity(intent)
+        }.onFailure {
+            Timber.e(it, "Failed to open login recovery for %s", mediaId)
+        }
+    }
 
     lateinit var sleepTimer: SleepTimer
 
     @Inject
     @PlayerCache
-    lateinit var playerCache: SimpleCache
+    lateinit var playerCache: Cache
 
     @Inject
     @DownloadCache
-    lateinit var downloadCache: SimpleCache
+    lateinit var downloadCache: Cache
 
     lateinit var player: ExoPlayer
     private lateinit var mediaSession: MediaLibrarySession
 
     private var isAudioEffectSessionOpened = false
+    private var openedAudioSessionId: Int? = null
+    val eqCapabilities = MutableStateFlow<EqCapabilities?>(null)
+    private val desiredEqSettings =
+        MutableStateFlow(
+            EqSettings(
+                enabled = false,
+                bandLevelsMb = emptyList(),
+                outputGainEnabled = false,
+                outputGainMb = 0,
+                bassBoostEnabled = false,
+                bassBoostStrength = 0,
+                virtualizerEnabled = false,
+                virtualizerStrength = 0,
+            ),
+        )
+
+    private var audioEffectsSessionId: Int? = null
+    private var equalizer: Equalizer? = null
+    private var bassBoost: BassBoost? = null
+    private var virtualizer: Virtualizer? = null
+    private var loudnessEnhancer: LoudnessEnhancer? = null
 
     private var discordRpc: DiscordRPC? = null
     private var lastDiscordUpdateTime = 0L
 
     private var scrobbleManager: moe.koiverse.archivetune.utils.ScrobbleManager? = null
 
-    val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
+
+    val autoAddedMediaIds: MutableSet<String> = java.util.Collections.synchronizedSet(mutableSetOf())
 
     private var consecutivePlaybackErr = 0
 
     val maxSafeGainFactor = 1.414f // +3 dB
-    private val crossfadeProcessor = CrossfadeAudioProcessor()
+    @Volatile
+    private var hasCalledStartForeground = false
+
+    val togetherSessionState = MutableStateFlow<moe.koiverse.archivetune.together.TogetherSessionState>(
+        moe.koiverse.archivetune.together.TogetherSessionState.Idle,
+    )
+    private var togetherServer: moe.koiverse.archivetune.together.TogetherServer? = null
+    private var togetherOnlineHost: moe.koiverse.archivetune.together.TogetherOnlineHost? = null
+    private var togetherClient: moe.koiverse.archivetune.together.TogetherClient? = null
+    private var togetherBroadcastJob: Job? = null
+    private var togetherOnlineConnectJob: Job? = null
+    private var togetherClientEventsJob: Job? = null
+    private var togetherHeartbeatJob: Job? = null
+    private var togetherClock: moe.koiverse.archivetune.together.TogetherClock? = null
+    private var togetherSelfParticipantId: String? = null
+    private var togetherLastAppliedQueueHash: String? = null
+    private var togetherIsOnlineSession: Boolean = false
+    @Volatile
+    private var togetherApplyingRemote: Boolean = false
+    @Volatile
+    private var togetherSuppressEchoUntilElapsedMs: Long = 0L
+    @Volatile
+    private var togetherLastAppliedRoomStateSentAtElapsedMs: Long = 0L
+    @Volatile
+    private var togetherLastRemoteAppliedPlayWhenReady: Boolean? = null
+    @Volatile
+    private var togetherLastRemoteAppliedIndex: Int = -1
+    @Volatile
+    private var togetherLastSentControlAtElapsedMs: Long = 0L
+    @Volatile
+    private var togetherLastSentControlAction: moe.koiverse.archivetune.together.ControlAction? = null
+    @Volatile
+    private var togetherPendingGuestControl: TogetherPendingGuestControl? = null
+
+    private fun isTogetherApplyingRemote(): Boolean = togetherApplyingRemote
+    private val togetherHostId: String = "host"
+    private var lastTogetherNoticeAtElapsedMs: Long = 0L
+    private var lastTogetherNoticeKey: String? = null
+
+    private data class TogetherPendingGuestControl(
+        val desiredIsPlaying: Boolean? = null,
+        val desiredIndex: Int? = null,
+        val desiredTrackId: String? = null,
+        val requestedAtElapsedMs: Long,
+        val expiresAtElapsedMs: Long,
+    )
+
+    private fun showTogetherNotice(message: String, key: String? = null) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        val normalizedKey = key ?: message
+        if (normalizedKey == lastTogetherNoticeKey && now - lastTogetherNoticeAtElapsedMs < 1200L) return
+        lastTogetherNoticeKey = normalizedKey
+        lastTogetherNoticeAtElapsedMs = now
+        scope.launch(SilentHandler) {
+            Toast.makeText(this@MusicService, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private suspend fun getOrCreateTogetherClientId(): String {
+        val existing = dataStore.getAsync(TogetherClientIdKey)?.trim().orEmpty()
+        if (existing.isNotBlank()) return existing
+        val generated = java.util.UUID.randomUUID().toString()
+        dataStore.edit { prefs -> prefs[TogetherClientIdKey] = generated }
+        return generated
+    }
+
+    private fun ensureStartedAsForeground() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        if (hasCalledStartForeground) return
+
+        val notification =
+            try {
+                val contentIntent =
+                    PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+
+                NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.small_icon)
+                    .setContentTitle(getString(R.string.music_player))
+                    .setContentText(getString(R.string.app_name))
+                    .setContentIntent(contentIntent)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .build()
+            } catch (e: Exception) {
+                reportException(e)
+                return
+            }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            hasCalledStartForeground = true
+        } catch (e: Exception) {
+            reportException(e)
+        }
+    }
+
+    private fun promoteToStartedService() {
+        runCatching { startService(Intent(this, MusicService::class.java)) }
+            .onFailure { reportException(it) }
+    }
+
+    private fun cancelIdleStop() {
+        idleStopJob?.cancel()
+        idleStopJob = null
+    }
+
+    private fun stopForegroundAndSelf() {
+        cancelIdleStop()
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                stopForeground(true)
+            }
+        }
+        hasCalledStartForeground = false
+        stopSelf()
+    }
+
+    private fun scheduleStopIfIdle() {
+        if (hasBoundClients) return
+        val state = player.playbackState
+        val keepAlive =
+            player.isPlaying ||
+                (player.playWhenReady && (state == Player.STATE_BUFFERING || state == Player.STATE_READY))
+        if (keepAlive) {
+            cancelIdleStop()
+            return
+        }
+        val togetherIdle = togetherSessionState.value is moe.koiverse.archivetune.together.TogetherSessionState.Idle
+        if (!togetherIdle) {
+            cancelIdleStop()
+            return
+        }
+
+        val delayMs =
+            when (state) {
+                Player.STATE_READY -> 5 * 60_000L
+                Player.STATE_ENDED, Player.STATE_IDLE -> 30_000L
+                else -> 60_000L
+            }
+
+        cancelIdleStop()
+        idleStopJob =
+            scope.launch {
+                delay(delayMs)
+                if (hasBoundClients) return@launch
+                val currentState = player.playbackState
+                val shouldKeep =
+                    player.isPlaying ||
+                        (player.playWhenReady && (currentState == Player.STATE_BUFFERING || currentState == Player.STATE_READY))
+                if (shouldKeep) return@launch
+                if (togetherSessionState.value !is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return@launch
+                stopForegroundAndSelf()
+            }
+    }
 
     override fun onCreate() {
         super.onCreate()
+        ensureScopesActive()
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -284,20 +680,16 @@ class MusicService :
             reportException(e)
         }
 
-        
         player =
             ExoPlayer
                 .Builder(this)
                 .setMediaSourceFactory(createMediaSourceFactory())
-                .setRenderersFactory(createRenderersFactory())
+                .setRenderersFactory(createRenderersFactory { crossfadeAudioProcessor = it })
+                .setTrackSelector(DefaultTrackSelector(this, SafeTrackSelectionFactory()))
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setAudioAttributes(
-                    AudioAttributes
-                        .Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
+                    playbackAudioAttributes(),
                     false,
                 ).setSeekBackIncrementMs(5000)
                 .setSeekForwardIncrementMs(5000)
@@ -312,7 +704,16 @@ class MusicService :
                 }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            audioManager.setAllowedCapturePolicy(android.media.AudioAttributes.ALLOW_CAPTURE_BY_ALL)
+        }
+        wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ArchiveTune:Playback")
+            .also { it.setReferenceCounted(false) }
         setupAudioFocusRequest()
+        audioManager.registerAudioDeviceCallback(audioDeviceCallback, android.os.Handler(mainLooper))
+        audioDeviceCallbackRegistered = true
+        lastAudioOutputDeviceSignature = currentAudioOutputDeviceSignature()
 
         mediaLibrarySessionCallback.apply {
             toggleLike = ::toggleLike
@@ -356,7 +757,7 @@ class MusicService :
             withContext(Dispatchers.Main) {
                 player.repeatMode = repeatMode
                 playerVolume.value = volume
-                player.setOffloadEnabled(offload)
+                updateAudioOffload(offload)
             }
         }
 
@@ -367,9 +768,10 @@ class MusicService :
             connectivityObserver.networkStatus.collect { isConnected ->
                 isNetworkConnected.value = isConnected
                 if (isConnected && waitingForNetworkConnection.value) {
-                    // Simple auto-play logic like OuterTune
                     waitingForNetworkConnection.value = false
-                    if (player.currentMediaItem != null && player.playWhenReady) {
+                    if (player.currentMediaItem != null && player.playWhenReady &&
+                        player.playbackState == Player.STATE_IDLE
+                    ) {
                         player.prepare()
                         player.play()
                     }
@@ -377,14 +779,13 @@ class MusicService :
             }
         }
 
-        combine(playerVolume, normalizeFactor) { playerVolume, normalizeFactor ->
-            playerVolume * normalizeFactor
+        combine(playerVolume, normalizeFactor, audioFocusVolumeFactor) { playerVolume, normalizeFactor, audioFocusVolumeFactor ->
+            calculateEffectivePlayerVolume(playerVolume, normalizeFactor, audioFocusVolumeFactor)
         }.collectLatest(scope) { finalVolume ->
-            Timber.tag("AudioNormalization").d("Setting player volume: $finalVolume (playerVolume: ${playerVolume.value}, normalizeFactor: ${normalizeFactor.value})")
             player.volume = finalVolume
         }
 
-        playerVolume.debounce(1000).collect(scope) { volume ->
+        playerVolume.debounce(1000).collect(ioScope) { volume ->
             dataStore.edit { settings ->
                 settings[PlayerVolumeKey] = volume
             }
@@ -404,7 +805,7 @@ class MusicService :
             dataStore.data.map { it[ShowLyricsKey] ?: false }.distinctUntilChanged(),
         ) { mediaMetadata, showLyrics ->
             mediaMetadata to showLyrics
-        }.collectLatest(scope) { (mediaMetadata, showLyrics) ->
+        }.collectLatest(ioScope) { (mediaMetadata, showLyrics) ->
             if (showLyrics && mediaMetadata != null && database.lyrics(mediaMetadata.id)
                     .first() == null
             ) {
@@ -426,12 +827,94 @@ class MusicService :
             .collectLatest(scope) {
                 player.skipSilenceEnabled = it
             }
+
+        dataStore.data
+            .map { it[PauseOnDeviceMuteKey] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                pauseOnDeviceMuteEnabled = enabled
+                if (!enabled) {
+                    wasAutoPausedByDeviceMute = false
+                } else {
+                    handleDeviceMuteStateChanged()
+                }
+            }
+
+        dataStore.data
+            .map { it[AutoStartOnBluetoothKey] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                autoStartOnBluetoothEnabled = enabled
+                if (enabled) {
+                    registerBluetoothReceiver()
+                } else {
+                    unregisterBluetoothReceiver()
+                }
+            }
+
+        dataStore.data
+            .map { it[AudioOffload] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                updateAudioOffload(enabled)
+                if (enabled) {
+                    val skipSilenceEnabled = dataStore.get(SkipSilenceKey, false)
+                    if (skipSilenceEnabled) {
+                        dataStore.edit { it[SkipSilenceKey] = false }
+                        player.skipSilenceEnabled = false
+                    }
+                    val crossfadeEnabled = dataStore.get(CrossfadeEnabledKey, false)
+                    if (crossfadeEnabled) {
+                        dataStore.edit { it[CrossfadeEnabledKey] = false }
+                    }
+                }
+            }
         
         dataStore.data
-            .map { (it[AudioCrossfadeDurationKey] ?: 0) * 1000 }
+            .map { prefs ->
+                val enabled = prefs[CrossfadeEnabledKey] ?: false
+                val durationSeconds = prefs[CrossfadeDurationKey] ?: 5f
+                val gapless = prefs[CrossfadeGaplessKey] ?: true
+                val offload = prefs[AudioOffload] ?: false
+                CrossfadeConfig(
+                    enabled = enabled,
+                    durationSeconds = durationSeconds,
+                    gapless = gapless,
+                    offload = offload,
+                )
+            }
             .distinctUntilChanged()
-            .collectLatest(scope) {
-                crossfadeProcessor.crossfadeDurationMs = it
+            .collectLatest(scope) { config ->
+                val durationMs =
+                    if (!config.offload && config.enabled) {
+                        (config.durationSeconds.coerceIn(0f, 10f) * 1000f).roundToInt().coerceAtLeast(0)
+                    } else {
+                        0
+                    }
+                crossfadeAudioProcessor?.crossfadeDurationMs = durationMs
+            }
+
+        dataStore.data
+            .map { it[WakelockKey] ?: false }
+            .distinctUntilChanged()
+            .collectLatest(scope) { enabled ->
+                wakelockEnabled = enabled
+                updateWakeLock()
+            }
+
+        // Initialize lyrics pre-load manager
+        lyricsPreloadManager = LyricsPreloadManager(
+            context = this,
+            database = database,
+            networkConnectivity = connectivityObserver,
+        )
+
+        dataStore.data
+            .map(::readEqSettingsFromPrefs)
+            .distinctUntilChanged()
+            .collectLatest(scope) { settings ->
+                desiredEqSettings.value = settings
+                applyEqSettingsToEffects(settings)
             }
 
         combine(
@@ -477,32 +960,50 @@ class MusicService :
             .map { it[DiscordTokenKey] to (it[EnableDiscordRPCKey] ?: true) }
             .debounce(300)
             .distinctUntilChanged()
-            .collect(scope) { (key, enabled) ->
-                    try {
-                        if (discordRpc?.isRpcRunning() == true) {
-                            discordRpc?.closeRPC()
+            .collectLatest(scope) { (key, enabled) ->
+                val newRpc =
+                    withContext(Dispatchers.IO) {
+                        if (!key.isNullOrBlank() && enabled) {
+                            runCatching { DiscordRPC(this@MusicService, key) }
+                                .onFailure { Timber.tag("MusicService").e(it, "failed to create DiscordRPC client") }
+                                .getOrNull()
+                        } else {
+                            null
                         }
-                    } catch (_: Exception) {}
-                    discordRpc = null
-                    if (!key.isNullOrBlank() && enabled) {
-                        try {
-                            discordRpc = DiscordRPC(this, key)
-                        } catch (ex: Exception) {
-                            Timber.tag("MusicService").e(ex, "failed to create DiscordRPC client")
-                            discordRpc = null
-                        }
-
-                        if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
-                            currentSong.value?.let {
-                                ensurePresenceManager()
-                            }
-                        }
-                    } else {
-                        try { DiscordPresenceManager.stop() } catch (_: Exception) {}
-                        try { discordRpc?.closeRPC() } catch (_: Exception) {}
-                        discordRpc = null
                     }
-        }
+
+                try {
+                    if (discordRpc?.isRpcRunning() == true) {
+                        withContext(Dispatchers.IO) { discordRpc?.closeRPC() }
+                    }
+                } catch (_: Exception) {}
+                discordRpc = newRpc
+
+                if (discordRpc != null) {
+                    if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
+                        currentSong.value?.let {
+                            ensurePresenceManager()
+                        }
+                    }
+                } else {
+                    try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+                }
+            }
+
+        dataStore.data
+            .map { prefs ->
+                (prefs[SmartTrimmerKey] ?: false) to (prefs[MaxSongCacheSizeKey] ?: 1024)
+            }
+            .debounce(300)
+            .distinctUntilChanged()
+            .collectLatest(ioScope) { (enabled, maxSongCacheSizeMb) ->
+                if (!enabled) return@collectLatest
+                if (maxSongCacheSizeMb <= 0 || maxSongCacheSizeMb == -1) return@collectLatest
+                val bytesPerMb = 1024L * 1024L
+                val safeSizeMb = maxSongCacheSizeMb.toLong().coerceAtMost(Long.MAX_VALUE / bytesPerMb)
+                val limitBytes = safeSizeMb * bytesPerMb
+                trimPlayerCacheToBytes(limitBytes)
+            }
 
         // Last.fm ScrobbleManager setup
         dataStore.data
@@ -516,7 +1017,7 @@ class MusicService :
                     val delaySeconds = dataStore.get(ScrobbleDelaySecondsKey, LastFM.DEFAULT_SCROBBLE_DELAY_SECONDS)
                     
                     scrobbleManager = moe.koiverse.archivetune.utils.ScrobbleManager(
-                        scope,
+                        ioScope,
                         minSongDuration = minSongDuration,
                         scrobbleDelayPercent = delayPercent,
                         scrobbleDelaySeconds = delaySeconds
@@ -554,53 +1055,40 @@ class MusicService :
 
         scope.launch(Dispatchers.IO) {
             if (dataStore.get(PersistentQueueKey, true)) {
-                runCatching {
-                    filesDir.resolve(PERSISTENT_QUEUE_FILE).inputStream().use { fis ->
-                        ObjectInputStream(fis).use { oos ->
-                            oos.readObject() as PersistQueue
-                        }
-                    }
-                }.onSuccess { queue ->
-                    val restoredQueue = queue.toQueue()
-                    withContext(Dispatchers.Main) {
-                        playQueue(
-                            queue = restoredQueue,
-                            playWhenReady = false,
-                        )
-                    }
+                val persistedQueue = readPersistentObject<PersistQueue>(PERSISTENT_QUEUE_FILE)
+                val persistedPlayerState = readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
+
+                if (persistedQueue != null || persistedPlayerState != null) {
+                    isRestoringPersistentState = true
                 }
-                runCatching {
-                    filesDir.resolve(PERSISTENT_AUTOMIX_FILE).inputStream().use { fis ->
-                        ObjectInputStream(fis).use { oos ->
-                            oos.readObject() as PersistQueue
-                        }
+
+                try {
+                    persistedQueue?.let { queue ->
+                        restorePersistentQueue(queue)
                     }
-                }.onSuccess { queue ->
-                    val items = queue.items.map { it.toMediaItem() }
-                    withContext(Dispatchers.Main) {
-                        automixItems.value = items
+                    persistedPlayerState?.let { playerState ->
+                        restorePersistentPlayerState(playerState)
                     }
+                } finally {
+                    isRestoringPersistentState = false
                 }
-                
-                runCatching {
-                    filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).inputStream().use { fis ->
-                        ObjectInputStream(fis).use { oos ->
-                            oos.readObject() as PersistPlayerState
-                        }
-                    }
-                }.onSuccess { playerState ->
-                    delay(1000)
+            }
+            withContext(Dispatchers.Main) {
+                queueRestoreCompleted.value = true
+            }
+
+            val shouldCheckBluetooth = withContext(Dispatchers.Main) {
+                player.mediaItemCount > 0 && !player.playWhenReady
+            }
+            if (shouldCheckBluetooth) {
+                val btAutoStart = withContext(Dispatchers.IO) {
+                    dataStore.get(AutoStartOnBluetoothKey, false)
+                }
+                if (btAutoStart) {
                     withContext(Dispatchers.Main) {
-                        player.repeatMode = playerState.repeatMode
-                        player.shuffleModeEnabled = playerState.shuffleModeEnabled
-                        player.volume = playerState.volume
-                        
-                        if (playerState.currentMediaItemIndex < player.mediaItemCount) {
-                            player.seekTo(playerState.currentMediaItemIndex, playerState.currentPosition)
+                        if (isBluetoothAudioConnected()) {
+                            handleBluetoothAutoStart()
                         }
-                        
-                        currentMediaMetadata.value = player.currentMetadata
-                        updateNotification()
                     }
                 }
             }
@@ -610,23 +1098,105 @@ class MusicService :
         // Save queue periodically to prevent queue loss from crash or force kill
         scope.launch {
             while (isActive) {
-                delay(30.seconds)
+                val interval = if (player.isPlaying) 10.seconds else 30.seconds
+                delay(interval)
                 val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
                 if (shouldSave) {
                     saveQueueToDisk()
                 }
             }
         }
-        
-        // Save queue more frequently when playing to ensure state is preserved
-        scope.launch {
-            while (isActive) {
-                delay(10.seconds)
-                val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
-                if (shouldSave && player.isPlaying) {
-                    saveQueueToDisk()
+    }
+
+    private fun ensureScopesActive() {
+        if (!scopeJob.isActive) {
+            scopeJob = Job()
+        }
+        if (!scope.isActive) {
+            scope = CoroutineScope(Dispatchers.Main + scopeJob)
+        }
+        if (!ioScope.isActive) {
+            ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
+        }
+    }
+
+    private suspend fun restorePersistentQueue(persistedQueue: PersistQueue) {
+        val restoredQueue = persistedQueue.toQueue()
+        val hideExplicit = dataStore.get(HideExplicitKey, false)
+        val hideVideo = dataStore.get(HideVideoKey, false)
+        val initialStatus =
+            restoredQueue
+                .getInitialStatus()
+                .filterExplicit(hideExplicit)
+                .filterVideo(hideVideo)
+
+        withContext(Dispatchers.Main) {
+            currentQueue = restoredQueue
+            queueTitle = initialStatus.title
+
+            val items = initialStatus.items
+            if (items.isEmpty()) {
+                return@withContext
+            }
+
+            val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
+            val windowStart = (fullIndex - 20).coerceAtLeast(0)
+            val windowEnd = (fullIndex + 50).coerceAtMost(items.size)
+
+            val initialChunk = items.subList(windowStart, windowEnd)
+            val relativeIndex = (fullIndex - windowStart).coerceIn(0, initialChunk.lastIndex)
+
+            player.setMediaItems(
+                initialChunk,
+                relativeIndex,
+                initialStatus.position,
+            )
+            player.prepare()
+            player.playWhenReady = false
+            currentMediaMetadata.value = player.currentMetadata
+            updateNotification()
+
+            if (items.size > initialChunk.size) {
+                scope.launch(SilentHandler) {
+                    delay(2000)
+                    if (!isActive || player.mediaItemCount == 0) return@launch
+                    if (windowStart > 0) {
+                        player.addMediaItems(0, items.subList(0, windowStart))
+                    }
+                    if (windowEnd < items.size) {
+                        player.addMediaItems(items.subList(windowEnd, items.size))
+                    }
                 }
             }
+        }
+    }
+
+    private suspend fun restorePersistentPlayerState(playerState: PersistPlayerState) {
+        withContext(Dispatchers.Main) {
+            player.repeatMode = playerState.repeatMode
+            player.shuffleModeEnabled = playerState.shuffleModeEnabled
+            playerVolume.value = playerState.volume.coerceIn(0f, 1f)
+
+            if (player.mediaItemCount > 0) {
+                val index =
+                    if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
+                        playerState.currentMediaItemIndex
+                    } else {
+                        player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
+                    }
+                player.seekTo(index, playerState.currentPosition.coerceAtLeast(0L))
+            }
+
+            val shouldResumePlayback =
+                playerState.playWhenReady && player.mediaItemCount > 0
+            if (shouldResumePlayback) {
+                promoteToStartedService()
+                ensureStartedAsForeground()
+            }
+            player.playWhenReady = shouldResumePlayback
+
+            currentMediaMetadata.value = player.currentMetadata.takeIf { player.mediaItemCount > 0 }
+            updateNotification()
         }
     }
 
@@ -709,23 +1279,148 @@ class MusicService :
             .build()
     }
 
+    private fun onAudioOutputDeviceChanged() {
+        if (!::player.isInitialized) return
+        val outputSignature = currentAudioOutputDeviceSignature()
+        if (outputSignature == lastAudioOutputDeviceSignature) return
+        lastAudioOutputDeviceSignature = outputSignature
+        player.setAudioAttributes(playbackAudioAttributes(), false)
+        audioRouteRecoveryJob?.cancel()
+        audioRouteRecoveryJob =
+            scope.launch {
+                delay(AUDIO_ROUTE_CHANGE_DEBOUNCE_MS)
+                recoverAudioRouteAfterDeviceChange()
+            }
+    }
+
+    private suspend fun recoverAudioRouteAfterDeviceChange() {
+        if (!::player.isInitialized) return
+
+        rebindAudioEffectsAfterRouteChange()
+
+        if (!shouldRebuildPlaybackForAudioRouteChange()) return
+
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastAudioRouteRecoveryRealtimeMs < AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS) return
+        lastAudioRouteRecoveryRealtimeMs = now
+
+        val mediaItemIndex = player.currentMediaItemIndex.takeIf { it != C.INDEX_UNSET } ?: return
+        val playbackPosition = player.currentPosition.coerceAtLeast(0L)
+        val shouldResumePlayback = player.playWhenReady
+
+        Timber.tag("MusicService").i(
+            "Recovering audio route after output change at index=$mediaItemIndex position=$playbackPosition resume=$shouldResumePlayback"
+        )
+
+        if (shouldResumePlayback) {
+            requestAudioFocus()
+        }
+
+        player.playWhenReady = false
+        player.prepare()
+        player.seekTo(mediaItemIndex, playbackPosition)
+        delay(AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS)
+
+        if (shouldResumePlayback && player.currentMediaItem != null && player.playbackState != Player.STATE_ENDED) {
+            player.playWhenReady = true
+        }
+    }
+
+    private suspend fun rebindAudioEffectsAfterRouteChange() {
+        if (!isAudioEffectSessionOpened) return
+        closeAudioEffectSession()
+        if (!player.playWhenReady) return
+        delay(AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS)
+        openAudioEffectSession()
+    }
+
+    private fun shouldRebuildPlaybackForAudioRouteChange(): Boolean {
+        if (player.currentMediaItem == null) return false
+        if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) return false
+        return player.playWhenReady || player.playbackState == Player.STATE_BUFFERING
+    }
+
+    private fun currentAudioOutputDeviceSignature(): String =
+        runCatching {
+            audioManager
+                .getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                .asSequence()
+                .filter { it.isSink }
+                .sortedWith(
+                    compareBy<AudioDeviceInfo>(
+                        { it.type },
+                        { it.id },
+                        { it.productName?.toString().orEmpty() },
+                    ),
+                ).joinToString(separator = "|") { device ->
+                    "${device.type}:${device.id}:${device.productName?.toString().orEmpty()}"
+                }
+        }.getOrDefault("")
+
+    private fun playbackAudioAttributes(): AudioAttributes =
+        AudioAttributes
+            .Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .setAllowedCapturePolicy(C.ALLOW_CAPTURE_BY_ALL)
+            .build()
+
+    private fun calculateEffectivePlayerVolume(
+        playerVolume: Float,
+        normalizeFactor: Float,
+        audioFocusVolumeFactor: Float,
+    ): Float {
+        val safePlayerVolume = playerVolume.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: 1f
+        val safeNormalizeFactor = normalizeFactor.takeIf { it.isFinite() }?.coerceIn(0f, maxSafeGainFactor) ?: 1f
+        val safeAudioFocusVolumeFactor = audioFocusVolumeFactor.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: 1f
+        return (safePlayerVolume * safeNormalizeFactor * safeAudioFocusVolumeFactor).coerceIn(0f, maxSafeGainFactor)
+    }
+
+    private fun shouldKeepPlaybackAudible(): Boolean {
+        if (!::player.isInitialized) return false
+        if (player.currentMediaItem == null || !player.playWhenReady) return false
+        return player.playbackState != Player.STATE_IDLE && player.playbackState != Player.STATE_ENDED
+    }
+
+    private fun restoreAudioFocusVolume() {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = null
+        audioFocusVolumeFactor.value = 1f
+        hasAudioFocus = true
+        lastAudioFocusState = AudioManager.AUDIOFOCUS_GAIN
+    }
+
+    private fun scheduleDuckingRecovery() {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = scope.launch {
+            delay(AUDIO_FOCUS_DUCKING_RECOVERY_DELAY_MS)
+            if (!isActive) return@launch
+            if (lastAudioFocusState != AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) return@launch
+            if (audioFocusVolumeFactor.value >= 1f || !shouldKeepPlaybackAudible()) return@launch
+            requestAudioFocus()
+        }
+    }
+
     private fun handleAudioFocusChange(focusChange: Int) {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = null
+
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 hasAudioFocus = true
+                audioFocusVolumeFactor.value = 1f
 
                 if (wasPlayingBeforeAudioFocusLoss) {
                     player.play()
                     wasPlayingBeforeAudioFocusLoss = false
                 }
 
-                player.volume = (playerVolume.value * normalizeFactor.value)
-
                 lastAudioFocusState = focusChange
             }
 
             AudioManager.AUDIOFOCUS_LOSS -> {
                 hasAudioFocus = false
+                audioFocusVolumeFactor.value = 1f
                 wasPlayingBeforeAudioFocusLoss = false
 
                 if (player.isPlaying) {
@@ -739,6 +1434,7 @@ class MusicService :
 
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 hasAudioFocus = false
+                audioFocusVolumeFactor.value = 1f
                 wasPlayingBeforeAudioFocusLoss = player.isPlaying
 
                 if (player.isPlaying) {
@@ -754,31 +1450,29 @@ class MusicService :
 
                 wasPlayingBeforeAudioFocusLoss = player.isPlaying
 
-                if (player.isPlaying) {
-                    player.volume = (playerVolume.value * normalizeFactor.value * 0.2f) // خفض إلى 20%
-                }
+                audioFocusVolumeFactor.value = AUDIO_FOCUS_DUCK_VOLUME_FACTOR
 
                 lastAudioFocusState = focusChange
+
+                scheduleDuckingRecovery()
             }
 
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
 
                 hasAudioFocus = true
+                audioFocusVolumeFactor.value = 1f
 
                 if (wasPlayingBeforeAudioFocusLoss) {
                     player.play()
                     wasPlayingBeforeAudioFocusLoss = false
                 }
-
-                player.volume = (playerVolume.value * normalizeFactor.value)
         
                 lastAudioFocusState = focusChange
             }
 
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK -> {
                 hasAudioFocus = true
-
-                player.volume = (playerVolume.value * normalizeFactor.value)
+                audioFocusVolumeFactor.value = 1f
 
                 lastAudioFocusState = focusChange
             }
@@ -786,17 +1480,27 @@ class MusicService :
     }
 
     private fun requestAudioFocus(): Boolean {
-        if (hasAudioFocus) return true
+        if (hasAudioFocus) {
+            if (audioFocusVolumeFactor.value != 1f || lastAudioFocusState == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                restoreAudioFocusVolume()
+            }
+            return true
+        }
     
         audioFocusRequest?.let { request ->
             val result = audioManager.requestAudioFocus(request)
             hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            if (hasAudioFocus) {
+                restoreAudioFocusVolume()
+            }
             return hasAudioFocus
         }
         return false
     }
 
     private fun abandonAudioFocus() {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = null
         if (hasAudioFocus) {
             audioFocusRequest?.let { request ->
                 audioManager.abandonAudioFocusRequest(request)
@@ -807,6 +1511,125 @@ class MusicService :
 
     fun hasAudioFocusForPlayback(): Boolean {
         return hasAudioFocus
+    }
+
+    private fun isDeviceMutedNow(): Boolean {
+        return player.isDeviceMuted || player.deviceVolume <= 0
+    }
+
+    private fun isTogetherGuestSession(): Boolean {
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        return joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest
+    }
+
+    private fun handleDeviceMuteStateChanged() {
+        if (!pauseOnDeviceMuteEnabled || isTogetherGuestSession()) {
+            wasAutoPausedByDeviceMute = false
+            return
+        }
+
+        if (isDeviceMutedNow()) {
+            val canPauseNow =
+                player.currentMediaItem != null &&
+                    player.playWhenReady &&
+                    player.playbackState != Player.STATE_IDLE &&
+                    player.playbackState != Player.STATE_ENDED
+
+            if (canPauseNow) {
+                player.pause()
+                wasAutoPausedByDeviceMute = true
+            }
+            return
+        }
+
+        if (!wasAutoPausedByDeviceMute) return
+
+        wasAutoPausedByDeviceMute = false
+        val canResumeNow =
+            player.currentMediaItem != null &&
+                player.playbackState != Player.STATE_IDLE &&
+                player.playbackState != Player.STATE_ENDED
+        if (canResumeNow) {
+            player.play()
+        }
+    }
+
+    private val bluetoothReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != BluetoothDevice.ACTION_ACL_CONNECTED) return
+            if (!autoStartOnBluetoothEnabled) return
+
+            val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE) ?: return
+
+            val isAudioDevice = try {
+                val majorClass = device.bluetoothClass?.majorDeviceClass
+                majorClass == BluetoothClass.Device.Major.AUDIO_VIDEO ||
+                    majorClass == BluetoothClass.Device.Major.WEARABLE
+            } catch (_: SecurityException) {
+                true
+            }
+
+            if (!isAudioDevice) return
+
+            scope.launch {
+                delay(1500)
+                handleBluetoothAutoStart()
+            }
+        }
+    }
+
+    private fun handleBluetoothAutoStart() {
+        if (isTogetherGuestSession()) return
+
+        if (player.currentMediaItem != null &&
+            player.playbackState != Player.STATE_IDLE &&
+            player.playbackState != Player.STATE_ENDED
+        ) {
+            if (!player.playWhenReady) {
+                player.play()
+            }
+            return
+        }
+
+        if (player.mediaItemCount > 0) {
+            player.prepare()
+            player.play()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun registerBluetoothReceiver() {
+        if (bluetoothReceiverRegistered) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) return
+
+        val filter = IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(bluetoothReceiver, filter, RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(bluetoothReceiver, filter)
+        }
+        bluetoothReceiverRegistered = true
+    }
+
+    private fun unregisterBluetoothReceiver() {
+        if (!bluetoothReceiverRegistered) return
+        try {
+            unregisterReceiver(bluetoothReceiver)
+        } catch (_: Exception) {}
+        bluetoothReceiverRegistered = false
+    }
+
+    private fun isBluetoothAudioConnected(): Boolean {
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        return devices.any {
+            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    (it.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                        it.type == AudioDeviceInfo.TYPE_BLE_SPEAKER))
+        }
     }
 
     private fun waitOnNetworkError() {
@@ -836,6 +1659,51 @@ class MusicService :
 
     private fun stopOnError() {
         player.pause()
+    }
+
+    private fun findRetryableStreamFailure(
+        error: PlaybackException,
+    ): androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException? {
+        var throwable: Throwable? = error.cause
+        while (throwable != null) {
+            if (throwable is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException &&
+                throwable.responseCode in RETRYABLE_STREAM_RESPONSE_CODES
+            ) {
+                return throwable
+            }
+            throwable = throwable.cause
+        }
+        return null
+    }
+
+    private fun retryPlaybackAfterStreamFailure(
+        mediaId: String,
+        isFullyCachedMedia: Boolean,
+        responseException: androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException,
+    ): Boolean {
+        if (isFullyCachedMedia) return false
+
+        val failedUrl = responseException.dataSpec.uri.toString()
+        val requestProfile = StreamClientUtils.resolveRequestProfile(failedUrl)
+
+        playbackUrlCache.remove(mediaId)
+        YTPlayerUtils.invalidateCachedStreamUrls(mediaId)
+        if (requestProfile.clientKey.isNotEmpty()) {
+            YTPlayerUtils.markStreamClientFailed(mediaId, requestProfile.clientKey, responseException.responseCode)
+        }
+
+        if (!playbackStreamRecoveryTracker.registerRetryAttempt(mediaId)) {
+            return false
+        }
+
+        Timber.tag("MusicService").i(
+            "Retrying playback for %s after stream HTTP %d from %s failed",
+            mediaId,
+            responseException.responseCode,
+            requestProfile.variantLabel,
+        )
+        player.prepare()
+        return true
     }
 
     private fun updateNotification() {
@@ -895,6 +1763,12 @@ class MusicService :
         }
     }
 
+    fun refreshPlaybackNotification() {
+        updateNotification()
+        runCatching { super.onUpdateNotification(mediaSession, player.isPlaying) }
+            .onFailure { reportException(it) }
+    }
+
     private suspend fun recoverSong(
         mediaId: String,
         playbackData: YTPlayerUtils.PlaybackData? = null
@@ -936,24 +1810,117 @@ class MusicService :
         queue: Queue,
         playWhenReady: Boolean = true,
     ) {
-        if (!scope.isActive) scope = CoroutineScope(Dispatchers.Main) + Job()
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (!isTogetherApplyingRemote() && joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_PLAYQUEUE_DISABLED")
+                return
+            }
+            ensureScopesActive()
+            scope.launch(SilentHandler) {
+                val initialStatus =
+                    withContext(Dispatchers.IO) {
+                        queue.getInitialStatus()
+                            .filterExplicit(dataStore.get(HideExplicitKey, false))
+                            .filterVideo(dataStore.get(HideVideoKey, false))
+                    }
+
+                val targetItem =
+                    initialStatus.items.getOrNull(initialStatus.mediaItemIndex)
+                        ?: queue.preloadItem?.toMediaItem()
+
+                val meta = targetItem?.metadata
+                val trackId =
+                    meta?.id?.trim().orEmpty().ifBlank {
+                        targetItem?.mediaId?.trim().orEmpty()
+                    }
+                if (trackId.isBlank()) {
+                    showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_PLAYQUEUE_NO_TRACK")
+                    return@launch
+                }
+
+                val track =
+                    moe.koiverse.archivetune.together.TogetherTrack(
+                        id = trackId,
+                        title = meta?.title ?: trackId,
+                        artists = meta?.artists?.map { it.name }.orEmpty(),
+                        durationSec = meta?.duration ?: -1,
+                        thumbnailUrl = meta?.thumbnailUrl,
+                    )
+
+                val ops =
+                    moe.koiverse.archivetune.together.TogetherGuestPlaybackPlanner.planPlayTrackNow(
+                        roomState = joined.roomState,
+                        track = track,
+                        positionMs = initialStatus.position,
+                        playWhenReady = playWhenReady,
+                    )
+
+                if (ops.isEmpty()) {
+                    showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_PLAYQUEUE_BLOCKED")
+                    return@launch
+                }
+
+                showTogetherNotice(getString(R.string.together_requesting_song_change), key = "GUEST_PLAYQUEUE_REQUEST")
+                ops.forEach { op ->
+                    when (op) {
+                        is moe.koiverse.archivetune.together.TogetherGuestOp.Control -> requestTogetherControl(op.action)
+                        is moe.koiverse.archivetune.together.TogetherGuestOp.AddTrack -> requestTogetherAddTrack(op.track, op.mode)
+                    }
+                }
+            }
+            return
+        }
+        if (playWhenReady) {
+            cancelIdleStop()
+            promoteToStartedService()
+            ensureStartedAsForeground()
+        }
+        ensureScopesActive()
+        suppressAutoPlayback = false
         currentQueue = queue
         queueTitle = null
-        player.shuffleModeEnabled = false
+        val permanentShuffle = dataStore.get(PermanentShuffleKey, false)
+        if (!permanentShuffle) {
+            player.shuffleModeEnabled = false
+        }
         
-        // Clear old automix items when starting a new queue
-        // This ensures recommendations are based on the new context
         clearAutomix()
+        autoAddedMediaIds.clear()
         if (queue.preloadItem != null) {
             player.setMediaItem(queue.preloadItem!!.toMediaItem())
             player.prepare()
             player.playWhenReady = playWhenReady
         }
         scope.launch(SilentHandler) {
-            val initialStatus =
+            val hideExplicit = dataStore.get(HideExplicitKey, false)
+            val hideVideo = dataStore.get(HideVideoKey, false)
+            val autoLoadMoreEnabled = dataStore.get(AutoLoadMoreKey, true)
+            var initialStatus =
                 withContext(Dispatchers.IO) {
-                    queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
+                    queue
+                        .getInitialStatus()
+                        .filterExplicit(hideExplicit)
+                        .filterVideo(hideVideo)
                 }
+            if (!autoLoadMoreEnabled && queue.shouldExpandToFullQueueWhenAutoLoadMoreDisabled() && queue.hasNextPage()) {
+                val expandedItems = initialStatus.items.toMutableList()
+                var pagesLoaded = 0
+                while (queue.hasNextPage() && pagesLoaded < 200) {
+                    pagesLoaded++
+                    val nextItems =
+                        withContext(Dispatchers.IO) {
+                            queue
+                                .nextPage()
+                                .filterExplicit(hideExplicit)
+                                .filterVideo(hideVideo)
+                        }
+                    if (nextItems.isNotEmpty()) {
+                        expandedItems += nextItems
+                    }
+                }
+                initialStatus = initialStatus.copy(items = expandedItems)
+            }
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
@@ -969,62 +1936,60 @@ class MusicService :
                         initialStatus.items.size
                     )
                 )
+                if (player.shuffleModeEnabled) {
+                    applyCurrentFirstShuffleOrder()
+                }
             } else {
                 val items = initialStatus.items
                 val index = initialStatus.mediaItemIndex
                 
-                // Chunk Loading: Only load a window around the current item initially
-                // to prevent blocking the Main Thread for seconds with large queues.
-                val windowStart = (index - 20).coerceAtLeast(0)
-                val windowEnd = (index + 50).coerceAtMost(items.size)
-                
-                val initialChunk = items.subList(windowStart, windowEnd)
-                val relativeIndex = index - windowStart
-                
-                player.setMediaItems(
-                    initialChunk,
-                    if (relativeIndex > 0) relativeIndex else 0,
-                    initialStatus.position,
-                )
+                player.setMediaItems(items, index, initialStatus.position)
                 player.prepare()
                 player.playWhenReady = playWhenReady
-                
-                // Defer loading the rest of the queue
-                if (items.size > initialChunk.size) {
-                    scope.launch(SilentHandler) {
-                        try {
-                            delay(2000) // Allow UI to settle
-                            if (!isActive) return@launch
-                            
-                            // Add preceding items
-                            if (windowStart > 0) {
-                                val startChunk = items.subList(0, windowStart)
-                                player.addMediaItems(0, startChunk)
-                            }
-                            
-                            // Add succeeding items
-                            if (windowEnd < items.size) {
-                                val endChunk = items.subList(windowEnd, items.size)
-                                player.addMediaItems(endChunk)
-                            }
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to load deferred queue items")
-                        }
-                    }
+                if (player.shuffleModeEnabled) {
+                    applyCurrentFirstShuffleOrder()
                 }
             }
         }
     }
 
+    private fun applyCurrentFirstShuffleOrder() {
+        val count = player.mediaItemCount
+        if (count <= 1) return
+        val currentIndex = player.currentMediaItemIndex.coerceIn(0, count - 1)
+        val shuffledIndices = IntArray(count) { it }
+        shuffledIndices.shuffle()
+        val currentPos = shuffledIndices.indexOf(currentIndex)
+        if (currentPos >= 0) {
+            shuffledIndices[currentPos] = shuffledIndices[0]
+        }
+        shuffledIndices[0] = currentIndex
+        player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
+    }
+
     fun startRadioSeamlessly() {
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (!isTogetherApplyingRemote() && joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_RADIO_DISABLED")
+                return
+            }
+            showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_RADIO_UNSUPPORTED")
+            return
+        }
+        suppressAutoPlayback = false
         val currentMediaMetadata = player.currentMetadata ?: return
 
         val currentIndex = player.currentMediaItemIndex
         val currentMediaId = currentMediaMetadata.id
+        if (currentSong.value?.song?.isLocal == true || currentMediaId.isLocalMediaId()) {
+            return
+        }
 
         scope.launch(SilentHandler) {
             val radioQueue = YouTubeQueue(
-                endpoint = WatchEndpoint(videoId = currentMediaId)
+                endpoint = WatchEndpoint(videoId = currentMediaId),
+                followAutomixPreview = true,
             )
             val initialStatus = withContext(Dispatchers.IO) {
                 radioQueue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
@@ -1052,63 +2017,97 @@ class MusicService :
         }
     }
 
-    fun getAutomixAlbum(albumId: String) {
-        scope.launch(Dispatchers.IO + SilentHandler) {
-            YouTube
-                .album(albumId)
-                .onSuccess {
-                    getAutomix(it.album.playlistId)
-                }
-        }
-    }
-
-    fun getAutomix(playlistId: String) {
-        if (dataStore[SimilarContent] == true && 
-            player.repeatMode == REPEAT_MODE_OFF) {
-            scope.launch(Dispatchers.IO + SilentHandler) {
-                YouTube
-                    .next(WatchEndpoint(playlistId = playlistId))
-                    .onSuccess {
-                        YouTube
-                            .next(WatchEndpoint(playlistId = it.endpoint.playlistId))
-                            .onSuccess {
-                                automixItems.value =
-                                    it.items.map { song ->
-                                        song.toMediaItem()
-                                    }
-                            }
-                    }
-            }
-        }
-    }
-
-    fun addToQueueAutomix(
-        item: MediaItem,
-        position: Int,
-    ) {
-        automixItems.value =
-            automixItems.value.toMutableList().apply {
-                removeAt(position)
-            }
-        addToQueue(listOf(item))
-    }
-
-    fun playNextAutomix(
-        item: MediaItem,
-        position: Int,
-    ) {
-        automixItems.value =
-            automixItems.value.toMutableList().apply {
-                removeAt(position)
-            }
-        playNext(listOf(item))
-    }
-
     fun clearAutomix() {
-        automixItems.value = emptyList()
+        autoAddedMediaIds.clear()
+    }
+
+    fun onInfiniteQueueDisabled() {
+        infiniteQueueLoading.value = false
+        val currentIndex = player.currentMediaItemIndex
+        val idsToRemove = synchronized(autoAddedMediaIds) { autoAddedMediaIds.toSet() }
+        if (idsToRemove.isEmpty()) {
+            return
+        }
+        for (i in player.mediaItemCount - 1 downTo 0) {
+            if (i == currentIndex) continue
+            val item = player.getMediaItemAt(i)
+            if (item.mediaId in idsToRemove) {
+                player.removeMediaItem(i)
+            }
+        }
+        autoAddedMediaIds.clear()
+        currentQueue = EmptyQueue
+    }
+
+    fun onInfiniteQueueEnabled() {
+        val currentMeta = player.currentMetadata ?: return
+        if (infiniteQueueLoading.value) return
+        infiniteQueueLoading.value = true
+
+        scope.launch(SilentHandler) {
+            try {
+                val radioQueue = YouTubeQueue(WatchEndpoint(videoId = currentMeta.id), followAutomixPreview = true)
+                val status = withContext(Dispatchers.IO) { radioQueue.getInitialStatus() }
+
+                val existingIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                val newItems = status.items.filter { it.mediaId !in existingIds }
+
+                if (newItems.isNotEmpty()) {
+                    player.addMediaItems(newItems)
+                    newItems.forEach { autoAddedMediaIds.add(it.mediaId) }
+                }
+
+                currentQueue = radioQueue
+
+                if (player.playbackState == Player.STATE_ENDED || player.mediaItemCount == player.currentMediaItemIndex + 1) {
+                    player.seekToNext()
+                    player.play()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to bootstrap auto-queue")
+            } finally {
+                infiniteQueueLoading.value = false
+            }
+        }
+    }
+
+    fun stopAndClearPlayback() {
+        suppressAutoPlayback = true
+        clearAutomix()
+        currentQueue = EmptyQueue
+        queueTitle = null
+        waitingForNetworkConnection.value = false
+        currentMediaMetadata.value = null
+        player.playWhenReady = false
+        player.stop()
+        player.clearMediaItems()
+        abandonAudioFocus()
+        closeAudioEffectSession()
+        consecutivePlaybackErr = 0
     }
 
     fun playNext(items: List<MediaItem>) {
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToAddTracks) {
+                return
+            }
+            val tracks =
+                items.mapNotNull { it.metadata }.map { meta ->
+                    moe.koiverse.archivetune.together.TogetherTrack(
+                        id = meta.id,
+                        title = meta.title,
+                        artists = meta.artists.map { it.name },
+                        durationSec = meta.duration,
+                        thumbnailUrl = meta.thumbnailUrl,
+                    )
+                }
+            tracks.asReversed().forEach { track ->
+                requestTogetherAddTrack(track, moe.koiverse.archivetune.together.AddTrackMode.PLAY_NEXT)
+            }
+            return
+        }
+        suppressAutoPlayback = false
         player.addMediaItems(
             if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1,
             items
@@ -1117,8 +2116,1151 @@ class MusicService :
     }
 
     fun addToQueue(items: List<MediaItem>) {
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToAddTracks) {
+                return
+            }
+            val tracks =
+                items.mapNotNull { it.metadata }.map { meta ->
+                    moe.koiverse.archivetune.together.TogetherTrack(
+                        id = meta.id,
+                        title = meta.title,
+                        artists = meta.artists.map { it.name },
+                        durationSec = meta.duration,
+                        thumbnailUrl = meta.thumbnailUrl,
+                    )
+                }
+            tracks.forEach { track ->
+                requestTogetherAddTrack(track, moe.koiverse.archivetune.together.AddTrackMode.ADD_TO_QUEUE)
+            }
+            return
+        }
+        suppressAutoPlayback = false
         player.addMediaItems(items)
         player.prepare()
+    }
+
+    fun startTogetherHost(
+        port: Int,
+        displayName: String,
+        settings: moe.koiverse.archivetune.together.TogetherRoomSettings,
+    ) {
+        ensureScopesActive()
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+            togetherIsOnlineSession = false
+
+            val localIp = getLocalIpv4Address()
+            val sessionId = java.util.UUID.randomUUID().toString()
+            val sessionKey = java.util.UUID.randomUUID().toString()
+            val joinInfo =
+                moe.koiverse.archivetune.together.TogetherJoinInfo(
+                    host = localIp ?: "127.0.0.1",
+                    port = port,
+                    sessionId = sessionId,
+                    sessionKey = sessionKey,
+                )
+            val joinLink = moe.koiverse.archivetune.together.TogetherLink.encode(joinInfo)
+
+            val server =
+                moe.koiverse.archivetune.together.TogetherServer(
+                    scope = ioScope,
+                    sessionId = sessionId,
+                    sessionKey = sessionKey,
+                    hostDisplayName = displayName.trim().ifBlank { getString(R.string.app_name) },
+                    initialSettings = settings,
+                )
+
+            server.onEvent = { event ->
+                ioScope.launch(SilentHandler) {
+                    handleTogetherHostEvent(event) { server.currentSettings() }
+                }
+            }
+
+            server.start(port)
+            togetherServer = server
+
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    moe.koiverse.archivetune.together.TogetherSessionState.Hosting(
+                        sessionId = sessionId,
+                        joinLink = joinLink,
+                        localAddressHint = localIp,
+                        port = port,
+                        settings = settings,
+                        roomState = null,
+                    )
+            }
+
+            togetherBroadcastJob =
+                ioScope.launch(SilentHandler) {
+                    while (togetherServer === server) {
+                        val state = buildTogetherRoomState(sessionId = sessionId, hostId = togetherHostId)
+                        server.broadcastRoomState(state)
+                        scope.launch(SilentHandler) {
+                            val hosting = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Hosting
+                            if (hosting?.sessionId == sessionId) {
+                                togetherSessionState.value =
+                                    hosting.copy(
+                                        settings = server.currentSettings(),
+                                        roomState = state.copy(
+                                            participants = server.currentParticipants(),
+                                            settings = server.currentSettings(),
+                                        ),
+                                    )
+                            }
+                        }
+                        kotlinx.coroutines.delay(750)
+                    }
+                }
+        }
+    }
+
+    private fun togetherOnlineErrorMessage(t: Throwable): String {
+        if (t is moe.koiverse.archivetune.together.TogetherOnlineApiException) {
+            val code = t.statusCode
+            return when {
+                code == 404 -> getString(R.string.together_session_not_found)
+                code != null && code in 500..599 -> getString(R.string.together_server_error)
+                else -> t.message ?: getString(R.string.network_unavailable)
+            }
+        }
+        val root = generateSequence(t) { it.cause }.lastOrNull() ?: t
+        return when (root) {
+            is UnknownHostException -> getString(R.string.together_server_unreachable)
+            is ConnectException -> getString(R.string.together_server_unreachable)
+            is SocketTimeoutException -> getString(R.string.together_connection_timed_out)
+            is javax.net.ssl.SSLHandshakeException -> getString(R.string.together_server_unreachable)
+            else -> getString(R.string.network_unavailable)
+        }
+    }
+
+    fun startTogetherOnlineHost(
+        displayName: String,
+        settings: moe.koiverse.archivetune.together.TogetherRoomSettings,
+    ) {
+        ensureScopesActive()
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+            togetherIsOnlineSession = true
+
+            val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull(dataStore)
+            if (baseUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_online_not_configured),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val togetherToken = moe.koiverse.archivetune.BuildConfig.TOGETHER_BEARER_TOKEN.trim().takeIf { it.isNotBlank() }
+            if (togetherToken == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_token_missing),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl, bearerToken = togetherToken)
+            val hostName = displayName.trim().ifBlank { getString(R.string.app_name) }
+
+            val created =
+                runCatching {
+                    api.createSession(
+                        hostDisplayName = hostName,
+                        settings = settings,
+                    )
+                }.getOrElse { t ->
+                    scope.launch(SilentHandler) {
+                        togetherSessionState.value =
+                            moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                message = togetherOnlineErrorMessage(t),
+                                recoverable = true,
+                            )
+                    }
+                    reportException(t)
+                    return@launch
+                }
+
+            val onlineHost =
+                moe.koiverse.archivetune.together.TogetherOnlineHost(
+                    externalScope = ioScope,
+                    sessionId = created.sessionId,
+                    sessionKey = created.hostKey,
+                    hostId = togetherHostId,
+                    hostDisplayName = hostName,
+                    initialSettings = created.settings,
+                    clientId = getOrCreateTogetherClientId(),
+                    bearerToken = togetherToken,
+                )
+
+            onlineHost.onEvent = { event ->
+                ioScope.launch(SilentHandler) {
+                    handleTogetherHostEvent(event) { onlineHost.currentSettings() }
+                }
+            }
+
+            togetherOnlineHost = onlineHost
+
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    moe.koiverse.archivetune.together.TogetherSessionState.HostingOnline(
+                        sessionId = created.sessionId,
+                        code = created.code,
+                        settings = created.settings,
+                        roomState = null,
+                    )
+            }
+
+            val wsUrl =
+                moe.koiverse.archivetune.together.TogetherOnlineEndpoint.onlineWebSocketUrlOrNull(
+                    rawWsUrl = created.wsUrl,
+                    baseUrl = baseUrl,
+                )
+            if (wsUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = "Connection failed: Invalid server websocket URL",
+                            recoverable = true,
+                        )
+                }
+                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                return@launch
+            }
+
+            togetherOnlineConnectJob?.cancel()
+            togetherOnlineConnectJob =
+                ioScope.launch(SilentHandler) {
+                    onlineHost.connect(wsUrl)
+                }
+
+            togetherBroadcastJob =
+                ioScope.launch(SilentHandler) {
+                    while (togetherOnlineHost === onlineHost) {
+                        val state =
+                            buildTogetherRoomState(
+                                sessionId = created.sessionId,
+                                hostId = togetherHostId,
+                            )
+                        onlineHost.broadcastRoomState(state)
+                        scope.launch(SilentHandler) {
+                            val hosting =
+                                togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.HostingOnline
+                            if (hosting?.sessionId == created.sessionId) {
+                                val currentSettings = onlineHost.currentSettings()
+                                togetherSessionState.value =
+                                    hosting.copy(
+                                        settings = currentSettings,
+                                        roomState =
+                                            state.copy(
+                                                participants = onlineHost.currentParticipants(),
+                                                settings = currentSettings,
+                                            ),
+                                    )
+                            }
+                        }
+                        kotlinx.coroutines.delay(750)
+                    }
+                }
+        }
+    }
+
+    fun joinTogether(
+        rawLink: String,
+        displayName: String,
+    ) {
+        ensureScopesActive()
+        val joinInfo = moe.koiverse.archivetune.together.TogetherLink.decode(rawLink)
+        if (joinInfo == null) {
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                        message = getString(R.string.invalid_link),
+                        recoverable = true,
+                    )
+            }
+            return
+        }
+
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Joining(joinInfo.toDeepLink())
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+            togetherIsOnlineSession = false
+            val client =
+                moe.koiverse.archivetune.together.TogetherClient(
+                    ioScope,
+                    clientId = getOrCreateTogetherClientId(),
+                )
+            togetherClient = client
+            togetherClock = moe.koiverse.archivetune.together.TogetherClock()
+            togetherSelfParticipantId = null
+            togetherLastAppliedQueueHash = null
+
+            togetherClientEventsJob?.cancel()
+            togetherClientEventsJob =
+                ioScope.launch(SilentHandler) {
+                client.events.collect { event ->
+                    when (event) {
+                        is moe.koiverse.archivetune.together.TogetherClientEvent.Welcome -> {
+                            togetherSelfParticipantId = event.welcome.participantId
+                            scope.launch(SilentHandler) {
+                                val state = togetherSessionState.value
+                                if (state is moe.koiverse.archivetune.together.TogetherSessionState.Joining) {
+                                    val selfName = displayName.trim().ifBlank { getString(R.string.together_role_guest) }
+                                    val initial =
+                                        moe.koiverse.archivetune.together.TogetherRoomState(
+                                            sessionId = joinInfo.sessionId,
+                                            hostId = togetherHostId,
+                                            participants =
+                                                listOf(
+                                                    moe.koiverse.archivetune.together.TogetherParticipant(
+                                                        id = event.welcome.participantId,
+                                                        name = selfName,
+                                                        isHost = false,
+                                                        isPending = event.welcome.isPending,
+                                                        isConnected = true,
+                                                    ),
+                                                ),
+                                            settings = event.welcome.settings,
+                                            queue = emptyList(),
+                                            queueHash = "",
+                                            currentIndex = 0,
+                                            isPlaying = false,
+                                            positionMs = 0L,
+                                            repeatMode = 0,
+                                            shuffleEnabled = false,
+                                            sentAtElapsedRealtimeMs = android.os.SystemClock.elapsedRealtime(),
+                                        )
+                                    togetherSessionState.value =
+                                        moe.koiverse.archivetune.together.TogetherSessionState.Joined(
+                                            role = moe.koiverse.archivetune.together.TogetherRole.Guest,
+                                            sessionId = joinInfo.sessionId,
+                                            selfParticipantId = event.welcome.participantId,
+                                            roomState = initial,
+                                        )
+                                }
+                            }
+                            startTogetherHeartbeat(joinInfo.sessionId, client)
+                        }
+
+                        is moe.koiverse.archivetune.together.TogetherClientEvent.RoomState -> {
+                            applyRemoteRoomState(event.state)
+                        }
+
+                        is moe.koiverse.archivetune.together.TogetherClientEvent.JoinDecision -> {
+                            if (!event.decision.approved) {
+                                scope.launch(SilentHandler) {
+                                    togetherSessionState.value =
+                                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                            message = getString(R.string.not_allowed),
+                                            recoverable = true,
+                                        )
+                                }
+                                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                            }
+                        }
+
+                        is moe.koiverse.archivetune.together.TogetherClientEvent.ServerIssue -> {
+                            Timber.tag("Together").w("server issue (lan) code=${event.code.orEmpty()} message=${event.message}")
+                            when (event.code) {
+                                "GUEST_CONTROL_DISABLED" -> {
+                                    showTogetherNotice(event.message, key = "GUEST_CONTROL_DISABLED")
+                                    val joined =
+                                        togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+                                    if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+                                        togetherPendingGuestControl = null
+                                        togetherLastSentControlAction = null
+                                        scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                                    }
+                                }
+
+                                "GUEST_ADD_DISABLED" -> {
+                                    showTogetherNotice(event.message, key = "GUEST_ADD_DISABLED")
+                                }
+
+                                "HOST_OFFLINE" -> {
+                                    showTogetherNotice(event.message, key = "HOST_OFFLINE")
+                                }
+
+                                else -> {
+                                    scope.launch(SilentHandler) {
+                                        togetherSessionState.value =
+                                            moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                                message = event.message,
+                                                recoverable = true,
+                                            )
+                                    }
+                                    ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                                }
+                            }
+                        }
+
+                        is moe.koiverse.archivetune.together.TogetherClientEvent.HeartbeatPong -> {
+                            val clock = togetherClock ?: return@collect
+                            clock.onPong(
+                                sentAtElapsedMs = event.pong.clientElapsedRealtimeMs,
+                                receivedAtElapsedMs = event.receivedAtElapsedRealtimeMs,
+                                serverElapsedMs = event.pong.serverElapsedRealtimeMs,
+                            )
+                        }
+
+                        is moe.koiverse.archivetune.together.TogetherClientEvent.Error -> {
+                            scope.launch(SilentHandler) {
+                                togetherSessionState.value =
+                                    moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                        message = event.message,
+                                        recoverable = true,
+                                    )
+                            }
+                            ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                        }
+
+                        moe.koiverse.archivetune.together.TogetherClientEvent.Disconnected -> {
+                            val current = togetherSessionState.value
+                            if (current is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return@collect
+                            scope.launch(SilentHandler) {
+                                val currentState = togetherSessionState.value
+                                togetherSessionState.value =
+                                    moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                        message =
+                                            if (currentState is moe.koiverse.archivetune.together.TogetherSessionState.Joined &&
+                                                currentState.role is moe.koiverse.archivetune.together.TogetherRole.Guest
+                                            ) {
+                                                getString(R.string.together_host_left_session)
+                                            } else {
+                                                getString(R.string.network_unavailable)
+                                            },
+                                        recoverable = true,
+                                    )
+                            }
+                            ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                        }
+                    }
+                }
+            }
+
+            client.connect(joinInfo, displayName.trim().ifBlank { getString(R.string.together_role_guest) })
+        }
+    }
+
+    fun joinTogetherOnline(
+        code: String,
+        displayName: String,
+    ) {
+        ensureScopesActive()
+        val trimmedCode = code.trim()
+        if (trimmedCode.isBlank()) {
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                        message = getString(R.string.invalid_code),
+                        recoverable = true,
+                    )
+            }
+            return
+        }
+
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.JoiningOnline(trimmedCode)
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+            togetherIsOnlineSession = true
+
+            val baseUrl = moe.koiverse.archivetune.together.TogetherOnlineEndpoint.baseUrlOrNull(dataStore)
+            if (baseUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_online_not_configured),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val togetherToken = moe.koiverse.archivetune.BuildConfig.TOGETHER_BEARER_TOKEN.trim().takeIf { it.isNotBlank() }
+            if (togetherToken == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_token_missing),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val api = moe.koiverse.archivetune.together.TogetherOnlineApi(baseUrl = baseUrl, bearerToken = togetherToken)
+            val resolved =
+                runCatching { api.resolveCode(trimmedCode) }
+                    .getOrElse { t ->
+                        scope.launch(SilentHandler) {
+                            togetherSessionState.value =
+                                moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                    message = togetherOnlineErrorMessage(t),
+                                    recoverable = true,
+                                )
+                        }
+                        reportException(t)
+                        return@launch
+                    }
+
+            val client =
+                moe.koiverse.archivetune.together.TogetherClient(
+                    ioScope,
+                    clientId = getOrCreateTogetherClientId(),
+                    bearerToken = togetherToken,
+                )
+            togetherClient = client
+            togetherClock = moe.koiverse.archivetune.together.TogetherClock()
+            togetherSelfParticipantId = null
+            togetherLastAppliedQueueHash = null
+
+            togetherClientEventsJob?.cancel()
+            togetherClientEventsJob =
+                ioScope.launch(SilentHandler) {
+                    client.events.collect { event ->
+                        when (event) {
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.Welcome -> {
+                                togetherSelfParticipantId = event.welcome.participantId
+                                scope.launch(SilentHandler) {
+                                    val state = togetherSessionState.value
+                                    if (state is moe.koiverse.archivetune.together.TogetherSessionState.JoiningOnline) {
+                                        val selfName = displayName.trim().ifBlank { getString(R.string.together_role_guest) }
+                                        val initial =
+                                            moe.koiverse.archivetune.together.TogetherRoomState(
+                                                sessionId = resolved.sessionId,
+                                                hostId = togetherHostId,
+                                                participants =
+                                                    listOf(
+                                                        moe.koiverse.archivetune.together.TogetherParticipant(
+                                                            id = event.welcome.participantId,
+                                                            name = selfName,
+                                                            isHost = false,
+                                                            isPending = event.welcome.isPending,
+                                                            isConnected = true,
+                                                        ),
+                                                    ),
+                                                settings = event.welcome.settings,
+                                                queue = emptyList(),
+                                                queueHash = "",
+                                                currentIndex = 0,
+                                                isPlaying = false,
+                                                positionMs = 0L,
+                                                repeatMode = 0,
+                                                shuffleEnabled = false,
+                                                sentAtElapsedRealtimeMs = android.os.SystemClock.elapsedRealtime(),
+                                            )
+                                        togetherSessionState.value =
+                                            moe.koiverse.archivetune.together.TogetherSessionState.Joined(
+                                                role = moe.koiverse.archivetune.together.TogetherRole.Guest,
+                                                sessionId = resolved.sessionId,
+                                                selfParticipantId = event.welcome.participantId,
+                                                roomState = initial,
+                                            )
+                                    }
+                                }
+                                startTogetherHeartbeat(resolved.sessionId, client)
+                            }
+
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.RoomState -> {
+                                applyRemoteRoomState(event.state)
+                            }
+
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.JoinDecision -> {
+                                if (!event.decision.approved) {
+                                    scope.launch(SilentHandler) {
+                                        togetherSessionState.value =
+                                            moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                                message = getString(R.string.not_allowed),
+                                                recoverable = true,
+                                            )
+                                    }
+                                    ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                                }
+                            }
+
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.ServerIssue -> {
+                                Timber.tag("Together").w("server issue (online) code=${event.code.orEmpty()} message=${event.message}")
+                                when (event.code) {
+                                    "GUEST_CONTROL_DISABLED" -> {
+                                        showTogetherNotice(event.message, key = "GUEST_CONTROL_DISABLED")
+                                        val joined =
+                                            togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+                                        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+                                            togetherPendingGuestControl = null
+                                            togetherLastSentControlAction = null
+                                            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                                        }
+                                    }
+
+                                    "GUEST_ADD_DISABLED" -> {
+                                        showTogetherNotice(event.message, key = "GUEST_ADD_DISABLED")
+                                    }
+
+                                    "HOST_OFFLINE" -> {
+                                        showTogetherNotice(event.message, key = "HOST_OFFLINE")
+                                    }
+
+                                    else -> {
+                                        scope.launch(SilentHandler) {
+                                            togetherSessionState.value =
+                                                moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                                    message = event.message,
+                                                    recoverable = true,
+                                                )
+                                        }
+                                        ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                                    }
+                                }
+                            }
+
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.HeartbeatPong -> {
+                                val clock = togetherClock ?: return@collect
+                                clock.onPong(
+                                    sentAtElapsedMs = event.pong.clientElapsedRealtimeMs,
+                                    receivedAtElapsedMs = event.receivedAtElapsedRealtimeMs,
+                                    serverElapsedMs = event.pong.serverElapsedRealtimeMs,
+                                )
+                            }
+
+                            is moe.koiverse.archivetune.together.TogetherClientEvent.Error -> {
+                                scope.launch(SilentHandler) {
+                                    togetherSessionState.value =
+                                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                            message = event.message,
+                                            recoverable = true,
+                                        )
+                                }
+                                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                            }
+
+                            moe.koiverse.archivetune.together.TogetherClientEvent.Disconnected -> {
+                                val current = togetherSessionState.value
+                                if (current is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return@collect
+                                scope.launch(SilentHandler) {
+                                    val currentState = togetherSessionState.value
+                                    togetherSessionState.value =
+                                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                                            message =
+                                                if (currentState is moe.koiverse.archivetune.together.TogetherSessionState.Joined &&
+                                                    currentState.role is moe.koiverse.archivetune.together.TogetherRole.Guest
+                                                ) {
+                                                    getString(R.string.together_host_left_session)
+                                                } else {
+                                                    getString(R.string.network_unavailable)
+                                                },
+                                            recoverable = true,
+                                        )
+                                }
+                                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                            }
+                        }
+                    }
+                }
+
+            val wsUrl =
+                moe.koiverse.archivetune.together.TogetherOnlineEndpoint.onlineWebSocketUrlOrNull(
+                    rawWsUrl = resolved.wsUrl,
+                    baseUrl = baseUrl,
+                )
+            if (wsUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                            message = "Connection failed: Invalid server websocket URL",
+                            recoverable = true,
+                        )
+                }
+                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                return@launch
+            }
+
+            client.connect(
+                wsUrl = wsUrl,
+                sessionId = resolved.sessionId,
+                sessionKey = resolved.guestKey,
+                displayName = displayName.trim().ifBlank { getString(R.string.together_role_guest) },
+            )
+        }
+    }
+
+    fun leaveTogether() {
+        ensureScopesActive()
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle
+        }
+        ioScope.launch(SilentHandler) { stopTogetherInternal() }
+    }
+
+    fun updateTogetherSettings(settings: moe.koiverse.archivetune.together.TogetherRoomSettings) {
+        val server = togetherServer
+        val onlineHost = togetherOnlineHost
+        if (server == null && onlineHost == null) return
+        ioScope.launch(SilentHandler) {
+            server?.updateSettings(settings)
+            onlineHost?.updateSettings(settings)
+        }
+    }
+
+    fun approveTogetherParticipant(participantId: String, approved: Boolean) {
+        val server = togetherServer
+        val onlineHost = togetherOnlineHost
+        if (server == null && onlineHost == null) return
+        ioScope.launch(SilentHandler) {
+            server?.approveParticipant(participantId, approved)
+            onlineHost?.approveParticipant(participantId, approved)
+        }
+    }
+
+    fun kickTogetherParticipant(participantId: String, reason: String? = null) {
+        val onlineHost = togetherOnlineHost ?: return
+        ioScope.launch(SilentHandler) {
+            onlineHost.kickParticipant(participantId, reason)
+        }
+    }
+
+    fun banTogetherParticipant(participantId: String, reason: String? = null) {
+        val onlineHost = togetherOnlineHost ?: return
+        ioScope.launch(SilentHandler) {
+            onlineHost.banParticipant(participantId, reason)
+        }
+    }
+
+    fun requestTogetherControl(action: moe.koiverse.archivetune.together.ControlAction) {
+        val client =
+            togetherClient ?: run {
+                showTogetherNotice(getString(R.string.network_unavailable), key = "TOGETHER_CLIENT_MISSING")
+                return
+            }
+        val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
+        if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
+        if (!state.roomState.settings.allowGuestsToControlPlayback) {
+            Timber.tag("Together").i("control blocked locally (disabled) action=${action::class.java.simpleName}")
+            showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_CONTROL_DISABLED_LOCAL")
+            return
+        }
+        val now = android.os.SystemClock.elapsedRealtime()
+        val lastAction = togetherLastSentControlAction
+        val lastAt = togetherLastSentControlAtElapsedMs
+        if (lastAction == action && now - lastAt < 350L) return
+        togetherLastSentControlAction = action
+        togetherLastSentControlAtElapsedMs = now
+
+        val timeout = if (togetherIsOnlineSession) 5000L else 2000L
+        togetherPendingGuestControl =
+            when (action) {
+                moe.koiverse.archivetune.together.ControlAction.Play ->
+                    TogetherPendingGuestControl(desiredIsPlaying = true, requestedAtElapsedMs = now, expiresAtElapsedMs = now + timeout)
+                moe.koiverse.archivetune.together.ControlAction.Pause ->
+                    TogetherPendingGuestControl(desiredIsPlaying = false, requestedAtElapsedMs = now, expiresAtElapsedMs = now + timeout)
+                is moe.koiverse.archivetune.together.ControlAction.SeekToIndex ->
+                    TogetherPendingGuestControl(desiredIndex = action.index.coerceAtLeast(0), requestedAtElapsedMs = now, expiresAtElapsedMs = now + timeout)
+                is moe.koiverse.archivetune.together.ControlAction.SeekToTrack ->
+                    TogetherPendingGuestControl(
+                        desiredTrackId = action.trackId.trim().ifBlank { null },
+                        requestedAtElapsedMs = now,
+                        expiresAtElapsedMs = now + timeout,
+                    )
+                else -> togetherPendingGuestControl
+            }
+        client.requestControl(state.sessionId, action)
+    }
+
+    fun requestTogetherAddTrack(
+        track: moe.koiverse.archivetune.together.TogetherTrack,
+        mode: moe.koiverse.archivetune.together.AddTrackMode,
+    ) {
+        val client = togetherClient ?: return
+        val state = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined ?: return
+        if (state.role !is moe.koiverse.archivetune.together.TogetherRole.Guest) return
+        if (!state.roomState.settings.allowGuestsToAddTracks) {
+            Timber.tag("Together").i("add blocked locally (disabled) mode=$mode trackId=${track.id}")
+            showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_ADD_DISABLED_LOCAL")
+            return
+        }
+        client.requestAddTrack(state.sessionId, track, mode)
+    }
+
+    private suspend fun handleTogetherHostEvent(
+        event: moe.koiverse.archivetune.together.TogetherServerEvent,
+        currentSettings: suspend () -> moe.koiverse.archivetune.together.TogetherRoomSettings,
+    ) {
+        when (event) {
+            is moe.koiverse.archivetune.together.TogetherServerEvent.ControlRequested -> {
+                val settings = currentSettings()
+                if (!settings.allowGuestsToControlPlayback) return
+                applyHostControl(event.request.action)
+            }
+
+            is moe.koiverse.archivetune.together.TogetherServerEvent.AddTrackRequested -> {
+                val settings = currentSettings()
+                if (!settings.allowGuestsToAddTracks) return
+                applyHostAddTrack(event.request.track, event.request.mode)
+            }
+
+            is moe.koiverse.archivetune.together.TogetherServerEvent.Error -> {
+                val current = togetherSessionState.value
+                if (current is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return
+                togetherSessionState.value =
+                    moe.koiverse.archivetune.together.TogetherSessionState.Error(
+                        message = event.message,
+                        recoverable = true,
+                    )
+                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+            }
+
+            else -> Unit
+        }
+    }
+
+    private suspend fun applyHostControl(action: moe.koiverse.archivetune.together.ControlAction) {
+        withContext(Dispatchers.Main) {
+            when (action) {
+                moe.koiverse.archivetune.together.ControlAction.Play -> {
+                    if (!player.playWhenReady) {
+                        player.prepare()
+                        player.playWhenReady = true
+                    }
+                }
+
+                moe.koiverse.archivetune.together.ControlAction.Pause -> {
+                    if (player.playWhenReady) {
+                        player.playWhenReady = false
+                    }
+                }
+
+                is moe.koiverse.archivetune.together.ControlAction.SeekTo -> {
+                    player.seekTo(action.positionMs.coerceAtLeast(0L))
+                    player.prepare()
+                }
+
+                moe.koiverse.archivetune.together.ControlAction.SkipNext -> {
+                    if (player.hasNextMediaItem()) {
+                        player.seekToNext()
+                        player.prepare()
+                        player.playWhenReady = true
+                    }
+                }
+
+                moe.koiverse.archivetune.together.ControlAction.SkipPrevious -> {
+                    if (player.hasPreviousMediaItem()) {
+                        player.seekToPrevious()
+                        player.prepare()
+                        player.playWhenReady = true
+                    }
+                }
+
+                is moe.koiverse.archivetune.together.ControlAction.SeekToTrack -> {
+                    val trackId = action.trackId.trim()
+                    if (trackId.isNotBlank()) {
+                        val idx =
+                            player.mediaItems.indexOfFirst {
+                                val metaId = it.metadata?.id
+                                it.mediaId == trackId || metaId == trackId
+                            }
+                        if (idx >= 0 && idx < player.mediaItemCount) {
+                            player.seekTo(idx, action.positionMs.coerceAtLeast(0L))
+                            player.prepare()
+                        }
+                    }
+                }
+
+                is moe.koiverse.archivetune.together.ControlAction.SeekToIndex -> {
+                    val idx = action.index.coerceAtLeast(0)
+                    if (idx < player.mediaItemCount) {
+                        player.seekTo(idx, action.positionMs.coerceAtLeast(0L))
+                        player.prepare()
+                    }
+                }
+
+                is moe.koiverse.archivetune.together.ControlAction.SetRepeatMode -> {
+                    if (player.repeatMode != action.repeatMode) {
+                        player.repeatMode = action.repeatMode
+                    }
+                }
+
+                is moe.koiverse.archivetune.together.ControlAction.SetShuffleEnabled -> {
+                    if (player.shuffleModeEnabled != action.shuffleEnabled) {
+                        player.shuffleModeEnabled = action.shuffleEnabled
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun applyHostAddTrack(
+        track: moe.koiverse.archivetune.together.TogetherTrack,
+        mode: moe.koiverse.archivetune.together.AddTrackMode,
+    ) {
+        val mediaItem = track.toMediaMetadata().toMediaItem()
+        withContext(Dispatchers.Main) {
+            when (mode) {
+                moe.koiverse.archivetune.together.AddTrackMode.PLAY_NEXT -> playNext(listOf(mediaItem))
+                moe.koiverse.archivetune.together.AddTrackMode.ADD_TO_QUEUE -> addToQueue(listOf(mediaItem))
+            }
+        }
+    }
+
+    private suspend fun buildTogetherRoomState(
+        sessionId: String,
+        hostId: String,
+    ): moe.koiverse.archivetune.together.TogetherRoomState {
+        return withContext(Dispatchers.Main) {
+            val tracks =
+                player.mediaItems.mapNotNull { it.metadata }.map { meta ->
+                    moe.koiverse.archivetune.together.TogetherTrack(
+                        id = meta.id,
+                        title = meta.title,
+                        artists = meta.artists.map { it.name },
+                        durationSec = meta.duration,
+                        thumbnailUrl = meta.thumbnailUrl,
+                    )
+                }
+
+            val queueHash = moe.koiverse.archivetune.utils.md5(tracks.joinToString(separator = "|") { it.id })
+
+            moe.koiverse.archivetune.together.TogetherRoomState(
+                sessionId = sessionId,
+                hostId = hostId,
+                settings = moe.koiverse.archivetune.together.TogetherRoomSettings(),
+                participants = emptyList(),
+                queue = tracks,
+                queueHash = queueHash,
+                currentIndex = player.currentMediaItemIndex.coerceAtLeast(0),
+                isPlaying = player.playWhenReady && player.playbackState != Player.STATE_ENDED,
+                positionMs = player.currentPosition.coerceAtLeast(0L),
+                repeatMode = player.repeatMode,
+                shuffleEnabled = player.shuffleModeEnabled,
+                sentAtElapsedRealtimeMs = android.os.SystemClock.elapsedRealtime(),
+            )
+        }
+    }
+
+    private suspend fun applyRemoteRoomState(state: moe.koiverse.archivetune.together.TogetherRoomState) {
+        val pid = togetherSelfParticipantId ?: return
+        val now = android.os.SystemClock.elapsedRealtime()
+
+        val pending = togetherPendingGuestControl
+        if (pending != null) {
+            val currentTrackId = state.queue.getOrNull(state.currentIndex.coerceAtLeast(0))?.id
+            val mismatch =
+                (pending.desiredIsPlaying != null && state.isPlaying != pending.desiredIsPlaying) ||
+                    (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex) ||
+                    (pending.desiredTrackId != null && currentTrackId != pending.desiredTrackId)
+            if (now >= pending.expiresAtElapsedMs) {
+                if ((pending.desiredIndex != null || pending.desiredTrackId != null) &&
+                    now - pending.requestedAtElapsedMs >= 1200L &&
+                    mismatch
+                ) {
+                    showTogetherNotice(getString(R.string.together_song_change_failed), key = "GUEST_SEEK_TIMEOUT")
+                }
+                togetherPendingGuestControl = null
+            } else {
+                if (mismatch) return
+                togetherPendingGuestControl = null
+            }
+        }
+
+        val lastSentAt = togetherLastAppliedRoomStateSentAtElapsedMs
+        val sentAt = state.sentAtElapsedRealtimeMs
+        if (sentAt > 0L && lastSentAt > 0L && sentAt <= lastSentAt) return
+
+        val offset = if (togetherIsOnlineSession) 0L else (togetherClock?.snapshot()?.estimatedOffsetMs ?: 0L)
+        val correctedSentAt = sentAt + offset
+        val estimatedOnlineLatency = if (togetherIsOnlineSession) 1200L else 0L
+        val delta = if (togetherIsOnlineSession) estimatedOnlineLatency else (now - correctedSentAt).coerceAtLeast(0L)
+        val targetPos =
+            if (state.isPlaying) (state.positionMs + delta).coerceAtLeast(0L) else state.positionMs.coerceAtLeast(0L)
+
+        withContext(Dispatchers.Main) {
+            togetherApplyingRemote = true
+            togetherSuppressEchoUntilElapsedMs = android.os.SystemClock.elapsedRealtime() + 450L
+            try {
+                val desiredItems = state.queue.map { it.toMediaMetadata().toMediaItem() }
+                val desiredIds = state.queue.map { it.id }
+                val desiredHash = state.queueHash
+                val localIds = player.mediaItems.mapNotNull { it.metadata?.id ?: it.mediaId }.filter { it.isNotBlank() }
+                val localHash = if (localIds.isEmpty()) "" else moe.koiverse.archivetune.utils.md5(localIds.joinToString(separator = "|"))
+                val needsRebuild =
+                    desiredItems.isNotEmpty() &&
+                        (
+                            (desiredHash.isNotBlank() && desiredHash != localHash) ||
+                                (desiredHash.isBlank() && desiredIds != localIds)
+                        )
+
+                if (desiredItems.isNotEmpty() && needsRebuild) {
+                    togetherLastAppliedQueueHash = desiredHash.ifBlank { localHash }
+                    val startIndex = state.currentIndex.coerceIn(0, desiredItems.lastIndex)
+                    suppressAutoPlayback = false
+                    currentQueue =
+                        moe.koiverse.archivetune.playback.queues.ListQueue(
+                            title = getString(R.string.music_player),
+                            items = desiredItems,
+                            startIndex = startIndex,
+                            position = targetPos,
+                        )
+                    queueTitle = null
+                    player.setMediaItems(desiredItems, startIndex, targetPos)
+                    player.prepare()
+                    player.repeatMode = state.repeatMode
+                    player.shuffleModeEnabled = state.shuffleEnabled
+                    player.playWhenReady = state.isPlaying
+                    togetherLastRemoteAppliedIndex = startIndex
+                } else {
+                    val index = state.currentIndex.coerceAtLeast(0)
+                    val indexChanged = player.mediaItemCount > 0 && index != player.currentMediaItemIndex
+                    val stateChanged =
+                        player.repeatMode != state.repeatMode ||
+                            player.shuffleModeEnabled != state.shuffleEnabled ||
+                            player.playWhenReady != state.isPlaying
+
+                    if (indexChanged) {
+                        player.seekTo(index.coerceAtMost(player.mediaItemCount - 1), targetPos)
+                        player.prepare()
+                        player.playWhenReady = state.isPlaying
+                    } else if (stateChanged) {
+                        if (player.repeatMode != state.repeatMode) player.repeatMode = state.repeatMode
+                        if (player.shuffleModeEnabled != state.shuffleEnabled) player.shuffleModeEnabled = state.shuffleEnabled
+                        if (player.playWhenReady != state.isPlaying) {
+                            player.playWhenReady = state.isPlaying
+                            val drift = kotlin.math.abs(player.currentPosition - targetPos)
+                            if (drift > 100) {
+                                player.seekTo(targetPos)
+                                player.prepare()
+                            }
+                        }
+                    } else {
+                        val drift = kotlin.math.abs(player.currentPosition - targetPos)
+                        val seekThreshold = if (togetherIsOnlineSession) 4000L else 2000L
+                        val threshold = if (state.isPlaying) seekThreshold else 200L
+                        
+                        if (drift > threshold) {
+                            player.seekTo(targetPos)
+                            player.prepare()
+                        }
+                    }
+                    togetherLastRemoteAppliedIndex = index
+                }
+                togetherLastRemoteAppliedPlayWhenReady = state.isPlaying
+                togetherLastAppliedRoomStateSentAtElapsedMs = sentAt
+
+                togetherSessionState.value =
+                    moe.koiverse.archivetune.together.TogetherSessionState.Joined(
+                        role = moe.koiverse.archivetune.together.TogetherRole.Guest,
+                        sessionId = state.sessionId,
+                        selfParticipantId = pid,
+                        roomState = state,
+                    )
+            } finally {
+                togetherApplyingRemote = false
+            }
+        }
+    }
+
+    private fun startTogetherHeartbeat(sessionId: String, client: moe.koiverse.archivetune.together.TogetherClient) {
+        togetherHeartbeatJob?.cancel()
+        togetherHeartbeatJob =
+            ioScope.launch(SilentHandler) {
+                var pingId = 0L
+                while (togetherClient === client) {
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    client.sendHeartbeat(sessionId = sessionId, pingId = pingId++, clientElapsedRealtimeMs = now)
+                    kotlinx.coroutines.delay(2000)
+                }
+            }
+    }
+
+    private suspend fun stopTogetherInternal() {
+        togetherBroadcastJob?.cancel()
+        togetherBroadcastJob = null
+
+        togetherOnlineConnectJob?.cancel()
+        togetherOnlineConnectJob = null
+
+        togetherClientEventsJob?.cancel()
+        togetherClientEventsJob = null
+
+        togetherHeartbeatJob?.cancel()
+        togetherHeartbeatJob = null
+
+        togetherClock = null
+        togetherSelfParticipantId = null
+        togetherLastAppliedQueueHash = null
+        togetherIsOnlineSession = false
+        togetherApplyingRemote = false
+        togetherSuppressEchoUntilElapsedMs = 0L
+        togetherLastAppliedRoomStateSentAtElapsedMs = 0L
+        togetherLastRemoteAppliedPlayWhenReady = null
+        togetherLastRemoteAppliedIndex = -1
+        togetherLastSentControlAtElapsedMs = 0L
+        togetherLastSentControlAction = null
+        togetherPendingGuestControl = null
+
+        try {
+            togetherClient?.disconnect()
+        } catch (_: Exception) {}
+        togetherClient = null
+
+        try {
+            togetherOnlineHost?.disconnect()
+        } catch (_: Exception) {}
+        togetherOnlineHost = null
+
+        try {
+            togetherServer?.stop()
+        } catch (_: Exception) {}
+        togetherServer = null
+    }
+
+    private fun moe.koiverse.archivetune.together.TogetherTrack.toMediaMetadata(): moe.koiverse.archivetune.models.MediaMetadata {
+        return moe.koiverse.archivetune.models.MediaMetadata(
+            id = id,
+            title = title,
+            artists = artists.map { name -> moe.koiverse.archivetune.models.MediaMetadata.Artist(id = null, name = name) },
+            duration = durationSec,
+            thumbnailUrl = thumbnailUrl,
+            album = null,
+            setVideoId = null,
+            explicit = false,
+            liked = false,
+            likedDate = null,
+            inLibrary = null,
+        )
+    }
+
+    private fun getLocalIpv4Address(): String? {
+        return runCatching {
+            java.net.NetworkInterface.getNetworkInterfaces().toList()
+                .asSequence()
+                .filter { it.isUp && !it.isLoopback }
+                .flatMap { it.inetAddresses.toList().asSequence() }
+                .filterIsInstance<java.net.Inet4Address>()
+                .map { it.hostAddress }
+                .firstOrNull { it.isNotBlank() && it != "127.0.0.1" }
+        }.getOrNull()
     }
 
     private fun toggleLibrary() {
@@ -1137,7 +3279,7 @@ class MusicService :
                  syncUtils.likeSong(song)
 
                  // Check if auto-download on like is enabled and the song is now liked
-                 if (dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
+                 if (!song.isLocal && dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
                      // Trigger download for the liked song
                      val downloadRequest = androidx.media3.exoplayer.offline.DownloadRequest
                          .Builder(song.id, song.id.toUri())
@@ -1159,12 +3301,210 @@ class MusicService :
         startRadioSeamlessly()
     }
 
+    private fun decodeBandLevelsMb(raw: String?): List<Int> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return runCatching { EqualizerJson.json.decodeFromString<List<Int>>(raw) }.getOrNull() ?: emptyList()
+    }
+
+    private fun encodeBandLevelsMb(levelsMb: List<Int>): String {
+        return runCatching { EqualizerJson.json.encodeToString(levelsMb) }.getOrNull().orEmpty()
+    }
+
+    private fun readEqSettingsFromPrefs(prefs: Preferences): EqSettings {
+        val levels = decodeBandLevelsMb(prefs[EqualizerBandLevelsMbKey])
+        return EqSettings(
+            enabled = prefs[EqualizerEnabledKey] ?: false,
+            bandLevelsMb = levels,
+            outputGainEnabled = prefs[EqualizerOutputGainEnabledKey] ?: false,
+            outputGainMb = prefs[EqualizerOutputGainMbKey] ?: 0,
+            bassBoostEnabled = prefs[EqualizerBassBoostEnabledKey] ?: false,
+            bassBoostStrength = (prefs[EqualizerBassBoostStrengthKey] ?: 0).coerceIn(0, 1000),
+            virtualizerEnabled = prefs[EqualizerVirtualizerEnabledKey] ?: false,
+            virtualizerStrength = (prefs[EqualizerVirtualizerStrengthKey] ?: 0).coerceIn(0, 1000),
+        )
+    }
+
+    fun applyEqFlatPreset() {
+        ioScope.launch {
+            val caps = eqCapabilities.value
+            val bandCount = caps?.bandCount ?: equalizer?.let { readAudioEffectValue("equalizer band count") { it.numberOfBands.toInt() } } ?: 0
+            val encoded = encodeBandLevelsMb(List(bandCount.coerceAtLeast(0)) { 0 })
+            dataStore.edit { prefs ->
+                prefs[EqualizerEnabledKey] = true
+                prefs[EqualizerBandLevelsMbKey] = encoded
+                prefs[EqualizerSelectedProfileIdKey] = "flat"
+            }
+        }
+    }
+
+    fun applySystemEqPreset(presetIndex: Int) {
+        scope.launch {
+            ensureAudioEffects(player.audioSessionId)
+            val eq = equalizer ?: return@launch
+            val maxPreset = readAudioEffectValue("equalizer preset count") { eq.numberOfPresets.toInt() } ?: 0
+            if (presetIndex !in 0 until maxPreset) return@launch
+
+            runCatching { eq.usePreset(presetIndex.toShort()) }.getOrNull() ?: return@launch
+
+            val bandCount = readAudioEffectValue("equalizer band count") { eq.numberOfBands.toInt() } ?: 0
+            val levels =
+                (0 until bandCount).map { band ->
+                    readAudioEffectValue("equalizer band level for band $band") {
+                        eq.getBandLevel(band.toShort()).toInt()
+                    } ?: 0
+                }
+
+            val encoded = encodeBandLevelsMb(levels)
+            if (encoded.isBlank()) return@launch
+
+            ioScope.launch {
+                dataStore.edit { prefs ->
+                    prefs[EqualizerEnabledKey] = true
+                    prefs[EqualizerBandLevelsMbKey] = encoded
+                    prefs[EqualizerSelectedProfileIdKey] = "system:$presetIndex"
+                }
+            }
+        }
+    }
+
+    private fun resampleLevelsByIndex(levelsMb: List<Int>, targetCount: Int): List<Int> {
+        if (targetCount <= 0) return emptyList()
+        if (levelsMb.isEmpty()) return List(targetCount) { 0 }
+        if (levelsMb.size == targetCount) return levelsMb
+        if (targetCount == 1) return listOf(levelsMb.sum() / levelsMb.size)
+
+        val lastIndex = levelsMb.lastIndex.toFloat().coerceAtLeast(1f)
+        return List(targetCount) { i ->
+            val pos = i.toFloat() * lastIndex / (targetCount - 1).toFloat()
+            val lo = kotlin.math.floor(pos).toInt().coerceIn(0, levelsMb.lastIndex)
+            val hi = kotlin.math.ceil(pos).toInt().coerceIn(0, levelsMb.lastIndex)
+            val t = (pos - lo.toFloat()).coerceIn(0f, 1f)
+            val a = levelsMb[lo]
+            val b = levelsMb[hi]
+            (a + ((b - a) * t)).toInt()
+        }
+    }
+
+    private inline fun <T> readAudioEffectValue(
+        operation: String,
+        block: () -> T,
+    ): T? =
+        runCatching(block)
+            .onFailure { error ->
+                Timber.tag("MusicService").w(error, "Audio effect query failed: %s", operation)
+            }.getOrNull()
+
+    private fun updateEqCapabilitiesFromEffect(eq: Equalizer) {
+        val bandCount = readAudioEffectValue("equalizer band count") { eq.numberOfBands.toInt().coerceAtLeast(0) } ?: 0
+        val range = readAudioEffectValue("equalizer band range") { eq.bandLevelRange }
+        val minMb = range?.getOrNull(0)?.toInt() ?: -1500
+        val maxMb = range?.getOrNull(1)?.toInt() ?: 1500
+        val center =
+            (0 until bandCount).map { band ->
+                (readAudioEffectValue("equalizer center frequency for band $band") {
+                    eq.getCenterFreq(band.toShort())
+                } ?: 0) / 1000
+            }
+        val presetCount = readAudioEffectValue("equalizer preset count") { eq.numberOfPresets.toInt().coerceAtLeast(0) } ?: 0
+        val presets =
+            (0 until presetCount).map { idx ->
+                readAudioEffectValue("equalizer preset name for preset $idx") {
+                    eq.getPresetName(idx.toShort()).toString()
+                } ?: "Preset ${idx + 1}"
+            }
+        eqCapabilities.value =
+            EqCapabilities(
+                bandCount = bandCount,
+                minBandLevelMb = minMb,
+                maxBandLevelMb = maxMb,
+                centerFreqHz = center,
+                systemPresets = presets,
+            )
+    }
+
+    private fun releaseAudioEffects() {
+        audioEffectsSessionId = null
+        try {
+            equalizer?.release()
+        } catch (_: Exception) {
+        }
+        try {
+            bassBoost?.release()
+        } catch (_: Exception) {
+        }
+        try {
+            virtualizer?.release()
+        } catch (_: Exception) {
+        }
+        try {
+            loudnessEnhancer?.release()
+        } catch (_: Exception) {
+        }
+        equalizer = null
+        bassBoost = null
+        virtualizer = null
+        loudnessEnhancer = null
+        eqCapabilities.value = null
+    }
+
+    private fun ensureAudioEffects(sessionId: Int) {
+        if (sessionId <= 0) return
+        if (audioEffectsSessionId == sessionId && equalizer != null) return
+
+        releaseAudioEffects()
+        audioEffectsSessionId = sessionId
+
+        equalizer = runCatching { Equalizer(0, sessionId) }.getOrNull()
+        bassBoost = runCatching { BassBoost(0, sessionId) }.getOrNull()
+        virtualizer = runCatching { Virtualizer(0, sessionId) }.getOrNull()
+        loudnessEnhancer = runCatching { LoudnessEnhancer(sessionId) }.getOrNull()
+
+        equalizer?.let(::updateEqCapabilitiesFromEffect)
+        applyEqSettingsToEffects(desiredEqSettings.value)
+    }
+
+    private fun applyEqSettingsToEffects(settings: EqSettings) {
+        val eq = equalizer ?: return
+        val caps = eqCapabilities.value
+        val bandCount = caps?.bandCount ?: readAudioEffectValue("equalizer band count") { eq.numberOfBands.toInt() } ?: 0
+        val minMb = caps?.minBandLevelMb ?: readAudioEffectValue("equalizer minimum band level") { eq.bandLevelRange.getOrNull(0)?.toInt() } ?: -1500
+        val maxMb = caps?.maxBandLevelMb ?: readAudioEffectValue("equalizer maximum band level") { eq.bandLevelRange.getOrNull(1)?.toInt() } ?: 1500
+
+        val levels = resampleLevelsByIndex(settings.bandLevelsMb, bandCount)
+        runCatching { eq.enabled = settings.enabled }
+
+        for (band in 0 until bandCount) {
+            val levelMb = levels.getOrNull(band)?.coerceIn(minMb, maxMb) ?: 0
+            runCatching { eq.setBandLevel(band.toShort(), levelMb.toShort()) }
+        }
+
+        bassBoost?.let { bb ->
+            runCatching { bb.enabled = settings.bassBoostEnabled }
+            runCatching { bb.setStrength(settings.bassBoostStrength.toShort()) }
+        }
+
+        virtualizer?.let { v ->
+            runCatching { v.enabled = settings.virtualizerEnabled }
+            runCatching { v.setStrength(settings.virtualizerStrength.toShort()) }
+        }
+
+        loudnessEnhancer?.let { le ->
+            val gainMb = if (settings.outputGainEnabled) settings.outputGainMb.coerceIn(-1500, 1500) else 0
+            runCatching { le.setTargetGain(gainMb) }
+            runCatching { le.enabled = settings.outputGainEnabled }
+        }
+    }
+
     private fun openAudioEffectSession() {
         if (isAudioEffectSessionOpened) return
+        val sessionId = player.audioSessionId
+        if (sessionId <= 0) return
         isAudioEffectSessionOpened = true
+        openedAudioSessionId = sessionId
+        ensureAudioEffects(sessionId)
         sendBroadcast(
             Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
-                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, player.audioSessionId)
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sessionId)
                 putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
                 putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
             },
@@ -1174,29 +3514,354 @@ class MusicService :
     private fun closeAudioEffectSession() {
         if (!isAudioEffectSessionOpened) return
         isAudioEffectSessionOpened = false
+        val sessionId = openedAudioSessionId ?: player.audioSessionId
+        openedAudioSessionId = null
+        releaseAudioEffects()
+        if (sessionId <= 0) return
         sendBroadcast(
             Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
-                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, player.audioSessionId)
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sessionId)
                 putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
             },
         )
     }
 
+    private fun historyThresholdMs(): Long {
+        return (dataStore[HistoryDuration] ?: 30f)
+            .times(1000f)
+            .roundToLong()
+            .coerceAtLeast(0L)
+    }
+
+    private fun currentHistoryPlayedMs(nowElapsedMs: Long = android.os.SystemClock.elapsedRealtime()): Long {
+        val runningPlayMs = currentHistoryStartedAtElapsedMs
+            ?.let { (nowElapsedMs - it).coerceAtLeast(0L) }
+            ?: 0L
+        return currentHistoryAccumulatedPlayMs + runningPlayMs
+    }
+
+    private fun flushCurrentHistoryPlayedTime(nowElapsedMs: Long = android.os.SystemClock.elapsedRealtime()) {
+        currentHistoryAccumulatedPlayMs = currentHistoryPlayedMs(nowElapsedMs)
+        currentHistoryStartedAtElapsedMs = null
+    }
+
+    private fun updatePendingHistoryFinalization(
+        mediaId: String,
+        sessionToken: Long,
+        result: ImmediateHistoryResult,
+    ) {
+        val pendingSessions = pendingHistoryFinalizations[mediaId] ?: return
+        val index = pendingSessions.indexOfFirst { it.sessionToken == sessionToken }
+        if (index == -1) return
+
+        val existing = pendingSessions[index]
+        pendingSessions[index] = existing.copy(
+            eventId = result.eventId ?: existing.eventId,
+            remoteRegistered = existing.remoteRegistered || result.remoteRegistered,
+        )
+    }
+
+    private fun enqueueCurrentHistorySessionForFinalization() {
+        val mediaId = currentHistoryMediaId ?: return
+        if (currentHistorySessionQueued) return
+
+        pendingHistoryFinalizations
+            .getOrPut(mediaId) { mutableListOf() }
+            .add(
+                PendingHistoryFinalization(
+                    sessionToken = currentHistorySessionToken,
+                    eventId = currentHistoryEventId,
+                    remoteRegistered = currentHistoryRemoteRegistered,
+                ),
+            )
+        currentHistorySessionQueued = true
+    }
+
+    private fun popPendingHistoryFinalization(mediaId: String): PendingHistoryFinalization? {
+        val pendingSessions = pendingHistoryFinalizations[mediaId] ?: return null
+        val pending = pendingSessions.firstOrNull() ?: return null
+        pendingSessions.removeAt(0)
+        if (pendingSessions.isEmpty()) {
+            pendingHistoryFinalizations.remove(mediaId)
+        }
+        return pending
+    }
+
+    private fun beginHistorySession(mediaId: String?, forceNew: Boolean = false) {
+        val normalizedMediaId = mediaId?.trim()?.takeIf { it.isNotEmpty() }
+        if (!forceNew && currentHistoryMediaId == normalizedMediaId && currentHistorySessionToken != 0L) {
+            updateHistoryTrackingPlaybackState()
+            return
+        }
+
+        historyThresholdJob?.cancel()
+        historyThresholdJob = null
+        flushCurrentHistoryPlayedTime()
+        enqueueCurrentHistorySessionForFinalization()
+
+        currentHistorySessionToken = ++nextHistorySessionToken
+        currentHistoryMediaId = normalizedMediaId
+        currentHistoryAccumulatedPlayMs = 0L
+        currentHistoryStartedAtElapsedMs = null
+        currentHistoryEventId = null
+        currentHistoryRemoteRegistered = false
+        currentHistoryImmediateAttempted = false
+        currentHistorySessionQueued = false
+
+        updateHistoryTrackingPlaybackState()
+    }
+
+    private fun updateHistoryTrackingPlaybackState() {
+        val mediaId = currentHistoryMediaId
+        if (mediaId == null || currentHistorySessionQueued) {
+            historyThresholdJob?.cancel()
+            historyThresholdJob = null
+            currentHistoryStartedAtElapsedMs = null
+            return
+        }
+
+        if (player.isPlaying) {
+            if (currentHistoryStartedAtElapsedMs == null) {
+                currentHistoryStartedAtElapsedMs = android.os.SystemClock.elapsedRealtime()
+            }
+        } else {
+            flushCurrentHistoryPlayedTime()
+        }
+
+        syncHistoryThresholdJob()
+    }
+
+    private fun syncHistoryThresholdJob() {
+        historyThresholdJob?.cancel()
+        historyThresholdJob = null
+
+        val mediaId = currentHistoryMediaId ?: return
+        if (currentHistorySessionQueued) return
+        if (dataStore.get(PauseListenHistoryKey, false)) return
+        if (currentHistoryEventId != null && currentHistoryRemoteRegistered) return
+
+        val thresholdMs = historyThresholdMs()
+        val playedMs = currentHistoryPlayedMs()
+        if (playedMs >= thresholdMs) {
+            if (!currentHistoryImmediateAttempted) {
+                maybeRecordCurrentPlaybackHistory()
+            }
+            return
+        }
+        if (!player.isPlaying) return
+
+        historyThresholdJob = scope.launch {
+            delay((thresholdMs - playedMs).coerceAtLeast(0L))
+            maybeRecordCurrentPlaybackHistory()
+        }
+    }
+
+    private fun maybeRecordCurrentPlaybackHistory() {
+        val mediaId = currentHistoryMediaId ?: return
+        if (currentHistorySessionQueued) return
+        if (dataStore.get(PauseListenHistoryKey, false)) return
+
+        val thresholdMs = historyThresholdMs()
+        val playedMs = currentHistoryPlayedMs()
+        if (playedMs < thresholdMs) {
+            syncHistoryThresholdJob()
+            return
+        }
+
+        val sessionToken = currentHistorySessionToken
+        if (historyRecordingJobs.containsKey(sessionToken)) return
+        currentHistoryImmediateAttempted = true
+
+        val eventIdSnapshot = currentHistoryEventId
+        val remoteRegisteredSnapshot = currentHistoryRemoteRegistered
+        val mediaMetadataSnapshot = player.currentMetadata?.takeIf { it.id == mediaId }
+
+        val deferred = scope.async {
+            withContext(Dispatchers.IO) {
+                val resolvedEventId = eventIdSnapshot
+                    ?: insertPlaybackHistoryEvent(
+                        mediaId = mediaId,
+                        playTimeMs = playedMs,
+                        mediaMetadata = mediaMetadataSnapshot,
+                    )
+                val remoteRegistered = remoteRegisteredSnapshot || registerRemotePlaybackHistory(mediaId)
+                ImmediateHistoryResult(
+                    eventId = resolvedEventId,
+                    remoteRegistered = remoteRegistered,
+                )
+            }
+        }
+
+        historyRecordingJobs[sessionToken] = deferred
+        scope.launch {
+            val result = runCatching { deferred.await() }
+                .onFailure(::reportException)
+                .getOrNull()
+
+            historyRecordingJobs.remove(sessionToken)
+
+            if (result != null) {
+                if (currentHistorySessionToken == sessionToken &&
+                    !currentHistorySessionQueued &&
+                    currentHistoryMediaId == mediaId
+                ) {
+                    currentHistoryEventId = result.eventId ?: currentHistoryEventId
+                    currentHistoryRemoteRegistered = currentHistoryRemoteRegistered || result.remoteRegistered
+                } else {
+                    updatePendingHistoryFinalization(mediaId, sessionToken, result)
+                }
+            }
+
+            syncHistoryThresholdJob()
+        }
+    }
+
+    private suspend fun insertPlaybackHistoryEvent(
+        mediaId: String,
+        playTimeMs: Long,
+        mediaMetadata: moe.koiverse.archivetune.models.MediaMetadata?,
+    ): Long? {
+        return try {
+            database.withTransaction {
+                if (song(mediaId).first() == null && mediaMetadata != null) {
+                    insert(mediaMetadata)
+                }
+
+                insert(
+                    Event(
+                        songId = mediaId,
+                        timestamp = LocalDateTime.now(),
+                        playTime = playTimeMs,
+                    ),
+                ).takeIf { it > 0L }
+            }
+        } catch (_: SQLException) {
+            null
+        } catch (throwable: Throwable) {
+            reportException(throwable)
+            null
+        }
+    }
+
+    private suspend fun registerRemotePlaybackHistory(mediaId: String): Boolean {
+        if (database.song(mediaId).first()?.song?.isLocal == true) {
+            return false
+        }
+
+        suspend fun registerTrackingUrl(url: String): Boolean {
+            return retryWithoutPlaybackLoginContext {
+                YouTube.registerPlayback(
+                    playlistId = null,
+                    playbackTracking = url,
+                )
+            }.onFailure { throwable ->
+                when (throwable) {
+                    is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+                        promptLoginRecovery(mediaId, throwable.targetUrl)
+                    }
+
+                    else -> {
+                        Timber.tag("MusicService").w(
+                            throwable,
+                            "Failed to register remote playback history for %s",
+                            mediaId,
+                        )
+                    }
+                }
+            }.isSuccess
+        }
+
+        val playbackUrl =
+            database.format(mediaId).first()?.playbackUrl
+                ?.takeIf { it.isNotBlank() }
+                ?: retryWithoutPlaybackLoginContext {
+                    YTPlayerUtils.playerResponseForMetadata(mediaId)
+                }.onFailure { throwable ->
+                    when (throwable) {
+                        is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+                            promptLoginRecovery(mediaId, throwable.targetUrl)
+                        }
+
+                        is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                            promptLoginRecovery(mediaId, throwable.targetUrl)
+                        }
+
+                        else -> {
+                            Timber.tag("MusicService").w(
+                                throwable,
+                                "Failed to refresh remote playback tracking for %s",
+                                mediaId,
+                            )
+                        }
+                    }
+                }.getOrNull()?.playbackTracking?.videostatsPlaybackUrl?.baseUrl
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+
+        return playbackUrl?.let { registerTrackingUrl(it) } ?: false
+    }
+
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
-    currentMediaMetadata.value = mediaItem?.metadata ?: player.currentMetadata
+    beginHistorySession(mediaItem?.mediaId, forceNew = true)
+
+    // Pre-load lyrics for upcoming songs in queue
+    val currentIndex = player.currentMediaItemIndex
+    // Convert media items to MediaMetadata for lyrics pre-loading
+    val queue = player.mediaItems.mapNotNull { it.metadata }
+    if (queue.isNotEmpty()) {
+        lyricsPreloadManager?.onSongChanged(currentIndex, queue)
+    }
+
+    val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+    if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
+        reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK
+    ) {
+        if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+            return
+        }
+        val now = android.os.SystemClock.elapsedRealtime()
+        val index = player.currentMediaItemIndex.coerceAtLeast(0)
+        val isEcho =
+            isTogetherApplyingRemote() ||
+                (now < togetherSuppressEchoUntilElapsedMs && togetherLastRemoteAppliedIndex == index)
+        if (!isEcho) {
+            val trackId = (mediaItem?.metadata ?: player.currentMetadata)?.id?.trim().orEmpty()
+            requestTogetherControl(
+                if (trackId.isBlank()) {
+                    moe.koiverse.archivetune.together.ControlAction.SeekToIndex(
+                        index = index,
+                        positionMs = player.currentPosition.coerceAtLeast(0L),
+                    )
+                } else {
+                    moe.koiverse.archivetune.together.ControlAction.SeekToTrack(
+                        trackId = trackId,
+                        positionMs = player.currentPosition.coerceAtLeast(0L),
+                    )
+                },
+            )
+        }
+    }
+
+    val timelineEmpty = player.currentTimeline.isEmpty || player.mediaItemCount == 0 || player.currentMediaItem == null
+    currentMediaMetadata.value = if (timelineEmpty) null else (mediaItem?.metadata ?: player.currentMetadata)
 
     scrobbleManager?.onSongStop()
 
-    // Clear automix when user manually seeks to a different song
-    // This ensures recommendations are refreshed based on the new context
-    if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK && dataStore.get(AutoLoadMoreKey, true)) {
-        clearAutomix()
+    if (!timelineEmpty &&
+        dataStore.get(AutoLoadMoreKey, true) &&
+        reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
+        player.repeatMode == REPEAT_MODE_OFF
+    ) {
+        // No redundant seeding update check.
     }
 
     // Auto-load more from queue if available
-    if (dataStore.get(AutoLoadMoreKey, true) &&
+    if (!suppressAutoPlayback &&
+        !timelineEmpty &&
+        dataStore.get(AutoLoadMoreKey, true) &&
         reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
         player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
         currentQueue.hasNextPage() &&
@@ -1213,51 +3878,34 @@ class MusicService :
         }
     }
     
-    // Auto-play recommendations when approaching end of queue
-    if (dataStore.get(AutoLoadMoreKey, true) &&
+    if (!suppressAutoPlayback &&
+        !timelineEmpty &&
+        dataStore.get(AutoLoadMoreKey, true) &&
         reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
         player.repeatMode == REPEAT_MODE_OFF &&
         player.mediaItemCount - player.currentMediaItemIndex <= 3 &&
         !currentQueue.hasNextPage()
     ) {
         scope.launch(SilentHandler) {
-            // First, try to add existing automix items
-            val existingAutomix = automixItems.value
-            if (existingAutomix.isNotEmpty()) {
-                // Filter out the current song to prevent duplicates
-                val currentSongId = player.currentMetadata?.id
-                val filteredAutomix = existingAutomix.filter { it.mediaId != currentSongId }
-                if (filteredAutomix.isNotEmpty()) {
-                    player.addMediaItems(filteredAutomix)
+            if (suppressAutoPlayback || player.mediaItemCount == 0) return@launch
+            
+            val currentMediaMetadata = player.currentMetadata ?: return@launch
+            val currentMediaId = currentMediaMetadata.id.trim().ifBlank { return@launch }
+            
+            try {
+                val radioQueue = YouTubeQueue(WatchEndpoint(videoId = currentMediaId), followAutomixPreview = true)
+                val status = withContext(Dispatchers.IO) { radioQueue.getInitialStatus() }
+                
+                val queueIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                val newItems = status.items.filter { it.mediaId !in queueIds }
+                
+                if (newItems.isNotEmpty()) {
+                    player.addMediaItems(newItems)
+                    newItems.forEach { autoAddedMediaIds.add(it.mediaId) }
                 }
-                clearAutomix()
-            } else {
-                // If no automix items available, fetch recommendations based on current song
-                val currentMediaMetadata = player.currentMetadata
-                if (currentMediaMetadata != null) {
-                    YouTube
-                        .next(WatchEndpoint(videoId = currentMediaMetadata.id))
-                        .onSuccess { nextResult ->
-                            val radioItems = nextResult.items
-                                .map { it.toMediaItem() }
-                                .filter { it.mediaId != currentMediaMetadata.id } // Prevent duplicate of current song
-                                .filterExplicit(dataStore.get(HideExplicitKey, false))
-                                .filterVideo(dataStore.get(HideVideoKey, false))
-                            
-                            if (radioItems.isNotEmpty()) {
-                                player.addMediaItems(radioItems)
-                                
-                                // Fetch next batch for automix
-                                YouTube
-                                    .next(WatchEndpoint(playlistId = nextResult.endpoint.playlistId))
-                                    .onSuccess { automixResult ->
-                                        automixItems.value = automixResult.items
-                                            .map { it.toMediaItem() }
-                                            .filter { it.mediaId != currentMediaMetadata.id } // Filter out duplicate
-                                    }
-                            }
-                        }
-                }
+                currentQueue = radioQueue
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to inject YouTube replacement queue")
             }
         }
     }
@@ -1278,6 +3926,11 @@ class MusicService :
     override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
     super.onPlaybackStateChanged(playbackState)
 
+    updateHistoryTrackingPlaybackState()
+    if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
+        enqueueCurrentHistorySessionForFinalization()
+    }
+
     scope.launch {
         val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
         if (shouldSave) {
@@ -1289,56 +3942,14 @@ class MusicService :
         scrobbleManager?.onSongStop()
     }
     
-    // Auto-start recommendations when playback ends
-    if (playbackState == Player.STATE_ENDED &&
+    // Auto-start recommendations when playback ends (handoff finite queues into infinite)
+    if (!suppressAutoPlayback &&
+        playbackState == Player.STATE_ENDED &&
         dataStore.get(AutoLoadMoreKey, true) &&
         player.repeatMode == REPEAT_MODE_OFF &&
         player.currentMediaItem != null
     ) {
-        scope.launch(SilentHandler) {
-            val lastMediaMetadata = player.currentMetadata
-            
-            // First check if we have automix items ready
-            val existingAutomix = automixItems.value
-            if (existingAutomix.isNotEmpty()) {
-                // Filter out the last played song to prevent immediate repeat
-                val filteredAutomix = existingAutomix.filter { it.mediaId != lastMediaMetadata?.id }
-                if (filteredAutomix.isNotEmpty()) {
-                    player.setMediaItems(filteredAutomix, 0, 0)
-                    player.prepare()
-                    player.play()
-                }
-                clearAutomix()
-            } else {
-                // Fetch recommendations based on the last played song
-                if (lastMediaMetadata != null) {
-                    YouTube
-                        .next(WatchEndpoint(videoId = lastMediaMetadata.id))
-                        .onSuccess { nextResult ->
-                            val radioItems = nextResult.items
-                                .map { it.toMediaItem() }
-                                .filter { it.mediaId != lastMediaMetadata.id } // Prevent immediate repeat
-                                .filterExplicit(dataStore.get(HideExplicitKey, false))
-                                .filterVideo(dataStore.get(HideVideoKey, false))
-                            
-                            if (radioItems.isNotEmpty()) {
-                                player.setMediaItems(radioItems, 0, 0)
-                                player.prepare()
-                                player.play()
-                                
-                                // Fetch next batch for automix
-                                YouTube
-                                    .next(WatchEndpoint(playlistId = nextResult.endpoint.playlistId))
-                                    .onSuccess { automixResult ->
-                                        automixItems.value = automixResult.items
-                                            .map { it.toMediaItem() }
-                                            .filter { it.mediaId != lastMediaMetadata.id } // Filter duplicate
-                                    }
-                            }
-                        }
-                }
-            }
-        }
+        onInfiniteQueueEnabled()
     }
 
     ensurePresenceManager()
@@ -1397,18 +4008,112 @@ class MusicService :
 
 
     override fun onEvents(player: Player, events: Player.Events) {
+        val currentMediaId = player.currentMediaItem?.mediaId
+        if (currentMediaId == null && currentHistoryMediaId != null) {
+            beginHistorySession(null, forceNew = true)
+        } else if (currentHistoryMediaId == null && currentMediaId != null) {
+            beginHistorySession(currentMediaId)
+        }
+        if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            playbackStreamRecoveryTracker.onMediaItemChanged(currentMediaId)
+        }
+        if (
+            (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) && player.playbackState == Player.STATE_READY) ||
+            (events.contains(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying)
+        ) {
+            playbackStreamRecoveryTracker.onPlaybackRecovered(currentMediaId)
+        }
+        if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
+            currentMediaMetadata.value = player.currentMetadata
+        }
+        if (events.containsAny(
+                Player.EVENT_PLAYBACK_STATE_CHANGED,
+                Player.EVENT_PLAY_WHEN_READY_CHANGED,
+                Player.EVENT_IS_PLAYING_CHANGED,
+            )
+        ) {
+            updateHistoryTrackingPlaybackState()
+        }
+    val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+    if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest &&
+        events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
+    ) {
+        if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+        } else {
+            val now = android.os.SystemClock.elapsedRealtime()
+            val playWhenReady = this.player.playWhenReady
+            val isEcho =
+                isTogetherApplyingRemote() ||
+                    (now < togetherSuppressEchoUntilElapsedMs &&
+                        togetherLastRemoteAppliedPlayWhenReady != null &&
+                        togetherLastRemoteAppliedPlayWhenReady == playWhenReady)
+            if (!isEcho) {
+                val action =
+                    if (playWhenReady) {
+                        moe.koiverse.archivetune.together.ControlAction.Play
+                    } else {
+                        moe.koiverse.archivetune.together.ControlAction.Pause
+                    }
+                requestTogetherControl(action)
+            }
+        }
+    }
+    if (events.contains(Player.EVENT_DEVICE_VOLUME_CHANGED)) {
+        handleDeviceMuteStateChanged()
+    }
+    if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
+        handleDeviceMuteStateChanged()
+    }
+    if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
+        (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
+    ) {
+        wasAutoPausedByDeviceMute = false
+    }
+    if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
+        val newSessionId = this.player.audioSessionId
+        val oldSessionId = openedAudioSessionId
+        if (isAudioEffectSessionOpened && newSessionId > 0 && oldSessionId != null && oldSessionId > 0 && oldSessionId != newSessionId) {
+            sendBroadcast(
+                Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                    putExtra(AudioEffect.EXTRA_AUDIO_SESSION, oldSessionId)
+                    putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                },
+            )
+            openedAudioSessionId = newSessionId
+            ensureAudioEffects(newSessionId)
+            sendBroadcast(
+                Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                    putExtra(AudioEffect.EXTRA_AUDIO_SESSION, newSessionId)
+                    putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                    putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+                },
+            )
+        }
+    }
     if (events.containsAny(
             Player.EVENT_PLAYBACK_STATE_CHANGED,
             Player.EVENT_PLAY_WHEN_READY_CHANGED
         )
     ) {
-        val isBufferingOrReady =
-            player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
-        if (isBufferingOrReady && player.playWhenReady) {
-            val focusGranted = requestAudioFocus()
-            if (focusGranted) openAudioEffectSession()
+        val playbackState = player.playbackState
+        val keepAudioEffectSessionOpen =
+            playbackState == Player.STATE_BUFFERING || playbackState == Player.STATE_READY
+        if (player.playWhenReady && keepAudioEffectSessionOpen) {
+            requestAudioFocus()
+        }
+        if (keepAudioEffectSessionOpen) {
+            openAudioEffectSession()
         } else {
             closeAudioEffectSession()
+        }
+        updateWakeLock()
+        if (player.playWhenReady && keepAudioEffectSessionOpen) {
+            cancelIdleStop()
+            promoteToStartedService()
+            ensureStartedAsForeground()
+        } else {
+            scheduleStopIfIdle()
         }
     }
 
@@ -1531,14 +4236,23 @@ class MusicService :
 
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
         updateNotification()
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!isTogetherApplyingRemote()) {
+                if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                    scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                    return
+                }
+                requestTogetherControl(
+                    moe.koiverse.archivetune.together.ControlAction.SetShuffleEnabled(
+                        shuffleEnabled = shuffleModeEnabled,
+                    ),
+                )
+            }
+            return
+        }
         if (shuffleModeEnabled) {
-            // Always put current playing item at first
-            val shuffledIndices = IntArray(player.mediaItemCount) { it }
-            shuffledIndices.shuffle()
-            shuffledIndices[shuffledIndices.indexOf(player.currentMediaItemIndex)] =
-                shuffledIndices[0]
-            shuffledIndices[0] = player.currentMediaItemIndex
-            player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
+            applyCurrentFirstShuffleOrder()
         }
         
         // Save state when shuffle mode changes - must be on Main thread to access player
@@ -1551,6 +4265,21 @@ class MusicService :
 
     override fun onRepeatModeChanged(repeatMode: Int) {
         updateNotification()
+        val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            if (!isTogetherApplyingRemote()) {
+                if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                    scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                    return
+                }
+                requestTogetherControl(
+                    moe.koiverse.archivetune.together.ControlAction.SetRepeatMode(
+                        repeatMode = repeatMode,
+                    ),
+                )
+            }
+            return
+        }
         scope.launch {
             dataStore.edit { settings ->
                 settings[RepeatModeKey] = repeatMode
@@ -1567,50 +4296,78 @@ class MusicService :
 
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
+
+        val currentMediaId = player.currentMediaItem?.mediaId ?: return
+
+        val isFullyCachedMedia = runCatching {
+            val cachedInDownload = downloadCache.getContentMetadata(currentMediaId).get(ContentMetadata.KEY_CONTENT_LENGTH, -1L) > 0L
+            val cachedInPlayer = playerCache.getContentMetadata(currentMediaId).get(ContentMetadata.KEY_CONTENT_LENGTH, -1L) > 0L
+            cachedInDownload || cachedInPlayer
+        }.getOrDefault(false)
+
         val isConnectionError = (error.cause?.cause is PlaybackException) &&
                 (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
 
-        if (!isNetworkConnected.value || isConnectionError) {
+        if (!isFullyCachedMedia && (!isNetworkConnected.value || isConnectionError)) {
             waitOnNetworkError()
             return
         }
 
-        val skipSilenceCurrentlyEnabled = dataStore.get(SkipSilenceKey, false)
-        val causeText = (error.cause?.stackTraceToString() ?: error.stackTraceToString()).lowercase()
-        val looksLikeSilenceProcessor = skipSilenceCurrentlyEnabled && (
-            "silenceskippingaudioprocessor" in causeText || "silence" in causeText
-        )
-
-        if (looksLikeSilenceProcessor) {
-            scope.launch {
-                try {
-                    dataStore.edit { settings ->
-                        settings[SkipSilenceKey] = false
-                    }
-                    player.skipSilenceEnabled = false
-                    val currentPos = player.currentPosition
-                    val targetPos = min(currentPos + 1500L, if (player.duration > 0) player.duration - 1000L else currentPos + 1500L)
-                    player.seekTo(targetPos)
-                    player.prepare()
-                    player.play()
-                    return@launch
-                } catch (t: Throwable) {
-                    Timber.tag("MusicService").e(t, "failed to recover from silence-skipper error")
-                }
-                if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
-                    skipOnError()
-                } else {
-                    stopOnError()
-                }
+        if (error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND) {
+            scope.launch(Dispatchers.IO) {
+                runCatching { downloadCache.removeResource(currentMediaId) }
+                runCatching { playerCache.removeResource(currentMediaId) }
             }
+        }
 
-            return
+        val retryableStreamFailure = findRetryableStreamFailure(error)
+        if (retryableStreamFailure != null) {
+            if (retryPlaybackAfterStreamFailure(currentMediaId, isFullyCachedMedia, retryableStreamFailure)) {
+                return
+            }
         }
 
         if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
             skipOnError()
         } else {
             stopOnError()
+        }
+    }
+
+    private suspend fun trimPlayerCacheToBytes(limitBytes: Long) {
+        if (limitBytes <= 0L) return
+
+        withContext(Dispatchers.IO) {
+            val cacheDir = filesDir.resolve("exoplayer")
+            val currentSpace = runCatching { playerCache.cacheSpace }.getOrNull() ?: 0L
+            var totalBytes = if (currentSpace > 0L) currentSpace else cacheDir.directorySizeBytes()
+            if (totalBytes <= limitBytes) return@withContext
+
+            data class Candidate(
+                val key: String,
+                val lastTouchTimestamp: Long,
+                val sizeBytes: Long,
+            )
+
+            val candidates =
+                runCatching {
+                    playerCache.keys.mapNotNull { key ->
+                        runCatching {
+                            val spans = playerCache.getCachedSpans(key)
+                            if (spans.isEmpty()) return@runCatching null
+                            val oldestTouch = spans.minOf { it.lastTouchTimestamp }
+                            val sizeBytes = spans.sumOf { it.length }
+                            Candidate(key = key, lastTouchTimestamp = oldestTouch, sizeBytes = sizeBytes)
+                        }.getOrNull()
+                    }.sortedBy { it.lastTouchTimestamp }
+                }.getOrNull().orEmpty()
+
+            for (candidate in candidates) {
+                if (totalBytes <= limitBytes) break
+                val removedSize = candidate.sizeBytes.coerceAtLeast(0L)
+                runCatching { playerCache.removeResource(candidate.key) }
+                totalBytes -= removedSize
+            }
         }
     }
 
@@ -1622,124 +4379,261 @@ class MusicService :
                 CacheDataSource
                     .Factory()
                     .setCache(playerCache)
-                    .setUpstreamDataSourceFactory(
-                        DefaultDataSource.Factory(
-                            this,
-                            OkHttpDataSource.Factory(
-                                OkHttpClient
-                                    .Builder()
-                                    .proxy(YouTube.proxy)
-                                    .build(),
-                            ),
-                        ),
-                    ),
+                    .setUpstreamDataSourceFactory(createResolvedUpstreamDataSourceFactory())
+                    .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
             ).setCacheWriteDataSinkFactory(null)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
     private fun createDataSourceFactory(): DataSource.Factory {
-        val songUrlCache = HashMap<String, Pair<String, Long>>()
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
-            val mediaId = dataSpec.key ?: error("No media id")
+            resolvePlaybackDataSpec(
+                dataSpec = dataSpec,
+                allowCacheShortCircuit = true,
+            )
+        }
+    }
 
-            if (downloadCache.isCached(
-                    mediaId,
-                    dataSpec.position,
-                    if (dataSpec.length >= 0) dataSpec.length else 1
-                ) ||
-                playerCache.isCached(mediaId, dataSpec.position, CHUNK_LENGTH)
-            ) {
-                scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                return@Factory dataSpec
+    private fun createResolvedUpstreamDataSourceFactory(): DataSource.Factory =
+        ResolvingDataSource.Factory(
+            DefaultDataSource.Factory(
+                this,
+                OkHttpDataSource.Factory(
+                    mediaOkHttpClient,
+                ),
+            ),
+        ) { dataSpec ->
+            resolvePlaybackDataSpec(
+                dataSpec = dataSpec,
+                allowCacheShortCircuit = false,
+            )
+        }
+
+    private fun resolvePlaybackDataSpec(
+        dataSpec: DataSpec,
+        allowCacheShortCircuit: Boolean,
+    ): DataSpec {
+        if (dataSpec.uri.shouldBypassYouTubeResolver()) {
+            return dataSpec
+        }
+        val mediaId = dataSpec.key ?: return dataSpec
+        val knownContentLength =
+            contentLengthCache[mediaId] ?: runBlocking(Dispatchers.IO) {
+                database.format(mediaId).first()?.contentLength
+            } ?: runCatching {
+                downloadCache
+                    .getContentMetadata(mediaId)
+                    .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+            }.getOrNull()?.takeIf { it > 0L } ?: runCatching {
+                playerCache
+                    .getContentMetadata(mediaId)
+                    .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+            }.getOrNull()?.takeIf { it > 0L }
+
+        knownContentLength?.let { contentLengthCache[mediaId] = it }
+
+        val requiredCachedLength =
+            if (dataSpec.length >= 0) {
+                dataSpec.length
+            } else {
+                knownContentLength?.let { nonNullContentLength ->
+                    (nonNullContentLength - dataSpec.position).takeIf { it > 0L }
+                }
             }
 
-            songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+        if (allowCacheShortCircuit && requiredCachedLength != null) {
+            val isFullyCached =
+                downloadCache.isCached(mediaId, dataSpec.position, requiredCachedLength) ||
+                    playerCache.isCached(mediaId, dataSpec.position, requiredCachedLength)
+            if (isFullyCached) {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                return@Factory dataSpec.withUri(it.first.toUri())
+                return dataSpec
             }
+        }
 
-            val playbackData = runBlocking(Dispatchers.IO) {
+        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+        playbackUrlCache[mediaId]?.takeIf { it.isValidFor(authFingerprint) }?.let {
+            scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+            val resolvedDataSpec = dataSpec.withUri(it.url.toUri())
+            val length =
+                resolveStreamChunkLength(
+                    requestedLength = dataSpec.length,
+                    position = dataSpec.position,
+                    knownContentLength = knownContentLength,
+                    chunkLength = CHUNK_LENGTH,
+                )
+            return length?.let { nonNullLength ->
+                resolvedDataSpec.subrange(0L, nonNullLength)
+            } ?: resolvedDataSpec
+        }
+
+        val playbackData = runBlocking(Dispatchers.IO) {
+            retryWithoutPlaybackLoginContext {
                 YTPlayerUtils.playerResponseForPlayback(
                     mediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
+                    preferredStreamClient = preferredStreamClient,
                 )
-            }.getOrElse { throwable ->
-                when (throwable) {
-                    is PlaybackException -> throw throwable
-
-                    is java.net.ConnectException, is java.net.UnknownHostException -> {
-                        throw PlaybackException(
-                            getString(R.string.error_no_internet),
-                            throwable,
-                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
-                        )
-                    }
-
-                    is java.net.SocketTimeoutException -> {
-                        throw PlaybackException(
-                            getString(R.string.error_timeout),
-                            throwable,
-                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
-                        )
-                    }
-
-                    else -> throw PlaybackException(
-                        getString(R.string.error_unknown),
+            }
+        }.getOrElse { throwable ->
+            when (throwable) {
+                is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+                    promptLoginRecovery(mediaId, throwable.targetUrl)
+                    throw PlaybackException(
+                        getString(R.string.playback_requires_youtube_music_login_refresh),
                         throwable,
                         PlaybackException.ERROR_CODE_REMOTE_ERROR
                     )
                 }
-            }
 
-            val nonNullPlayback = requireNotNull(playbackData) {
-                getString(R.string.error_unknown)
-            }
-            run {
-                val format = nonNullPlayback.format
-                val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
-                val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
-                
-                Timber.tag("AudioNormalization").d("Storing format for $mediaId with loudnessDb: $loudnessDb, perceptualLoudnessDb: $perceptualLoudnessDb")
-                if (loudnessDb == null && perceptualLoudnessDb == null) {
-                    Timber.tag("AudioNormalization").w("No loudness data available from YouTube for video: $mediaId")
-                }
-
-                database.query {
-                    upsert(
-                        FormatEntity(
-                            id = mediaId,
-                            itag = format.itag,
-                            mimeType = format.mimeType.split(";")[0],
-                            codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
-                            bitrate = format.bitrate,
-                            sampleRate = format.audioSampleRate,
-                            contentLength = format.contentLength!!,
-                            loudnessDb = loudnessDb,
-                            perceptualLoudnessDb = perceptualLoudnessDb,
-                            playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
-                        )
+                is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                    promptLoginRecovery(mediaId, throwable.targetUrl)
+                    throw PlaybackException(
+                        getString(R.string.playback_requires_youtube_music_confirmation),
+                        throwable,
+                        PlaybackException.ERROR_CODE_REMOTE_ERROR
                     )
                 }
-                scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
 
-                val streamUrl = nonNullPlayback.streamUrl
+                is PlaybackException -> throw throwable
 
-                songUrlCache[mediaId] =
-                    streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
-                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
+                is java.net.ConnectException, is java.net.UnknownHostException -> {
+                    throw PlaybackException(
+                        getString(R.string.error_no_internet),
+                        throwable,
+                        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+                    )
+                }
+
+                is java.net.SocketTimeoutException -> {
+                    throw PlaybackException(
+                        getString(R.string.error_timeout),
+                        throwable,
+                        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+                    )
+                }
+
+                else -> throw PlaybackException(
+                    getString(R.string.error_unknown),
+                    throwable,
+                    PlaybackException.ERROR_CODE_REMOTE_ERROR
+                )
             }
         }
+
+        val nonNullPlayback = requireNotNull(playbackData) {
+            getString(R.string.error_unknown)
+        }
+        val format = nonNullPlayback.format
+        val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
+        val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
+
+        Timber.tag("AudioNormalization").d("Storing format for $mediaId with loudnessDb: $loudnessDb, perceptualLoudnessDb: $perceptualLoudnessDb")
+        if (loudnessDb == null && perceptualLoudnessDb == null) {
+            Timber.tag("AudioNormalization").w("No loudness data available from YouTube for video: $mediaId")
+        }
+
+        database.query {
+            upsert(
+                FormatEntity(
+                    id = mediaId,
+                    itag = format.itag,
+                    mimeType = format.mimeType.split(";")[0],
+                    codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
+                    bitrate = format.bitrate,
+                    sampleRate = format.audioSampleRate,
+                    contentLength = format.contentLength!!,
+                    loudnessDb = loudnessDb,
+                    perceptualLoudnessDb = perceptualLoudnessDb,
+                    playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
+                )
+            )
+        }
+        scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
+
+        val streamUrl = nonNullPlayback.streamUrl
+
+        val trackingExpiryMs = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
+
+        playbackUrlCache[mediaId] =
+            AuthScopedCacheValue(
+                url = streamUrl,
+                expiresAtMs = trackingExpiryMs,
+                authFingerprint = nonNullPlayback.authFingerprint,
+            )
+        val resolvedDataSpec = dataSpec.withUri(streamUrl.toUri())
+        val length =
+            resolveStreamChunkLength(
+                requestedLength = dataSpec.length,
+                position = dataSpec.position,
+                knownContentLength = knownContentLength ?: format.contentLength,
+                chunkLength = CHUNK_LENGTH,
+            )
+        return length?.let { nonNullLength ->
+            resolvedDataSpec.subrange(0L, nonNullLength)
+        } ?: resolvedDataSpec
+    }
+
+    private fun Uri.shouldBypassYouTubeResolver(): Boolean {
+        val normalizedScheme = scheme?.lowercase(Locale.US)
+        return normalizedScheme == "content" ||
+            normalizedScheme == "file" ||
+            normalizedScheme == "android.resource" ||
+            normalizedScheme == "http" ||
+            normalizedScheme == "https"
+    }
+
+    private fun deviceSupportsMimeType(mimeType: String): Boolean {
+        return runCatching {
+            val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
+            codecList.codecInfos.any { info ->
+                !info.isEncoder && info.supportedTypes.any { it.equals(mimeType, ignoreCase = true) }
+            }
+        }.getOrDefault(false)
     }
 
     private fun createMediaSourceFactory() =
         DefaultMediaSourceFactory(
             createDataSourceFactory(),
-            ExtractorsFactory {
-                arrayOf(MatroskaExtractor(), FragmentedMp4Extractor())
-            },
+            DefaultExtractorsFactory(),
         )
 
-    private fun createRenderersFactory() =
+    private fun updateAudioOffload(enabled: Boolean) {
+        runCatching {
+            val builder = player.trackSelectionParameters.buildUpon()
+            val audioOffloadPrefsClass = Class.forName("androidx.media3.common.AudioOffloadPreferences")
+            val audioOffloadPrefsBuilderClass = Class.forName("androidx.media3.common.AudioOffloadPreferences\$Builder")
+
+            val modeFieldName = if (enabled) "AUDIO_OFFLOAD_MODE_ENABLED" else "AUDIO_OFFLOAD_MODE_DISABLED"
+            val mode = audioOffloadPrefsClass.getField(modeFieldName).getInt(null)
+
+            val prefsBuilder = audioOffloadPrefsBuilderClass.getDeclaredConstructor().newInstance()
+            audioOffloadPrefsBuilderClass.getMethod("setAudioOffloadMode", Int::class.javaPrimitiveType).invoke(prefsBuilder, mode)
+            val prefs = audioOffloadPrefsBuilderClass.getMethod("build").invoke(prefsBuilder)
+
+            val setMethod =
+                builder.javaClass.methods.firstOrNull { method ->
+                    method.name == "setAudioOffloadPreferences" && method.parameterTypes.size == 1
+                }
+            if (setMethod != null) {
+                setMethod.invoke(builder, prefs)
+                player.trackSelectionParameters = builder.build()
+            }
+        }
+        player.setOffloadEnabled(enabled)
+    }
+
+    private fun updateWakeLock() {
+        val wl = wakeLock ?: return
+        val shouldHold = wakelockEnabled && player.isPlaying
+        if (shouldHold && !wl.isHeld) {
+            wl.acquire()
+        } else if (!shouldHold && wl.isHeld) {
+            wl.release()
+        }
+    }
+
+    private fun createRenderersFactory(onCrossfadeProcessorCreated: ((CrossfadeAudioProcessor) -> Unit)? = null) =
         object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
                 context: Context,
@@ -1747,18 +4641,18 @@ class MusicService :
                 enableAudioTrackPlaybackParams: Boolean,
             ) = DefaultAudioSink
                 .Builder(this@MusicService)
-                .setEnableFloatOutput(enableFloatOutput)
+                .setEnableFloatOutput(false)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
-                        crossfadeProcessor,
                         SilenceSkippingAudioProcessor(
-                            2_000_000L,
-                            0.2f,
-                            20_000L,
+                            1_500_000L,
+                            0.35f,
+                            500_000L,
                             10,
-                            256.toShort(),
+                            150.toShort(),
                         ),
+                        CrossfadeAudioProcessor().also { onCrossfadeProcessorCreated?.invoke(it) },
                         SonicAudioProcessor(),
                     ),
                 ).build()
@@ -1769,31 +4663,64 @@ class MusicService :
         playbackStats: PlaybackStats,
     ) {
         val mediaItem = eventTime.timeline.getWindow(eventTime.windowIndex, Timeline.Window()).mediaItem
-
-        if (playbackStats.totalPlayTimeMs >= (
-                dataStore[HistoryDuration]?.times(1000f)
-                    ?: 30000f
-            ) &&
+        val mediaId = mediaItem.mediaId
+        val thresholdMs = historyThresholdMs()
+        val pendingSession = popPendingHistoryFinalization(mediaId)
+        val alreadyPersistedForSession = pendingSession?.eventId != null || pendingSession?.remoteRegistered == true
+        val reachedHistoryThreshold = playbackStats.totalPlayTimeMs >= thresholdMs &&
             !dataStore.get(PauseListenHistoryKey, false)
-        ) {
-            database.query {
-                incrementTotalPlayTime(mediaItem.mediaId, playbackStats.totalPlayTimeMs)
+        val shouldPersistHistory = alreadyPersistedForSession || reachedHistoryThreshold
+
+        if (shouldPersistHistory) {
+            ioScope.launch {
+                val pendingResult = pendingSession?.let { session ->
+                    historyRecordingJobs[session.sessionToken]
+                        ?.let { deferred ->
+                            runCatching { deferred.await() }
+                                .onFailure(::reportException)
+                                .getOrNull()
+                        }
+                        ?.let { result ->
+                            session.copy(
+                                eventId = result.eventId ?: session.eventId,
+                                remoteRegistered = session.remoteRegistered || result.remoteRegistered,
+                            )
+                        }
+                        ?: session
+                }
+
+                val fallbackMetadata = mediaItem.metadata
+                val eventId = pendingResult?.eventId ?: insertPlaybackHistoryEvent(
+                    mediaId = mediaId,
+                    playTimeMs = playbackStats.totalPlayTimeMs,
+                    mediaMetadata = fallbackMetadata,
+                )
+
+                if (eventId != null) {
+                    runCatching {
+                        database.updateEventPlayTime(eventId, playbackStats.totalPlayTimeMs)
+                    }.onFailure(::reportException)
+                }
+
                 try {
-                    insert(
-                        Event(
-                            songId = mediaItem.mediaId,
-                            timestamp = LocalDateTime.now(),
-                            playTime = playbackStats.totalPlayTimeMs,
-                        ),
-                    )
+                    database.withTransaction {
+                        incrementTotalPlayTime(mediaId, playbackStats.totalPlayTimeMs)
+                    }
                 } catch (_: SQLException) {
+                } catch (throwable: Throwable) {
+                    reportException(throwable)
+                }
+
+                if (pendingResult?.remoteRegistered != true) {
+                    registerRemotePlaybackHistory(mediaId)
+                }
             }
-            CoroutineScope(Dispatchers.IO).launch {
+
+            ioScope.launch {
                 try {
-                    val song = database.song(mediaItem.mediaId).first()
+                    val song = database.song(mediaId).first()
                         ?: return@launch
-                    
-                    // ListenBrainz scrobbling
+
                     val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
                     val lbToken = dataStore.get(ListenBrainzTokenKey, "")
                     if (lbEnabled && !lbToken.isNullOrBlank()) {
@@ -1805,23 +4732,7 @@ class MusicService :
                             Timber.tag("MusicService").v(ie, "ListenBrainz finished submit failed")
                         }
                     }
-                    
-                    // Last.fm scrobbling - handled by ScrobbleManager
-                    // The old manual scrobbling logic has been replaced with ScrobbleManager
-                    // which properly tracks play time and scrobbles automatically
-                } catch (_: Exception) {}
-            }
-        }
-
-        CoroutineScope(Dispatchers.IO).launch {
-            val playbackUrl = database.format(mediaItem.mediaId).first()?.playbackUrl
-                ?: YTPlayerUtils.playerResponseForMetadata(mediaItem.mediaId, null)
-                    .getOrNull()?.playbackTracking?.videostatsPlaybackUrl?.baseUrl
-            playbackUrl?.let {
-                YouTube.registerPlayback(null, playbackUrl)
-                    .onFailure {
-                        reportException(it)
-                    }
+                } catch (_: Exception) {
                 }
             }
         }
@@ -1868,18 +4779,108 @@ class MusicService :
         )
     }
 
-    private suspend fun saveQueueToDisk() {
-        if (currentQueue == EmptyQueue) return
+    private inline fun <reified T> readPersistentObject(fileName: String): T? {
+        val persistentFile = filesDir.resolve(fileName)
+        if (!persistentFile.exists() || !persistentFile.isFile) return null
 
-        // Capture state on Main Thread
-        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
+        return synchronized(persistentStateLock) {
+            runCatching {
+                persistentFile.inputStream().use { fis ->
+                    ObjectInputStream(fis).use { input ->
+                        input.readObject() as? T
+                    }
+                }
+            }.onFailure {
+                Timber.tag("MusicService").w(it, "Failed to read persistent file: $fileName")
+                runCatching { persistentFile.delete() }
+            }.getOrNull()
+        }
+    }
+
+    private fun writePersistentObject(fileName: String, payload: Serializable) {
+        val persistentFile = filesDir.resolve(fileName)
+        val tempFile = filesDir.resolve("$fileName.tmp")
+
+        synchronized(persistentStateLock) {
+            runCatching {
+                FileOutputStream(tempFile).use { fos ->
+                    ObjectOutputStream(fos).use { output ->
+                        output.writeObject(payload)
+                        output.flush()
+                    }
+                    fos.fd.sync()
+                }
+
+                if (persistentFile.exists() && !persistentFile.delete()) {
+                    error("Could not replace $fileName")
+                }
+                if (!tempFile.renameTo(persistentFile)) {
+                    error("Could not atomically move $fileName")
+                }
+            }.onFailure {
+                runCatching { tempFile.delete() }
+                reportException(it)
+            }
+        }
+    }
+
+    private fun MediaItem.toPersistableMetadata(): moe.koiverse.archivetune.models.MediaMetadata? {
+        val tagged = metadata
+        if (tagged != null) return tagged
+
+        val id =
+            mediaId.trim().ifBlank {
+                localConfiguration?.uri?.toString()?.trim().orEmpty()
+            }.takeIf { it.isNotBlank() } ?: return null
+
+        val title =
+            mediaMetadata.title?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: id
+
+        val artistText =
+            mediaMetadata.artist?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: mediaMetadata.subtitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+
+        val artists =
+            artistText
+                ?.split(",")
+                ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
+                ?.map { name -> moe.koiverse.archivetune.models.MediaMetadata.Artist(id = null, name = name) }
+                .orEmpty()
+
+        val thumbnailUrl = mediaMetadata.artworkUri?.toString()
+        val albumTitle = mediaMetadata.albumTitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+        val album =
+            albumTitle?.let { titleValue ->
+                moe.koiverse.archivetune.models.MediaMetadata.Album(id = titleValue, title = titleValue)
+            }
+
+        return moe.koiverse.archivetune.models.MediaMetadata(
+            id = id,
+            title = title,
+            artists = artists,
+            duration = -1,
+            thumbnailUrl = thumbnailUrl,
+            album = album,
+            explicit = false,
+            liked = false,
+            likedDate = null,
+            inLibrary = null,
+        )
+    }
+
+    private suspend fun saveQueueToDisk() {
+        if (isRestoringPersistentState) return
+
+        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
+        if (mediaItemsSnapshot.isEmpty()) return
+
         val currentMediaItemIndex = player.currentMediaItemIndex
         val currentPosition = player.currentPosition
-        val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
         val playWhenReady = player.playWhenReady
         val repeatMode = player.repeatMode
         val shuffleModeEnabled = player.shuffleModeEnabled
-        val volume = player.volume
+        val volume = playerVolume.value
         val playbackState = player.playbackState
 
         withContext(Dispatchers.IO) {
@@ -1891,14 +4892,6 @@ class MusicService :
                 position = currentPosition
             )
             
-            val persistAutomix =
-                PersistQueue(
-                    title = "automix",
-                    items = automixSnapshot,
-                    mediaItemIndex = 0,
-                    position = 0,
-                )
-                
             // Save player state
             val persistPlayerState = PersistPlayerState(
                 playWhenReady = playWhenReady,
@@ -1910,39 +4903,23 @@ class MusicService :
                 playbackState = playbackState
             )
             
-            runCatching {
-                filesDir.resolve(PERSISTENT_QUEUE_FILE).outputStream().use { fos ->
-                    ObjectOutputStream(fos).use { oos ->
-                        oos.writeObject(persistQueue)
-                    }
-                }
-            }.onFailure {
-                reportException(it)
-            }
-            runCatching {
-                filesDir.resolve(PERSISTENT_AUTOMIX_FILE).outputStream().use { fos ->
-                    ObjectOutputStream(fos).use { oos ->
-                        oos.writeObject(persistAutomix)
-                    }
-                }
-            }.onFailure {
-                reportException(it)
-            }
-            runCatching {
-                filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).outputStream().use { fos ->
-                    ObjectOutputStream(fos).use { oos ->
-                        oos.writeObject(persistPlayerState)
-                    }
-                }
-            }.onFailure {
-                reportException(it)
-            }
+            writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
+            writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
         }
     }
 
 
     override fun onDestroy() {
         super.onDestroy()
+        audioRouteRecoveryJob?.cancel()
+        if (audioDeviceCallbackRegistered) {
+            audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
+            audioDeviceCallbackRegistered = false
+        }
+        unregisterBluetoothReceiver()
+        try {
+            scope.launch { stopTogetherInternal() }
+        } catch (_: Exception) {}
         try {
             DiscordPresenceManager.stop()
         } catch (_: Exception) {}
@@ -1955,60 +4932,45 @@ class MusicService :
         } catch (_: Exception) {}
         abandonAudioFocus()
         try {
+            releaseAudioEffects()
+        } catch (_: Exception) {}
+        try {
             if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
                 val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
                 val currentMediaItemIndex = player.currentMediaItemIndex
                 val currentPosition = player.currentPosition
-                val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
                 val repeatMode = player.repeatMode
                 val shuffleModeEnabled = player.shuffleModeEnabled
-                val volume = player.volume
+                val volume = playerVolume.value
                 val playbackState = player.playbackState
                 val playWhenReady = player.playWhenReady
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val persistQueue = currentQueue.toPersistQueue(
-                            title = queueTitle,
-                            items = mediaItemsSnapshot,
-                            mediaItemIndex = currentMediaItemIndex,
-                            position = currentPosition
-                        )
-                        val persistAutomix = PersistQueue(
-                            title = "automix",
-                            items = automixSnapshot,
-                            mediaItemIndex = 0,
-                            position = 0,
-                        )
-                        val persistPlayerState = PersistPlayerState(
-                            playWhenReady = playWhenReady,
-                            repeatMode = repeatMode,
-                            shuffleModeEnabled = shuffleModeEnabled,
-                            volume = volume,
-                            currentPosition = currentPosition,
-                            currentMediaItemIndex = currentMediaItemIndex,
-                            playbackState = playbackState
-                        )
-                        filesDir.resolve(PERSISTENT_QUEUE_FILE).outputStream().use { fos ->
-                            ObjectOutputStream(fos).use { oos ->
-                                oos.writeObject(persistQueue)
-                            }
-                        }
-                        filesDir.resolve(PERSISTENT_AUTOMIX_FILE).outputStream().use { fos ->
-                            ObjectOutputStream(fos).use { oos ->
-                                oos.writeObject(persistAutomix)
-                            }
-                        }
-                        filesDir.resolve(PERSISTENT_PLAYER_STATE_FILE).outputStream().use { fos ->
-                            ObjectOutputStream(fos).use { oos ->
-                                oos.writeObject(persistPlayerState)
-                            }
-                        }
-                    } catch (_: Exception) {}
+                runBlocking(Dispatchers.IO) {
+                    val persistQueue = currentQueue.toPersistQueue(
+                        title = queueTitle,
+                        items = mediaItemsSnapshot,
+                        mediaItemIndex = currentMediaItemIndex,
+                        position = currentPosition
+                    )
+                    val persistPlayerState = PersistPlayerState(
+                        playWhenReady = playWhenReady,
+                        repeatMode = repeatMode,
+                        shuffleModeEnabled = shuffleModeEnabled,
+                        volume = volume,
+                        currentPosition = currentPosition,
+                        currentMediaItemIndex = currentMediaItemIndex,
+                        playbackState = playbackState
+                    )
+
+                    writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
+                    writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
                 }
             }
         } catch (_: Exception) {}
         try {
             mediaSession.release()
+        } catch (_: Exception) {}
+        try {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
         } catch (_: Exception) {}
         try {
             player.removeListener(this)
@@ -2019,6 +4981,8 @@ class MusicService :
     }
 
     override fun onBind(intent: Intent?): android.os.IBinder? {
+        hasBoundClients = true
+        cancelIdleStop()
         val result = super.onBind(intent) ?: binder
         if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
             currentMediaMetadata.value = player.currentMetadata
@@ -2028,6 +4992,18 @@ class MusicService :
             }
         }
         return result
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        hasBoundClients = false
+        scheduleStopIfIdle()
+        return super.onUnbind(intent)
+    }
+
+    override fun onRebind(intent: Intent?) {
+        hasBoundClients = true
+        cancelIdleStop()
+        super.onRebind(intent)
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -2047,9 +5023,43 @@ class MusicService :
         discordRpc = null
         try { DiscordPresenceManager.stop() } catch (_: Exception) {}
         lastPresenceToken = null
+
+        val stopMusicOnTaskClearEnabled = dataStore.get(StopMusicOnTaskClearKey, false)
+
         try {
-            if (dataStore.get(StopMusicOnTaskClearKey, false)) {
-                stopSelf()
+            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                runBlocking { saveQueueToDisk() }
+            }
+
+            val state = togetherSessionState.value
+            val isHostSessionActive =
+                state is moe.koiverse.archivetune.together.TogetherSessionState.Hosting ||
+                    state is moe.koiverse.archivetune.together.TogetherSessionState.HostingOnline ||
+                    (state is moe.koiverse.archivetune.together.TogetherSessionState.Joined &&
+                        state.role is moe.koiverse.archivetune.together.TogetherRole.Host)
+
+            val isPlaybackInactive = player.playbackState == Player.STATE_IDLE || player.mediaItemCount == 0
+
+            if (shouldStopServiceOnTaskRemoved(stopMusicOnTaskClearEnabled, isHostSessionActive, isPlaybackInactive)) {
+                if (isHostSessionActive && isPlaybackInactive) {
+                    runCatching { scope.launch { stopTogetherInternal() } }
+                    runCatching { togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle }
+                    stopSelf()
+                    return
+                }
+
+                if (stopMusicOnTaskClearEnabled) {
+                    runCatching { stopAndClearPlayback() }
+                    runCatching {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                        } else {
+                            stopForeground(true)
+                        }
+                    }
+                    stopSelf()
+                    return
+                }
             }
         } catch (_: Exception) {}
     }
@@ -2062,11 +5072,9 @@ class MusicService :
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            return
-        }
-        super.onUpdateNotification(session, startInForegroundRequired)
+        if (startInForegroundRequired) ensureStartedAsForeground()
+        runCatching { super.onUpdateNotification(session, startInForegroundRequired) }
+            .onFailure { reportException(it) }
     }
 
     inner class MusicBinder : Binder() {
@@ -2075,6 +5083,12 @@ class MusicService :
     }
 
     companion object {
+        internal fun shouldStopServiceOnTaskRemoved(
+            stopMusicOnTaskClearEnabled: Boolean,
+            isHostSessionActive: Boolean,
+            isPlaybackInactive: Boolean,
+        ): Boolean = (isHostSessionActive && isPlaybackInactive) || stopMusicOnTaskClearEnabled
+
         const val ROOT = "root"
         const val SONG = "song"
         const val ARTIST = "artist"
@@ -2085,10 +5099,17 @@ class MusicService :
         const val NOTIFICATION_ID = 888
         const val ERROR_CODE_NO_STREAM = 1000001
         const val CHUNK_LENGTH = 512 * 1024L
+        val RETRYABLE_STREAM_RESPONSE_CODES = setOf(403, 404, 410, 416)
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"
         const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
         const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"
         const val MAX_CONSECUTIVE_ERR = 5
         const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L
+        const val AUDIO_ROUTE_CHANGE_DEBOUNCE_MS = 350L
+        const val AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS = 200L
+        const val AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS = 1_500L
+        const val AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS = 150L
+        const val AUDIO_FOCUS_DUCKING_RECOVERY_DELAY_MS = 4_000L
+        const val AUDIO_FOCUS_DUCK_VOLUME_FACTOR = 0.35f
     }
 }

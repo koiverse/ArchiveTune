@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.ui.theme
 
 import androidx.compose.material3.SliderColors
@@ -23,13 +33,13 @@ object PlayerSliderColors {
     @Composable
     fun getSliderColors(
         activeColor: Color,
-        inactiveAlpha: Float = 0.15f
+        inactiveAlpha: Float = 0.25f
     ): SliderColors {
         return SliderDefaults.colors(
             activeTrackColor = activeColor,
             activeTickColor = activeColor,
             thumbColor = activeColor,
-            inactiveTrackColor = Color.White.copy(alpha = inactiveAlpha)
+            inactiveTrackColor = activeColor.copy(alpha = inactiveAlpha)
         )
     }
 
@@ -40,7 +50,7 @@ object PlayerSliderColors {
      * @return SliderColors configuration for default slider
      */
     @Composable
-    fun defaultSliderColors(buttonColor: Color): SliderColors {
+    fun standardSliderColors(buttonColor: Color): SliderColors {
         return getSliderColors(
             activeColor = buttonColor,
             inactiveAlpha = Config.INACTIVE_TRACK_ALPHA
@@ -54,26 +64,42 @@ object PlayerSliderColors {
      * @return SliderColors configuration for squiggly slider
      */
     @Composable
-    fun squigglySliderColors(buttonColor: Color): SliderColors {
-        return getSliderColors(
-            activeColor = buttonColor,
-            inactiveAlpha = Config.INACTIVE_TRACK_ALPHA
-        )
-    }
-
-    /**
-     * Slim slider colors using button color scheme
-     * Note: Slim slider uses custom track component, so this provides base colors
-     * 
-     * @param buttonColor The active button color from player theme
-     * @return SliderColors configuration for slim slider
-     */
-    @Composable
-    fun slimSliderColors(buttonColor: Color): SliderColors {
+    fun wavySliderColors(buttonColor: Color): SliderColors {
         return SliderDefaults.colors(
             activeTrackColor = buttonColor,
             activeTickColor = buttonColor,
-            inactiveTrackColor = Color.White.copy(alpha = Config.INACTIVE_TRACK_ALPHA)
+            thumbColor = Color.Transparent,
+            inactiveTrackColor = buttonColor.copy(alpha = Config.INACTIVE_TRACK_ALPHA),
+            inactiveTickColor = buttonColor.copy(alpha = Config.INACTIVE_TICK_ALPHA)
+        )
+    }
+
+    @Composable
+    fun thickSliderColors(buttonColor: Color): SliderColors {
+        return getSliderColors(
+            activeColor = buttonColor,
+            inactiveAlpha = Config.THICK_INACTIVE_TRACK_ALPHA
+        )
+    }
+
+    @Composable
+    fun circularSliderColors(buttonColor: Color): SliderColors {
+        return SliderDefaults.colors(
+            activeTrackColor = buttonColor,
+            activeTickColor = buttonColor,
+            thumbColor = buttonColor,
+            inactiveTrackColor = buttonColor.copy(alpha = Config.INACTIVE_TRACK_ALPHA)
+        )
+    }
+
+    @Composable
+    fun simpleSliderColors(buttonColor: Color): SliderColors {
+        return SliderDefaults.colors(
+            activeTrackColor = buttonColor.copy(alpha = Config.SIMPLE_ACTIVE_TRACK_ALPHA),
+            activeTickColor = buttonColor.copy(alpha = Config.SIMPLE_ACTIVE_TRACK_ALPHA),
+            thumbColor = Color.Transparent,
+            inactiveTrackColor = buttonColor.copy(alpha = Config.SIMPLE_INACTIVE_TRACK_ALPHA),
+            inactiveTickColor = buttonColor.copy(alpha = Config.SIMPLE_INACTIVE_TRACK_ALPHA)
         )
     }
 
@@ -81,11 +107,17 @@ object PlayerSliderColors {
      * Configuration constants for slider colors
      */
     object Config {
-        /** Alpha transparency for inactive track - subtle white appearance */
-        const val INACTIVE_TRACK_ALPHA = 0.15f
+        /** Alpha transparency for inactive track - subtle appearance */
+        const val INACTIVE_TRACK_ALPHA = 0.22f
+
+        const val THICK_INACTIVE_TRACK_ALPHA = 0.28f
+
+        const val SIMPLE_ACTIVE_TRACK_ALPHA = 0.85f
+
+        const val SIMPLE_INACTIVE_TRACK_ALPHA = 0.15f
         
         /** Alpha transparency for inactive ticks */
-        const val INACTIVE_TICK_ALPHA = 0.2f
+        const val INACTIVE_TICK_ALPHA = 0.25f
         
         /** Default active color when no theme color is available */
         val DEFAULT_ACTIVE_COLOR = Color(0xFF1976D2)

@@ -63,7 +63,14 @@
 ## Rules for NewPipeExtractor
 -keep class org.schabi.newpipe.extractor.services.youtube.protos.** { *; }
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
--dontwarn javax.lang.model.**
+-keep class org.mozilla.javascript.** { *; }
+-keep class org.mozilla.javascript.engine.** { *; }
+-dontwarn org.mozilla.javascript.JavaToJSONConverters
+-dontwarn org.mozilla.javascript.tools.**
+-keep class javax.script.** { *; }
+-dontwarn javax.script.**
+-keep class jdk.dynalink.** { *; }
+-dontwarn jdk.dynalink.**
 
 ## Logging (does not affect Timber)
 -assumenosideeffects class android.util.Log {
@@ -82,6 +89,7 @@
 -dontwarn java.beans.IntrospectionException
 -dontwarn java.beans.Introspector
 -dontwarn java.beans.PropertyDescriptor
+-dontwarn java.lang.management.**
 
 # Keep all classes within the kuromoji package
 -keep class com.atilika.kuromoji.** { *; }
@@ -111,5 +119,9 @@
 -keep class androidx.media3.** { *; }
 -keep interface androidx.media3.** { *; }
 -dontwarn androidx.media3.**
--keep class moe.koiverse.archivetune.extensions.system.HostApiContract { *; }
--keep class moe.koiverse.archivetune.extensions.system.HostApi { *; }
+
+## JAudioTagger - suppress missing AWT/ImageIO classes (not available on Android)
+-dontwarn java.awt.**
+-dontwarn javax.imageio.**
+-dontwarn javax.swing.**
+-keep class org.jaudiotagger.** { *; }

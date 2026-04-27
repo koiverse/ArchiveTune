@@ -1,9 +1,21 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.menu
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.SnackbarHostState
@@ -32,6 +44,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.widget.Toast
+import java.time.LocalDateTime
 
 @Composable
 fun ImportPlaylistDialog(
@@ -85,7 +98,7 @@ fun ImportPlaylistDialog(
             },
             extraContent = {
                 if (isImporting) {
-                    CircularProgressIndicator()
+                    CircularWavyProgressIndicator()
                 }
             },
             onDone = { finalName ->
@@ -109,6 +122,16 @@ fun ImportPlaylistDialog(
                         if (browseId != null) {
                             val existing = database.playlistByBrowseId(browseId).firstOrNull()
                             if (existing != null) {
+                                if (existing.playlist.bookmarkedAt == null) {
+                                    database.query {
+                                        update(
+                                            existing.playlist.copy(
+                                                bookmarkedAt = LocalDateTime.now(),
+                                                lastUpdateTime = LocalDateTime.now()
+                                            )
+                                        )
+                                    }
+                                }
                                 withContext(Dispatchers.Main) {
                                     existingPlaylistId = existing.playlist.id
                                     isImporting = false
@@ -121,6 +144,8 @@ fun ImportPlaylistDialog(
                         val newPlaylist = PlaylistEntity(
                             name = finalName,
                             browseId = browseId,
+                            isEditable = browseId == null,
+                            bookmarkedAt = LocalDateTime.now()
                         )
                         database.query { insert(newPlaylist) }
 
@@ -160,7 +185,7 @@ fun ImportPlaylistDialog(
                     Text(text = stringResource(R.string.already_in_playlist))
                     if (isProcessingDuplicate) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        CircularProgressIndicator()
+                        CircularWavyProgressIndicator()
                     }
                 }
             },
@@ -170,7 +195,8 @@ fun ImportPlaylistDialog(
                     onClick = {
                         resetState()
                         onDismiss()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(text = stringResource(android.R.string.cancel)) }
 
                 TextButton(
@@ -191,6 +217,16 @@ fun ImportPlaylistDialog(
 
                                 val playlist = database.playlist(existingPlaylistId!!).firstOrNull()
                                 if (playlist != null) {
+                                    if (playlist.playlist.bookmarkedAt == null) {
+                                        database.query {
+                                            update(
+                                                playlist.playlist.copy(
+                                                    bookmarkedAt = LocalDateTime.now(),
+                                                    lastUpdateTime = LocalDateTime.now()
+                                                )
+                                            )
+                                        }
+                                    }
                                     val existingSongIds = database.playlistSongs(playlist.id).firstOrNull()
                                         ?.map { it.song.id }?.toSet() ?: emptySet()
                                     val newSongIds = ids.filterNot { it in existingSongIds }
@@ -229,7 +265,8 @@ fun ImportPlaylistDialog(
                                 }
                             }
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(text = stringResource(R.string.update_button)) }
 
                 TextButton(
@@ -250,7 +287,8 @@ fun ImportPlaylistDialog(
 
                                 val newPlaylist = PlaylistEntity(
                                     name = currentPlaylistName,
-                                    browseId = null
+                                    browseId = null,
+                                    bookmarkedAt = LocalDateTime.now()
                                 )
                                 database.query { insert(newPlaylist) }
 
@@ -275,7 +313,8 @@ fun ImportPlaylistDialog(
                                 }
                             }
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(text = stringResource(R.string.import_playlist)) }
             }
         )

@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.utils
 
 import android.app.NotificationChannel
@@ -55,6 +65,7 @@ object UpdateNotificationManager {
     fun schedulePeriodicUpdateCheck(context: Context) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(true)
             .build()
 
         val updateCheckRequest = PeriodicWorkRequestBuilder<UpdateCheckWorker>(
@@ -104,7 +115,7 @@ object UpdateNotificationManager {
                 dataStore.edit { it[LastUpdateCheckKey] = now }
 
                 Updater.getLatestVersionName().onSuccess { latestVersion ->
-                    if (latestVersion != BuildConfig.VERSION_NAME) {
+                    if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
                         notifyIfNewVersion(context, latestVersion)
                     }
                 }
@@ -119,7 +130,7 @@ object UpdateNotificationManager {
             val dataStore = context.dataStore
             val lastNotified = dataStore.data.map { it[LastNotifiedVersionKey] ?: "" }.first()
 
-            if (latestVersion != lastNotified && latestVersion != BuildConfig.VERSION_NAME) {
+            if (latestVersion != lastNotified && !Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
                 showUpdateNotification(context, latestVersion)
                 dataStore.edit { it[LastNotifiedVersionKey] = latestVersion }
             }

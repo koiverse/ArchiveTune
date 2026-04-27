@@ -2,13 +2,11 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
-    id("com.android.application")
-    kotlin("android")
-    kotlin("kapt")
+    alias(libs.plugins.android.application)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.ksp)
-    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.compose.compiler)
 }
 
 val localProperties = Properties()
@@ -19,36 +17,58 @@ if (localPropertiesFile.exists()) {
 
 android {
     namespace = "moe.koiverse.archivetune"
-    compileSdk = 36
-
-    sourceSets {
-        getByName("main") {
-            assets.srcDir("src/main/kotlin/moe/koiverse/archivetune/extensions/item")
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
     applicationId = "moe.koiverse.archivetune"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 129
-        versionName = "12.4.6"
+        targetSdk = 37
+        versionCode = 133
+        versionName = "13.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
-        
-        val lastfmApiKey = localProperties.getProperty("LASTFM_API_KEY") 
-            ?: System.getenv("LASTFM_API_KEY") 
-            ?: ""
-        val lastfmSecret = localProperties.getProperty("LASTFM_SECRET") 
-            ?: System.getenv("LASTFM_SECRET") 
-            ?: ""
+
+        val lastfmApiKey =
+            localProperties.getProperty("LASTFM_API_KEY")
+                ?: System.getenv("LASTFM_API_KEY")
+                ?: ""
+        val lastfmSecret =
+            localProperties.getProperty("LASTFM_SECRET")
+                ?: System.getenv("LASTFM_SECRET")
+                ?: ""
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastfmApiKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastfmSecret\"")
+
+        val togetherBearerToken =
+            localProperties.getProperty("TOGETHER_BEARER_TOKEN")
+                ?: System.getenv("TOGETHER_BEARER_TOKEN")
+                ?: ""
+        buildConfigField("String", "TOGETHER_BEARER_TOKEN", "\"$togetherBearerToken\"")
+
+        val canvasBearerToken =
+            localProperties.getProperty("CANVAS_BEARER_TOKEN")
+                ?: System.getenv("CANVAS_BEARER_TOKEN")
+                ?: ""
+        buildConfigField("String", "CANVAS_BEARER_TOKEN", "\"$canvasBearerToken\"")
+
+        val nightlyBuildHash =
+            (
+                localProperties.getProperty("NIGHTLY_BUILD_HASH")
+                    ?: System.getenv("NIGHTLY_BUILD_HASH")
+                    ?: ""
+                ).trim()
+        buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
     }
 
-    flavorDimensions += "abi"
+    flavorDimensions += listOf("device", "abi")
     productFlavors {
+        create("mobile") {
+            dimension = "device"
+        }
+        create("tv") {
+            dimension = "device"
+        }
         create("universal") {
             dimension = "abi"
             ndk {
@@ -108,15 +128,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 
-    kotlin {
-        jvmToolchain(21)
-
-        compilerOptions {
-            freeCompilerArgs.add("-Xannotation-default-target=param-property")
-            jvmTarget.set(JvmTarget.JVM_21)
-        }
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -155,6 +166,10 @@ android {
     }
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
@@ -163,7 +178,6 @@ dependencies {
     implementation(libs.guava)
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)
-    implementation(libs.material.icons.extended)
 
     implementation(libs.activity)
     implementation(libs.navigation)
@@ -175,16 +189,20 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.util)
-    implementation(libs.compose.ui.tooling)
+    compileOnly("androidx.compose.ui:ui-tooling-preview:${libs.versions.compose.get()}")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:${libs.versions.compose.get()}")
+    debugImplementation(libs.compose.ui.tooling)
     implementation(libs.compose.animation)
+    implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.reorderable)
 
     implementation(libs.viewmodel)
     implementation(libs.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
 
     implementation(libs.material3)
     implementation(libs.palette)
-    implementation(libs.materialKolor)
+    implementation(libs.multiplatform.markdown)
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
@@ -192,8 +210,10 @@ dependencies {
     implementation(libs.shimmer)
 
     implementation(libs.media3)
+    implementation("androidx.media3:media3-exoplayer-hls:${libs.versions.media3.get()}")
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
+    implementation("androidx.media3:media3-ui:${libs.versions.media3.get()}")
     implementation(libs.squigglyslider)
 
     implementation(libs.room.runtime)
@@ -205,10 +225,8 @@ dependencies {
 
     implementation(libs.hilt)
     implementation(libs.jsoup)
-    kapt(libs.hilt.compiler)
-
-    implementation(libs.serialization.json)
-    implementation(libs.quickjs.android)
+    implementation(libs.re2j)
+    ksp(libs.hilt.compiler)
 
     implementation(project(":innertube"))
     implementation(project(":kugou"))
@@ -216,38 +234,55 @@ dependencies {
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
     implementation(project(":kizzy"))
+    implementation(project(":simpmusic"))
+    implementation(project(":paxsenix"))
+    implementation(project(":canvas"))
+    implementation(project(":shazamkit"))
+    implementation("com.github.Kyant0:m3color:2026.1")
+    implementation(libs.compose.cloudy)
 
     implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.serialization.json)
+    implementation(libs.ktor.client.websockets)
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.content.negotiation)
 
     coreLibraryDesugaring(libs.desugaring)
 
     implementation(libs.timber)
     testImplementation(libs.junit)
+    testImplementation(libs.turbine)
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
-    implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
-}
-
-kapt {
-    correctErrorTypes = true
-    useBuildCache = true
-    arguments {
-        arg("dagger.fastInit", "enabled")
-        arg("dagger.formatGeneratedSource", "disabled")
-        // dagger.gradle.incremental is deprecated in newer versions
-    }
+    implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-alpha10")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+        optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
+        optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
+        freeCompilerArgs.add("-Xannotation-default-target=param-property")
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
-            "-Xcontext-receivers"
+            "-Xcontext-parameters"
         )
         // Suppress warnings
         suppressWarnings.set(true)
     }
 }
 
+configurations.configureEach {
+    resolutionStrategy.force(
+        "androidx.compose.runtime:runtime:${libs.versions.compose.get()}",
+        "androidx.compose.foundation:foundation:${libs.versions.compose.get()}",
+        "androidx.compose.ui:ui:${libs.versions.compose.get()}",
+        "androidx.compose.ui:ui-util:${libs.versions.compose.get()}",
+        "androidx.compose.ui:ui-tooling:${libs.versions.compose.get()}",
+        "androidx.compose.animation:animation-graphics:${libs.versions.compose.get()}",
+    )
+}

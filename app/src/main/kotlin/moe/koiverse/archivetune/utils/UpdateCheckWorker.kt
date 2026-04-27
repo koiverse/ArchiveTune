@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.utils
 
 import android.content.Context
@@ -31,7 +41,7 @@ class UpdateCheckWorker(
             if (updateChannel == UpdateChannel.NIGHTLY) return Result.success()
 
             Updater.getLatestVersionName().onSuccess { latestVersion ->
-                if (latestVersion != BuildConfig.VERSION_NAME) {
+                if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
                     UpdateNotificationManager.notifyIfNewVersion(applicationContext, latestVersion)
                 }
             }

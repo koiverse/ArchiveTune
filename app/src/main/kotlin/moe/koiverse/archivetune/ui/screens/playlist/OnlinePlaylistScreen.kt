@@ -1,7 +1,18 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.playlist
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +39,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -37,9 +51,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -123,6 +142,7 @@ import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.ui.utils.formatCompactCount
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.OnlinePlaylistViewModel
 
@@ -143,9 +163,11 @@ fun OnlinePlaylistScreen(
 
     val playlist by viewModel.playlist.collectAsState()
     val songs by viewModel.playlistSongs.collectAsState()
+    val viewCounts by viewModel.viewCounts.collectAsState()
     val dbPlaylist by viewModel.dbPlaylist.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val error by viewModel.error.collectAsState()
 
     var selection by remember { mutableStateOf(false) }
@@ -158,6 +180,7 @@ fun OnlinePlaylistScreen(
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val pullRefreshState = rememberPullToRefreshState()
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by
@@ -202,6 +225,7 @@ fun OnlinePlaylistScreen(
     // Gradient colors state for playlist cover
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     // Extract gradient colors from playlist cover
     LaunchedEffect(playlist?.thumbnail) {
@@ -259,6 +283,13 @@ fun OnlinePlaylistScreen(
         derivedStateOf { !disableBlur && !selection && !showTopBarTitle }
     }
 
+    val headerItems by remember {
+        derivedStateOf {
+            val current = playlist
+            if (!isLoading && current != null && !isSearching) 1 else 0
+        }
+    }
+
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
@@ -273,7 +304,14 @@ fun OnlinePlaylistScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(surfaceColor)
+            .pullToRefresh(
+                state = pullRefreshState,
+                isRefreshing = isRefreshing,
+                onRefresh = viewModel::refresh
+            ),
     ) {
         // Mesh gradient background layer
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
@@ -288,16 +326,21 @@ fun OnlinePlaylistScreen(
                             val height = size.height
 
                             if (gradientColors.size >= 3) {
+                                val c0 = gradientColors[0]
+                                val c1 = gradientColors[1]
+                                val c2 = gradientColors[2]
+                                val c3 = gradientColors.getOrElse(3) { c0 }
+                                val c4 = gradientColors.getOrElse(4) { c1 }
                                 // Primary color blob - top center
                                 drawRect(
                                     brush =
                                         Brush.radialGradient(
                                             colors =
                                                 listOf(
-                                                    gradientColors[0].copy(
+                                                    c0.copy(
                                                         alpha = gradientAlpha * 0.75f
                                                     ),
-                                                    gradientColors[0].copy(
+                                                    c0.copy(
                                                         alpha = gradientAlpha * 0.4f
                                                     ),
                                                     Color.Transparent
@@ -313,10 +356,10 @@ fun OnlinePlaylistScreen(
                                         Brush.radialGradient(
                                             colors =
                                                 listOf(
-                                                    gradientColors[1].copy(
+                                                    c1.copy(
                                                         alpha = gradientAlpha * 0.55f
                                                     ),
-                                                    gradientColors[1].copy(
+                                                    c1.copy(
                                                         alpha = gradientAlpha * 0.3f
                                                     ),
                                                     Color.Transparent
@@ -332,16 +375,52 @@ fun OnlinePlaylistScreen(
                                         Brush.radialGradient(
                                             colors =
                                                 listOf(
-                                                    gradientColors[2].copy(
+                                                    c2.copy(
                                                         alpha = gradientAlpha * 0.5f
                                                     ),
-                                                    gradientColors[2].copy(
+                                                    c2.copy(
                                                         alpha = gradientAlpha * 0.25f
                                                     ),
                                                     Color.Transparent
                                                 ),
                                             center = Offset(width * 0.9f, height * 0.35f),
                                             radius = width * 0.55f
+                                        )
+                                )
+
+                                drawRect(
+                                    brush =
+                                        Brush.radialGradient(
+                                            colors =
+                                                listOf(
+                                                    c3.copy(
+                                                        alpha = gradientAlpha * 0.35f
+                                                    ),
+                                                    c3.copy(
+                                                        alpha = gradientAlpha * 0.18f
+                                                    ),
+                                                    Color.Transparent
+                                                ),
+                                            center = Offset(width * 0.25f, height * 0.65f),
+                                            radius = width * 0.75f
+                                        )
+                                )
+
+                                drawRect(
+                                    brush =
+                                        Brush.radialGradient(
+                                            colors =
+                                                listOf(
+                                                    c4.copy(
+                                                        alpha = gradientAlpha * 0.3f
+                                                    ),
+                                                    c4.copy(
+                                                        alpha = gradientAlpha * 0.15f
+                                                    ),
+                                                    Color.Transparent
+                                                ),
+                                            center = Offset(width * 0.55f, height * 0.85f),
+                                            radius = width * 0.9f
                                         )
                                 )
                             } else if (gradientColors.isNotEmpty()) {
@@ -363,6 +442,22 @@ fun OnlinePlaylistScreen(
                                         )
                                 )
                             }
+
+                            drawRect(
+                                brush =
+                                    Brush.verticalGradient(
+                                        colors =
+                                            listOf(
+                                                Color.Transparent,
+                                                Color.Transparent,
+                                                surfaceColor.copy(alpha = gradientAlpha * 0.22f),
+                                                surfaceColor.copy(alpha = gradientAlpha * 0.55f),
+                                                surfaceColor
+                                            ),
+                                        startY = height * 0.4f,
+                                        endY = height
+                                    )
+                            )
                         }
             )
         }
@@ -560,14 +655,29 @@ fun OnlinePlaylistScreen(
                                 // Action Buttons Row
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                                    horizontalArrangement =
-                                        Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Like/Save Button
-                                    if (playlist.id != "LM") {
-                                        Surface(
-                                            onClick = {
+                                    val hasLike = playlist.id != "LM"
+                                    val hasPlay = playlist.playEndpoint != null
+                                    val hasShuffle = playlist.shuffleEndpoint != null
+                                    val hasRadio = playlist.radioEndpoint != null
+                                    val buttonSlots = listOf(hasLike, hasPlay, hasShuffle, hasRadio, true)
+                                    val activeIndices = buttonSlots.withIndex().filter { it.value }.map { it.index }
+
+                                    @Composable
+                                    fun shapeFor(slotIndex: Int) = when {
+                                        activeIndices.first() == slotIndex && activeIndices.last() == slotIndex -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                        activeIndices.first() == slotIndex -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                        activeIndices.last() == slotIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                    }
+
+                                    if (hasLike) {
+                                        val isBookmarked = dbPlaylist?.playlist?.bookmarkedAt != null
+                                        ToggleButton(
+                                            checked = isBookmarked,
+                                            onCheckedChange = {
                                                 if (dbPlaylist?.playlist == null) {
                                                     database.transaction {
                                                         val playlistEntity =
@@ -591,13 +701,13 @@ fun OnlinePlaylistScreen(
                                                                 .toggleLike()
                                                         insert(playlistEntity)
                                                         songs
-                                                            .map(SongItem::toMediaMetadata)
-                                                            .onEach(::insert)
+                                                            .onEach { song -> insert(song.toMediaMetadata()) }
                                                             .mapIndexed { index, song ->
                                                                 PlaylistSongMap(
                                                                     songId = song.id,
                                                                     playlistId = playlistEntity.id,
-                                                                    position = index
+                                                                    position = index,
+                                                                    setVideoId = song.setVideoId,
                                                                 )
                                                             }
                                                             .forEach(::insert)
@@ -610,51 +720,70 @@ fun OnlinePlaylistScreen(
                                                     }
                                                 }
                                             },
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.surfaceVariant,
-                                            modifier = Modifier.size(48.dp)
+                                            modifier = Modifier.size(48.dp),
+                                            shapes = shapeFor(0),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                checkedContentColor = MaterialTheme.colorScheme.error,
+                                            ),
                                         ) {
-                                            Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    painter =
-                                                        painterResource(
-                                                            if (
-                                                                dbPlaylist
-                                                                    ?.playlist
-                                                                    ?.bookmarkedAt != null
-                                                            )
-                                                                R.drawable.favorite
-                                                            else R.drawable.favorite_border
-                                                        ),
-                                                    contentDescription = null,
-                                                    tint =
-                                                        if (
-                                                            dbPlaylist?.playlist?.bookmarkedAt !=
-                                                                null
-                                                        )
-                                                            MaterialTheme.colorScheme.error
-                                                        else
-                                                            MaterialTheme.colorScheme
-                                                                .onSurfaceVariant,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            }
+                                            Icon(
+                                                painter =
+                                                    painterResource(
+                                                        if (isBookmarked)
+                                                            R.drawable.favorite
+                                                        else R.drawable.favorite_border
+                                                    ),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(24.dp)
+                                            )
                                         }
                                     }
 
-                                    // Shuffle Button
-                                    playlist.shuffleEndpoint?.let { shuffleEndpoint ->
-                                        Button(
-                                            onClick = {
+                                    playlist.playEndpoint?.let { playEndpoint ->
+                                        ToggleButton(
+                                            checked = false,
+                                            onCheckedChange = {
                                                 playerConnection.playQueue(
-                                                    YouTubeQueue(shuffleEndpoint)
+                                                    YouTubeQueue.playlist(playEndpoint)
                                                 )
                                             },
-                                            shape = RoundedCornerShape(24.dp),
-                                            modifier = Modifier.weight(1f).height(48.dp)
+                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            shapes = shapeFor(1),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                                checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                                checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            ),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.play),
+                                                contentDescription =
+                                                    stringResource(R.string.play),
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
+
+                                    playlist.shuffleEndpoint?.let { shuffleEndpoint ->
+                                        ToggleButton(
+                                            checked = false,
+                                            onCheckedChange = {
+                                                playerConnection.playQueue(
+                                                    YouTubeQueue.playlist(shuffleEndpoint)
+                                                )
+                                            },
+                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            shapes = shapeFor(2),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                                checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                                checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            ),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.shuffle),
@@ -665,16 +794,22 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
-                                    // Radio Button
                                     playlist.radioEndpoint?.let { radioEndpoint ->
-                                        Button(
-                                            onClick = {
+                                        ToggleButton(
+                                            checked = false,
+                                            onCheckedChange = {
                                                 playerConnection.playQueue(
                                                     YouTubeQueue(radioEndpoint)
                                                 )
                                             },
-                                            shape = RoundedCornerShape(24.dp),
-                                            modifier = Modifier.weight(1f).height(48.dp)
+                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            shapes = shapeFor(3),
+                                            colors = ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                                checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                                checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            ),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.radio),
@@ -684,9 +819,9 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
-                                    // More Options Button
-                                    Surface(
-                                        onClick = {
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
                                             menuState.show {
                                                 YouTubePlaylistMenu(
                                                     playlist = playlist,
@@ -699,21 +834,20 @@ fun OnlinePlaylistScreen(
                                                 )
                                             }
                                         },
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
+                                        modifier = Modifier.size(48.dp),
+                                        shapes = shapeFor(4),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            checkedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        ),
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.more_vert),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_vert),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
 
@@ -724,22 +858,27 @@ fun OnlinePlaylistScreen(
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Button(
-                                        onClick = {
-                                            playlist.shuffleEndpoint?.let { shuffleEndpoint ->
+                                    val mixEndpoint = playlist.shuffleEndpoint ?: playlist.radioEndpoint
+                                    if (mixEndpoint != null) {
+                                        Button(
+                                            onClick = {
                                                 playerConnection.playQueue(
-                                                    YouTubeQueue(shuffleEndpoint)
+                                                    if (mixEndpoint == playlist.shuffleEndpoint) {
+                                                        YouTubeQueue.playlist(mixEndpoint)
+                                                    } else {
+                                                        YouTubeQueue(mixEndpoint)
+                                                    }
                                                 )
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(24.dp),
-                                        modifier = Modifier.weight(1f).height(48.dp)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.mix),
-                                            contentDescription = "Start Mix",
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                            },
+                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            shapes = ButtonDefaults.shapes(),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.mix),
+                                                contentDescription = "Start Mix",
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
                                     }
                                 }
 
@@ -772,6 +911,10 @@ fun OnlinePlaylistScreen(
                     items(items = wrappedSongs, key = { it.item.second.id }) { song ->
                         YouTubeListItem(
                             item = song.item.second,
+                            viewCountText =
+                                viewCounts[song.item.second.id]?.let { count ->
+                                    formatCompactCount(count.toLong())
+                                },
                             isActive = mediaMetadata?.id == song.item.second.id,
                             isPlaying = isPlaying,
                             isSelected = song.isSelected && selection,
@@ -802,16 +945,17 @@ fun OnlinePlaylistScreen(
                                                 if (song.item.second.id == mediaMetadata?.id) {
                                                     playerConnection.player.togglePlayPause()
                                                 } else {
-                                                    playerConnection.service.getAutomix(
-                                                        playlistId = playlist.id
-                                                    )
                                                     playerConnection.playQueue(
-                                                        YouTubeQueue(
-                                                            song.item.second.endpoint
-                                                                ?: WatchEndpoint(
-                                                                    videoId = song.item.second.id
-                                                                ),
-                                                            song.item.second.toMediaMetadata(),
+                                                        YouTubeQueue.playlist(
+                                                            endpoint =
+                                                                song.item.second
+                                                                    .toPlaylistPlaybackEndpoint(
+                                                                        playlistId = playlist.id,
+                                                                        playlistPlayParams =
+                                                                            playlist.playEndpoint
+                                                                                ?.params,
+                                                                    ),
+                                                            preloadItem = song.item.second.toMediaMetadata(),
                                                         ),
                                                     )
                                                 }
@@ -840,39 +984,60 @@ fun OnlinePlaylistScreen(
                         }
                     }
                 } else {
-                    // Error State
+                    val isPrivatePlaylist = error?.contains("PLAYLIST_PRIVATE") == true
                     item(key = "error") {
                         Column(
                             modifier = Modifier.fillMaxWidth().padding(32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text =
-                                    if (error != null) {
-                                        stringResource(R.string.error_unknown)
-                                    } else {
-                                        stringResource(R.string.playlist_not_found)
-                                    },
-                                style = MaterialTheme.typography.titleLarge,
-                                color =
-                                    if (error != null) MaterialTheme.colorScheme.error
-                                    else MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text =
-                                    if (error != null) {
-                                        error!!
-                                    } else {
-                                        stringResource(R.string.playlist_not_found_desc)
-                                    },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (error != null) {
+                            if (isPrivatePlaylist) {
+                                Image(
+                                    painter = painterResource(R.drawable.anime_blank),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(120.dp)
+                                )
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Button(onClick = { viewModel.retry() }) {
-                                    Text(stringResource(R.string.retry))
+                                Text(
+                                    text = stringResource(R.string.playlist_private_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.playlist_private_desc),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            } else {
+                                Text(
+                                    text =
+                                        if (error != null) {
+                                            stringResource(R.string.error_unknown)
+                                        } else {
+                                            stringResource(R.string.playlist_not_found)
+                                        },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color =
+                                        if (error != null) MaterialTheme.colorScheme.error
+                                        else MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text =
+                                        if (error != null) {
+                                            error!!
+                                        } else {
+                                            stringResource(R.string.playlist_not_found_desc)
+                                        },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (error != null) {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(onClick = { viewModel.retry() }, shapes = ButtonDefaults.shapes()) {
+                                        Text(stringResource(R.string.retry))
+                                    }
                                 }
                             }
                         }
@@ -890,7 +1055,7 @@ fun OnlinePlaylistScreen(
                     )
                     .align(Alignment.CenterEnd),
             scrollState = lazyListState,
-            headerItems = 1
+            headerItems = headerItems
         )
 
         // Top App Bar
@@ -1027,6 +1192,14 @@ fun OnlinePlaylistScreen(
             }
         )
 
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing,
+            state = pullRefreshState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
+        )
+
         SnackbarHost(
             hostState = snackbarHostState,
             modifier =
@@ -1064,4 +1237,17 @@ private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier)
             )
         }
     }
+}
+
+private fun SongItem.toPlaylistPlaybackEndpoint(
+    playlistId: String,
+    playlistPlayParams: String?,
+): WatchEndpoint {
+    val baseEndpoint = endpoint ?: WatchEndpoint(videoId = id)
+    return baseEndpoint.copy(
+        videoId = baseEndpoint.videoId ?: id,
+        playlistId = baseEndpoint.playlistId ?: playlistId,
+        playlistSetVideoId = baseEndpoint.playlistSetVideoId ?: setVideoId,
+        params = baseEndpoint.params ?: playlistPlayParams,
+    )
 }

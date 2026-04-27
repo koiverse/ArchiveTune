@@ -1,8 +1,19 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.playback
 
 import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM
 import androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM
@@ -11,7 +22,6 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import moe.koiverse.archivetune.db.MusicDatabase
-import moe.koiverse.archivetune.extensions.currentMetadata
 import moe.koiverse.archivetune.extensions.getCurrentQueueIndex
 import moe.koiverse.archivetune.extensions.getQueueWindows
 import moe.koiverse.archivetune.extensions.metadata
@@ -40,6 +50,7 @@ class PlayerConnection(
 
     val playbackState = MutableStateFlow(player.playbackState)
     private val playWhenReady = MutableStateFlow(player.playWhenReady)
+    val playbackParameters = MutableStateFlow(player.playbackParameters)
     val isPlaying =
         combine(playbackState, playWhenReady) { playbackState, playWhenReady ->
             playWhenReady && playbackState != STATE_ENDED
@@ -48,7 +59,7 @@ class PlayerConnection(
             SharingStarted.Lazily,
             player.playWhenReady && player.playbackState != STATE_ENDED
         )
-    val mediaMetadata = MutableStateFlow(player.currentMetadata)
+    val mediaMetadata = service.currentMediaMetadata
     val currentSong =
         mediaMetadata.flatMapLatest {
             database.song(it?.id)
@@ -74,27 +85,20 @@ class PlayerConnection(
 
     val error = MutableStateFlow<PlaybackException?>(null)
     val waitingForNetworkConnection = service.waitingForNetworkConnection
+    val queueRestoreCompleted = service.queueRestoreCompleted
 
     init {
         player.addListener(this)
 
         playbackState.value = player.playbackState
         playWhenReady.value = player.playWhenReady
-        val currentMeta = player.currentMetadata ?: service.currentMediaMetadata.value
-        mediaMetadata.value = currentMeta
+        playbackParameters.value = player.playbackParameters
         queueTitle.value = service.queueTitle
         queueWindows.value = player.getQueueWindows()
         currentWindowIndex.value = player.getCurrentQueueIndex()
         currentMediaItemIndex.value = player.currentMediaItemIndex
         shuffleModeEnabled.value = player.shuffleModeEnabled
         repeatMode.value = player.repeatMode
-        
-        if (currentMeta == null && player.mediaItemCount > 0) {
-            val mediaItem = player.currentMediaItem
-            if (mediaItem != null) {
-                mediaMetadata.value = mediaItem.metadata
-            }
-        }
     }
 
     fun playQueue(queue: Queue) {
@@ -122,6 +126,11 @@ class PlayerConnection(
     }
 
     fun seekToNext() {
+        val state = service.togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (state?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            service.requestTogetherControl(moe.koiverse.archivetune.together.ControlAction.SkipNext)
+            return
+        }
         player.seekToNext()
         player.prepare()
         player.playWhenReady = true
@@ -134,6 +143,11 @@ class PlayerConnection(
     }
 
     fun seekToPrevious() {
+        val state = service.togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
+        if (state?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
+            service.requestTogetherControl(moe.koiverse.archivetune.together.ControlAction.SkipPrevious)
+            return
+        }
         player.seekToPrevious()
         player.prepare()
         player.playWhenReady = true
@@ -170,12 +184,14 @@ class PlayerConnection(
         }
     }
 
+    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
+        this.playbackParameters.value = playbackParameters
+    }
+
     override fun onMediaItemTransition(
         mediaItem: MediaItem?,
         reason: Int,
     ) {
-        val meta = mediaItem?.metadata ?: service.currentMediaMetadata.value
-        mediaMetadata.value = meta
         currentMediaItemIndex.value = player.currentMediaItemIndex
         currentWindowIndex.value = player.getCurrentQueueIndex()
         updateCanSkipPreviousAndNext()

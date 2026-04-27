@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.lyrics
 
 import android.content.Context
@@ -26,7 +36,7 @@ object BetterLyricsProvider : LyricsProvider {
         artist: String,
         album: String?,
         duration: Int,
-    ): Result<String> = BetterLyrics.getLyrics(title, artist)
+    ): Result<String> = BetterLyrics.getLyrics(title = title, artist = artist, album = null, durationSeconds = duration)
 
     override suspend fun getAllLyrics(
         id: String,
@@ -36,6 +46,12 @@ object BetterLyricsProvider : LyricsProvider {
         duration: Int,
         callback: (String) -> Unit,
     ) {
-        BetterLyrics.getAllLyrics(title, artist, callback)
+        BetterLyrics.getAllLyrics(
+            title = title,
+            artist = artist,
+            album = album,
+            durationSeconds = duration,
+            callback = callback,
+        )
     }
 }

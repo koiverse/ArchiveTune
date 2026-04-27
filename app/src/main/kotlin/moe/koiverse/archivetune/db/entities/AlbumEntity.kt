@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.db.entities
 
 import androidx.compose.runtime.Immutable
@@ -36,9 +46,11 @@ data class AlbumEntity(
     )
 
     fun toggleLike() = localToggleLike().also {
+        if (isLocal) return@also
         CoroutineScope(Dispatchers.IO).launch {
-            if (playlistId != null)
+            if (playlistId != null) {
                 YouTube.likePlaylist(playlistId, bookmarkedAt == null)
+            }
             this.cancel()
         }
     }

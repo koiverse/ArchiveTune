@@ -1,11 +1,20 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.playback.queues
 
 import androidx.media3.common.MediaItem
 import moe.koiverse.archivetune.db.MusicDatabase
-import moe.koiverse.archivetune.db.entities.PlaylistSong
-import moe.koiverse.archivetune.db.entities.RelatedSongMap
-import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.toMediaItem
+import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.models.MediaMetadata
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,7 +23,7 @@ import kotlinx.coroutines.flow.first
 class LocalMixQueue(
     private val database: MusicDatabase,
     private val playlistId: String,
-    private val maxMixSize: Int = 50,
+    private val maxMixSize: Int = 500,
 ) : Queue {
     override val preloadItem: MediaMetadata? = null
 
@@ -28,9 +37,36 @@ class LocalMixQueue(
         val uniqueRelated = relatedSongs.filter { song -> song.id !in playlistSongIds }.distinctBy { it.id }
         val finalMix = uniqueRelated.take(maxMixSize)
 
+        if (finalMix.isNotEmpty()) {
+            return@withContext Queue.Status(
+                title = "Mix from Playlist",
+                items = finalMix.map { it.toMediaItem() },
+                mediaItemIndex = 0,
+            )
+        }
+
+        val seedSongId = playlistSongIds.firstOrNull()
+            ?: return@withContext Queue.Status(title = "Mix from Playlist", items = emptyList(), mediaItemIndex = 0)
+
+        val nextResult = YouTube.next(WatchEndpoint(videoId = seedSongId)).getOrNull()
+        val fromNext = nextResult?.items
+            ?.map { it.toMediaItem() }
+            ?.filter { it.mediaId !in playlistSongIds }
+            .orEmpty()
+
+        val fromRelated = nextResult?.relatedEndpoint?.let { endpoint ->
+            YouTube.related(endpoint).getOrNull()?.songs
+                ?.map { it.toMediaItem() }
+                ?.filter { it.mediaId !in playlistSongIds }
+        }.orEmpty()
+
+        val onlineMix = (fromNext + fromRelated)
+            .distinctBy { it.mediaId }
+            .take(maxMixSize)
+
         Queue.Status(
             title = "Mix from Playlist",
-            items = finalMix.map { it.toMediaItem() },
+            items = onlineMix,
             mediaItemIndex = 0,
         )
     }

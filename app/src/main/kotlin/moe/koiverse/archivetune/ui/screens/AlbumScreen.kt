@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens
 
 import androidx.activity.compose.BackHandler
@@ -27,12 +37,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -118,6 +132,7 @@ import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.viewmodels.AlbumUiState
 import moe.koiverse.archivetune.viewmodels.AlbumViewModel
 import com.valentinilk.shimmer.shimmer
 
@@ -141,6 +156,7 @@ fun AlbumScreen(
 
     val playlistId by viewModel.playlistId.collectAsState()
     val albumWithSongs by viewModel.albumWithSongs.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val otherVersions by viewModel.otherVersions.collectAsState()
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
@@ -151,6 +167,7 @@ fun AlbumScreen(
     // Gradient colors state for album cover
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     // Extract gradient colors from album cover
     LaunchedEffect(albumWithSongs?.album?.thumbnailUrl) {
@@ -256,7 +273,9 @@ fun AlbumScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(surfaceColor),
     ) {
         // Mesh gradient background layer
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
@@ -271,12 +290,17 @@ fun AlbumScreen(
                         val height = size.height
 
                         if (gradientColors.size >= 3) {
+                            val c0 = gradientColors[0]
+                            val c1 = gradientColors[1]
+                            val c2 = gradientColors[2]
+                            val c3 = gradientColors.getOrElse(3) { c0 }
+                            val c4 = gradientColors.getOrElse(4) { c1 }
                             // Primary color blob - top center (stronger)
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.75f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.4f),
+                                        c0.copy(alpha = gradientAlpha * 0.75f),
+                                        c0.copy(alpha = gradientAlpha * 0.4f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.5f, height * 0.15f),
@@ -288,8 +312,8 @@ fun AlbumScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.55f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.3f),
+                                        c1.copy(alpha = gradientAlpha * 0.55f),
+                                        c1.copy(alpha = gradientAlpha * 0.3f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.1f, height * 0.4f),
@@ -301,12 +325,36 @@ fun AlbumScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.5f),
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.25f),
+                                        c2.copy(alpha = gradientAlpha * 0.5f),
+                                        c2.copy(alpha = gradientAlpha * 0.25f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.9f, height * 0.35f),
                                     radius = width * 0.55f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c3.copy(alpha = gradientAlpha * 0.35f),
+                                        c3.copy(alpha = gradientAlpha * 0.18f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.25f, height * 0.65f),
+                                    radius = width * 0.75f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c4.copy(alpha = gradientAlpha * 0.3f),
+                                        c4.copy(alpha = gradientAlpha * 0.15f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.55f, height * 0.85f),
+                                    radius = width * 0.9f
                                 )
                             )
                         } else if (gradientColors.isNotEmpty()) {
@@ -322,6 +370,20 @@ fun AlbumScreen(
                                 )
                             )
                         }
+
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
+                                    surfaceColor
+                                ),
+                                startY = height * 0.4f,
+                                endY = height
+                            )
+                        )
                     }
             )
         }
@@ -331,7 +393,8 @@ fun AlbumScreen(
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
             val albumWithSongs = albumWithSongs
-            if (albumWithSongs != null && albumWithSongs.songs.isNotEmpty()) {
+            val hasSongs = albumWithSongs?.songs?.isNotEmpty() == true
+            if (hasSongs) {
                 // Hero Header
                 item(key = "header") {
                     Column(
@@ -449,53 +512,53 @@ fun AlbumScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Like/Bookmark Button
-                            Surface(
-                                onClick = {
+                            val isBookmarked = albumWithSongs.album.bookmarkedAt != null
+
+                            ToggleButton(
+                                checked = isBookmarked,
+                                onCheckedChange = {
                                     database.query {
                                         update(albumWithSongs.album.toggleLike())
                                     }
                                 },
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(48.dp),
+                                shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    checkedContentColor = MaterialTheme.colorScheme.error,
+                                ),
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(
-                                            if (albumWithSongs.album.bookmarkedAt != null)
-                                                R.drawable.favorite
-                                            else
-                                                R.drawable.favorite_border
-                                        ),
-                                        contentDescription = null,
-                                        tint = if (albumWithSongs.album.bookmarkedAt != null)
-                                            MaterialTheme.colorScheme.error
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
+                                Icon(
+                                    painter = painterResource(
+                                        if (isBookmarked) R.drawable.favorite else R.drawable.favorite_border
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
 
-                            // Play Button
-                            Button(
-                                onClick = {
-                                    playerConnection.service.getAutomix(playlistId)
+                            ToggleButton(
+                                checked = false,
+                                onCheckedChange = {
                                     playerConnection.playQueue(
                                         LocalAlbumRadio(albumWithSongs),
                                     )
                                 },
-                                shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp)
+                                    .height(48.dp),
+                                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                    checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.play),
@@ -504,18 +567,23 @@ fun AlbumScreen(
                                 )
                             }
 
-                            // Shuffle Button
-                            Button(
-                                onClick = {
-                                    playerConnection.service.getAutomix(playlistId)
+                            ToggleButton(
+                                checked = false,
+                                onCheckedChange = {
                                     playerConnection.playQueue(
                                         LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())),
                                     )
                                 },
-                                shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp)
+                                    .height(48.dp),
+                                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                    checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.shuffle),
@@ -524,9 +592,9 @@ fun AlbumScreen(
                                 )
                             }
 
-                            // Download Button
-                            Surface(
-                                onClick = {
+                            ToggleButton(
+                                checked = downloadState == Download.STATE_COMPLETED,
+                                onCheckedChange = {
                                     when (downloadState) {
                                         Download.STATE_COMPLETED -> {
                                             albumWithSongs.songs.forEach { song ->
@@ -566,45 +634,42 @@ fun AlbumScreen(
                                         }
                                     }
                                 },
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(48.dp),
+                                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    checkedContentColor = MaterialTheme.colorScheme.primary,
+                                ),
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    when (downloadState) {
-                                        Download.STATE_COMPLETED -> {
-                                            Icon(
-                                                painter = painterResource(R.drawable.offline),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                        Download.STATE_DOWNLOADING -> {
-                                            CircularProgressIndicator(
-                                                strokeWidth = 2.dp,
-                                                modifier = Modifier.size(24.dp),
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                        else -> {
-                                            Icon(
-                                                painter = painterResource(R.drawable.download),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
+                                when (downloadState) {
+                                    Download.STATE_COMPLETED -> {
+                                        Icon(
+                                            painter = painterResource(R.drawable.offline),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                    Download.STATE_DOWNLOADING -> {
+                                        CircularWavyProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    else -> {
+                                        Icon(
+                                            painter = painterResource(R.drawable.download),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
                             }
 
-                            // More Options Button
-                            Surface(
-                                onClick = {
+                            ToggleButton(
+                                checked = false,
+                                onCheckedChange = {
                                     menuState.show {
                                         AlbumMenu(
                                             originalAlbum = Album(
@@ -616,21 +681,20 @@ fun AlbumScreen(
                                         )
                                     }
                                 },
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(48.dp),
+                                shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    checkedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
+                                Icon(
+                                    painter = painterResource(R.drawable.more_vert),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
                         }
 
@@ -684,7 +748,6 @@ fun AlbumScreen(
                                         if (songWrapper.item.id == mediaMetadata?.id) {
                                             playerConnection.player.togglePlayPause()
                                         } else {
-                                            playerConnection.service.getAutomix(playlistId)
                                             playerConnection.playQueue(
                                                 LocalAlbumRadio(albumWithSongs, startIndex = index),
                                             )
@@ -744,99 +807,152 @@ fun AlbumScreen(
                     }
                 }
             } else {
-                // Shimmer Loading State
-                item(key = "shimmer") {
-                    ShimmerHost {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = systemBarsTopPadding + AppBarHeight),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // Album art placeholder
-                            Box(
-                                modifier = Modifier
-                                    .padding(top = 8.dp, bottom = 20.dp)
-                                    .size(240.dp)
-                                    .shimmer()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.onSurface)
-                            )
-
-                            // Title placeholder
-                            TextPlaceholder(
-                                height = 28.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.6f)
-                                    .padding(horizontal = 32.dp)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            // Artist placeholder
-                            TextPlaceholder(
-                                height = 20.dp,
-                                modifier = Modifier.fillMaxWidth(0.4f)
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Metadata chips placeholder
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 48.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                repeat(3) {
-                                    TextPlaceholder(
-                                        height = 32.dp,
-                                        modifier = Modifier.width(70.dp)
+                when (val state = uiState) {
+                    AlbumUiState.Loading,
+                    AlbumUiState.Content -> {
+                        item(key = "shimmer") {
+                            ShimmerHost {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = systemBarsTopPadding + AppBarHeight),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(top = 8.dp, bottom = 20.dp)
+                                            .size(240.dp)
+                                            .shimmer()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(MaterialTheme.colorScheme.onSurface)
                                     )
+
+                                    TextPlaceholder(
+                                        height = 28.dp,
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.6f)
+                                            .padding(horizontal = 32.dp)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    TextPlaceholder(
+                                        height = 20.dp,
+                                        modifier = Modifier.fillMaxWidth(0.4f)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 48.dp),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        repeat(3) {
+                                            TextPlaceholder(
+                                                height = 32.dp,
+                                                modifier = Modifier.width(70.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 24.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .shimmer()
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onSurface)
+                                        )
+                                        ButtonPlaceholder(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(48.dp)
+                                        )
+                                        ButtonPlaceholder(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(48.dp)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .shimmer()
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onSurface)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                }
+
+                                repeat(6) {
+                                    ListItemPlaceHolder()
                                 }
                             }
+                        }
+                    }
 
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            // Buttons placeholder
-                            Row(
+                    AlbumUiState.Empty -> {
+                        item(key = "empty") {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 24.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                                    .padding(top = systemBarsTopPadding + AppBarHeight)
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .shimmer()
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.onSurface)
+                                Text(
+                                    text = stringResource(R.string.empty_album),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    textAlign = TextAlign.Center
                                 )
-                                ButtonPlaceholder(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                )
-                                ButtonPlaceholder(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .shimmer()
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.onSurface)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.empty_album_desc),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
                                 )
                             }
-
-                            Spacer(modifier = Modifier.height(24.dp))
                         }
+                    }
 
-                        // Songs placeholder
-                        repeat(6) {
-                            ListItemPlaceHolder()
+                    is AlbumUiState.Error -> {
+                        item(key = "error") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = systemBarsTopPadding + AppBarHeight)
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = if (state.isNotFound) stringResource(R.string.album_not_found) else stringResource(R.string.error_unknown),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = if (state.isNotFound) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = if (state.isNotFound) stringResource(R.string.album_not_found_desc) else stringResource(R.string.error_unknown),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { viewModel.retry() }, shapes = ButtonDefaults.shapes()) {
+                                    Text(stringResource(R.string.retry))
+                                }
+                            }
                         }
                     }
                 }

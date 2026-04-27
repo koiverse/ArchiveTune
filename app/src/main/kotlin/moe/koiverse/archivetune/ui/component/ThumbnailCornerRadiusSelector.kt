@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.component
 
 import androidx.compose.foundation.Image
@@ -27,7 +37,6 @@ import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 @Composable
 fun ThumbnailCornerRadiusSelectorButton(
@@ -41,46 +50,25 @@ fun ThumbnailCornerRadiusSelectorButton(
 
     var showDialog by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clip(RoundedCornerShape(26.dp)),
-        shadowElevation = 10.dp,
-        color = MaterialTheme.colorScheme.surface,
-        onClick = { showDialog = true }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 5.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    PreferenceEntry(
+        modifier = modifier,
+        title = { Text(text = stringResource(id = R.string.custom_radius)) },
+        description = stringResource(id = R.string.corner_radius, thumbnailCornerRadius.roundToInt()),
+        icon = {
             Icon(
                 painter = painterResource(id = R.drawable.image),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
+                contentDescription = null
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(
-                        id = R.string.custom_radius,
-                        thumbnailCornerRadius.roundToInt()
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
+        },
+        trailingContent = {
             Icon(
                 painter = painterResource(R.drawable.arrow_forward),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
-        }
-    }
+        },
+        onClick = { showDialog = true }
+    )
 
     if (showDialog) {
         ThumbnailCornerRadiusModal(
@@ -332,7 +320,8 @@ fun ThumbnailCornerRadiusModal(
                     ) {
                         TextButton(
                             onClick = onDismiss,
-                            modifier = Modifier.heightIn(min = 48.dp)
+                            modifier = Modifier.heightIn(min = 48.dp),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(
                                 text = stringResource(id = R.string.cancel_button),
@@ -350,7 +339,8 @@ fun ThumbnailCornerRadiusModal(
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                            ),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(

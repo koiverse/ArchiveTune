@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.innertube
 
 import moe.koiverse.archivetune.innertube.models.Context
@@ -20,18 +30,24 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.util.encodeBase64
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import java.net.Proxy
 import java.io.IOException
+import okhttp3.Dns
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.dnsoverhttps.DnsOverHttps
 import kotlinx.coroutines.delay
 import java.util.*
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Provide access to InnerTube endpoints.
  * For making HTTP requests, not parsing response.
  */
+@OptIn(ExperimentalEncodingApi::class)
 class InnerTube {
     private var httpClient = createClient()
 
@@ -39,14 +55,29 @@ class InnerTube {
         gl = Locale.getDefault().country,
         hl = Locale.getDefault().toLanguageTag()
     )
-    var visitorData: String? = null
-    var dataSyncId: String? = null
-    var cookie: String? = null
+    @Volatile
+    private var authState: PlaybackAuthState = PlaybackAuthState.EMPTY
+
+    var visitorData: String?
+        get() = authState.visitorData
         set(value) {
-            field = value
-            cookieMap = if (value == null) emptyMap() else parseCookieString(value)
+            authState = authState.copy(visitorData = value).normalized()
         }
-    private var cookieMap = emptyMap<String, String>()
+    var dataSyncId: String?
+        get() = authState.dataSyncId
+        set(value) {
+            authState = authState.copy(dataSyncId = value).normalized()
+        }
+    var poToken: String?
+        get() = authState.poToken
+        set(value) {
+            authState = authState.copy(poToken = value).normalized()
+        }
+    var cookie: String?
+        get() = authState.cookie
+        set(value) {
+            authState = authState.copy(cookie = value).normalized()
+        }
 
     var proxy: Proxy? = null
         set(value) {
@@ -55,7 +86,34 @@ class InnerTube {
             httpClient = createClient()
         }
 
+    var proxyUsername: String? = null
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
+    var proxyPassword: String? = null
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
+    var dns: Dns = Dns.SYSTEM
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
     var useLoginForBrowse: Boolean = false
+
+    fun currentAuthState(): PlaybackAuthState = authState
+
+    fun applyAuthState(value: PlaybackAuthState) {
+        authState = value.normalized()
+    }
 
     @OptIn(ExperimentalSerializationApi::class)
     private fun createClient() = HttpClient(OkHttp) {
@@ -80,8 +138,19 @@ class InnerTube {
             socketTimeoutMillis = 15000
         }
 
-        if (proxy != null) {
-            engine {
+        engine {
+            config {
+                dns(this@InnerTube.dns)
+                if (this@InnerTube.proxy != null && !proxyUsername.isNullOrBlank() && !proxyPassword.isNullOrBlank()) {
+                    proxyAuthenticator { _, response ->
+                        val credential = okhttp3.Credentials.basic(proxyUsername!!, proxyPassword!!)
+                        response.request.newBuilder()
+                            .header("Proxy-Authorization", credential)
+                            .build()
+                    }
+                }
+            }
+            if (this@InnerTube.proxy != null) {
                 proxy = this@InnerTube.proxy
             }
         }
@@ -91,20 +160,28 @@ class InnerTube {
         }
     }
 
-    private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false) {
+    private fun HttpRequestBuilder.ytClient(
+        client: YouTubeClient,
+        setLogin: Boolean = false,
+        authState: PlaybackAuthState = currentAuthState(),
+    ) {
+        val requestOrigin = client.requestOrigin()
+        val requestReferer = client.requestReferer()
+        val cookieMap = authState.cookie?.let(::parseCookieString).orEmpty()
         contentType(ContentType.Application.Json)
         headers {
             append("X-Goog-Api-Format-Version", "1")
-            append("X-YouTube-Client-Name", client.clientId /* Not a typo. The Client-Name header does contain the client id. */)
+            append("X-YouTube-Client-Name", client.clientId)
             append("X-YouTube-Client-Version", client.clientVersion)
-            append("X-Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-            append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+            append("X-Origin", requestOrigin)
+            append("Referer", requestReferer)
+            authState.visitorData?.let { append("X-Goog-Visitor-Id", it) }
             if (setLogin && client.loginSupported) {
-                cookie?.let { cookie ->
+                authState.cookie?.let { cookie ->
                     append("cookie", cookie)
                     if ("SAPISID" !in cookieMap) return@let
                     val currentTime = System.currentTimeMillis() / 1000
-                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} ${YouTubeClient.ORIGIN_YOUTUBE_MUSIC}")
+                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} $requestOrigin")
                     append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
                 }
             }
@@ -167,12 +244,55 @@ class InnerTube {
         videoId: String,
         playlistId: String?,
         signatureTimestamp: Int?,
+        poToken: String? = null,
+        setLogin: Boolean = true,
+        authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
-        httpClient.post("player") {
-        ytClient(client, setLogin = true)
+        val includeDataSyncId = setLogin && client.loginSupported && !authState.dataSyncId.isNullOrBlank()
+        try {
+            executePlayerRequest(
+                client = client,
+                videoId = videoId,
+                playlistId = playlistId,
+                signatureTimestamp = signatureTimestamp,
+                poToken = poToken,
+                setLogin = setLogin,
+                authState = authState,
+                includeDataSyncId = includeDataSyncId,
+            )
+        } catch (failure: Throwable) {
+            if (!shouldRetryPlayerRequestWithoutDataSyncId(failure, includeDataSyncId)) throw failure
+            executePlayerRequest(
+                client = client,
+                videoId = videoId,
+                playlistId = playlistId,
+                signatureTimestamp = signatureTimestamp,
+                poToken = poToken,
+                setLogin = setLogin,
+                authState = authState,
+                includeDataSyncId = false,
+            )
+        }
+    }
+
+    private suspend fun executePlayerRequest(
+        client: YouTubeClient,
+        videoId: String,
+        playlistId: String?,
+        signatureTimestamp: Int?,
+        poToken: String?,
+        setLogin: Boolean,
+        authState: PlaybackAuthState,
+        includeDataSyncId: Boolean,
+    ) = httpClient.post("player") {
+        ytClient(client, setLogin = setLogin, authState = authState)
         setBody(
             PlayerBody(
-                context = client.toContext(locale, visitorData, dataSyncId).let {
+                context = client.toContext(
+                    locale = locale,
+                    visitorData = authState.visitorData,
+                    dataSyncId = if (includeDataSyncId) authState.dataSyncId else null,
+                ).let {
                     if (client.isEmbedded) {
                         it.copy(
                             thirdParty = Context.ThirdParty(
@@ -190,22 +310,43 @@ class InnerTube {
                         )
                     )
                 } else null,
+                serviceIntegrityDimensions = poToken?.let {
+                    PlayerBody.ServiceIntegrityDimensions(poToken = it)
+                },
             )
         )
-        }
+    }
+
+    private fun shouldRetryPlayerRequestWithoutDataSyncId(
+        failure: Throwable,
+        includeDataSyncId: Boolean,
+    ): Boolean {
+        if (!includeDataSyncId) return false
+        val clientError = failure as? ClientRequestException ?: return false
+        if (clientError.response.status != HttpStatusCode.BadRequest) return false
+        val message = clientError.message.orEmpty()
+        if (!message.contains("/youtubei/v1/player", ignoreCase = true)) return false
+        return message.contains("INVALID_ARGUMENT", ignoreCase = true) ||
+            message.contains("invalid argument", ignoreCase = true)
     }
 
     suspend fun registerPlayback(
         url: String,
         cpn: String,
         playlistId: String?,
+        poToken: String? = null,
         client: YouTubeClient = YouTubeClient.WEB_REMIX,
+        authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
         httpClient.get(url) {
-            ytClient(client, true)
+            ytClient(client, true, authState = authState)
             parameter("ver", "2")
             parameter("c", client.clientName)
             parameter("cpn", cpn)
+
+            if (!poToken.isNullOrBlank()) {
+                parameter("pot", poToken)
+            }
 
             if (playlistId != null) {
                 parameter("list", playlistId)
@@ -307,7 +448,9 @@ class InnerTube {
             setBody(
                 GetTranscriptBody(
                     context = client.toContext(locale, null, null),
-                    params = "\n${11.toChar()}$videoId".encodeBase64()
+                    params = Base64.Default.encode(
+                        "\n${11.toChar()}$videoId".encodeToByteArray()
+                    )
                 )
             )
         }

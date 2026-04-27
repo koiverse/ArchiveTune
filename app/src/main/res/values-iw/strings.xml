@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home">בית</string>
+    <string name="songs">שירים</string>
+    <string name="artists">אמנים</string>
+</resources>

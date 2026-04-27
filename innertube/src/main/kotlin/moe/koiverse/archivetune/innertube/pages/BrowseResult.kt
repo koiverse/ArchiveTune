@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.innertube.pages
 
 import moe.koiverse.archivetune.innertube.models.YTItem
@@ -6,6 +16,7 @@ import moe.koiverse.archivetune.innertube.models.filterVideo
 
 data class BrowseResult(
     val title: String?,
+    val thumbnail: String? = null,
     val items: List<Item>,
 ) {
     data class Item(

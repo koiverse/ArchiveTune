@@ -1,3 +1,15 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.net.Uri
@@ -176,7 +188,7 @@ fun CustomizeBackground(
                     }
                 }
             }
-            Button(onClick = { launcher.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { launcher.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.add_image))
             }
 
@@ -209,7 +221,8 @@ fun CustomizeBackground(
                     Toast.makeText(context, context.getString(R.string.save), Toast.LENGTH_SHORT).show()
                     navController.navigateUp()
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.save))
             }

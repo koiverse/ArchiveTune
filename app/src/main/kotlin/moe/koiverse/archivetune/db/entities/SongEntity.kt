@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.db.entities
 
 import androidx.compose.runtime.Immutable
@@ -46,16 +56,21 @@ data class SongEntity(
         likedDate = if (!liked) LocalDateTime.now() else null,
     )
 
-    fun toggleLike() = copy(
-        liked = !liked,
-        likedDate = if (!liked) LocalDateTime.now() else null,
-        inLibrary = if (!liked) inLibrary ?: LocalDateTime.now() else inLibrary
-    ).also {
-        CoroutineScope(Dispatchers.IO).launch {
-            YouTube.likeVideo(id, !liked)
-            this.cancel()
+    fun toggleLike() =
+        if (isLocal) {
+            localToggleLike()
+        } else {
+            copy(
+                liked = !liked,
+                likedDate = if (!liked) LocalDateTime.now() else null,
+                inLibrary = if (!liked) inLibrary ?: LocalDateTime.now() else inLibrary,
+            ).also {
+                CoroutineScope(Dispatchers.IO).launch {
+                    YouTube.likeVideo(id, !liked)
+                    this.cancel()
+                }
+            }
         }
-    }
 
     fun toggleLibrary() = copy(
         liked = if (inLibrary == null) liked else false,

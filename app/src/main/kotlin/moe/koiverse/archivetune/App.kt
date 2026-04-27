@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune
 
 import android.app.Application
@@ -17,17 +27,24 @@ import coil3.request.allowHardware
 import coil3.request.crossfade
 import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.extensions.*
+import moe.koiverse.archivetune.ui.screens.settings.ThemePalettes
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
+import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.PreferenceStore
+import moe.koiverse.archivetune.utils.YTPlayerUtils
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.reportException
+import moe.koiverse.archivetune.utils.clearPlaybackWebAuthSession
+import moe.koiverse.archivetune.utils.clearPlaybackAuthSession
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeLocale
 import moe.koiverse.archivetune.kugou.KuGou
 import moe.koiverse.archivetune.lastfm.LastFM
+import moe.koiverse.archivetune.canvas.ArchiveTuneCanvas
+import moe.koiverse.archivetune.ui.player.CanvasArtworkPlaybackCache
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.SupervisorJob
@@ -43,15 +60,18 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import kotlin.system.exitProcess
 import timber.log.Timber
+import okhttp3.Dns
+import androidx.datastore.preferences.core.stringPreferencesKey
 import java.net.Proxy
 import java.util.*
-import dagger.hilt.android.EntryPointAccessors
-import moe.koiverse.archivetune.di.ExtensionManagerEntryPoint
+import java.util.concurrent.atomic.AtomicBoolean
+import moe.koiverse.archivetune.utils.toPlaybackAuthState
 
 @HiltAndroidApp
 class App : Application(), SingletonImageLoader.Factory {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     @Volatile private var isInitialized = false
+    private val didRunImageCacheTrim = AtomicBoolean(false)
 
     private fun currentProcessName(): String? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -71,7 +91,6 @@ class App : Application(), SingletonImageLoader.Factory {
         instance = this
         if (currentProcessName()?.endsWith(":crash") == true) {
             Timber.plant(Timber.DebugTree())
-            startupWarmupDone.complete(Unit)
             return
         }
         PreferenceStore.start(this)
@@ -85,6 +104,9 @@ class App : Application(), SingletonImageLoader.Factory {
     }
 
     private fun initializeCriticalSync() {
+        CanvasArtworkPlaybackCache.init(this)
+        ArchiveTuneCanvas.initialize(BuildConfig.CANVAS_BEARER_TOKEN)
+
         val locale = Locale.getDefault()
         val languageTag = locale.toLanguageTag().replace("-Hant", "")
         YouTube.locale = YouTubeLocale(
@@ -105,25 +127,6 @@ class App : Application(), SingletonImageLoader.Factory {
     private fun initializeDeferredAsync() {
         applicationScope.launch(Dispatchers.IO) {
             try {
-                val entryPoint =
-                    EntryPointAccessors.fromApplication(
-                        this@App,
-                        ExtensionManagerEntryPoint::class.java,
-                    )
-                runCatching { entryPoint.extensionManager().discover() }
-                runCatching { entryPoint.musicDatabase() }
-                runCatching { entryPoint.playerCache() }
-                runCatching { entryPoint.downloadCache() }
-                runCatching { entryPoint.syncUtils() }
-                runCatching { entryPoint.downloadUtil() }
-            } catch (e: Exception) {
-                reportException(e)
-            } finally {
-                startupWarmupDone.complete(Unit)
-            }
-        }
-        applicationScope.launch(Dispatchers.IO) {
-            try {
                 val prefs = dataStore.data.first()
                 
                 prefs[ContentCountryKey]?.takeIf { it != SYSTEM_DEFAULT }?.let { country ->
@@ -137,20 +140,40 @@ class App : Application(), SingletonImageLoader.Factory {
 
                 if (prefs[ProxyEnabledKey] == true) {
                     try {
+                        val host = prefs[ProxyHostKey] ?: "127.0.0.1"
+                        val port = prefs[ProxyPortKey] ?: 8080
                         YouTube.proxy = Proxy(
                             prefs[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP),
-                            prefs[ProxyUrlKey]!!.toInetSocketAddress()
+                            java.net.InetSocketAddress.createUnresolved(host, port)
                         )
+                        YouTube.proxyUsername = prefs[ProxyUsernameKey]
+                        YouTube.proxyPassword = prefs[ProxyPasswordKey]
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@App, "Failed to parse proxy url.", LENGTH_SHORT).show()
+                            Toast.makeText(this@App, "Failed to parse proxy settings.", LENGTH_SHORT).show()
                         }
                         reportException(e)
                     }
+                    YouTube.streamBypassProxy = prefs[StreamBypassProxyKey] == true
                 }
 
                 if (prefs[UseLoginForBrowse] != false) {
                     YouTube.useLoginForBrowse = true
+                }
+                
+                // Apply random theme on startup if enabled
+                if (prefs[RandomThemeOnStartupKey] == true) {
+                    val randomPalette = ThemePalettes.generateRandomPalette()
+                    val seedPalette = ThemeSeedPalette(
+                        primary = randomPalette.primary,
+                        secondary = randomPalette.secondary,
+                        tertiary = randomPalette.tertiary,
+                        neutral = randomPalette.neutral
+                    )
+                    val encodedPalette = ThemeSeedPaletteCodec.encodeForPreference(seedPalette, "Random")
+                    dataStore.edit { settings ->
+                        settings[CustomThemeColorKey] = encodedPalette
+                    }
                 }
                 
                 isInitialized = true
@@ -162,18 +185,62 @@ class App : Application(), SingletonImageLoader.Factory {
 
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
-                .map { it[VisitorDataKey] }
+                .map {
+                    Triple(
+                        it[EnableDnsOverHttpsKey] ?: false,
+                        it[DnsOverHttpsProviderKey] ?: "Cloudflare",
+                        it[stringPreferencesKey("customDnsUrl")] ?: "https://"
+                    )
+                }
+                .distinctUntilChanged()
+                .collect { (enabled, provider, customUrl) ->
+                    if (enabled) {
+                        val dnsProviderUrls = mapOf(
+                            "Google" to "https://dns.google/dns-query",
+                            "Cloudflare" to "https://cloudflare-dns.com/dns-query",
+                            "AdGuard" to "https://dns.adguard.com/dns-query",
+                            "Quad9" to "https://dns.quad9.net/dns-query"
+                        )
+                        val url = if (provider == "Custom") customUrl else dnsProviderUrls[provider]
+                        if (!url.isNullOrBlank() && url.startsWith("https://")) {
+                            runCatching {
+                                YouTube.dns = YouTube.createDnsOverHttps(url)
+                            }
+                        } else {
+                            YouTube.dns = Dns.SYSTEM
+                        }
+                    } else {
+                        YouTube.dns = Dns.SYSTEM
+                    }
+                }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
+                .map { it.toPlaybackAuthState() }
+                .distinctUntilChanged()
+                .collect { authState ->
+                    val previousFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+                    YouTube.authState = authState
+                    if (previousFingerprint != authState.fingerprint) {
+                        YTPlayerUtils.clearPlaybackAuthCaches()
+                    }
+                }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
+                .map { it.toPlaybackAuthState().visitorData }
                 .distinctUntilChanged()
                 .collect { visitorData ->
-                    YouTube.visitorData = visitorData
-                        ?.takeIf { it != "null" }
-                        ?: YouTube.visitorData().onFailure {
-                            reportException(it)
-                        }.getOrNull()?.also { newVisitorData ->
-                            dataStore.edit { settings ->
-                                settings[VisitorDataKey] = newVisitorData
-                            }
+                    if (!visitorData.isNullOrBlank()) return@collect
+                    YouTube.visitorData().onFailure {
+                        reportException(it)
+                    }.getOrNull()?.also { newVisitorData ->
+                        dataStore.edit { settings ->
+                            settings[VisitorDataKey] = newVisitorData
                         }
+                    }
                 }
         }
 
@@ -203,31 +270,6 @@ class App : Application(), SingletonImageLoader.Factory {
         }
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
-                .map { it[DataSyncIdKey] }
-                .distinctUntilChanged()
-                .collect { dataSyncId ->
-                    YouTube.dataSyncId = dataSyncId?.let {
-                        it.takeIf { !it.contains("||") }
-                            ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
-                            ?: it.substringAfter("||")
-                    }
-                }
-        }
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
-                .map { it[InnerTubeCookieKey] }
-                .distinctUntilChanged()
-                .collect { cookie ->
-                    try {
-                        YouTube.cookie = cookie
-                    } catch (e: Exception) {
-                        Timber.e("Could not parse cookie. Clearing existing cookie. %s", e.message)
-                        forgetAccount(this@App)
-                    }
-                }
-        }
-        applicationScope.launch(Dispatchers.IO) {
-            dataStore.data
                 .map { it[LastFMSessionKey] }
                 .distinctUntilChanged()
                 .collect { sessionKey ->
@@ -238,78 +280,71 @@ class App : Application(), SingletonImageLoader.Factory {
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         val smartTrimmer = dataStore[SmartTrimmerKey] ?: false
+        val imageCacheConfig = resolveImageDiskCacheConfig(dataStore[MaxImageCacheSizeKey])
 
-        if (smartTrimmer) {
-            val cacheSize = dataStore[MaxImageCacheSizeKey] ?: 512
-            val maxSize = cacheSize * 1024 * 1024L
-            val diskCache = DiskCache.Builder()
-                .directory(cacheDir.resolve("coil"))
-                .maxSizeBytes(maxSize)
-                .build()
-            if (diskCache.size > 500 * 1024 * 1024L) {
-                Thread {
-                    try {
-                        val dir = java.io.File(cacheDir, "coil")
-                        val files = dir.listFiles()?.sortedBy { f -> f.lastModified() } ?: emptyList<java.io.File>()
-                        var freed = 0L
-                        for (file in files) {
-                            if (diskCache.size - freed <= 500 * 1024 * 1024L) break
-                            val size = file.length()
-                            file.delete()
-                            freed += size
-                        }
-                    } catch (_: Exception) {}
-                }.start()
+        val diskCache = DiskCache.Builder()
+            .directory(cacheDir.resolve("coil"))
+            .maxSizeBytes(imageCacheConfig.maxSizeBytes)
+            .build()
+
+        if (smartTrimmer && imageCacheConfig.policy == CachePolicy.ENABLED && didRunImageCacheTrim.compareAndSet(false, true)) {
+            applicationScope.launch(Dispatchers.IO) { trimImageDiskCache(diskCache) }
+        }
+
+        return ImageLoader.Builder(this)
+            .crossfade(true)
+            .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            .diskCache(diskCache)
+            .diskCachePolicy(imageCacheConfig.policy)
+            .build()
+    }
+
+    private fun trimImageDiskCache(diskCache: DiskCache) {
+        try {
+            val limitBytes = diskCache.maxSize
+            if (limitBytes <= 0L || limitBytes == Long.MAX_VALUE) return
+
+            val dir = java.io.File(diskCache.directory.toString())
+            if (!dir.exists()) return
+
+            val files = dir.walkTopDown().filter { it.isFile }.sortedBy { it.lastModified() }.toList()
+            var currentSize = files.sumOf { it.length() }
+            if (currentSize <= limitBytes) return
+
+            for (file in files) {
+                if (currentSize <= limitBytes) break
+                val size = file.length()
+                if (runCatching { file.delete() }.getOrDefault(false)) currentSize -= size
             }
-            return ImageLoader.Builder(this)
-                .crossfade(true)
-                .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-                .diskCache(diskCache)
-                .build()
-        } else {
-            val diskCache = DiskCache.Builder()
-                .directory(cacheDir.resolve("coil"))
-                .maxSizeBytes(512 * 1024 * 1024L)
-                .build()
-            if (diskCache.size > 500 * 1024 * 1024L) {
-                Thread {
-                    try {
-                        val dir = java.io.File(diskCache.directory.toString())
-                        val files = dir.listFiles()?.sortedBy { it.lastModified() } ?: emptyList<java.io.File>()
-                        var freed = 0L
-                        for (file in files) {
-                            if (diskCache.size - freed <= 500 * 1024 * 1024L) break
-                            val size = file.length()
-                            file.delete()
-                            freed += size
-                        }
-                    } catch (_: Exception) {}
-                }.start()
-            }
-            return ImageLoader.Builder(this)
-                .crossfade(true)
-                .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-                .diskCache(diskCache)
-                .build()
+        } catch (_: Exception) {
         }
     }
 
     companion object {
         lateinit var instance: App
             private set
-        val startupWarmupDone = CompletableDeferred<Unit>()
 
         fun forgetAccount(context: Context) {
+            clearPlaybackWebAuthSession(context)
             CoroutineScope(Dispatchers.IO).launch {
                 context.dataStore.edit { settings ->
-                    settings.remove(InnerTubeCookieKey)
-                    settings.remove(VisitorDataKey)
-                    settings.remove(DataSyncIdKey)
-                    settings.remove(AccountNameKey)
-                    settings.remove(AccountEmailKey)
-                    settings.remove(AccountChannelHandleKey)
+                    settings.clearPlaybackAuthSession()
                 }
             }
         }
     }
+}
+
+internal data class ImageDiskCacheConfig(
+    val policy: CachePolicy,
+    val maxSizeBytes: Long,
+)
+
+internal fun resolveImageDiskCacheConfig(maxImageCacheSizeMb: Int?): ImageDiskCacheConfig {
+    val sizeMb = maxImageCacheSizeMb ?: 512
+    if (sizeMb == 0) return ImageDiskCacheConfig(policy = CachePolicy.DISABLED, maxSizeBytes = 1L)
+    if (sizeMb < 0) return ImageDiskCacheConfig(policy = CachePolicy.ENABLED, maxSizeBytes = Long.MAX_VALUE)
+    val bytesPerMb = 1024L * 1024L
+    val safeSizeMb = sizeMb.toLong().coerceAtMost(Long.MAX_VALUE / bytesPerMb)
+    return ImageDiskCacheConfig(policy = CachePolicy.ENABLED, maxSizeBytes = safeSizeMb * bytesPerMb)
 }

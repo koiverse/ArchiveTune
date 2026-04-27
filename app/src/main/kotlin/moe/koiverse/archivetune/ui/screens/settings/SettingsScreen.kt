@@ -1,51 +1,68 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.Manifest
-import android.content.ActivityNotFoundException
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
-import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.core.content.ContextCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.BuildConfig
-import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
+import moe.koiverse.archivetune.LocalAnimationsDisabled
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.ui.component.IconButton
-import moe.koiverse.archivetune.ui.component.Material3SettingsGroup
-import moe.koiverse.archivetune.ui.component.Material3SettingsItem
-import moe.koiverse.archivetune.ui.component.ReleaseNotesCard
+import moe.koiverse.archivetune.ui.component.TopSearch
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.Updater
-import moe.koiverse.archivetune.utils.getExtensionManager
+import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.viewmodels.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,299 +71,251 @@ fun SettingsScreen(
     scrollBehavior: TopAppBarScrollBehavior,
     latestVersionName: String,
 ) {
-    val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val animationsDisabled = LocalAnimationsDisabled.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val listState = rememberLazyListState()
+    val viewModel: HomeViewModel = hiltViewModel()
+    val isAccountLoading by viewModel.isAccountLoading.collectAsState()
+    val isAccountLoggedIn by viewModel.isAccountLoggedIn.collectAsState()
+    val accountName by viewModel.accountName.collectAsState()
+    val accountImageUrl by viewModel.accountImageUrl.collectAsState()
+    val (accountEmail, _) = rememberPreference(AccountEmailKey, "")
 
-    val storagePermission =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_AUDIO
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        }
+    var isSearching by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf(TextFieldValue()) }
+    val focusRequester = remember { FocusRequester() }
 
-    val notificationPermission =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.POST_NOTIFICATIONS
-        } else {
-            null
+    LaunchedEffect(isSearching) {
+        if (isSearching) {
+            focusRequester.requestFocus()
         }
+    }
+
+    val storagePermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_AUDIO
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+
+    val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.POST_NOTIFICATIONS
+    } else {
+        null
+    }
 
     var isStorageGranted by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, storagePermission) == PackageManager.PERMISSION_GRANTED,
+            ContextCompat.checkSelfPermission(context, storagePermission) == PackageManager.PERMISSION_GRANTED
         )
     }
 
     var isNotificationGranted by remember {
         mutableStateOf(
             notificationPermission == null ||
-                (notificationPermission != null &&
-                    ContextCompat.checkSelfPermission(context, notificationPermission) == PackageManager.PERMISSION_GRANTED),
+                ContextCompat.checkSelfPermission(context, notificationPermission) == PackageManager.PERMISSION_GRANTED
         )
     }
 
-    val permissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            isStorageGranted = result[storagePermission] == true || isStorageGranted
-            if (notificationPermission != null) {
-                isNotificationGranted = result[notificationPermission] == true || isNotificationGranted
-            }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        isStorageGranted = result[storagePermission] == true || isStorageGranted
+        if (notificationPermission != null) {
+            isNotificationGranted = result[notificationPermission] == true || isNotificationGranted
         }
+    }
 
     val shouldShowPermissionHint = !isStorageGranted || !isNotificationGranted
+    val hasUpdate = !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
 
-    Column(
-        Modifier
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-    ) {
-        Spacer(
-            Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Top,
-                ),
-            ),
-        )
-
-        if (shouldShowPermissionHint) {
-            Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-            ) {
-                Column(
-                    modifier =
-                        Modifier
-                            .padding(16.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.permissions_title),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = stringResource(R.string.permissions_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = {
-                            val toRequest =
-                                buildList {
-                                    if (!isStorageGranted) {
-                                        add(storagePermission)
-                                    }
-                                    if (!isNotificationGranted && notificationPermission != null) {
-                                        add(notificationPermission)
-                                    }
-                                }
-                            if (toRequest.isNotEmpty()) {
-                                permissionLauncher.launch(toRequest.toTypedArray())
-                            }
-                        },
-                        modifier = Modifier.align(Alignment.End),
-                    ) {
-                        Text(text = stringResource(R.string.allow))
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        /*
-        if (latestVersionName != BuildConfig.VERSION_NAME) {
-            Spacer(modifier = Modifier.height(16.dp))
-            ReleaseNotesCard()
-        }
-        */
-
-        // User Interface Section
-        Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_ui),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.palette),
-                    title = { Text(stringResource(R.string.appearance)) },
-                    onClick = { navController.navigate("settings/appearance") }
-                )
-            )
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Player & Content Section (moved up and combined with content)
-        Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_player_content),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.play),
-                    title = { Text(stringResource(R.string.player_and_audio)) },
-                    onClick = { navController.navigate("settings/player") }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.language),
-                    title = { Text(stringResource(R.string.content)) },
-                    onClick = { navController.navigate("settings/content") }
-                )
-            )
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Privacy & Security Section
-        Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_privacy),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.security),
-                    title = { Text(stringResource(R.string.privacy)) },
-                    onClick = { navController.navigate("settings/privacy") }
-                )
-            )
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Storage & Data Section
-        Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_storage),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.storage),
-                    title = { Text(stringResource(R.string.storage)) },
-                    onClick = { navController.navigate("settings/storage") }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.restore),
-                    title = { Text(stringResource(R.string.backup_restore)) },
-                    onClick = { navController.navigate("settings/backup_restore") }
-                )
-            )
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // System & About Section
-        Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_system),
-            items = buildList {
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.integration),
-                        title = { Text(stringResource(R.string.extensions)) },
-                        onClick = { navController.navigate("settings/extensions") },
-                        onLongClick = { navController.navigate("settings/extensions/create") }
-                    )
-                )
-                if (isAndroid12OrLater) {
-                    add(
-                        Material3SettingsItem(
-                            icon = painterResource(R.drawable.link),
-                            title = { Text(stringResource(R.string.default_links)) },
-                            onClick = {
-                                try {
-                                    val intent = Intent(
-                                        Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS,
-                                        Uri.parse("package:${context.packageName}")
-                                    )
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    when (e) {
-                                        is ActivityNotFoundException -> {
-                                            Toast.makeText(
-                                                context,
-                                                R.string.open_app_settings_error,
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        }
-
-                                        is SecurityException -> {
-                                            Toast.makeText(
-                                                context,
-                                                R.string.open_app_settings_error,
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        }
-
-                                        else -> {
-                                            Toast.makeText(
-                                                context,
-                                                R.string.open_app_settings_error,
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                    )
-                }
-                // Experimental / Developer options
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.experiment),
-                        title = { Text(stringResource(R.string.experiment_settings)) },
-                        onClick = { navController.navigate("settings/misc") }
-                    )
-                )
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.update),
-                        title = { Text(stringResource(R.string.updates)) },
-                        description = if (latestVersionName != BuildConfig.VERSION_NAME) {
-                            { 
-                                Text(
-                                    text = stringResource(R.string.new_version_available),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        } else null,
-                        showBadge = latestVersionName != BuildConfig.VERSION_NAME,
-                        onClick = { navController.navigate("settings/update") }
-                    )
-                )
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.info),
-                        title = { Text(stringResource(R.string.about)) },
-                        onClick = { navController.navigate("settings/about") }
-                    )
-                )
-            }
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
+    val resetSearch: () -> Unit = {
+        isSearching = false
+        query = TextFieldValue()
+        focusManager.clearFocus()
     }
 
-    TopAppBar(
-        title = { Text(stringResource(R.string.settings)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain
-            ) {
-                Icon(
-                    painterResource(R.drawable.arrow_back),
-                    contentDescription = null
+    val quickActions = buildQuickActions(navController, resetSearch)
+    val integrationActions = buildIntegrationActions(navController, resetSearch)
+    val settingsGroups = buildSettingsGroups(navController, isAndroid12OrLater, hasUpdate, context, resetSearch)
+    val internalItems = buildInternalItems(navController, resetSearch)
+
+    val queryText = query.text.trim()
+    val showSearchBar = isSearching || queryText.isNotBlank()
+
+    val filteredQuickActions = filterQuickActions(quickActions, queryText)
+    val filteredIntegrations = filterIntegrations(integrationActions, queryText)
+    val filteredGroups = filterSettingsGroups(settingsGroups, queryText)
+    val filteredInternalItems = filterInternalItems(internalItems, queryText)
+
+    val hasSearchResults by remember(
+        filteredQuickActions,
+        filteredGroups,
+        filteredIntegrations,
+        filteredInternalItems,
+    ) {
+        derivedStateOf {
+            filteredQuickActions.isNotEmpty() ||
+                filteredGroups.isNotEmpty() ||
+                filteredIntegrations.isNotEmpty() ||
+                filteredInternalItems.isNotEmpty()
+        }
+    }
+
+    val internalGroup = if (filteredInternalItems.isNotEmpty()) {
+        SettingsGroup(
+            title = stringResource(R.string.internal_subcategory_settings),
+            items = filteredInternalItems,
+        )
+    } else null
+
+    val contentState = SettingsContentState(
+        profileHeader = SettingsProfileState(
+            isLoading = isAccountLoading,
+            isLoggedIn = isAccountLoggedIn,
+            accountName = accountName,
+            accountEmail = accountEmail,
+            accountImageUrl = if (isAccountLoggedIn) accountImageUrl else null,
+        ),
+        quickActions = if (queryText.isBlank()) quickActions else filteredQuickActions,
+        integrations = if (queryText.isBlank()) integrationActions else filteredIntegrations,
+        groups = if (queryText.isBlank()) settingsGroups else filteredGroups,
+        internalGroup = if (queryText.isNotBlank()) internalGroup else null,
+        showPermissionBanner = shouldShowPermissionHint,
+        showUpdateBanner = hasUpdate,
+        latestVersion = latestVersionName,
+        isSearchActive = queryText.isNotBlank(),
+        hasSearchResults = hasSearchResults,
+        onProfileHeaderClick = { navController.navigate("settings/account") },
+        onRequestPermission = {
+            val toRequest = buildList {
+                if (!isStorageGranted) add(storagePermission)
+                if (!isNotificationGranted && notificationPermission != null) {
+                    add(notificationPermission)
+                }
+            }
+            if (toRequest.isNotEmpty()) {
+                permissionLauncher.launch(toRequest.toTypedArray())
+            }
+        },
+        onUpdateClick = { navController.navigate("settings/update") },
+    )
+
+    Scaffold(
+        topBar = {
+            if (!showSearchBar) {
+                LargeFlexibleTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.settings),
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = navController::navigateUp,
+                            onLongClick = navController::backToMain,
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.arrow_back),
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = { isSearching = true },
+                            onLongClick = {},
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.search),
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    ),
                 )
             }
         },
-        scrollBehavior = scrollBehavior
-    )
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        modifier = Modifier.fillMaxSize(),
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (!showSearchBar) {
+                AdaptiveSettingsLayout(
+                    state = contentState,
+                    listState = listState,
+                    topPadding = innerPadding.calculateTopPadding(),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            AnimatedVisibility(
+                visible = showSearchBar,
+                enter = fadeIn(SettingsAnimations.fadeTween(if (animationsDisabled) 0 else 220)),
+                exit = fadeOut(SettingsAnimations.fadeTween(if (animationsDisabled) 0 else 160)),
+            ) {
+                TopSearch(
+                    query = query,
+                    onQueryChange = { query = it },
+                    onSearch = { focusManager.clearFocus() },
+                    active = showSearchBar,
+                    onActiveChange = { active ->
+                        if (active) {
+                            isSearching = true
+                        } else {
+                            resetSearch()
+                        }
+                    },
+                    placeholder = { Text(text = stringResource(R.string.search)) },
+                    leadingIcon = {
+                        IconButton(
+                            onClick = { resetSearch() },
+                            onLongClick = {
+                                if (queryText.isBlank()) {
+                                    navController.backToMain()
+                                }
+                            },
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.arrow_back),
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    trailingIcon = {
+                        Row {
+                            if (query.text.isNotBlank()) {
+                                IconButton(
+                                    onClick = { query = TextFieldValue() },
+                                    onLongClick = {},
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.close),
+                                        contentDescription = null,
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    focusRequester = focusRequester,
+                ) {
+                    val searchState = contentState.copy(
+                        isSearchActive = true,
+                    )
+                    AdaptiveSettingsLayout(
+                        state = searchState,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+    }
 }
+

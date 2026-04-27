@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -10,16 +20,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -45,6 +59,7 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.CONTENT_TYPE_HEADER
 import moe.koiverse.archivetune.constants.CONTENT_TYPE_SONG
+import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.SongFilter
 import moe.koiverse.archivetune.constants.SongFilterKey
@@ -67,7 +82,7 @@ import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibrarySongsViewModel
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LibrarySongsScreen(
     navController: NavController,
@@ -88,9 +103,11 @@ fun LibrarySongsScreen(
     val (sortDescending, onSortDescendingChange) = rememberPreference(SongSortDescendingKey, true)
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
 
     val songs by viewModel.allSongs.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     var filter by rememberEnumPreference(SongFilterKey, SongFilter.LIKED)
 
@@ -110,6 +127,7 @@ fun LibrarySongsScreen(
     }
 
     val lazyListState = rememberLazyListState()
+    val pullRefreshState = rememberPullToRefreshState()
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop =
@@ -123,7 +141,13 @@ fun LibrarySongsScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier =
+            Modifier.fillMaxSize()
+                .pullToRefresh(
+                    state = pullRefreshState,
+                    isRefreshing = isRefreshing,
+                    onRefresh = { if (ytmSync) viewModel.refresh(filter) }
+                ),
     ) {
         LazyColumn(
             state = lazyListState,
@@ -288,6 +312,11 @@ fun LibrarySongsScreen(
                         }
                     },
                     isSelected = songWrapper.isSelected && selection,
+                    swipeContentBackgroundColor = if (disableBlur) {
+                        MaterialTheme.colorScheme.surface
+                    } else {
+                        Color.Transparent
+                    },
                     modifier =
                     Modifier
                         .fillMaxWidth()
@@ -329,6 +358,7 @@ fun LibrarySongsScreen(
             visible = songs.isNotEmpty() == true,
             lazyListState = lazyListState,
             icon = R.drawable.shuffle,
+            label = context.getString(R.string.shuffle),
             onClick = {
                 playerConnection.playQueue(
                     ListQueue(
@@ -337,6 +367,14 @@ fun LibrarySongsScreen(
                     ),
                 )
             },
+        )
+
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing,
+            state = pullRefreshState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
         )
     }
 }

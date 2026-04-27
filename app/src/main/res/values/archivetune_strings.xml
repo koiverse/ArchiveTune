@@ -1,7 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="explore">Explore</string>
+    <string name="music_recognition_tap_to_listen">Tap to listen</string>
+    <string name="music_recognition_listening">Listening…</string>
+    <string name="music_recognition_processing">Processing…</string>
+    <string name="music_recognition_listen_again">Listen again</string>
+    <string name="music_recognition_no_match">No match found</string>
+    <string name="music_recognition_signature_failed">Couldn’t generate a signature</string>
+    <string name="music_recognition_recognition_failed">Recognition failed</string>
+    <string name="music_recognition_open_shazam">Open Shazam</string>
+    <string name="music_recognition_lyrics_preview">Lyrics preview</string>
+    <string name="music_recognition_permission_title">Microphone permission</string>
+    <string name="music_recognition_permission_desc">Allow microphone access to recognize nearby music.</string>
+    <string name="music_recognition_permission_action">Allow</string>
+    <string name="music_recognition_error">Something went wrong</string>
     <string name="local_history">Local</string>
+    <string name="history_local_summary">Played on this device</string>
+    <string name="history_remote_summary">Synced from YouTube Music</string>
+    <string name="history_local_empty_title">No local history yet</string>
+    <string name="history_local_empty_desc">Songs you play on this device will show up here.</string>
+    <string name="history_remote_loading">Syncing remote history</string>
+    <string name="history_remote_empty_title">No remote history available</string>
+    <string name="history_remote_empty_desc">Your synced watch history will appear here after you listen on YouTube Music.</string>
+    <string name="history_remote_error_title">Couldn’t load remote history</string>
+    <string name="history_remote_error_desc">Try again in a moment.</string>
+    <string name="history_no_results_title">No matching songs</string>
+    <string name="history_no_results_desc">Try a different song or artist name.</string>
+    <string name="clear_selection">Clear selection</string>
+    <string name="scan_device">Scan device</string>
+    <string name="scanning_device">Scanning device…</string>
+    <string name="local_songs_ready_desc">Play local songs on this device.</string>
+    <string name="local_songs_permission_body">Allow storage access to scan audio files stored on this device.</string>
+    <string name="local_songs_empty_title">No local songs found</string>
+    <string name="local_songs_empty_desc">Open settings from the top bar and run a device scan to find offline audio on this device.</string>
+    <string name="local_songs_scan_failed">Couldn’t finish scanning this device.</string>
+    <string name="local_songs_scan_summary">Last scan: %1$d songs found, %2$d removed</string>
+    <string name="local_songs_scan_title">Scan local songs</string>
+    <string name="local_songs_scan_subtitle">Refresh songs stored on this device and update the local library metadata.</string>
+    <string name="local_songs_latest_scan">Latest scan</string>
+    <string name="local_songs_scan_filters_title">Scan filters</string>
+    <string name="local_songs_scan_filters_note">Changes apply the next time you scan this device.</string>
+    <string name="local_songs_scan_duration_title">Exclude short songs</string>
+    <string name="local_songs_scan_duration_desc">Skip songs shorter than the selected duration.</string>
+    <string name="local_songs_scan_folders_title">Excluded folders</string>
+    <string name="local_songs_scan_folders_desc">Skip songs stored in folders that match any of these paths.</string>
+    <string name="local_songs_scan_folders_empty">No folders excluded yet.</string>
+    <string name="local_songs_scan_folders_hint">Examples: Music/Ringtones or Download/Voice Notes</string>
+    <string name="local_songs_scan_folders_add">Add folder</string>
+    <string name="local_songs_scan_folders_dialog_title">Exclude folder</string>
+    <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>
+    <string name="local_songs_no_matches_title">No matching local songs</string>
+    <string name="local_songs_no_matches_desc">Try a different song, artist, or album name.</string>
+    <string name="sort_by_album">Album</string>
     <string name="remote_history">Remote</string>
     <string name="charts">Charts</string>
     <string name="back_button_desc">Back</string>
@@ -34,6 +84,18 @@
     <string name="max_selection_limit">Max selection limit</string>
     <string name="share_selected">Share selected</string>
     <string name="customize_colors">Customize colors</string>
+    <string name="lyrics_share_layout">Layout</string>
+    <string name="lyrics_share_layout_square">Square</string>
+    <string name="lyrics_share_layout_portrait">Portrait</string>
+    <string name="lyrics_share_layout_story">Story</string>
+    <string name="lyrics_share_background_blur">Background blur</string>
+    <string name="lyrics_share_background_blur_value">%1$d px</string>
+    <string name="lyrics_share_background_dim">Background dim</string>
+    <string name="lyrics_share_background_dim_value">%1$d%%</string>
+    <string name="lyrics_share_show_cover">Show album cover</string>
+    <string name="lyrics_share_show_cover_desc">Include the artwork in the header of the exported image.</string>
+    <string name="lyrics_share_export_failed">Failed to create image: %1$s</string>
+    <string name="lyrics_share_export_not_supported">Image sharing requires Android 6.0 or newer</string>
     <string name="more_options">More options</string>
     <string name="text_color">Text color</string>
     <string name="secondary_text_color">Secondary text color</string>
@@ -41,7 +103,6 @@
     <string name="added_to_play_next">Added to play next</string>
     <string name="added_to_queue">Added to the queue</string>
     <string name="remove_from_cache">Remove from cache</string>
-    <string name="copy_link">Copy link</string>
     <string name="select">Select all</string>
     <string name="manage_tags">Manage Tags</string>
     <string name="add_tag">Add Tag</string>
@@ -66,6 +127,10 @@
     <string name="maximum_volume">Maximum Volume</string>
     <string name="hide_player_thumbnail">Hide Player Thumbnail</string>
     <string name="hide_player_thumbnail_desc">Replace album artwork with app logo in player</string>
+    <string name="crop_thumbnail_to_square">Crop thumbnails to 1:1</string>
+    <string name="crop_thumbnail_to_square_desc">Display YouTube thumbnails in square format instead of 16:9</string>
+    <string name="show_home_category_chips">Show home category chips</string>
+    <string name="show_home_category_chips_desc">Show category filter chips on the home screen</string>
     <string name="show_tags_in_library">Show tags in library</string>
     <string name="show_tags_in_library_desc">Show tag filter chips in the library</string>
     <string name="already_in_playlist">Already in playlist:</string>
@@ -93,7 +158,10 @@
     <string name="player_design_v2">Modern</string>
     <string name="player_design_v3">Minimal</string>
     <string name="player_design_v4">Cinematic</string>
-    <string name="new_mini_player_design">New mini player design</string>
+    <string name="player_design_v5">Little</string>
+    <string name="player_design_v6">Expressive</string>
+    <string name="player_design_v7">Immersive</string>
+    <string name="playing_from">Playing from %s</string>
     <string name="player_background_blur">Blur</string>
     <string name="coloring">Coloring</string>
     <string name="blur_gradient">Blur Gradient</string>
@@ -107,11 +175,13 @@
     <string name="lyrics_click_change">Change lyrics on click</string>
     <string name="lyrics_auto_scroll">Auto scroll lyrics</string>
     <string name="lyrics_text_size">Lyrics text size</string>
+    <string name="lyrics_sync_offset">Lyrics sync offset</string>
     <string name="resume_autoscroll">Resume Autoscroll</string>
     <string name="lyrics_romanize_japanese">Romanize japanese lyrics</string>
     <string name="lyrics_romanize_korean">Romanize korean lyrics</string>
-    <string name="slim">Slim</string>
-    <string name="slim_navbar">Slim bottom navigation bar</string>
+    <string name="lyrics_romanize_chinese">Romanize chinese lyrics</string>
+    <string name="lyrics_romanize_hindi">Romanize hindi lyrics</string>
+    <string name="lyrics_romanize_other_languages">Romanize other non-latin lyrics</string>
     <string name="auto_playlists">Auto playlists</string>
     <string name="show_liked_playlist">Show \"Liked\" playlist</string>
     <string name="show_downloaded_playlist">Show \"Downloaded\" playlist</string>
@@ -131,6 +201,7 @@
     <string name="default_lib_chips">Change default library chip</string>
     <string name="set_quick_picks">Set quick picks</string>
     <string name="last_song_listened">Based on last song listened</string>
+    <string name="dont_show">Dont Show</string>
     <string name="app_language">App language</string>
     <string name="configure_app_language">Configure app languages</string>
     <string name="intent_app_language_not_found">Couldn\'t find app language settings, please configure them manually</string>
@@ -156,6 +227,11 @@
     <string name="clear_song_cache_dialog">  Are you sure you want to clear all cached songs?</string>
     <string name="clear_image_cache_dialog">  Are you sure you want to clear all cached image?</string>
     <string name="clear_downloads_dialog">  Are you sure you want to clear all downloads?</string>
+    <string name="canvas_cache">Canvas Cache</string>
+    <string name="canvas_cache_items">%d items</string>
+    <string name="canvas_cache_usage">%1$s / %2$s</string>
+    <string name="clear_canvas_cache">Clear canvas cache</string>
+    <string name="clear_canvas_cache_dialog">Are you sure you want to clear all cached canvas?</string>
     <string name="disable">Disable</string>
     <string name="pause_remote_listen_history">Pause share listen history with YouTube Music</string>
     <string name="not_logged_in_youtube">Not logged in to YouTube</string>
@@ -180,16 +256,32 @@
     <string name="subscribed">Subscribed</string>
     <string name="playlist_not_found">Playlist not found</string>
     <string name="playlist_not_found_desc">The requested playlist could not be loaded</string>
+    <string name="album_not_found">Album not found</string>
+    <string name="album_not_found_desc">The requested album could not be loaded</string>
+    <string name="playlist_private_title">This playlist was private</string>
+    <string name="playlist_private_desc">You don\'t have access to this playlist.</string>
     <string name="empty_playlist">Empty Playlist</string>
     <string name="empty_playlist_desc">This playlist doesn\'t contain any songs</string>
+    <string name="empty_album">Empty Album</string>
+    <string name="empty_album_desc">This album doesn\'t contain any songs</string>
     <plurals name="seconds">
         <item quantity="one">1 second</item>
         <item quantity="other">%d seconds</item>
     </plurals>
-    <!-- Player Settings -->
+    <string name="audio_crossfade_title">Crossfade</string>
+    <string name="audio_crossfade_description">Smoothly transition between songs by fading out and in.</string>
+    <string name="audio_crossfade_dialog_title">Crossfade duration</string>
+    <string name="audio_crossfade_seconds">%1$s s</string>
+    <string name="crossfade_gapless_title">Gapless crossfade</string>
+    <string name="crossfade_gapless_description">Fade out and fade in without overlapping audio.</string>
     <string name="disable_load_more_when_repeat_all">Disable load more when repeat all</string>
     <string name="disable_load_more_when_repeat_all_desc">Don\'t auto load more songs and similar content when repeat all mode is enabled</string>
-    <!-- Material 3 Settings Sections -->
+    <string name="player_stream_client">Playback client</string>
+    <string name="player_stream_client_desc">Controls which YouTube client is used to fetch streams</string>
+    <string name="player_stream_client_android_vr">Android VR</string>
+    <string name="player_stream_client_android_vr_desc">Streams directly without signature decryption, providing maximum speed. Suitable for the majority of users.</string>
+    <string name="player_stream_client_web_remix">Web Remix</string>
+    <string name="player_stream_client_web_remix_desc">Extended format support at the cost of speed. JavaScript signature decryption introduces a ~5–10 second startup delay.</string>
     <string name="settings_section_ui">User Interface</string>
     <string name="settings_section_privacy">Privacy &amp; Security</string>
     <string name="settings_section_player">Player &amp; Media</string>
@@ -197,8 +289,62 @@
     <string name="settings_section_storage">Storage &amp; Data</string>
     <string name="settings_section_system">System &amp; About</string>
     <string name="similar_content">Similar content</string>
-    <string name="extensions">Extensions</string>
-    <string name="install_from_device">Install From Device</string>
-    <string name="no_extension_installed">No Extension Installed</string>
-    <string name="add_extension">Add Extension</string>
+    <string name="error_no_song_playing">No song is currently playing</string>
+    <string name="error_no_similar_songs">No similar songs found</string>
+    <string name="error_automix_failed">Failed to load similar songs</string>
+    <string name="year_in_music">Year in Music</string>
+    <string name="your_year_in_music">Your %d Year in Music</string>
+    <string name="total_listening_time">Total Listening Time</string>
+    <string name="top_songs">Top Songs</string>
+    <string name="top_artists">Top Artists</string>
+    <string name="share_summary">Share Summary</string>
+    <string name="no_listening_data">No listening data for this year</string>
+    <string name="played">played</string>
+
+    <string name="custom_theme">Custom Theme</string>
+    <string name="import_theme">Import Theme</string>
+    <string name="export_theme">Export Theme</string>
+
+    <string name="palette_custom">Custom</string>
+
+    <string name="theme_creator_title">Theme Creator</string>
+    <string name="theme_creator_subtitle">Tune colors, preview the result, then export or import.</string>
+
+    <string name="theme_meta_title">Theme Details</string>
+    <string name="theme_name_optional">Name (optional)</string>
+    <string name="theme_apply_button">Apply Theme</string>
+
+    <string name="theme_applied">Theme applied</string>
+    <string name="theme_export_success">Theme exported</string>
+    <string name="theme_export_failed">Export failed</string>
+    <string name="theme_import_success">Theme imported</string>
+    <string name="theme_import_failed">Import failed</string>
+    <string name="theme_import_failed_title">Can\'t import theme</string>
+
+    <string name="theme_seed_colors">Seed Colors</string>
+    <string name="theme_seed_primary">Primary</string>
+    <string name="theme_seed_secondary">Secondary</string>
+    <string name="theme_seed_tertiary">Tertiary</string>
+    <string name="theme_seed_neutral">Neutral</string>
+
+    <string name="theme_editor_title">%1$s Color</string>
+    <string name="theme_editor_hex">Hex</string>
+    <string name="theme_editor_hex_input">Hex value (#RRGGBB or #AARRGGBB)</string>
+    <string name="theme_presets_title">Presets</string>
+
+    <string name="theme_preview_trackline">A premium preview card</string>
+    <string name="theme_preview_primary_action">Primary Action</string>
+    <string name="theme_preview_secondary_action">Secondary Action</string>
+
+    <string name="copy">Copy</string>
+    <string name="backup_in_progress">Backup in progress</string>
+    <string name="restore_in_progress">Restore in progress</string>
+    <string name="backup_step_export_settings">Backing up settings</string>
+    <string name="backup_step_checkpoint_database">Preparing database</string>
+    <string name="backup_step_copying_file">Copying %1$s</string>
+    <string name="restore_step_verifying">Verifying backup</string>
+    <string name="restore_step_stopping_playback">Stopping playback</string>
+    <string name="restore_step_restoring_settings">Restoring settings</string>
+    <string name="restore_step_restoring_file">Restoring %1$s</string>
+    <string name="restore_step_restarting">Restarting app</string>
 </resources>

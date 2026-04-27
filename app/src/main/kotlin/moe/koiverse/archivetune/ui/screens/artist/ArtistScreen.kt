@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package moe.koiverse.archivetune.ui.screens.artist
 
 import android.content.ClipData
@@ -36,7 +46,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +57,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -169,6 +183,7 @@ fun ArtistScreen(
     // Gradient colors for mesh background
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     // Get thumbnail URL
     val thumbnail = artistPage?.artist?.thumbnail ?: libraryArtist?.artist?.thumbnailUrl
@@ -231,7 +246,9 @@ fun ArtistScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(surfaceColor)
     ) {
         // Mesh gradient background layer
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
@@ -246,12 +263,17 @@ fun ArtistScreen(
                         val height = size.height
 
                         if (gradientColors.size >= 3) {
+                            val c0 = gradientColors[0]
+                            val c1 = gradientColors[1]
+                            val c2 = gradientColors[2]
+                            val c3 = gradientColors.getOrElse(3) { c0 }
+                            val c4 = gradientColors.getOrElse(4) { c1 }
                             // Primary color blob - top center
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.65f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.35f),
+                                        c0.copy(alpha = gradientAlpha * 0.72f),
+                                        c0.copy(alpha = gradientAlpha * 0.4f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.5f, height * 0.2f),
@@ -263,8 +285,8 @@ fun ArtistScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.5f),
-                                        gradientColors[1].copy(alpha = gradientAlpha * 0.25f),
+                                        c1.copy(alpha = gradientAlpha * 0.56f),
+                                        c1.copy(alpha = gradientAlpha * 0.3f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.15f, height * 0.35f),
@@ -276,12 +298,36 @@ fun ArtistScreen(
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.45f),
-                                        gradientColors[2].copy(alpha = gradientAlpha * 0.2f),
+                                        c2.copy(alpha = gradientAlpha * 0.52f),
+                                        c2.copy(alpha = gradientAlpha * 0.26f),
                                         Color.Transparent
                                     ),
                                     center = Offset(width * 0.85f, height * 0.45f),
                                     radius = width * 0.65f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c3.copy(alpha = gradientAlpha * 0.34f),
+                                        c3.copy(alpha = gradientAlpha * 0.18f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.35f, height * 0.6f),
+                                    radius = width * 0.8f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c4.copy(alpha = gradientAlpha * 0.28f),
+                                        c4.copy(alpha = gradientAlpha * 0.14f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.55f, height * 0.85f),
+                                    radius = width * 0.95f
                                 )
                             )
                         } else if (gradientColors.isNotEmpty()) {
@@ -297,6 +343,20 @@ fun ArtistScreen(
                                 )
                             )
                         }
+
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
+                                    surfaceColor
+                                ),
+                                startY = height * 0.4f,
+                                endY = height
+                            )
+                        )
                     }
             )
         }
@@ -547,13 +607,13 @@ fun ArtistScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Subscribe/Following Button
                             val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
 
-                            FilledTonalButton(
-                                onClick = {
+                            ToggleButton(
+                                checked = isSubscribed,
+                                onCheckedChange = {
                                     database.transaction {
                                         val artist = libraryArtist?.artist
                                         if (artist != null) {
@@ -572,20 +632,19 @@ fun ArtistScreen(
                                         }
                                     }
                                 },
-                                colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = if (isSubscribed)
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = if (isSubscribed)
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 ),
-                                shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp)
+                                    .height(48.dp),
+                                shapes = if (!showLocal && artistPage?.artist?.radioEndpoint != null)
+                                    ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                else
+                                    ButtonGroupDefaults.connectedLeadingButtonShapes(),
                             ) {
                                 Icon(
                                     painter = painterResource(
@@ -603,9 +662,9 @@ fun ArtistScreen(
                                 )
                             }
 
-                            // Shuffle Button
-                            Button(
-                                onClick = {
+                            ToggleButton(
+                                checked = false,
+                                onCheckedChange = {
                                     if (!showLocal) {
                                         artistPage?.artist?.shuffleEndpoint?.let { shuffleEndpoint ->
                                             playerConnection.playQueue(YouTubeQueue(shuffleEndpoint))
@@ -621,10 +680,19 @@ fun ArtistScreen(
                                     }
                                 },
                                 enabled = if (showLocal) librarySongs.isNotEmpty() else artistPage?.artist?.shuffleEndpoint != null,
-                                shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp)
+                                    .height(48.dp),
+                                shapes = if (!showLocal && artistPage?.artist?.radioEndpoint != null)
+                                    ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                else
+                                    ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                colors = ToggleButtonDefaults.toggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                    checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.shuffle),
@@ -637,28 +705,33 @@ fun ArtistScreen(
                                     maxLines = 1
                                 )
                             }
-                        }
 
-                        // Radio Button (for YouTube artists)
-                        if (!showLocal) {
-                            artistPage?.artist?.radioEndpoint?.let { radioEndpoint ->
-                                OutlinedButton(
-                                    onClick = {
-                                        playerConnection.playQueue(YouTubeQueue(radioEndpoint))
-                                    },
-                                    shape = RoundedCornerShape(24.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp, vertical = 8.dp)
-                                        .height(44.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.radio),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = stringResource(R.string.radio))
+                            if (!showLocal) {
+                                artistPage?.artist?.radioEndpoint?.let { radioEndpoint ->
+                                    ToggleButton(
+                                        checked = false,
+                                        onCheckedChange = {
+                                            playerConnection.playQueue(YouTubeQueue(radioEndpoint))
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(48.dp),
+                                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            checkedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        ),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.radio),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = stringResource(R.string.radio))
+                                    }
                                 }
                             }
                         }
@@ -1001,6 +1074,7 @@ fun ArtistScreen(
             visible = librarySongs.isNotEmpty() && libraryArtist?.artist?.isLocal != true,
             lazyListState = lazyListState,
             icon = if (showLocal) R.drawable.language else R.drawable.library_music,
+            label = if (showLocal) stringResource(R.string.together_online) else stringResource(R.string.filter_library),
             onClick = {
                 showLocal = showLocal.not()
                 if (!showLocal && artistPage == null) viewModel.fetchArtistsFromYTM()

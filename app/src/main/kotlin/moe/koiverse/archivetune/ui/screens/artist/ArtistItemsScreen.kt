@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.ui.screens.artist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -42,6 +52,8 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.GridThumbnailHeight
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.models.toMediaMetadata
+import moe.koiverse.archivetune.extensions.toMediaItem
+import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalMenuState
@@ -172,10 +184,14 @@ fun ArtistItemsScreen(
                                     if (item.id == mediaMetadata?.id) {
                                         playerConnection.player.togglePlayPause()
                                     } else {
+                                        val songs = itemsPage?.items
+                                            .orEmpty()
+                                            .filterIsInstance<SongItem>()
                                         playerConnection.playQueue(
-                                            YouTubeQueue(
-                                                item.endpoint ?: WatchEndpoint(videoId = item.id),
-                                                item.toMediaMetadata()
+                                            ListQueue(
+                                                title = title,
+                                                items = songs.map { it.toMediaItem() },
+                                                startIndex = songs.indexOfFirst { it.id == item.id }.coerceAtLeast(0),
                                             ),
                                         )
                                     }
@@ -290,6 +306,41 @@ fun ArtistItemsScreen(
                     painterResource(R.drawable.arrow_back),
                     contentDescription = null,
                 )
+            }
+        },
+        actions = {
+            val songs = itemsPage?.items.orEmpty().filterIsInstance<SongItem>()
+            if (songs.isNotEmpty()) {
+                IconButton(
+                    onClick = {
+                        playerConnection.playQueue(
+                            ListQueue(
+                                title = title,
+                                items = songs.map { it.toMediaItem() },
+                            ),
+                        )
+                    },
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.play),
+                        contentDescription = null,
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        playerConnection.playQueue(
+                            ListQueue(
+                                title = title,
+                                items = songs.shuffled().map { it.toMediaItem() },
+                            ),
+                        )
+                    },
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.shuffle),
+                        contentDescription = null,
+                    )
+                }
             }
         },
     )

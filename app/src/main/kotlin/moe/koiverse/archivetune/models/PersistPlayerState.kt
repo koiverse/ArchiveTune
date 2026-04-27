@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 package moe.koiverse.archivetune.models
 
 import java.io.Serializable
@@ -11,4 +21,8 @@ data class PersistPlayerState(
     val currentMediaItemIndex: Int,
     val playbackState: Int,
     val timestamp: Long = System.currentTimeMillis()
-) : Serializable
+) : Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+}

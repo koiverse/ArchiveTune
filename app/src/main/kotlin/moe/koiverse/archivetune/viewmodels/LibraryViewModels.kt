@@ -1,3 +1,13 @@
+/*
+ * ArchiveTune Project Original (2026)
+ * Chartreux Westia (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ * Don't remove this copyright holder!
+ */
+
+
+
+
 @file:OptIn(ExperimentalCoroutinesApi::class)
 
 package moe.koiverse.archivetune.viewmodels
@@ -24,9 +34,11 @@ import moe.koiverse.archivetune.constants.ArtistSortDescendingKey
 import moe.koiverse.archivetune.constants.ArtistSortType
 import moe.koiverse.archivetune.constants.ArtistSortTypeKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
+import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.constants.LibraryFilter
 import moe.koiverse.archivetune.constants.PlaylistSortDescendingKey
 import moe.koiverse.archivetune.constants.PlaylistSortType
+import moe.koiverse.archivetune.constants.PlaylistSortDescendingKey
 import moe.koiverse.archivetune.constants.PlaylistSortTypeKey
 import moe.koiverse.archivetune.constants.SongFilter
 import moe.koiverse.archivetune.constants.SongFilterKey
@@ -73,23 +85,27 @@ constructor(
     downloadUtil: DownloadUtil,
     private val syncUtils: SyncUtils,
 ) : ViewModel() {
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
     val allSongs =
         context.dataStore.data
             .map {
-                Pair(
+                Triple(
                     Triple(
                         it[SongFilterKey].toEnum(SongFilter.LIKED),
                         it[SongSortTypeKey].toEnum(SongSortType.CREATE_DATE),
                         (it[SongSortDescendingKey] ?: true),
                     ),
-                    it[HideExplicitKey] ?: false
+                    it[HideExplicitKey] ?: false,
+                    it[HideVideoKey] ?: false,
                 )
             }.distinctUntilChanged()
-            .flatMapLatest { (filterSort, hideExplicit) ->
+            .flatMapLatest { (filterSort, hideExplicit, hideVideo) ->
                 val (filter, sortType, descending) = filterSort
                 when (filter) {
-                    SongFilter.LIBRARY -> database.songs(sortType, descending).map { it.filterExplicit(hideExplicit) }
-                    SongFilter.LIKED -> database.likedSongs(sortType, descending).map { it.filterExplicit(hideExplicit) }
+                    SongFilter.LIBRARY -> database.songs(sortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
+                    SongFilter.LIKED -> database.likedSongs(sortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
                     SongFilter.DOWNLOADED ->
                         downloadUtil.downloads.flatMapLatest { downloads ->
                             database
@@ -113,14 +129,14 @@ constructor(
                                             songs
                                                 .sortedWith(
                                                     compareBy(collator) { song: Song ->
-                                                        song.artists.joinToString("") { it.name }
+                                                        song.artists.joinToString("") { artist -> artist.name }
                                                     },
                                                 ).groupBy { it.album?.title }
                                                 .flatMap { (_, songsByAlbum) ->
                                                     songsByAlbum.sortedBy { album ->
                                                         album.artists.joinToString(
                                                             "",
-                                                        ) { it.name }
+                                                        ) { artist -> artist.name }
                                                     }
                                                 }
                                         }
@@ -132,12 +148,30 @@ constructor(
                 }
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    fun refresh(filter: SongFilter) {
+        if (_isRefreshing.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isRefreshing.value = true
+            try {
+                when (filter) {
+                    SongFilter.LIKED -> syncUtils.syncLikedSongs()
+                    SongFilter.LIBRARY -> syncUtils.syncLibrarySongs()
+                    SongFilter.DOWNLOADED -> Unit
+                }
+            } catch (e: Exception) {
+                reportException(e)
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
     fun syncLikedSongs() {
-        viewModelScope.launch(Dispatchers.IO) { syncUtils.syncLikedSongs() }
+        refresh(SongFilter.LIKED)
     }
 
     fun syncLibrarySongs() {
-        viewModelScope.launch(Dispatchers.IO) { syncUtils.syncLibrarySongs() }
+        refresh(SongFilter.LIBRARY)
     }
 }
 
@@ -149,6 +183,9 @@ constructor(
     database: MusicDatabase,
     private val syncUtils: SyncUtils,
 ) : ViewModel() {
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
     val allArtists =
         context.dataStore.data
             .map {
@@ -165,8 +202,23 @@ constructor(
                 }
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    fun refresh(filter: ArtistFilter) {
+        if (filter != ArtistFilter.LIKED) return
+        if (_isRefreshing.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isRefreshing.value = true
+            try {
+                syncUtils.syncArtistsSubscriptions()
+            } catch (e: Exception) {
+                reportException(e)
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
     fun sync() {
-        viewModelScope.launch(Dispatchers.IO) { syncUtils.syncArtistsSubscriptions() }
+        refresh(ArtistFilter.LIKED)
     }
 
     init {
@@ -200,6 +252,9 @@ constructor(
     downloadUtil: DownloadUtil,
     private val syncUtils: SyncUtils,
 ) : ViewModel() {
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
     val allAlbums =
         context.dataStore.data
             .map {
@@ -256,8 +311,23 @@ constructor(
                 }
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    fun refresh(filter: AlbumFilter) {
+        if (filter != AlbumFilter.LIKED) return
+        if (_isRefreshing.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isRefreshing.value = true
+            try {
+                syncUtils.syncLikedAlbums()
+            } catch (e: Exception) {
+                reportException(e)
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
     fun sync() {
-        viewModelScope.launch(Dispatchers.IO) { syncUtils.syncLikedAlbums() }
+        refresh(AlbumFilter.LIKED)
     }
 
     init {
@@ -298,7 +368,7 @@ constructor(
     val allPlaylists =
         context.dataStore.data
             .map {
-                it[PlaylistSortTypeKey].toEnum(PlaylistSortType.CREATE_DATE) to (it[PlaylistSortDescendingKey]
+                it[PlaylistSortTypeKey].toEnum(PlaylistSortType.CUSTOM) to (it[PlaylistSortDescendingKey]
                     ?: true)
             }.distinctUntilChanged()
             .flatMapLatest { (sortType, descending) ->
@@ -385,8 +455,13 @@ constructor(
         .flatMapLatest { hideExplicit ->
             database.albumsLiked(AlbumSortType.CREATE_DATE, true).map { it.filterExplicitAlbums(hideExplicit) }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    var playlists = database.playlists(PlaylistSortType.CREATE_DATE, true)
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    var playlists =
+        context.dataStore.data
+            .map {
+                it[PlaylistSortTypeKey].toEnum(PlaylistSortType.CUSTOM) to (it[PlaylistSortDescendingKey] ?: true)
+            }.distinctUntilChanged()
+            .flatMapLatest { (sortType, descending) -> database.playlists(sortType, descending) }
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
         viewModelScope.launch(Dispatchers.IO) {

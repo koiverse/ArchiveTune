@@ -97,3 +97,14 @@ core
 core.*
 *.so
 *.bin
+/.trae
+
+# Node server
+/server/node_modules/
+/server/data/
+/server/.env
+/server/package-lock.json
+
+# AI code review
+/.qodo/
+/.github/copilot-instructions.md
