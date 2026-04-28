@@ -249,6 +249,7 @@ import android.app.Notification
 import android.os.Build
 import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
+import androidx.media.app.NotificationCompat as MediaStyleNotificationCompat
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -559,30 +560,7 @@ class MusicService :
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (hasCalledStartForeground) return
 
-        val notification =
-            try {
-                val contentIntent =
-                    PendingIntent.getActivity(
-                        this,
-                        0,
-                        Intent(this, MainActivity::class.java),
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                    )
-
-                NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.small_icon)
-                    .setContentTitle(getString(R.string.music_player))
-                    .setContentText(getString(R.string.app_name))
-                    .setContentIntent(contentIntent)
-                    .setCategory(Notification.CATEGORY_SERVICE)
-                    .setPriority(NotificationCompat.PRIORITY_LOW)
-                    .setOngoing(true)
-                    .setOnlyAlertOnce(true)
-                    .build()
-            } catch (e: Exception) {
-                reportException(e)
-                return
-            }
+        val notification = createBootstrapMediaNotification() ?: return
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -599,6 +577,46 @@ class MusicService :
             reportException(e)
         }
     }
+
+    private fun createBootstrapMediaNotification(): Notification? =
+        try {
+            val contentIntent =
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, MainActivity::class.java),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+            val mediaMetadata = player.mediaMetadata
+            val title = mediaMetadata.title?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+            val artist =
+                mediaMetadata.artist?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                    ?: mediaMetadata.subtitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.small_icon)
+                .setContentTitle(title ?: getString(R.string.music_player))
+                .setContentText(artist ?: getString(R.string.app_name))
+                .setContentIntent(contentIntent)
+                .setCategory(Notification.CATEGORY_TRANSPORT)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setShowWhen(false)
+                .apply {
+                    if (::mediaSession.isInitialized) {
+                        setStyle(
+                            MediaStyleNotificationCompat.MediaStyle()
+                                .setMediaSession(mediaSession.sessionCompatToken)
+                        )
+                    }
+                }
+                .build()
+        } catch (e: Exception) {
+            reportException(e)
+            null
+        }
 
     private fun promoteToStartedService() {
         runCatching { startService(Intent(this, MusicService::class.java)) }
