@@ -245,11 +245,7 @@ import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.Notification
 import android.os.Build
-import android.content.pm.ServiceInfo
-import androidx.core.app.NotificationCompat
-import androidx.media.app.NotificationCompat as MediaStyleNotificationCompat
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -560,63 +556,14 @@ class MusicService :
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (hasCalledStartForeground) return
 
-        val notification = createBootstrapMediaNotification() ?: return
+        if (!::mediaSession.isInitialized) return
 
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
-                )
-            } else {
-                startForeground(NOTIFICATION_ID, notification)
-            }
-            hasCalledStartForeground = true
-        } catch (e: Exception) {
-            reportException(e)
-        }
+        updateNotification()
+        runCatching { super.onUpdateNotification(mediaSession, true) }
+            .onSuccess { hasCalledStartForeground = true }
+            .onFailure { reportException(it) }
+
     }
-
-    private fun createBootstrapMediaNotification(): Notification? =
-        try {
-            val contentIntent =
-                PendingIntent.getActivity(
-                    this,
-                    0,
-                    Intent(this, MainActivity::class.java),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                )
-            val mediaMetadata = player.mediaMetadata
-            val title = mediaMetadata.title?.toString()?.trim().takeIf { !it.isNullOrBlank() }
-            val artist =
-                mediaMetadata.artist?.toString()?.trim().takeIf { !it.isNullOrBlank() }
-                    ?: mediaMetadata.subtitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
-
-            NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.small_icon)
-                .setContentTitle(title ?: getString(R.string.music_player))
-                .setContentText(artist ?: getString(R.string.app_name))
-                .setContentIntent(contentIntent)
-                .setCategory(Notification.CATEGORY_TRANSPORT)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setOngoing(true)
-                .setOnlyAlertOnce(true)
-                .setShowWhen(false)
-                .apply {
-                    if (::mediaSession.isInitialized) {
-                        setStyle(
-                            MediaStyleNotificationCompat.MediaStyle()
-                                .setMediaSession(mediaSession.sessionCompatToken)
-                        )
-                    }
-                }
-                .build()
-        } catch (e: Exception) {
-            reportException(e)
-            null
-        }
 
     private fun promoteToStartedService() {
         runCatching { startService(Intent(this, MusicService::class.java)) }
@@ -5090,7 +5037,10 @@ class MusicService :
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        if (startInForegroundRequired) ensureStartedAsForeground()
+        if (startInForegroundRequired && !hasCalledStartForeground) {
+            ensureStartedAsForeground()
+            return
+        }
         runCatching { super.onUpdateNotification(session, startInForegroundRequired) }
             .onFailure { reportException(it) }
     }
