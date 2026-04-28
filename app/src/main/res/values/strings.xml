@@ -256,6 +256,9 @@
     <string name="random_theme_on_startup_desc">Apply a random color palette every time the app starts</string>
     <string name="use_system_font">Use system font</string>
     <string name="use_system_font_desc">Use the device font instead of the app font</string>
+    <string name="app_dpi">App size (App DPI)</string>
+    <string name="app_dpi_desc">Adjust the scale of the user interface.</string>
+    <string name="app_dpi_invalid">Only values between 50 and 200 are allowed.</string>
     <!-- Color Palette -->
     <string name="color_palette">Color Palette</string>
     <string name="customize_theme_colors">Choose your app theme colors</string>

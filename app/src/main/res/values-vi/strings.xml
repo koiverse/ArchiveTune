@@ -235,6 +235,9 @@
     <string name="random_theme_on_startup_desc">Áp dụng bảng màu ngẫu nhiên mỗi khi app khởi động</string>
     <string name="use_system_font">Sử dụng font hệ thống</string>
     <string name="use_system_font_desc">Sử dụng font thiết bị thay vì font ứng dụng</string>
+    <string name="app_dpi">Kích thước ứng dụng (App DPI)</string>
+    <string name="app_dpi_desc">Điều chỉnh tỷ lệ của giao diện người dùng.</string>
+    <string name="app_dpi_invalid">Chỉ cho phép giá trị từ 50 đến 200.</string>
     <!-- Color Palette -->
     <string name="color_palette">Bảng màu</string>
     <string name="customize_theme_colors">Chọn màu giao diện ứng dụng của bạn</string>

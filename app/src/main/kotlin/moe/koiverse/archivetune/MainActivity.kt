@@ -190,6 +190,7 @@ import moe.koiverse.archivetune.constants.SearchSource
 import moe.koiverse.archivetune.constants.SearchSourceKey
 import moe.koiverse.archivetune.constants.StopMusicOnTaskClearKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
+import moe.koiverse.archivetune.constants.AppDpiKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.SearchHistory
 import moe.koiverse.archivetune.db.entities.Album
@@ -577,6 +578,7 @@ class MainActivity : ComponentActivity() {
                 defaultValue = defaultDisableAnimations,
             )
             val useSystemFont by rememberPreference(UseSystemFontKey, defaultValue = false)
+            val appDpi by rememberPreference(AppDpiKey, defaultValue = 1.0f)
             val isSystemInDarkTheme = isSystemInDarkTheme()
             val useDarkTheme =
                 remember(darkTheme, isSystemInDarkTheme) {
@@ -668,6 +670,7 @@ class MainActivity : ComponentActivity() {
                 seedPalette = if (!enableDynamicTheme) customThemeSeedPalette else null,
                 disableAnimations = disableAnimations,
                 useSystemFont = useSystemFont,
+                appDpi = appDpi,
             ) {
                     BoxWithConstraints(
                         modifier =

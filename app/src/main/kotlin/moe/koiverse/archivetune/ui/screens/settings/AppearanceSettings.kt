@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -64,8 +65,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import kotlin.math.roundToInt
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ChipSortTypeKey
@@ -86,6 +92,7 @@ import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PureBlackKey
 import moe.koiverse.archivetune.constants.RandomThemeOnStartupKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
+import moe.koiverse.archivetune.constants.AppDpiKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
 import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
@@ -117,6 +124,7 @@ import moe.koiverse.archivetune.ui.component.ListPreference
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
+import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.component.ThumbnailCornerRadiusSelectorButton
 import moe.koiverse.archivetune.ui.player.StyledPlaybackSlider
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -181,6 +189,7 @@ fun AppearanceSettings(
     )
     val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 36f)
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
+    val (appDpi, onAppDpiChange) = rememberPreference(AppDpiKey, defaultValue = 1.0f)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
         defaultValue = NavigationTab.HOME
@@ -431,6 +440,48 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.text_fields), null) },
             checked = useSystemFont,
             onCheckedChange = onUseSystemFontChange,
+        )
+
+        var showAppDpiDialog by rememberSaveable { mutableStateOf(false) }
+
+        if (showAppDpiDialog) {
+            val initialPercent = (appDpi * 100).roundToInt().toString()
+            TextFieldDialog(
+                title = { Text(stringResource(R.string.app_dpi)) },
+                initialTextFieldValue = TextFieldValue(initialPercent, TextRange(initialPercent.length)),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                isInputValid = {
+                    val value = it.toIntOrNull()
+                    value != null && value in 50..200
+                },
+                onDone = {
+                    it.toIntOrNull()?.let { percent ->
+                        onAppDpiChange(percent / 100f)
+                    }
+                    showAppDpiDialog = false
+                },
+                onDismiss = { showAppDpiDialog = false },
+                placeholder = { Text("100") },
+                supportingText = { Text(stringResource(R.string.app_dpi_invalid)) },
+                extraContent = {
+                    Text(
+                        text = stringResource(R.string.app_dpi_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            )
+        }
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.app_dpi)) },
+            description = "${(appDpi * 100).roundToInt()}%",
+            icon = { Icon(painterResource(R.drawable.style), null) },
+            onClick = { showAppDpiDialog = true }
         )
 
         PreferenceGroupTitle(

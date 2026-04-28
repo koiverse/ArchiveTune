@@ -25,6 +25,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
@@ -32,6 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
 import com.kyant.m3color.hct.Hct
@@ -65,6 +68,7 @@ fun ArchiveTuneTheme(
     seedPalette: ThemeSeedPalette? = null,
     disableAnimations: Boolean = false,
     useSystemFont: Boolean = false,
+    appDpi: Float = 1.0f,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -104,6 +108,11 @@ fun ArchiveTuneTheme(
 
     val animatedColorScheme = if (disableAnimations) colorScheme else animateColorScheme(colorScheme)
 
+    val currentDensity = LocalDensity.current
+    val customDensity = remember(currentDensity, appDpi) {
+        Density(density = currentDensity.density * appDpi, fontScale = currentDensity.fontScale)
+    }
+
     val expressiveShapes = remember {
         Shapes(
             extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
@@ -114,12 +123,14 @@ fun ArchiveTuneTheme(
         )
     }
 
-    MaterialExpressiveTheme(
-        colorScheme = animatedColorScheme,
-        typography = typography,
-        shapes = expressiveShapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalDensity provides customDensity) {
+        MaterialExpressiveTheme(
+            colorScheme = animatedColorScheme,
+            typography = typography,
+            shapes = expressiveShapes,
+            content = content
+        )
+    }
 }
 
 @Composable

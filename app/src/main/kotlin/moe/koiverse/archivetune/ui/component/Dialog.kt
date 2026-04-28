@@ -336,6 +336,10 @@ fun TextFieldDialog(
 
     onDismiss: () -> Unit,
     extraContent: (@Composable () -> Unit)? = null,
+    supportingText: @Composable (() -> Unit)? = null,
+    errorIcon: @Composable (() -> Unit)? = {
+        Icon(painterResource(R.drawable.error), null)
+    },
 ) {
     val legacyFieldState = remember { mutableStateOf(initialTextFieldValue) }
 
@@ -348,6 +352,9 @@ fun TextFieldDialog(
         }
     }
 
+    val isValid = textFields?.all { isInputValid(it.second.text) }
+        ?: isInputValid(legacyFieldState.value.text)
+
     DefaultDialog(
         onDismiss = onDismiss,
         modifier = modifier,
@@ -358,9 +365,6 @@ fun TextFieldDialog(
             TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(text = stringResource(android.R.string.cancel))
             }
-
-            val isValid = textFields?.all { isInputValid(it.second.text) }
-                ?: isInputValid(legacyFieldState.value.text)
 
             TextButton(
                 enabled = isValid,
@@ -381,17 +385,21 @@ fun TextFieldDialog(
         Column {
             if (textFields != null) {
                 textFields.forEachIndexed { index, (label, value) ->
+                    val fieldValid = isInputValid(value.text)
                     TextField(
                         value = value,
                         onValueChange = { onTextFieldsChange?.invoke(index, it) },
                         placeholder = { Text(label) },
                         singleLine = singleLine,
                         maxLines = maxLines,
+                        isError = !fieldValid,
+                        supportingText = if (!fieldValid) supportingText else null,
+                        trailingIcon = if (!fieldValid) errorIcon else null,
                         colors = OutlinedTextFieldDefaults.colors(),
                         keyboardOptions = keyboardOptions,
                         keyboardActions = KeyboardActions(
                             onDone = {
-                                if (onDoneMultiple != null) {
+                                if (onDoneMultiple != null && fieldValid) {
                                     onDoneMultiple(textFields.map { it.second.text })
                                     onDismiss()
                                 }
@@ -404,18 +412,24 @@ fun TextFieldDialog(
                     )
                 }
             } else {
+                val fieldValid = isInputValid(legacyFieldState.value.text)
                 TextField(
                     value = legacyFieldState.value,
                     onValueChange = { legacyFieldState.value = it },
                     placeholder = placeholder,
                     singleLine = singleLine,
                     maxLines = maxLines,
+                    isError = !fieldValid,
+                    supportingText = if (!fieldValid) supportingText else null,
+                    trailingIcon = if (!fieldValid) errorIcon else null,
                     colors = OutlinedTextFieldDefaults.colors(),
                     keyboardOptions = keyboardOptions,
                     keyboardActions = KeyboardActions(
                         onDone = {
-                            onDone(legacyFieldState.value.text)
-                            onDismiss()
+                            if (fieldValid) {
+                                onDone(legacyFieldState.value.text)
+                                onDismiss()
+                            }
                         },
                     ),
                     modifier = Modifier
