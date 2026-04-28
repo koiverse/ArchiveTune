@@ -618,4 +618,11 @@
     <string name="next">Sonraki</string>
     <string name="next_song">Sonraki Şarkı</string>
     <string name="allow">İzin ver</string>
+    <string name="mood_and_genres_supporting">Duygular, an veya enerjiye göre çal</string>
+    <string name="mood_and_genres_count">%d seçimleri</string>
+    <string name="speed_dial">Hızlı Seçimler</string>
+    <string name="speed_dial_random">Hızlı seçimlerden rastgele oynat</string>
+    <string name="integrations">İçeri aktarılanlar</string>
+    <string name="internal_subcategory_settings">Yerel ve ya Kategori ayarları</string>
+    <string name="search_try_different">Başka bir arama yapın.</string>
 </resources>
