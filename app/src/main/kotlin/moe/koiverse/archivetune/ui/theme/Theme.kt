@@ -20,6 +20,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -33,9 +34,11 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
+import com.materialkolor.DynamicMaterialExpressiveTheme
 import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamicColorScheme
+import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.ktx.toHct
+import com.materialkolor.rememberDynamicMaterialThemeState
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -72,34 +75,10 @@ fun ArchiveTuneTheme(
     val typography = remember(useSystemFont) {
         if (useSystemFont) SystemTypography else AppTypography
     }
-
-    val appColorScheme =
-        remember(seedPalette, themeColor, darkTheme) {
-            if (seedPalette != null) {
-                exactPaletteColorScheme(
-                    palette = seedPalette,
-                    isDark = darkTheme,
-                )
-            } else {
-                materialKolorDynamicColorScheme(
-                    keyColor = themeColor,
-                    isDark = darkTheme,
-                )
-            }
-        }
-
-    val baseColorScheme =
-        if (useSystemDynamicColor) {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        } else {
-            appColorScheme
-        }
-
-    val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
-        if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
+    val expressiveMotionScheme = remember { MotionScheme.expressive() }
+    val paletteStyle = remember(themeColor, seedPalette) {
+        paletteStyleFor(seedPalette?.primary ?: themeColor)
     }
-
-    val animatedColorScheme = if (disableAnimations) colorScheme else animateColorScheme(colorScheme)
 
     val expressiveShapes = remember {
         Shapes(
@@ -111,11 +90,54 @@ fun ArchiveTuneTheme(
         )
     }
 
-    MaterialExpressiveTheme(
-        colorScheme = animatedColorScheme,
+    if (useSystemDynamicColor) {
+        val baseColorScheme =
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+
+        val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
+            if (darkTheme && pureBlack) baseColorScheme.pureBlack(true) else baseColorScheme
+        }
+
+        val animatedColorScheme = if (disableAnimations) colorScheme else animateColorScheme(colorScheme)
+
+        MaterialExpressiveTheme(
+            colorScheme = animatedColorScheme,
+            motionScheme = expressiveMotionScheme,
+            typography = typography,
+            shapes = expressiveShapes,
+            content = content,
+        )
+        return
+    }
+
+    val dynamicThemeState =
+        seedPalette?.let { palette ->
+            rememberDynamicMaterialThemeState(
+                primary = palette.primary,
+                secondary = palette.secondary,
+                tertiary = palette.tertiary,
+                neutral = palette.neutral,
+                neutralVariant = palette.neutral,
+                isDark = darkTheme,
+                isAmoled = darkTheme && pureBlack,
+                style = paletteStyle,
+                specVersion = ColorSpec.SpecVersion.SPEC_2025,
+            )
+        } ?: rememberDynamicMaterialThemeState(
+            seedColor = themeColor,
+            isDark = darkTheme,
+            isAmoled = darkTheme && pureBlack,
+            style = paletteStyle,
+            specVersion = ColorSpec.SpecVersion.SPEC_2025,
+        )
+
+    DynamicMaterialExpressiveTheme(
+        state = dynamicThemeState,
+        motionScheme = expressiveMotionScheme,
         typography = typography,
         shapes = expressiveShapes,
-        content = content
+        animate = !disableAnimations,
+        content = content,
     )
 }
 
@@ -161,101 +183,6 @@ private fun animateColorScheme(targetColorScheme: ColorScheme): ColorScheme {
         surfaceContainerHighest = animateColorAsState(targetColorScheme.surfaceContainerHighest, animationSpec, label = "surfaceContainerHighest").value,
     )
 }
-
-private fun exactPaletteColorScheme(
-    palette: ThemeSeedPalette,
-    isDark: Boolean,
-): ColorScheme = mergedSeedColorScheme(
-    primarySeed = palette.primary,
-    secondarySeed = palette.secondary,
-    tertiarySeed = palette.tertiary,
-    neutralSeed = palette.neutral,
-    isDark = isDark,
-)
-
-private fun materialKolorDynamicColorScheme(
-    keyColor: Color,
-    isDark: Boolean,
-    contrastLevel: Double = 0.0,
-): ColorScheme = mergedSeedColorScheme(
-    primarySeed = keyColor,
-    secondarySeed = keyColor,
-    tertiarySeed = keyColor,
-    neutralSeed = keyColor,
-    isDark = isDark,
-    contrastLevel = contrastLevel,
-)
-
-private fun mergedSeedColorScheme(
-    primarySeed: Color,
-    secondarySeed: Color,
-    tertiarySeed: Color,
-    neutralSeed: Color,
-    isDark: Boolean,
-    contrastLevel: Double = 0.0,
-): ColorScheme {
-    val primaryScheme = materialKolorScheme(primarySeed, isDark, contrastLevel)
-    val secondaryScheme = materialKolorScheme(secondarySeed, isDark, contrastLevel)
-    val tertiaryScheme = materialKolorScheme(tertiarySeed, isDark, contrastLevel)
-    val neutralScheme = materialKolorScheme(neutralSeed, isDark, contrastLevel)
-
-    return ColorScheme(
-        primary = primaryScheme.primary,
-        onPrimary = primaryScheme.onPrimary,
-        primaryContainer = primaryScheme.primaryContainer,
-        onPrimaryContainer = primaryScheme.onPrimaryContainer,
-        inversePrimary = primaryScheme.inversePrimary,
-
-        secondary = secondaryScheme.primary,
-        onSecondary = secondaryScheme.onPrimary,
-        secondaryContainer = secondaryScheme.primaryContainer,
-        onSecondaryContainer = secondaryScheme.onPrimaryContainer,
-
-        tertiary = tertiaryScheme.primary,
-        onTertiary = tertiaryScheme.onPrimary,
-        tertiaryContainer = tertiaryScheme.primaryContainer,
-        onTertiaryContainer = tertiaryScheme.onPrimaryContainer,
-
-        background = neutralScheme.background,
-        onBackground = neutralScheme.onBackground,
-        surface = neutralScheme.surface,
-        onSurface = neutralScheme.onSurface,
-        surfaceVariant = neutralScheme.surfaceVariant,
-        onSurfaceVariant = neutralScheme.onSurfaceVariant,
-        inverseSurface = neutralScheme.inverseSurface,
-        inverseOnSurface = neutralScheme.inverseOnSurface,
-
-        surfaceBright = neutralScheme.surfaceBright,
-        surfaceDim = neutralScheme.surfaceDim,
-        surfaceContainer = neutralScheme.surfaceContainer,
-        surfaceContainerLow = neutralScheme.surfaceContainerLow,
-        surfaceContainerLowest = neutralScheme.surfaceContainerLowest,
-        surfaceContainerHigh = neutralScheme.surfaceContainerHigh,
-        surfaceContainerHighest = neutralScheme.surfaceContainerHighest,
-
-        outline = neutralScheme.outline,
-        outlineVariant = neutralScheme.outlineVariant,
-
-        error = primaryScheme.error,
-        onError = primaryScheme.onError,
-        errorContainer = primaryScheme.errorContainer,
-        onErrorContainer = primaryScheme.onErrorContainer,
-
-        scrim = neutralScheme.scrim,
-        surfaceTint = primaryScheme.surfaceTint,
-    )
-}
-
-private fun materialKolorScheme(
-    seedColor: Color,
-    isDark: Boolean,
-    contrastLevel: Double,
-): ColorScheme = dynamicColorScheme(
-    seedColor = seedColor,
-    isDark = isDark,
-    contrastLevel = contrastLevel,
-    style = paletteStyleFor(seedColor),
-)
 
 private fun paletteStyleFor(seedColor: Color): PaletteStyle {
     val chroma = seedColor.toHct().chroma
