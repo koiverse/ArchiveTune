@@ -247,4 +247,10 @@
     <string name="theme_seed_tertiary">ثالثي</string>
     <string name="theme_seed_neutral">محايد</string>
     <string name="theme_editor_title">اللون %1$s</string>
+    <string name="music_recognition_tap_to_listen">إضغط للاستماع</string>
+    <string name="music_recognition_listen_again">استمع مجدداً</string>
+    <string name="music_recognition_listening">جاري الاستماع…</string>
+    <string name="music_recognition_processing">جاري التحليل…</string>
+    <string name="music_recognition_no_match">لا توجد نتائج مطابقة</string>
+    <string name="music_recognition_recognition_failed">فشل التعرف</string>
 </resources>
