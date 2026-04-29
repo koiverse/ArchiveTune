@@ -238,7 +238,7 @@ dependencies {
     implementation(project(":paxsenix"))
     implementation(project(":canvas"))
     implementation(project(":shazamkit"))
-    implementation("com.github.Kyant0:m3color:2026.1")
+    implementation("com.materialkolor:material-kolor:5.0.0-alpha07")
     implementation(libs.compose.cloudy)
 
     implementation(libs.ktor.client.core)
