@@ -4901,33 +4901,8 @@ class MusicService :
         } catch (_: Exception) {}
         try {
             if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
-                val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
-                val currentMediaItemIndex = player.currentMediaItemIndex
-                val currentPosition = player.currentPosition
-                val repeatMode = player.repeatMode
-                val shuffleModeEnabled = player.shuffleModeEnabled
-                val volume = playerVolume.value
-                val playbackState = player.playbackState
-                val playWhenReady = player.playWhenReady
-                runBlocking(Dispatchers.IO) {
-                    val persistQueue = currentQueue.toPersistQueue(
-                        title = queueTitle,
-                        items = mediaItemsSnapshot,
-                        mediaItemIndex = currentMediaItemIndex,
-                        position = currentPosition
-                    )
-                    val persistPlayerState = PersistPlayerState(
-                        playWhenReady = playWhenReady,
-                        repeatMode = repeatMode,
-                        shuffleModeEnabled = shuffleModeEnabled,
-                        volume = volume,
-                        currentPosition = currentPosition,
-                        currentMediaItemIndex = currentMediaItemIndex,
-                        playbackState = playbackState
-                    )
-
-                    writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
-                    writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
+                runBlocking {
+                    saveQueueToDisk()
                 }
             }
         } catch (_: Exception) {}
