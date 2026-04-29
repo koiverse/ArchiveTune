@@ -20,7 +20,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -34,10 +33,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
-import com.kyant.m3color.hct.Hct
-import com.kyant.m3color.scheme.SchemeMonochrome
-import com.kyant.m3color.scheme.SchemeNeutral
-import com.kyant.m3color.scheme.SchemeTonalSpot
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamicColorScheme
+import com.materialkolor.ktx.toHct
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -83,8 +81,7 @@ fun ArchiveTuneTheme(
                     isDark = darkTheme,
                 )
             } else {
-                m3DynamicColorScheme(
-                    seedPalette = null,
+                materialKolorDynamicColorScheme(
                     keyColor = themeColor,
                     isDark = darkTheme,
                 )
@@ -168,131 +165,106 @@ private fun animateColorScheme(targetColorScheme: ColorScheme): ColorScheme {
 private fun exactPaletteColorScheme(
     palette: ThemeSeedPalette,
     isDark: Boolean,
-): ColorScheme {
-    val primaryScheme = m3Scheme(palette.primary, isDark, 0.0)
-    val secondaryScheme = m3Scheme(palette.secondary, isDark, 0.0)
-    val tertiaryScheme = m3Scheme(palette.tertiary, isDark, 0.0)
-    val neutralScheme = m3Scheme(palette.neutral, isDark, 0.0)
+): ColorScheme = mergedSeedColorScheme(
+    primarySeed = palette.primary,
+    secondarySeed = palette.secondary,
+    tertiarySeed = palette.tertiary,
+    neutralSeed = palette.neutral,
+    isDark = isDark,
+)
 
-    return ColorScheme(
-        primary = primaryScheme.primary.toComposeColor(),
-        onPrimary = primaryScheme.onPrimary.toComposeColor(),
-        primaryContainer = primaryScheme.primaryContainer.toComposeColor(),
-        onPrimaryContainer = primaryScheme.onPrimaryContainer.toComposeColor(),
-        inversePrimary = primaryScheme.inversePrimary.toComposeColor(),
-
-        secondary = secondaryScheme.primary.toComposeColor(),
-        onSecondary = secondaryScheme.onPrimary.toComposeColor(),
-        secondaryContainer = secondaryScheme.primaryContainer.toComposeColor(),
-        onSecondaryContainer = secondaryScheme.onPrimaryContainer.toComposeColor(),
-
-        tertiary = tertiaryScheme.primary.toComposeColor(),
-        onTertiary = tertiaryScheme.onPrimary.toComposeColor(),
-        tertiaryContainer = tertiaryScheme.primaryContainer.toComposeColor(),
-        onTertiaryContainer = tertiaryScheme.onPrimaryContainer.toComposeColor(),
-
-        background = neutralScheme.background.toComposeColor(),
-        onBackground = neutralScheme.onBackground.toComposeColor(),
-        surface = neutralScheme.surface.toComposeColor(),
-        onSurface = neutralScheme.onSurface.toComposeColor(),
-        surfaceVariant = neutralScheme.surfaceVariant.toComposeColor(),
-        onSurfaceVariant = neutralScheme.onSurfaceVariant.toComposeColor(),
-        inverseSurface = neutralScheme.inverseSurface.toComposeColor(),
-        inverseOnSurface = neutralScheme.inverseOnSurface.toComposeColor(),
-
-        surfaceBright = neutralScheme.surfaceBright.toComposeColor(),
-        surfaceDim = neutralScheme.surfaceDim.toComposeColor(),
-        surfaceContainer = neutralScheme.surfaceContainer.toComposeColor(),
-        surfaceContainerLow = neutralScheme.surfaceContainerLow.toComposeColor(),
-        surfaceContainerLowest = neutralScheme.surfaceContainerLowest.toComposeColor(),
-        surfaceContainerHigh = neutralScheme.surfaceContainerHigh.toComposeColor(),
-        surfaceContainerHighest = neutralScheme.surfaceContainerHighest.toComposeColor(),
-
-        outline = neutralScheme.outline.toComposeColor(),
-        outlineVariant = neutralScheme.outlineVariant.toComposeColor(),
-
-        error = primaryScheme.error.toComposeColor(),
-        onError = primaryScheme.onError.toComposeColor(),
-        errorContainer = primaryScheme.errorContainer.toComposeColor(),
-        onErrorContainer = primaryScheme.onErrorContainer.toComposeColor(),
-
-        scrim = neutralScheme.scrim.toComposeColor(),
-        surfaceTint = primaryScheme.surfaceTint.toComposeColor(),
-    )
-}
-
-
-private fun m3DynamicColorScheme(
-    seedPalette: ThemeSeedPalette?,
+private fun materialKolorDynamicColorScheme(
     keyColor: Color,
     isDark: Boolean,
     contrastLevel: Double = 0.0,
-): ColorScheme {
-    val primarySeed = seedPalette?.primary ?: keyColor
-    val secondarySeed = seedPalette?.secondary ?: primarySeed
-    val tertiarySeed = seedPalette?.tertiary ?: primarySeed
-    val neutralSeed = seedPalette?.neutral ?: primarySeed
+): ColorScheme = mergedSeedColorScheme(
+    primarySeed = keyColor,
+    secondarySeed = keyColor,
+    tertiarySeed = keyColor,
+    neutralSeed = keyColor,
+    isDark = isDark,
+    contrastLevel = contrastLevel,
+)
 
-    val primaryScheme = m3Scheme(primarySeed, isDark, contrastLevel)
-    val secondaryScheme = m3Scheme(secondarySeed, isDark, contrastLevel)
-    val tertiaryScheme = m3Scheme(tertiarySeed, isDark, contrastLevel)
-    val neutralScheme = m3Scheme(neutralSeed, isDark, contrastLevel)
+private fun mergedSeedColorScheme(
+    primarySeed: Color,
+    secondarySeed: Color,
+    tertiarySeed: Color,
+    neutralSeed: Color,
+    isDark: Boolean,
+    contrastLevel: Double = 0.0,
+): ColorScheme {
+    val primaryScheme = materialKolorScheme(primarySeed, isDark, contrastLevel)
+    val secondaryScheme = materialKolorScheme(secondarySeed, isDark, contrastLevel)
+    val tertiaryScheme = materialKolorScheme(tertiarySeed, isDark, contrastLevel)
+    val neutralScheme = materialKolorScheme(neutralSeed, isDark, contrastLevel)
 
     return ColorScheme(
-        primary = primaryScheme.primary.toComposeColor(),
-        onPrimary = primaryScheme.onPrimary.toComposeColor(),
-        primaryContainer = primaryScheme.primaryContainer.toComposeColor(),
-        onPrimaryContainer = primaryScheme.onPrimaryContainer.toComposeColor(),
-        inversePrimary = primaryScheme.inversePrimary.toComposeColor(),
+        primary = primaryScheme.primary,
+        onPrimary = primaryScheme.onPrimary,
+        primaryContainer = primaryScheme.primaryContainer,
+        onPrimaryContainer = primaryScheme.onPrimaryContainer,
+        inversePrimary = primaryScheme.inversePrimary,
 
-        secondary = secondaryScheme.primary.toComposeColor(),
-        onSecondary = secondaryScheme.onPrimary.toComposeColor(),
-        secondaryContainer = secondaryScheme.primaryContainer.toComposeColor(),
-        onSecondaryContainer = secondaryScheme.onPrimaryContainer.toComposeColor(),
+        secondary = secondaryScheme.primary,
+        onSecondary = secondaryScheme.onPrimary,
+        secondaryContainer = secondaryScheme.primaryContainer,
+        onSecondaryContainer = secondaryScheme.onPrimaryContainer,
 
-        tertiary = tertiaryScheme.primary.toComposeColor(),
-        onTertiary = tertiaryScheme.onPrimary.toComposeColor(),
-        tertiaryContainer = tertiaryScheme.primaryContainer.toComposeColor(),
-        onTertiaryContainer = tertiaryScheme.onPrimaryContainer.toComposeColor(),
+        tertiary = tertiaryScheme.primary,
+        onTertiary = tertiaryScheme.onPrimary,
+        tertiaryContainer = tertiaryScheme.primaryContainer,
+        onTertiaryContainer = tertiaryScheme.onPrimaryContainer,
 
-        background = neutralScheme.background.toComposeColor(),
-        onBackground = neutralScheme.onBackground.toComposeColor(),
-        surface = neutralScheme.surface.toComposeColor(),
-        onSurface = neutralScheme.onSurface.toComposeColor(),
-        surfaceVariant = neutralScheme.surfaceVariant.toComposeColor(),
-        onSurfaceVariant = neutralScheme.onSurfaceVariant.toComposeColor(),
-        inverseSurface = neutralScheme.inverseSurface.toComposeColor(),
-        inverseOnSurface = neutralScheme.inverseOnSurface.toComposeColor(),
+        background = neutralScheme.background,
+        onBackground = neutralScheme.onBackground,
+        surface = neutralScheme.surface,
+        onSurface = neutralScheme.onSurface,
+        surfaceVariant = neutralScheme.surfaceVariant,
+        onSurfaceVariant = neutralScheme.onSurfaceVariant,
+        inverseSurface = neutralScheme.inverseSurface,
+        inverseOnSurface = neutralScheme.inverseOnSurface,
 
-        surfaceBright = neutralScheme.surfaceBright.toComposeColor(),
-        surfaceDim = neutralScheme.surfaceDim.toComposeColor(),
-        surfaceContainer = neutralScheme.surfaceContainer.toComposeColor(),
-        surfaceContainerLow = neutralScheme.surfaceContainerLow.toComposeColor(),
-        surfaceContainerLowest = neutralScheme.surfaceContainerLowest.toComposeColor(),
-        surfaceContainerHigh = neutralScheme.surfaceContainerHigh.toComposeColor(),
-        surfaceContainerHighest = neutralScheme.surfaceContainerHighest.toComposeColor(),
+        surfaceBright = neutralScheme.surfaceBright,
+        surfaceDim = neutralScheme.surfaceDim,
+        surfaceContainer = neutralScheme.surfaceContainer,
+        surfaceContainerLow = neutralScheme.surfaceContainerLow,
+        surfaceContainerLowest = neutralScheme.surfaceContainerLowest,
+        surfaceContainerHigh = neutralScheme.surfaceContainerHigh,
+        surfaceContainerHighest = neutralScheme.surfaceContainerHighest,
 
-        outline = neutralScheme.outline.toComposeColor(),
-        outlineVariant = neutralScheme.outlineVariant.toComposeColor(),
+        outline = neutralScheme.outline,
+        outlineVariant = neutralScheme.outlineVariant,
 
-        error = primaryScheme.error.toComposeColor(),
-        onError = primaryScheme.onError.toComposeColor(),
-        errorContainer = primaryScheme.errorContainer.toComposeColor(),
-        onErrorContainer = primaryScheme.onErrorContainer.toComposeColor(),
+        error = primaryScheme.error,
+        onError = primaryScheme.onError,
+        errorContainer = primaryScheme.errorContainer,
+        onErrorContainer = primaryScheme.onErrorContainer,
 
-        scrim = neutralScheme.scrim.toComposeColor(),
-        surfaceTint = primaryScheme.surfaceTint.toComposeColor(),
+        scrim = neutralScheme.scrim,
+        surfaceTint = primaryScheme.surfaceTint,
     )
 }
 
-private fun m3Scheme(seedColor: Color, isDark: Boolean, contrastLevel: Double) =
-    Hct.fromInt(seedColor.toArgb()).let { hct ->
-        when {
-            hct.chroma < 4.0 -> SchemeMonochrome(hct, isDark, contrastLevel)
-            hct.chroma < 12.0 -> SchemeNeutral(hct, isDark, contrastLevel)
-            else -> SchemeTonalSpot(hct, isDark, contrastLevel)
-        }
+private fun materialKolorScheme(
+    seedColor: Color,
+    isDark: Boolean,
+    contrastLevel: Double,
+): ColorScheme = dynamicColorScheme(
+    seedColor = seedColor,
+    isDark = isDark,
+    contrastLevel = contrastLevel,
+    style = paletteStyleFor(seedColor),
+)
+
+private fun paletteStyleFor(seedColor: Color): PaletteStyle {
+    val chroma = seedColor.toHct().chroma
+    return when {
+        chroma < 4.0 -> PaletteStyle.Monochrome
+        chroma < 12.0 -> PaletteStyle.Neutral
+        else -> PaletteStyle.TonalSpot
     }
+}
 
 private fun Int.toComposeColor(): Color = Color(this.toLong() and 0xFFFFFFFFL)
 
