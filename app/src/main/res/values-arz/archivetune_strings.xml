@@ -1,3 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="explore">استكشف</string>
+    <string name="music_recognition_tap_to_listen">دوس عشان تسمع</string>
+    <string name="music_recognition_listening">بنسمع…</string>
+    <string name="music_recognition_processing">بنحلل…</string>
+    <string name="music_recognition_listen_again">اسمع تاني</string>
+    <string name="music_recognition_no_match">ملقيناش تطابق</string>
+    <string name="music_recognition_signature_failed">مقدرناش ننتج بصمة صوتية</string>
+    <string name="music_recognition_recognition_failed">فشل التعرف</string>
+    <string name="music_recognition_open_shazam">افتح شازام</string>
+    <string name="music_recognition_lyrics_preview">معاينة الكلمات</string>
+    <string name="music_recognition_permission_title">صلاحية المايك</string>
+    <string name="music_recognition_permission_desc">اسمح بالوصول للمايك عشان نعرف الاغاني اللي شغالة حواليك</string>
+    <string name="music_recognition_permission_action">اسمح</string>
+    <string name="music_recognition_error">في حاجة حصلت غلط</string>
 </resources>
