@@ -57,6 +57,9 @@ fun MutablePreferences.clearPlaybackLoginContext() {
     remove(DataSyncIdKey)
 }
 
+fun PlaybackAuthState.withoutPlaybackLoginContext(): PlaybackAuthState =
+    copy(dataSyncId = null).normalized()
+
 fun MutablePreferences.putLegacyPoToken(value: String?) {
     val normalized = value?.trim()?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
     if (normalized == null) {
@@ -90,7 +93,8 @@ suspend fun <T> Context.retryWithoutPlaybackLoginContext(
         return initialResult
     }
 
-    resetPlaybackLoginContext()
+    YouTube.authState = currentAuthState.withoutPlaybackLoginContext()
+    YTPlayerUtils.clearPlaybackAuthCaches()
     return block()
 }
 

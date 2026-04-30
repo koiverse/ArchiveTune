@@ -245,7 +245,10 @@ import kotlin.time.Duration.Companion.seconds
 import timber.log.Timber
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.Notification
 import android.os.Build
+import android.content.pm.ServiceInfo
+import androidx.core.app.NotificationCompat
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -556,13 +559,45 @@ class MusicService :
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (hasCalledStartForeground) return
 
-        if (!::mediaSession.isInitialized) return
+        val notification =
+            try {
+                val contentIntent =
+                    PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
 
-        updateNotification()
-        runCatching { super.onUpdateNotification(mediaSession, true) }
-            .onSuccess { hasCalledStartForeground = true }
-            .onFailure { reportException(it) }
+                NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.small_icon)
+                    .setContentTitle(getString(R.string.music_player))
+                    .setContentText(getString(R.string.app_name))
+                    .setContentIntent(contentIntent)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .build()
+            } catch (e: Exception) {
+                reportException(e)
+                return
+            }
 
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            hasCalledStartForeground = true
+        } catch (e: Exception) {
+            reportException(e)
+        }
     }
 
     private fun promoteToStartedService() {
@@ -5012,10 +5047,7 @@ class MusicService :
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        if (startInForegroundRequired && !hasCalledStartForeground) {
-            ensureStartedAsForeground()
-            return
-        }
+        if (startInForegroundRequired) ensureStartedAsForeground()
         runCatching { super.onUpdateNotification(session, startInForegroundRequired) }
             .onFailure { reportException(it) }
     }
