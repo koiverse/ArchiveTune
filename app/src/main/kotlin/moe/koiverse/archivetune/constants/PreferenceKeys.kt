@@ -470,6 +470,9 @@ val LyricsRomanizeHindiKey = booleanPreferencesKey("lyricsRomanizeHindi")
 val LyricsRomanizeOtherLanguagesKey = booleanPreferencesKey("lyricsRomanizeOtherLanguages")
 val TranslateLyricsKey = booleanPreferencesKey("translateLyrics")
 val UseLyricsV2Key = booleanPreferencesKey("useLyricsV2")
+val LyricsV2BounceFactorKey = floatPreferencesKey("lyricsV2BounceFactor")
+val LyricsV2GlowFactorKey = floatPreferencesKey("lyricsV2GlowFactor")
+val LyricsV2FillTransitionWidthKey = floatPreferencesKey("lyricsV2FillTransitionWidth")
 
 // Queue lyrics pre-load settings
 val PreloadQueueLyricsEnabledKey = booleanPreferencesKey("preload_queue_lyrics_enabled")

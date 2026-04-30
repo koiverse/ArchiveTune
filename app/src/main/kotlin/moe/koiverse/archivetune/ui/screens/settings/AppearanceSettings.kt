@@ -78,7 +78,6 @@ import moe.koiverse.archivetune.constants.GridItemsSizeKey
 import moe.koiverse.archivetune.constants.LibraryFilter
 import moe.koiverse.archivetune.constants.LyricsClickKey
 import moe.koiverse.archivetune.constants.LyricsScrollKey
-import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.PlayerDesignStyle
 import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
@@ -88,8 +87,6 @@ import moe.koiverse.archivetune.constants.RandomThemeOnStartupKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
 import moe.koiverse.archivetune.constants.PlayerButtonsStyle
 import moe.koiverse.archivetune.constants.PlayerButtonsStyleKey
-import moe.koiverse.archivetune.constants.LyricsAnimationStyleKey
-import moe.koiverse.archivetune.constants.LyricsAnimationStyle
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
 import moe.koiverse.archivetune.constants.SliderStyle
@@ -109,7 +106,6 @@ import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.BlurRadiusKey
-import moe.koiverse.archivetune.constants.UseLyricsV2Key
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -189,19 +185,10 @@ fun AppearanceSettings(
         PlayerButtonsStyleKey,
         defaultValue = PlayerButtonsStyle.DEFAULT
     )
-    val (lyricsPosition, onLyricsPositionChange) = rememberEnumPreference(
-        LyricsTextPositionKey,
-        defaultValue = LyricsPosition.LEFT
-    )
-    val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference<LyricsAnimationStyle>(
-    key = LyricsAnimationStyleKey,
-    defaultValue = LyricsAnimationStyle.APPLE
-    )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
-    val (useLyricsV2, onUseLyricsV2Change) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
         SliderStyleKey,
@@ -632,43 +619,10 @@ fun AppearanceSettings(
             title = stringResource(R.string.lyrics),
         )
 
-        SwitchPreference(
-            title = { Text("Lyrics V2 (Experimental)") },
-            description = "Use the new fluid word-synced lyrics engine",
-            icon = { Icon(painterResource(R.drawable.lyrics), null) },
-            checked = useLyricsV2,
-            onCheckedChange = onUseLyricsV2Change,
-        )
-
-        EnumListPreference(
-            title = { Text(stringResource(R.string.lyrics_text_position)) },
-            icon = { Icon(painterResource(R.drawable.lyrics), null) },
-            selectedValue = lyricsPosition,
-            onValueSelected = onLyricsPositionChange,
-            valueText = {
-                when (it) {
-                    LyricsPosition.LEFT -> stringResource(R.string.left)
-                    LyricsPosition.CENTER -> stringResource(R.string.center)
-                    LyricsPosition.RIGHT -> stringResource(R.string.right)
-                }
-            },
-        )
-
-        EnumListPreference(
-          title = { Text(stringResource(R.string.lyrics_animation_style)) },
-          icon = { Icon(painterResource(R.drawable.animation), null) },
-          selectedValue = lyricsAnimation,
-          onValueSelected = onLyricsAnimationChange,
-          valueText = {
-              when (it) {
-                  LyricsAnimationStyle.NONE -> stringResource(R.string.none)
-                  LyricsAnimationStyle.FADE -> stringResource(R.string.fade)
-                  LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
-                  LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
-                  LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
-                  LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
-              }
-          }
+        PreferenceEntry(
+            title = { Text("Customize Lyrics Animations") },
+            icon = { Icon(painterResource(R.drawable.animation), null) },
+            onClick = { navController.navigate("settings/appearance/lyrics_animations") }
         )
 
         SwitchPreference(
@@ -1029,13 +983,13 @@ enum class NavigationTab {
     LIBRARY,
 }
 
+enum class PlayerTextAlignment {
+    SIDED,
+    CENTER,
+}
+
 enum class LyricsPosition {
     LEFT,
     CENTER,
     RIGHT,
-}
-
-enum class PlayerTextAlignment {
-    SIDED,
-    CENTER,
 }
