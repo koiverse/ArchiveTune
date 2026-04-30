@@ -324,8 +324,13 @@ class App : Application(), SingletonImageLoader.Factory {
         lateinit var instance: App
             private set
 
-        fun forgetAccount(context: Context) {
-            clearPlaybackWebAuthSession(context)
+        fun forgetAccount(
+            context: Context,
+            clearWebAuthSession: Boolean = true,
+        ) {
+            if (clearWebAuthSession) {
+                clearPlaybackWebAuthSession(context)
+            }
             CoroutineScope(Dispatchers.IO).launch {
                 context.dataStore.edit { settings ->
                     settings.clearPlaybackAuthSession()
