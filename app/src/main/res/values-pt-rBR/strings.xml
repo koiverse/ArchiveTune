@@ -515,7 +515,7 @@
     <string name="content_length_label">Comprimento do conteúdo</string>
     <string name="unknown_content_length">Comprimento do conteúdo desconhecido</string>
     <string name="format_label">Formato</string>
-    <string name="loading_format">Carregando formato...</string>
+    <string name="loading_format">Carregando formato…</string>
     <string name="buffer_health_label">Saúde do buffer</string>
     <string name="playback_speed_label">Velocidade de reprodução</string>
     <string name="state_label">Estado</string>
@@ -552,4 +552,11 @@
     <string name="permission_status_required">Por favor, conceda todas as permissões necessárias para continuar.</string>
     <string name="next">Próximo</string>
     <string name="allow">Permitir</string>
+    <string name="mood_and_genres_supporting">Toque guiado pela sensação, pela época ou pela energia</string>
+    <string name="mood_and_genres_count">%d escolhas</string>
+    <string name="speed_dial">Acesso rápido</string>
+    <string name="speed_dial_random">Reproduzir música de acesso rápido aleatória</string>
+    <string name="integrations">Integrações</string>
+    <string name="internal_subcategory_settings">Configurações internas e de subcategoria</string>
+    <string name="search_try_different">Tente um termo de pesquisa diferente</string>
 </resources>
