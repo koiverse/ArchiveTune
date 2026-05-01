@@ -325,6 +325,7 @@ fun TextFieldDialog(
     singleLine: Boolean = true,
     autoFocus: Boolean = true,
     maxLines: Int = if (singleLine) 1 else 10,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
     isInputValid: (String) -> Boolean = { it.isNotEmpty() },
     onDone: (String) -> Unit = {},
 
@@ -387,7 +388,7 @@ fun TextFieldDialog(
                         singleLine = singleLine,
                         maxLines = maxLines,
                         colors = OutlinedTextFieldDefaults.colors(),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardOptions = keyboardOptions,
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 if (onDoneMultiple != null) {
@@ -410,7 +411,7 @@ fun TextFieldDialog(
                     singleLine = singleLine,
                     maxLines = maxLines,
                     colors = OutlinedTextFieldDefaults.colors(),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardOptions = keyboardOptions,
                     keyboardActions = KeyboardActions(
                         onDone = {
                             onDone(legacyFieldState.value.text)

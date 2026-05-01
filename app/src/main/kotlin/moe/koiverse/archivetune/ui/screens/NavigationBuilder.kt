@@ -80,6 +80,7 @@ import moe.koiverse.archivetune.ui.screens.settings.DiscordSettings
 import moe.koiverse.archivetune.ui.screens.settings.DebugSettings
 import moe.koiverse.archivetune.ui.screens.settings.IntegrationScreen
 import moe.koiverse.archivetune.ui.screens.settings.LastFMSettings
+import moe.koiverse.archivetune.ui.screens.settings.LyricsAnimationSettings
 import moe.koiverse.archivetune.ui.screens.settings.MusicTogetherScreen
 import moe.koiverse.archivetune.ui.screens.settings.PalettePickerScreen
 import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
@@ -339,6 +340,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/appearance/palette_picker") {
         PalettePickerScreen(navController)
+    }
+    composable("settings/appearance/lyrics_animations") {
+        LyricsAnimationSettings(navController, scrollBehavior)
     }
     composable("settings/appearance/theme_creator") {
         ThemeCreatorScreen(navController)

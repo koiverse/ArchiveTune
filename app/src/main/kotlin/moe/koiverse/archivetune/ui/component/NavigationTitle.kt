@@ -11,6 +11,7 @@
 package moe.koiverse.archivetune.ui.component
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,7 @@ fun NavigationTitle(
         modifier = modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+            .then(if (onClick != null) Modifier.focusable() else Modifier)
             .clickable(enabled = onClick != null) {
                 onClick?.invoke()
             }

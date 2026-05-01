@@ -51,6 +51,14 @@ android {
                 ?: System.getenv("CANVAS_BEARER_TOKEN")
                 ?: ""
         buildConfigField("String", "CANVAS_BEARER_TOKEN", "\"$canvasBearerToken\"")
+
+        val nightlyBuildHash =
+            (
+                localProperties.getProperty("NIGHTLY_BUILD_HASH")
+                    ?: System.getenv("NIGHTLY_BUILD_HASH")
+                    ?: ""
+                ).trim()
+        buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
     }
 
     flavorDimensions += listOf("device", "abi")
@@ -227,9 +235,10 @@ dependencies {
     implementation(project(":betterlyrics"))
     implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
+    implementation(project(":paxsenix"))
     implementation(project(":canvas"))
     implementation(project(":shazamkit"))
-    implementation("com.github.Kyant0:m3color:2026.1")
+    implementation("com.materialkolor:material-kolor:5.0.0-alpha07")
     implementation(libs.compose.cloudy)
 
     implementation(libs.ktor.client.core)

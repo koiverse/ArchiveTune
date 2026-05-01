@@ -13,6 +13,7 @@ package moe.koiverse.archivetune.ui.component
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -84,6 +85,7 @@ private fun Material3SettingsItemRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
+                .then(if (item.onClick != null) Modifier.focusable() else Modifier)
                 .clickable(
                     enabled = item.onClick != null,
                     onClick = { item.onClick?.invoke() }

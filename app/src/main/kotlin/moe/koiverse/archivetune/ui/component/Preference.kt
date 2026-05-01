@@ -23,6 +23,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -80,6 +82,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -127,6 +131,7 @@ fun PreferenceEntry(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .then(if (isEnabled && onClick != null) Modifier.focusable() else Modifier)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = if (inGroup) LocalIndication.current else null,
@@ -420,6 +425,7 @@ fun EditTextPreference(
     value: String,
     onValueChange: (String) -> Unit,
     singleLine: Boolean = true,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
     isInputValid: (String) -> Boolean = { it.isNotEmpty() },
     isEnabled: Boolean = true,
 ) {
@@ -429,12 +435,14 @@ fun EditTextPreference(
 
     if (showDialog) {
         TextFieldDialog(
+            title = title,
             initialTextFieldValue =
             TextFieldValue(
                 text = value,
                 selection = TextRange(value.length),
             ),
             singleLine = singleLine,
+            keyboardOptions = keyboardOptions,
             isInputValid = isInputValid,
             onDone = onValueChange,
             onDismiss = { showDialog = false },
@@ -445,6 +453,49 @@ fun EditTextPreference(
         modifier = modifier,
         title = title,
         description = value,
+        icon = icon,
+        onClick = { showDialog = true },
+        isEnabled = isEnabled,
+    )
+}
+
+@Composable
+fun NumberEditTextPreference(
+    modifier: Modifier = Modifier,
+    title: @Composable () -> Unit,
+    icon: (@Composable () -> Unit)? = null,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    isInputValid: (String) -> Boolean = { it.toIntOrNull() != null },
+    isEnabled: Boolean = true,
+) {
+    var showDialog by remember {
+        mutableStateOf(false)
+    }
+
+    if (showDialog) {
+        TextFieldDialog(
+            title = title,
+            initialTextFieldValue =
+            TextFieldValue(
+                text = value.toString(),
+                selection = TextRange(value.toString().length),
+            ),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            isInputValid = isInputValid,
+            onDone = { it.toIntOrNull()?.let(onValueChange) },
+            onDismiss = { showDialog = false },
+        )
+    }
+
+    PreferenceEntry(
+        modifier = modifier,
+        title = title,
+        description = value.toString(),
         icon = icon,
         onClick = { showDialog = true },
         isEnabled = isEnabled,

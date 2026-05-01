@@ -25,6 +25,7 @@ fun clearPlaybackWebAuthSession(context: Context) {
 fun resetAuthWebViewSession(
     context: Context,
     webView: WebView,
+    clearCookies: Boolean = true,
     onReady: () -> Unit,
 ) {
     webView.stopLoading()
@@ -34,6 +35,13 @@ fun resetAuthWebViewSession(
     clearWebAuthStorage(context)
 
     val cookieManager = CookieManager.getInstance()
+    cookieManager.setAcceptCookie(true)
+    cookieManager.setAcceptThirdPartyCookies(webView, true)
+    if (!clearCookies) {
+        onReady()
+        return
+    }
+
     cookieManager.removeSessionCookies {
         cookieManager.removeAllCookies {
             cookieManager.flush()

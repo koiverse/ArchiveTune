@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,6 +52,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
@@ -73,19 +76,27 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ArtistSeparatorsKey
 import moe.koiverse.archivetune.constants.ListItemHeight
 import moe.koiverse.archivetune.constants.ListThumbnailSize
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.YouTubeAlbumRadio
 import moe.koiverse.archivetune.ui.component.ListDialog
+import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.ui.component.YouTubeListItem
+import moe.koiverse.archivetune.utils.SpeedDialPin
+import moe.koiverse.archivetune.utils.SpeedDialPinType
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
+import moe.koiverse.archivetune.utils.serializeSpeedDialPins
+import moe.koiverse.archivetune.utils.toggleSpeedDialPin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MutableCollectionMutableState")
@@ -141,8 +152,13 @@ fun YouTubeAlbumMenu(
         }
     }
 
-    // Artist separators for splitting artist names
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
+    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
+    val speedDialPins = remember(speedDialSongIds) { parseSpeedDialPins(speedDialSongIds) }
+    val albumPin = remember(albumItem.id) { SpeedDialPin(type = SpeedDialPinType.ALBUM, id = albumItem.id) }
+    val isInSpeedDial = remember(speedDialPins, albumPin) {
+        speedDialPins.any { it.type == albumPin.type && it.id == albumPin.id }
+    }
 
     // Split artists by configured separators
     data class SplitArtist(
@@ -297,6 +313,7 @@ fun YouTubeAlbumMenu(
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    val dividerModifier = Modifier.padding(start = 56.dp)
 
     LazyColumn(
         userScrollEnabled = !isPortrait,
@@ -308,217 +325,310 @@ fun YouTubeAlbumMenu(
         ),
     ) {
         item {
-            // Enhanced Action Grid using NewMenuComponents
-            NewActionGrid(
-                actions = listOf(
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.play),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.play),
-                        onClick = {
-                            onDismiss()
-                            album?.songs?.let { songs ->
-                                if (songs.isNotEmpty()) {
-                                    playerConnection.playQueue(YouTubeAlbumRadio(albumItem.playlistId))
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                NewActionGrid(
+                    actions = listOf(
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.play),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.play),
+                            onClick = {
+                                onDismiss()
+                                album?.songs?.let { songs ->
+                                    if (songs.isNotEmpty()) {
+                                        playerConnection.playQueue(YouTubeAlbumRadio(albumItem.playlistId))
+                                    }
                                 }
                             }
-                        }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.shuffle),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.shuffle),
-                        onClick = {
-                            onDismiss()
-                            album?.songs?.let { songs ->
-                                if (songs.isNotEmpty()) {
-                                    playerConnection.playQueue(YouTubeAlbumRadio(albumItem.playlistId))
+                        ),
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.shuffle),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.shuffle),
+                            onClick = {
+                                onDismiss()
+                                album?.songs?.let { songs ->
+                                    if (songs.isNotEmpty()) {
+                                        playerConnection.playQueue(YouTubeAlbumRadio(albumItem.playlistId))
+                                    }
                                 }
                             }
-                        }
+                        ),
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.share),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.share),
+                            onClick = {
+                                onDismiss()
+                                val intent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, albumItem.shareLink)
+                                }
+                                context.startActivity(Intent.createChooser(intent, null))
+                            }
+                        )
                     ),
-                    NewAction(
-                        icon = {
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
+                )
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        item {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                Column {
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(R.string.play_next)) },
+                        leadingContent = {
                             Icon(
-                                painter = painterResource(R.drawable.share),
+                                painter = painterResource(R.drawable.playlist_play),
                                 contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
-                        text = stringResource(R.string.share),
-                        onClick = {
+                        modifier = Modifier.clickable {
+                            album
+                                ?.songs
+                                ?.map { it.toMediaItem() }
+                                ?.let(playerConnection::playNext)
                             onDismiss()
-                            val intent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, albumItem.shareLink)
-                            }
-                            context.startActivity(Intent.createChooser(intent, null))
-                        }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
-                ),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-            )
-        }
-        item {
-            ListItem(
-                headlineContent = { Text(text = stringResource(R.string.play_next)) },
-                leadingContent = {
-                    Icon(
-                        painter = painterResource(R.drawable.playlist_play),
-                        contentDescription = null,
+
+                    HorizontalDivider(
+                        modifier = dividerModifier,
+                        color = MaterialTheme.colorScheme.outlineVariant,
                     )
-                },
-                modifier = Modifier.clickable {
-                    album
-                        ?.songs
-                        ?.map { it.toMediaItem() }
-                        ?.let(playerConnection::playNext)
-                    onDismiss()
-                }
-            )
-        }
-        item {
-            ListItem(
-                headlineContent = { Text(text = stringResource(R.string.add_to_queue)) },
-                leadingContent = {
-                    Icon(
-                        painter = painterResource(R.drawable.queue_music),
-                        contentDescription = null,
+
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(R.string.add_to_queue)) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.queue_music),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            album
+                                ?.songs
+                                ?.map { it.toMediaItem() }
+                                ?.let(playerConnection::addToQueue)
+                            onDismiss()
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
-                },
-                modifier = Modifier.clickable {
-                    album
-                        ?.songs
-                        ?.map { it.toMediaItem() }
-                        ?.let(playerConnection::addToQueue)
-                    onDismiss()
-                }
-            )
-        }
-        item {
-            ListItem(
-                headlineContent = { Text(text = stringResource(R.string.add_to_playlist)) },
-                leadingContent = {
-                    Icon(
-                        painter = painterResource(R.drawable.playlist_add),
-                        contentDescription = null,
+
+                    HorizontalDivider(
+                        modifier = dividerModifier,
+                        color = MaterialTheme.colorScheme.outlineVariant,
                     )
-                },
-                modifier = Modifier.clickable {
-                    showChoosePlaylistDialog = true
-                }
-            )
-        }
-        item {
-            when (downloadState) {
-                Download.STATE_COMPLETED -> {
+
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(R.string.add_to_playlist)) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.playlist_add),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            showChoosePlaylistDialog = true
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+
+                    HorizontalDivider(
+                        modifier = dividerModifier,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
                     ListItem(
                         headlineContent = {
                             Text(
-                                text = stringResource(R.string.remove_download),
-                                color = MaterialTheme.colorScheme.error
+                                text = stringResource(
+                                    if (isInSpeedDial) R.string.remove_from_speed_dial
+                                    else R.string.pin_to_speed_dial,
+                                ),
                             )
                         },
                         leadingContent = {
                             Icon(
-                                painter = painterResource(R.drawable.offline),
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
                                 contentDescription = null,
                             )
                         },
                         modifier = Modifier.clickable {
-                            album?.songs?.forEach { song ->
-                                DownloadService.sendRemoveDownload(
-                                    context,
-                                    ExoDownloadService::class.java,
-                                    song.id,
-                                    false,
-                                )
+                            coroutineScope.launch {
+                                val shouldTogglePin =
+                                    if (isInSpeedDial) {
+                                        true
+                                    } else {
+                                        withContext(Dispatchers.IO) {
+                                            if (album != null) {
+                                                true
+                                            } else {
+                                                val result = YouTube.album(albumItem.id)
+                                                result.onSuccess { albumPage ->
+                                                    database.transaction {
+                                                        insert(albumPage)
+                                                    }
+                                                }.onFailure(::reportException)
+                                                result.isSuccess
+                                            }
+                                        }
+                                    }
+
+                                if (!shouldTogglePin) return@launch
+
+                                val updatedPins = toggleSpeedDialPin(speedDialPins, albumPin)
+                                onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
+                                onDismiss()
                             }
-                        }
-                    )
-                }
-                Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                    ListItem(
-                        headlineContent = { Text(text = stringResource(R.string.downloading)) },
-                        leadingContent = {
-                            CircularWavyProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                            )
                         },
-                        modifier = Modifier.clickable {
-                            album?.songs?.forEach { song ->
-                                DownloadService.sendRemoveDownload(
-                                    context,
-                                    ExoDownloadService::class.java,
-                                    song.id,
-                                    false,
-                                )
-                            }
-                        }
-                    )
-                }
-                else -> {
-                    ListItem(
-                        headlineContent = { Text(text = stringResource(R.string.action_download)) },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(R.drawable.download),
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier.clickable {
-                            album?.songs?.forEach { song ->
-                                val downloadRequest =
-                                    DownloadRequest
-                                        .Builder(song.id, song.id.toUri())
-                                        .setCustomCacheKey(song.id)
-                                        .setData(song.song.title.toByteArray())
-                                        .build()
-                                DownloadService.sendAddDownload(
-                                    context,
-                                    ExoDownloadService::class.java,
-                                    downloadRequest,
-                                    false,
-                                )
-                            }
-                        }
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
             }
         }
-        albumItem.artists?.let { artists ->
-            item {
-                ListItem(
-                    headlineContent = { Text(text = stringResource(R.string.view_artist)) },
-                    leadingContent = {
-                        Icon(
-                            painter = painterResource(R.drawable.artist),
-                            contentDescription = null,
+
+        item {
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        item {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                when (downloadState) {
+                    Download.STATE_COMPLETED -> {
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(R.string.remove_download),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.offline),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                album?.songs?.forEach { song ->
+                                    DownloadService.sendRemoveDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        song.id,
+                                        false,
+                                    )
+                                }
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
-                    },
-                    modifier = Modifier.clickable {
-                        if (splitArtists.size == 1 && splitArtists[0].originalArtist != null) {
-                            navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
-                            onDismiss()
-                        } else {
-                            showSelectArtistDialog = true
-                        }
                     }
-                )
+
+                    Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
+                        ListItem(
+                            headlineContent = { Text(text = stringResource(R.string.downloading)) },
+                            leadingContent = {
+                                CircularWavyProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                album?.songs?.forEach { song ->
+                                    DownloadService.sendRemoveDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        song.id,
+                                        false,
+                                    )
+                                }
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
+
+                    else -> {
+                        ListItem(
+                            headlineContent = { Text(text = stringResource(R.string.action_download)) },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.download),
+                                    contentDescription = null,
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                album?.songs?.forEach { song ->
+                                    val downloadRequest =
+                                        DownloadRequest
+                                            .Builder(song.id, song.id.toUri())
+                                            .setCustomCacheKey(song.id)
+                                            .setData(song.song.title.toByteArray())
+                                            .build()
+                                    DownloadService.sendAddDownload(
+                                        context,
+                                        ExoDownloadService::class.java,
+                                        downloadRequest,
+                                        false,
+                                    )
+                                }
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
+                }
+            }
+        }
+
+        if (albumItem.artists != null) {
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            item {
+                MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(R.string.view_artist)) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.artist),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            if (splitArtists.size == 1 && splitArtists[0].originalArtist != null) {
+                                navController.navigate("artist/${splitArtists[0].originalArtist!!.id}")
+                                onDismiss()
+                            } else {
+                                showSelectArtistDialog = true
+                            }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+                }
             }
         }
 

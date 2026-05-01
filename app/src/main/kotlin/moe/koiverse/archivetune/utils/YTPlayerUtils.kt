@@ -346,8 +346,10 @@ object YTPlayerUtils {
     ): Result<PlaybackData> = runCatching {
         val attempts =
             when (audioQuality) {
-                AudioQuality.HIGHEST -> listOf(AudioQuality.HIGHEST, AudioQuality.HIGH)
-                AudioQuality.AUTO -> listOf(AudioQuality.AUTO, AudioQuality.HIGH)
+                AudioQuality.HIGHEST -> listOf(AudioQuality.HIGHEST, AudioQuality.HIGH, AudioQuality.LOW)
+                AudioQuality.HIGH -> listOf(AudioQuality.HIGH, AudioQuality.LOW)
+                AudioQuality.AUTO -> listOf(AudioQuality.AUTO, AudioQuality.HIGH, AudioQuality.LOW)
+                AudioQuality.LOW -> listOf(AudioQuality.LOW)
                 else -> listOf(audioQuality)
             }.distinct()
 
@@ -588,7 +590,7 @@ object YTPlayerUtils {
             var selectedFormat: PlayerResponse.StreamingData.Format? = null
             var selectedUrl: String? = null
 
-            for (candidate in candidates.asSequence().take(6)) {
+            for (candidate in candidates) {
                 if (canUseLoggedInPlayback && expectedDurationMs != null && isLikelyPreview(candidate, expectedDurationMs)) continue
                 if (shouldSkipCipheredWebCandidate(client, candidate, authState)) continue
                 val cacheKey = buildStreamCacheKey(videoId, candidate.itag, client, authState.fingerprint)
@@ -604,7 +606,15 @@ object YTPlayerUtils {
                 break
             }
 
-            if (selectedFormat == null || selectedUrl == null) continue
+            if (selectedFormat == null || selectedUrl == null) {
+                Timber.tag(logTag).w(
+                    "No playable stream candidate resolved for %s at quality %s after checking %d formats",
+                    describeClient(client),
+                    audioQuality,
+                    candidates.size,
+                )
+                continue
+            }
 
             format = selectedFormat
             streamUrl = selectedUrl

@@ -2,15 +2,15 @@
 agp = "9.2.0"
 annotation = "1.10.0"
 json = "20250517"
-kotlin = "2.3.20"
-compose = "1.11.0-rc01"
+kotlin = "2.3.21"
+compose = "1.12.0-alpha01"
 lifecycle = "2.10.0"
 material3 = "1.5.0-alpha18"
 media3 = "1.10.0"
 room = "2.8.4"
 hilt = "2.59.2"
 ktor = "3.4.3"
-ksp = "2.3.6"
+ksp = "2.3.7"
 jsoup = "1.22.2"
 re2j = "1.8"
 coil = "3.4.0"
@@ -96,6 +96,7 @@ ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = "ktor" }
 ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }

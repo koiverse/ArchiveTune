@@ -79,6 +79,7 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.LocalSyncUtils
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ListThumbnailSize
+import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
 import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.db.entities.PlaylistSongMap
@@ -93,10 +94,17 @@ import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.YouTubeListItem
+import moe.koiverse.archivetune.utils.SpeedDialPin
+import moe.koiverse.archivetune.utils.SpeedDialPinType
 import moe.koiverse.archivetune.utils.joinByBullet
 import moe.koiverse.archivetune.utils.makeTimeString
+import moe.koiverse.archivetune.utils.parseSpeedDialPins
+import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.serializeSpeedDialPins
+import moe.koiverse.archivetune.utils.toggleSpeedDialPin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -118,6 +126,14 @@ fun YouTubePlaylistMenu(
     val playerConnection = LocalPlayerConnection.current ?: return
     val syncUtils = LocalSyncUtils.current
     val dbPlaylist by database.playlistByBrowseId(playlist.id).collectAsState(initial = null)
+    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
+    val speedDialPins = remember(speedDialSongIds) { parseSpeedDialPins(speedDialSongIds) }
+    val playlistPin = remember(dbPlaylist?.playlist?.id) {
+        dbPlaylist?.playlist?.id?.let { SpeedDialPin(type = SpeedDialPinType.PLAYLIST, id = it) }
+    }
+    val isInSpeedDial = remember(speedDialPins, playlistPin) {
+        playlistPin?.let { pin -> speedDialPins.any { it.type == pin.type && it.id == pin.id } } == true
+    }
 
     var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
     var showImportPlaylistDialog by rememberSaveable { mutableStateOf(false) }
@@ -535,6 +551,66 @@ fun YouTubePlaylistMenu(
                         },
                         modifier = Modifier.clickable {
                             showChoosePlaylistDialog = true
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+
+                    HorizontalDivider(
+                        modifier = dividerModifier,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(
+                                    if (isInSpeedDial) R.string.remove_from_speed_dial
+                                    else R.string.pin_to_speed_dial,
+                                ),
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            coroutineScope.launch {
+                                val pin =
+                                    if (isInSpeedDial) {
+                                        playlistPin
+                                    } else {
+                                        val localPlaylistId = withContext(Dispatchers.IO) {
+                                            database.playlistByBrowseId(playlist.id).first()?.playlist?.id
+                                                ?: run {
+                                                    val playlistEntity = PlaylistEntity(
+                                                        name = playlist.title,
+                                                        browseId = playlist.id,
+                                                        thumbnailUrl = playlist.thumbnail,
+                                                        isEditable = false,
+                                                        remoteSongCount = playlist.songCountText?.let {
+                                                            Regex("""\d+""").find(it)?.value?.toIntOrNull()
+                                                        },
+                                                        playEndpointParams = playlist.playEndpoint?.params,
+                                                        shuffleEndpointParams = playlist.shuffleEndpoint?.params,
+                                                        radioEndpointParams = playlist.radioEndpoint?.params,
+                                                    )
+                                                    database.transaction {
+                                                        insert(playlistEntity)
+                                                    }
+                                                    playlistEntity.id
+                                                }
+                                        }
+                                        SpeedDialPin(type = SpeedDialPinType.PLAYLIST, id = localPlaylistId)
+                                    }
+
+                                if (pin == null) return@launch
+
+                                val updatedPins = toggleSpeedDialPin(speedDialPins, pin)
+                                onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
+                                onDismiss()
+                            }
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )

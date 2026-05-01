@@ -447,129 +447,131 @@ fun PlayerMenu(
         ),
     ) {
         item {
-            NewActionGrid(
-                actions = buildList {
-                    if (!isLocalMedia) {
-                        add(
-                            NewAction(
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.radio),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(28.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                text = stringResource(R.string.start_radio),
-                                onClick = {
-                                    Toast.makeText(context, context.getString(R.string.starting_radio), Toast.LENGTH_SHORT).show()
-                                    playerConnection.startRadioSeamlessly()
-                                    onDismiss()
-                                }
-                            ),
-                        )
-                    }
-                    add(
-                        NewAction(
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.playlist_add),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            text = stringResource(R.string.add_to_playlist),
-                            onClick = { showChoosePlaylistDialog = true }
-                        ),
-                    )
-                    add(
-                        NewAction(
-                            icon = {
-                                Icon(
-                                    painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            text = stringResource(
-                                if (isInSpeedDial) R.string.remove_from_speed_dial
-                                else R.string.pin_to_speed_dial
-                            ),
-                            onClick = {
-                                val updatedPins = toggleSpeedDialPin(speedDialPins, songPin)
-                                onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
-                                onDismiss()
-                            }
-                        ),
-                    )
-                    add(
-                        if (isLocalMedia) {
-                            NewAction(
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.share),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(28.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                text = stringResource(R.string.share),
-                                onClick = {
-                                    shareLocalAudio(context, mediaMetadata.id, librarySong?.format?.mimeType)
-                                    onDismiss()
-                                }
-                            )
-                        } else {
-                            NewAction(
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.link),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(28.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                text = stringResource(R.string.copy_link),
-                                onClick = {
-                                    val clipboard =
-                                        context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                    val clip =
-                                        android.content.ClipData.newPlainText(
-                                            context.getString(R.string.copy_link),
-                                            "https://music.youtube.com/watch?v=${mediaMetadata.id}",
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                NewActionGrid(
+                    actions = buildList {
+                        if (!isLocalMedia) {
+                            add(
+                                NewAction(
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.radio),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(28.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    clipboard.setPrimaryClip(clip)
-                                    android.widget.Toast.makeText(context, R.string.link_copied, android.widget.Toast.LENGTH_SHORT).show()
-                                    onDismiss()
-                                }
+                                    },
+                                    text = stringResource(R.string.start_radio),
+                                    onClick = {
+                                        Toast.makeText(context, context.getString(R.string.starting_radio), Toast.LENGTH_SHORT).show()
+                                        playerConnection.startRadioSeamlessly()
+                                        onDismiss()
+                                    }
+                                ),
                             )
-                        },
-                    )
-                    if (!isLocalMedia) {
+                        }
                         add(
                             NewAction(
                                 icon = {
                                     Icon(
-                                        painter = painterResource(R.drawable.fire),
+                                        painter = painterResource(R.drawable.playlist_add),
                                         contentDescription = null,
                                         modifier = Modifier.size(28.dp),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 },
-                                text = stringResource(R.string.music_together),
+                                text = stringResource(R.string.add_to_playlist),
+                                onClick = { showChoosePlaylistDialog = true }
+                            ),
+                        )
+                        add(
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                text = stringResource(
+                                    if (isInSpeedDial) R.string.remove_from_speed_dial
+                                    else R.string.pin_to_speed_dial
+                                ),
                                 onClick = {
+                                    val updatedPins = toggleSpeedDialPin(speedDialPins, songPin)
+                                    onSpeedDialSongIdsChange(serializeSpeedDialPins(updatedPins))
                                     onDismiss()
-                                    playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
-                                    navController.navigate("settings/music_together")
                                 }
                             ),
                         )
-                    }
-                },
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
+                        add(
+                            if (isLocalMedia) {
+                                NewAction(
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.share),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(28.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    text = stringResource(R.string.share),
+                                    onClick = {
+                                        shareLocalAudio(context, mediaMetadata.id, librarySong?.format?.mimeType)
+                                        onDismiss()
+                                    }
+                                )
+                            } else {
+                                NewAction(
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.link),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(28.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    text = stringResource(R.string.copy_link),
+                                    onClick = {
+                                        val clipboard =
+                                            context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        val clip =
+                                            android.content.ClipData.newPlainText(
+                                                context.getString(R.string.copy_link),
+                                                "https://music.youtube.com/watch?v=${mediaMetadata.id}",
+                                            )
+                                        clipboard.setPrimaryClip(clip)
+                                        android.widget.Toast.makeText(context, R.string.link_copied, android.widget.Toast.LENGTH_SHORT).show()
+                                        onDismiss()
+                                    }
+                                )
+                            },
+                        )
+                        if (!isLocalMedia) {
+                            add(
+                                NewAction(
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.fire),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(28.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    text = stringResource(R.string.music_together),
+                                    onClick = {
+                                        onDismiss()
+                                        playerBottomSheetState.snapTo(playerBottomSheetState.collapsedBound)
+                                        navController.navigate("settings/music_together")
+                                    }
+                                ),
+                            )
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
+                )
+            }
         }
         item {
             Spacer(modifier = Modifier.height(12.dp))

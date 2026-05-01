@@ -105,6 +105,17 @@ jobs:
           echo "artifact_name=app-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
           echo "apk_name=app-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve build hash
+        id: build_hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
+            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build Release APK
         run: ./gradlew ${{ steps.variant.outputs.gradle_task }}
         env:
@@ -114,6 +125,7 @@ jobs:
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           TOGETHER_BEARER_TOKEN: ${{ secrets.TOGETHER_BEARER_TOKEN }}
           CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
+          NIGHTLY_BUILD_HASH: ${{ steps.build_hash.outputs.value }}
 
       - name: Resolve release output directory
         id: release_dir
@@ -251,6 +263,17 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Resolve build hash
+        id: build_hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
+            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build Debug APK
         run: ./gradlew assembleMobileUniversalDebug
         env:
@@ -260,6 +283,7 @@ jobs:
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           TOGETHER_BEARER_TOKEN: ${{ secrets.TOGETHER_BEARER_TOKEN }}
           CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
+          NIGHTLY_BUILD_HASH: ${{ steps.build_hash.outputs.value }}
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v7

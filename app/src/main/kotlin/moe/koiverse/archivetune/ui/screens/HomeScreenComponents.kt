@@ -14,6 +14,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -166,6 +167,7 @@ fun QuickPicksSection(
                     BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     MaterialTheme.shapes.extraLarge
                 )
+                .focusable()
                 .combinedClickable(
                     onClick = {
                         if (isActive) {
@@ -451,6 +453,7 @@ fun SpeedDialSection(
                             .width(tileSize)
                             .aspectRatio(1f)
                             .clip(RoundedCornerShape(16.dp))
+                            .focusable()
                             .combinedClickable(
                                 onClick = {
                                     when (localItem) {
@@ -648,6 +651,7 @@ fun ForgottenFavoritesSection(
                 },
                 modifier = Modifier
                     .width(horizontalLazyGridItemWidth)
+                    .focusable()
                     .combinedClickable(
                         onClick = {
                             if (song.id == mediaMetadata?.id) {
@@ -840,7 +844,9 @@ private fun YouTubeGridItemWrapper(
         isPlaying = isPlaying,
         coroutineScope = scope,
         thumbnailRatio = 1f,
-        modifier = modifier.combinedClickable(
+        modifier = modifier
+            .focusable()
+            .combinedClickable(
             onClick = {
                 when (item) {
                     is SongItem -> playerConnection.playQueue(
@@ -905,6 +911,7 @@ private fun LocalGridItem(
             song = item,
             modifier = modifier
                 .fillMaxWidth()
+                .focusable()
                 .combinedClickable(
                     onClick = {
                         if (item.id == mediaMetadata?.id) {
@@ -935,6 +942,7 @@ private fun LocalGridItem(
             coroutineScope = scope,
             modifier = modifier
                 .fillMaxWidth()
+                .focusable()
                 .combinedClickable(
                     onClick = { navController.navigate("album/${item.id}") },
                     onLongClick = {
@@ -954,6 +962,7 @@ private fun LocalGridItem(
             artist = item,
             modifier = modifier
                 .fillMaxWidth()
+                .focusable()
                 .combinedClickable(
                     onClick = { navController.navigate("artist/${item.id}") },
                     onLongClick = {

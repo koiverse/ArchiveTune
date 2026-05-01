@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
@@ -44,6 +45,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -86,12 +88,15 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -252,6 +257,10 @@ fun MusicTogetherScreen(
             title = { Text(text = stringResource(R.string.together_port)) },
             placeholder = { Text(text = "42117") },
             isInputValid = { it.trim().toIntOrNull() in 1..65535 },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
             onDone = { setPort(it.trim().toInt()) },
             onDismiss = { showPortDialog = false },
         )
@@ -365,137 +374,138 @@ fun MusicTogetherScreen(
     }
 
     Column(
-        Modifier
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-            .verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
     ) {
-        Spacer(
-            Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top),
-            ),
-        )
-
-        StatusCard(
-            state = sessionState,
-            onCopyText = { labelRes, value ->
-                val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
-                clipboard?.setPrimaryClip(
-                    android.content.ClipData.newPlainText(context.getString(labelRes), value),
-                )
-                Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
-            },
-            onShareLink = { link ->
-                val share =
-                    Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, link)
-                    }
-                context.startActivity(Intent.createChooser(share, null))
-            },
-            onLeave = { playerConnection?.service?.leaveTogether() },
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(top = 4.dp, bottom = 12.dp),
-        )
-
-        if (hostingOnline?.roomState != null && isHostRole) {
-            OnlineParticipantsCard(
-                participants = hostingOnline.roomState.participants,
-                hostApprovalEnabled = hostingOnline.settings.requireHostApprovalToJoin,
-                onApprove = { participantId, approved ->
-                    playerConnection?.service?.approveTogetherParticipant(participantId, approved)
-                },
-                onKick = { participantId ->
-                    confirmKickParticipantId = participantId
-                },
-                onBan = { participantId ->
-                    confirmBanParticipantId = participantId
-                },
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 12.dp),
-            )
-        }
-
-        if (!isJoinedAsGuest) {
-            HostSectionCard(
-                hostModeOnline = hostModeOnline,
-                onHostModeChange = { hostModeOnline = it },
-                displayName = displayName,
-                port = port,
-                allowAddTracks = allowAddTracks,
-                allowControlPlayback = allowControlPlayback,
-                requireApproval = requireApproval,
-                onShowNameDialog = { showNameDialog = true },
-                onShowPortDialog = { showPortDialog = true },
-                onAllowAddTracksChange = setAllowAddTracks,
-                onAllowControlPlaybackChange = setAllowControlPlayback,
-                onRequireApprovalChange = setRequireApproval,
-                isStartEnabled = !isCreatingSessionLoading && !isJoining && !isHosting && sessionState !is TogetherSessionState.Joined,
-                isLoading = isCreatingSessionLoading,
-                onStartSession = {
-                    val settings =
-                        TogetherRoomSettings(
-                            allowGuestsToAddTracks = allowAddTracks,
-                            allowGuestsToControlPlayback = allowControlPlayback,
-                            requireHostApprovalToJoin = requireApproval,
-                        )
-                    if (hostModeOnline) {
-                        playerConnection?.service?.startTogetherOnlineHost(
-                            displayName = displayName,
-                            settings = settings,
-                        )
-                    } else {
-                        playerConnection?.service?.startTogetherHost(
-                            port = port,
-                            displayName = displayName,
-                            settings = settings,
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 12.dp),
-            )
-        }
-
-        JoinSectionCard(
-            joinModeOnline = joinModeOnline,
-            onJoinModeChange = { joinModeOnline = it },
-            joinInput = joinInput,
-            canJoin = canJoin,
-            disableJoinUi = disableJoinUi,
-            isJoined = isJoinedAsAcceptedGuest,
-            isWaitingApproval = isWaitingApproval,
-            isJoining = isJoining,
-            onShowJoinDialog = { showJoinDialog = true },
-            onJoin = {
-                val trimmed = joinInput.trim()
-                setLastJoinLink(trimmed)
-                if (joinModeOnline) {
-                    playerConnection?.service?.joinTogetherOnline(trimmed, displayName)
-                } else {
-                    playerConnection?.service?.joinTogether(trimmed, displayName)
+        TopAppBar(
+            title = { Text(stringResource(R.string.music_together)) },
+            navigationIcon = {
+                AtIconButton(
+                    onClick = navController::navigateUp,
+                    onLongClick = navController::backToMain,
+                ) {
+                    Icon(painterResource(R.drawable.arrow_back), null)
                 }
             },
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp),
+            scrollBehavior = scrollBehavior,
         )
-    }
 
-    TopAppBar(
-        title = { Text(stringResource(R.string.music_together)) },
-        navigationIcon = {
-            AtIconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain,
-            ) {
-                Icon(painterResource(R.drawable.arrow_back), null)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                .verticalScroll(rememberScrollState()),
+        ) {
+            StatusCard(
+                state = sessionState,
+                onCopyText = { labelRes, value ->
+                    val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                    clipboard?.setPrimaryClip(
+                        android.content.ClipData.newPlainText(context.getString(labelRes), value),
+                    )
+                    Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
+                },
+                onShareLink = { link ->
+                    val share =
+                        Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, link)
+                        }
+                    context.startActivity(Intent.createChooser(share, null))
+                },
+                onLeave = { playerConnection?.service?.leaveTogether() },
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 4.dp, bottom = 12.dp),
+            )
+
+            if (hostingOnline?.roomState != null && isHostRole) {
+                OnlineParticipantsCard(
+                    participants = hostingOnline.roomState.participants,
+                    hostApprovalEnabled = hostingOnline.settings.requireHostApprovalToJoin,
+                    onApprove = { participantId, approved ->
+                        playerConnection?.service?.approveTogetherParticipant(participantId, approved)
+                    },
+                    onKick = { participantId ->
+                        confirmKickParticipantId = participantId
+                    },
+                    onBan = { participantId ->
+                        confirmBanParticipantId = participantId
+                    },
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 12.dp),
+                )
             }
-        },
-        scrollBehavior = scrollBehavior,
-    )
+
+            if (!isJoinedAsGuest) {
+                HostSectionCard(
+                    hostModeOnline = hostModeOnline,
+                    onHostModeChange = { hostModeOnline = it },
+                    displayName = displayName,
+                    port = port,
+                    allowAddTracks = allowAddTracks,
+                    allowControlPlayback = allowControlPlayback,
+                    requireApproval = requireApproval,
+                    onShowNameDialog = { showNameDialog = true },
+                    onShowPortDialog = { showPortDialog = true },
+                    onAllowAddTracksChange = setAllowAddTracks,
+                    onAllowControlPlaybackChange = setAllowControlPlayback,
+                    onRequireApprovalChange = setRequireApproval,
+                    isStartEnabled = !isCreatingSessionLoading && !isJoining && !isHosting && sessionState !is TogetherSessionState.Joined,
+                    isLoading = isCreatingSessionLoading,
+                    onStartSession = {
+                        val settings =
+                            TogetherRoomSettings(
+                                allowGuestsToAddTracks = allowAddTracks,
+                                allowGuestsToControlPlayback = allowControlPlayback,
+                                requireHostApprovalToJoin = requireApproval,
+                            )
+                        if (hostModeOnline) {
+                            playerConnection?.service?.startTogetherOnlineHost(
+                                displayName = displayName,
+                                settings = settings,
+                            )
+                        } else {
+                            playerConnection?.service?.startTogetherHost(
+                                port = port,
+                                displayName = displayName,
+                                settings = settings,
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 12.dp),
+                )
+            }
+
+            JoinSectionCard(
+                joinModeOnline = joinModeOnline,
+                onJoinModeChange = { joinModeOnline = it },
+                joinInput = joinInput,
+                canJoin = canJoin,
+                disableJoinUi = disableJoinUi,
+                isJoined = isJoinedAsAcceptedGuest,
+                isWaitingApproval = isWaitingApproval,
+                isJoining = isJoining,
+                onShowJoinDialog = { showJoinDialog = true },
+                onJoin = {
+                    val trimmed = joinInput.trim()
+                    setLastJoinLink(trimmed)
+                    if (joinModeOnline) {
+                        playerConnection?.service?.joinTogetherOnline(trimmed, displayName)
+                    } else {
+                        playerConnection?.service?.joinTogether(trimmed, displayName)
+                    }
+                },
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+            )
+        }
+    }
 }
 
 @Composable

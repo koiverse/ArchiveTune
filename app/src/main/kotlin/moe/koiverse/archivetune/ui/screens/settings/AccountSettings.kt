@@ -332,7 +332,7 @@ fun AccountSettings(
                         if (isLoggedIn) {
                             showToken = false
                             onInnerTubeCookieChange("")
-                            forgetAccount(context)
+                            forgetAccount(context, clearWebAuthSession = false)
                         } else {
                             showTokenEditor = true
                         }

@@ -90,6 +90,7 @@ import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.ListDialog
+import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
@@ -271,11 +272,13 @@ fun LyricsMenu(
                     Column(modifier = Modifier.padding(16.dp)) {
                         val displayLyrics = remember(result.lyrics) {
                             val raw = result.lyrics.trim()
-                            when {
-                                isTtml(raw) -> parseTtml(raw).joinToString("\n") { it.text }.trim()
-                                raw.startsWith("[") -> parseLyrics(raw).joinToString("\n") { it.text }.trim()
-                                else -> raw
-                            }
+                            runCatching {
+                                when {
+                                    isTtml(raw) -> parseTtml(raw).joinToString("\n") { it.text }.trim()
+                                    raw.startsWith("[") -> parseLyrics(raw).joinToString("\n") { it.text }.trim()
+                                    else -> raw
+                                }
+                            }.getOrDefault(raw)
                         }
 
                         Text(
@@ -714,75 +717,76 @@ fun LyricsMenu(
         ),
     ) {
         item {
-            // Enhanced Action Grid using NewMenuComponents
-            NewActionGrid(
-                actions = listOf(
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.edit),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.edit),
-                        onClick = { showEditDialog = true }
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                NewActionGrid(
+                    actions = listOf(
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.edit),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.edit),
+                            onClick = { showEditDialog = true }
+                        ),
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.cached),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.refetch),
+                            onClick = {
+                                viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
+                                onDismiss()
+                            }
+                        ),
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.translate),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.translate),
+                            onClick = { showTranslateDialog = true }
+                        ),
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.speed),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.lyrics_sync_offset),
+                            onClick = { showLyricsSyncOffsetDialog = true }
+                        ),
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.search),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.search),
+                            onClick = { showSearchDialog = true }
+                        )
                     ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.cached),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.refetch),
-                        onClick = {
-                            viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
-                            onDismiss()
-                        }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.translate),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.translate),
-                        onClick = { showTranslateDialog = true }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.speed),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.lyrics_sync_offset),
-                        onClick = { showLyricsSyncOffsetDialog = true }
-                    ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.search),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.search),
-                        onClick = { showSearchDialog = true }
-                    )
-                ),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
-            )
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
+                )
+            }
         }
     }
 }

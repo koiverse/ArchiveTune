@@ -44,6 +44,11 @@ constructor(
             BetterLyricsProvider,
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
+            PaxsenixAppleMusicLyricsProvider,
+            PaxsenixNeteaseLyricsProvider,
+            PaxsenixSpotifyLyricsProvider,
+            PaxsenixMusixmatchLyricsProvider,
+            PaxsenixKuGouLyricsProvider,
             YouTubeSubtitleLyricsProvider,
             YouTubeLyricsProvider,
         )
@@ -172,6 +177,11 @@ constructor(
                 PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
                 PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
                 PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC -> PaxsenixAppleMusicLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_NETEASE -> PaxsenixNeteaseLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_SPOTIFY -> PaxsenixSpotifyLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> PaxsenixMusixmatchLyricsProvider
+                PreferredLyricsProvider.PAXSENIX_KUGOU -> PaxsenixKuGouLyricsProvider
             }
 
         return listOf(first) + baseProviders.filterNot { provider -> provider == first }
@@ -199,6 +209,10 @@ constructor(
     fun cancelCurrentLyricsJob() {
         currentLyricsJob?.cancel()
         currentLyricsJob = null
+    }
+
+    fun clearCache() {
+        cache.evictAll()
     }
 
     companion object {

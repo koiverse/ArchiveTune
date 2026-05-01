@@ -335,6 +335,25 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private suspend fun awaitRestorablePlayback(connection: PlayerConnection): Boolean {
+        repeat(15) {
+            if (
+                connection.player.currentMediaItem != null ||
+                connection.player.mediaItemCount > 0 ||
+                connection.mediaMetadata.value != null
+            ) {
+                return true
+            }
+            delay(100)
+        }
+
+        return (
+            connection.player.currentMediaItem != null ||
+                connection.player.mediaItemCount > 0 ||
+                connection.mediaMetadata.value != null
+            )
+    }
+
     override fun onStart() {
         super.onStart()
         isMusicServiceBound =
@@ -835,7 +854,8 @@ class MainActivity : ComponentActivity() {
                     }
 
                     LaunchedEffect(isYearInMusicScreen, playerConnection) {
-                        val player = playerConnection?.player ?: return@LaunchedEffect
+                        val connection = playerConnection ?: return@LaunchedEffect
+                        val player = connection.player
 
                         if (isYearInMusicScreen) {
                             if (yearInMusicSavedPlayerAnchor == -1) {
@@ -855,7 +875,7 @@ class MainActivity : ComponentActivity() {
                             val anchorToRestore = yearInMusicSavedPlayerAnchor
                             yearInMusicSavedPlayerAnchor = -1
 
-                            if (player.currentMediaItem == null) {
+                            if (!awaitRestorablePlayback(connection)) {
                                 playerBottomSheetState.dismiss()
                             } else {
                                 when (anchorToRestore) {
@@ -1004,10 +1024,9 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(playerConnection, savedMiniPlayerAnchor, isYearInMusicScreen) {
                         if (restoredMiniPlayerAnchor) return@LaunchedEffect
-                        val player = playerConnection?.player ?: return@LaunchedEffect
                         val connection = playerConnection ?: return@LaunchedEffect
                         connection.queueRestoreCompleted.first { it }
-                        if (player.currentMediaItem == null) {
+                        if (!awaitRestorablePlayback(connection)) {
                             if (!playerBottomSheetState.isDismissed) {
                                 playerBottomSheetState.dismiss()
                             }
@@ -1182,7 +1201,12 @@ class MainActivity : ComponentActivity() {
                                         },
                                         modifier = Modifier,
                                         firstItemFocusRequester = tvRailFocusRequester,
-                                        contentFocusRequester = searchBarFocusRequester,
+                                        contentFocusRequester =
+                                            if (active || navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
+                                                searchBarFocusRequester
+                                            } else {
+                                                null
+                                            },
                                         onItemClick = { screen ->
                                             val wasPlayerActive = playerBottomSheetState.isExpanded
                                             if (wasPlayerActive) {
