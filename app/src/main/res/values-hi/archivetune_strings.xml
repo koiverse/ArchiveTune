@@ -6,4 +6,6 @@
     <string name="music_recognition_processing">प्रसंस्करण कर रहे हैं…</string>
     <string name="music_recognition_listen_again">फिर से सुने</string>
     <string name="music_recognition_no_match">कोई मेल नहीं मिला</string>
+    <string name="music_recognition_signature_failed">हस्ताक्षर उत्पन्न नहीं किया जा सका</string>
+    <string name="music_recognition_recognition_failed">पहचान विफल रही</string>
 </resources>
