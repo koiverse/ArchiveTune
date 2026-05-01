@@ -319,7 +319,7 @@
     <string name="pure_black">Preto AMOLED</string>
     <string name="disable_blur">Desativar efeitos de borrão</string>
     <string name="customize_navigation_tabs">Personalizar abas de navegação</string>
-    <string name="disable_blur_desc">Desativar os efeitos de desfoque em todo o aplicativo</string>
+    <string name="disable_blur_desc">Desative os efeitos de desfoque em todo o aplicativo</string>
     <string name="player">Tela de Reprodução</string>
     <string name="player_text_alignment">Alinhamento do texto do player</string>
     <string name="lyrics_text_position">Posição do texto das letras</string>
