@@ -10,7 +10,9 @@ package moe.koiverse.archivetune.ui.screens.library
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.DocumentsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -41,6 +43,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -107,7 +110,6 @@ import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.ui.component.SortHeader
-import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.menu.SongMenu
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LocalSongsScanState
@@ -177,6 +179,15 @@ fun LocalSongScreen(
         hasStoragePermission = granted
     }
 
+    val excludedFolderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        val normalizedFolder = uri?.toExcludedFolderEntry() ?: return@rememberLauncherForActivityResult
+        onExcludedFoldersChange(
+            LocalSongScanConfig.deduplicateFolderEntries(excludedFolders + normalizedFolder),
+        )
+    }
+
     val collator = remember {
         Collator.getInstance(Locale.getDefault()).apply {
             strength = Collator.PRIMARY
@@ -228,6 +239,7 @@ fun LocalSongScreen(
             onMinimumDurationSecondsChange = onMinimumDurationSecondsChange,
             excludedFolders = excludedFolders,
             onExcludedFoldersChange = onExcludedFoldersChange,
+            onAddExcludedFolder = { excludedFolderPickerLauncher.launch(null) },
             sheetState = scanSheetState,
             onDismiss = { showScanSheet = false },
             onPrimaryAction = {
@@ -560,6 +572,7 @@ private fun LocalSongScanSheet(
     onMinimumDurationSecondsChange: (Int) -> Unit,
     excludedFolders: Set<String>,
     onExcludedFoldersChange: (Set<String>) -> Unit,
+    onAddExcludedFolder: () -> Unit,
     sheetState: SheetState,
     onDismiss: () -> Unit,
     onPrimaryAction: () -> Unit,
@@ -567,7 +580,6 @@ private fun LocalSongScanSheet(
     val lastSummary = scanState.lastSummary
     val hasError = scanState.errorMessage != null
     val hasSummary = lastSummary != null
-    var showAddFolderDialog by rememberSaveable { mutableStateOf(false) }
     val sanitizedExcludedFolders = remember(excludedFolders) {
         LocalSongScanConfig.deduplicateFolderEntries(excludedFolders)
             .toList()
@@ -577,23 +589,6 @@ private fun LocalSongScanSheet(
         stringResource(R.string.dark_theme_off)
     } else {
         pluralStringResource(R.plurals.seconds, minimumDurationSeconds, minimumDurationSeconds)
-    }
-
-    if (showAddFolderDialog) {
-        TextFieldDialog(
-            title = { Text(stringResource(R.string.local_songs_scan_folders_dialog_title)) },
-            placeholder = { Text(stringResource(R.string.local_songs_scan_folders_dialog_placeholder)) },
-            isInputValid = { LocalSongScanConfig.normalizeFolderEntry(it).isNotEmpty() },
-            onDone = { rawValue ->
-                val normalizedFolder = LocalSongScanConfig.normalizeFolderEntry(rawValue)
-                if (normalizedFolder.isNotEmpty()) {
-                    onExcludedFoldersChange(
-                        LocalSongScanConfig.deduplicateFolderEntries(excludedFolders + normalizedFolder),
-                    )
-                }
-            },
-            onDismiss = { showAddFolderDialog = false },
-        )
     }
 
     val heroIcon = when {
@@ -856,7 +851,7 @@ private fun LocalSongScanSheet(
                         actionLabel = stringResource(R.string.local_songs_scan_folders_add),
                         onActionClick = {
                             if (!scanState.isScanning) {
-                                showAddFolderDialog = true
+                                onAddExcludedFolder()
                             }
                         },
                     ) {
@@ -1050,33 +1045,33 @@ private fun LocalSongScanSettingCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
 
-                if (actionLabel != null && onActionClick != null) {
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier
-                            .padding(top = 2.dp),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                                .combinedClickable(onClick = onActionClick),
+                    if (actionLabel != null && onActionClick != null) {
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.padding(top = 8.dp),
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.add),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text(
-                                text = actionLabel,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier
+                                    .heightIn(min = 48.dp)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .combinedClickable(onClick = onActionClick),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.add),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Text(
+                                    text = actionLabel,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
                         }
                     }
                 }
@@ -1184,6 +1179,15 @@ private fun ScanSheetInfoRow(
             trailing()
         }
     }
+}
+
+private fun Uri.toExcludedFolderEntry(): String? {
+    if (!DocumentsContract.isTreeUri(this)) return null
+    val treeDocumentId = runCatching { DocumentsContract.getTreeDocumentId(this) }
+        .getOrNull()
+        .orEmpty()
+    val relativeFolder = treeDocumentId.substringAfter(':', missingDelimiterValue = treeDocumentId)
+    return LocalSongScanConfig.normalizeFolderEntry(relativeFolder).takeIf(String::isNotEmpty)
 }
 
 private enum class LocalSongSortType {
