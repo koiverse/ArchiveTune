@@ -203,6 +203,7 @@ import moe.koiverse.archivetune.constants.ScrobbleMinSongDurationKey
 import moe.koiverse.archivetune.constants.ScrobbleDelaySecondsKey
 import moe.koiverse.archivetune.constants.TogetherClientIdKey
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -376,6 +377,7 @@ class MusicService :
     val currentMediaMetadata = MutableStateFlow<moe.koiverse.archivetune.models.MediaMetadata?>(null)
     val queueRestoreCompleted = MutableStateFlow(false)
     val infiniteQueueLoading = MutableStateFlow(false)
+    private val playerInitialized = MutableStateFlow(false)
     private val currentSong =
         currentMediaMetadata
             .flatMapLatest { mediaMetadata ->
@@ -702,6 +704,7 @@ class MusicService :
                     addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
                     setOffloadEnabled(false)
                 }
+        playerInitialized.value = true
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -1054,24 +1057,32 @@ class MusicService :
             }
 
         scope.launch(Dispatchers.IO) {
-            if (dataStore.get(PersistentQueueKey, true)) {
-                val persistedQueue = readPersistentObject<PersistQueue>(PERSISTENT_QUEUE_FILE)
-                val persistedPlayerState = readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
+            runCatching {
+                if (dataStore.get(PersistentQueueKey, true)) {
+                    playerInitialized.first { it }
+                    val persistedQueue = readPersistentObject<PersistQueue>(PERSISTENT_QUEUE_FILE)
+                    val persistedPlayerState = readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
 
-                if (persistedQueue != null || persistedPlayerState != null) {
-                    isRestoringPersistentState = true
-                }
+                    if (persistedQueue != null || persistedPlayerState != null) {
+                        isRestoringPersistentState = true
+                    }
 
-                try {
-                    persistedQueue?.let { queue ->
-                        restorePersistentQueue(queue)
+                    try {
+                        persistedQueue?.let { queue ->
+                            restorePersistentQueue(queue)
+                        }
+                        persistedPlayerState?.let { playerState ->
+                            restorePersistentPlayerState(playerState)
+                        }
+                    } finally {
+                        isRestoringPersistentState = false
                     }
-                    persistedPlayerState?.let { playerState ->
-                        restorePersistentPlayerState(playerState)
-                    }
-                } finally {
-                    isRestoringPersistentState = false
                 }
+            }.onFailure { error ->
+                if (error is CancellationException) throw error
+                Timber.tag(TAG).w(error, "Failed to restore persisted queue, clearing data")
+                isRestoringPersistentState = false
+                clearPersistedQueueFiles()
             }
             withContext(Dispatchers.Main) {
                 queueRestoreCompleted.value = true
@@ -1094,14 +1105,11 @@ class MusicService :
             }
         }
 
-        // Save queue periodically to prevent queue loss from crash or force kill
-        // Save queue periodically to prevent queue loss from crash or force kill
         scope.launch {
             while (isActive) {
-                val interval = if (player.isPlaying) 10.seconds else 30.seconds
-                delay(interval)
+                delay(if (player.isPlaying) 10.seconds else 30.seconds)
                 val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
-                if (shouldSave) {
+                if (shouldSave && player.mediaItemCount > 0) {
                     saveQueueToDisk()
                 }
             }
@@ -4787,13 +4795,37 @@ class MusicService :
             runCatching {
                 persistentFile.inputStream().use { fis ->
                     ObjectInputStream(fis).use { input ->
-                        input.readObject() as? T
+                        val payload = input.readObject()
+                        check(payload is T) { "Unexpected persistent payload type for $fileName" }
+                        payload
                     }
                 }
             }.onFailure {
-                Timber.tag("MusicService").w(it, "Failed to read persistent file: $fileName")
-                runCatching { persistentFile.delete() }
-            }.getOrNull()
+                Timber.tag(TAG).w(it, "Failed to read persistent file: $fileName")
+            }.getOrThrow()
+        }
+    }
+
+    private fun clearPersistedQueueFiles() {
+        synchronized(persistentStateLock) {
+            listOf(
+                PERSISTENT_QUEUE_FILE,
+                PERSISTENT_PLAYER_STATE_FILE,
+                PERSISTENT_AUTOMIX_FILE,
+            ).forEach { fileName ->
+                val persistentFile = filesDir.resolve(fileName)
+                val tempFile = filesDir.resolve("$fileName.tmp")
+                runCatching {
+                    if (persistentFile.exists() && !persistentFile.delete()) {
+                        Timber.tag(TAG).w("Failed to delete persistent file: $fileName")
+                    }
+                    if (tempFile.exists() && !tempFile.delete()) {
+                        Timber.tag(TAG).w("Failed to delete temporary persistent file: $fileName")
+                    }
+                }.onFailure {
+                    Timber.tag(TAG).w(it, "Failed to clear persistent file: $fileName")
+                }
+            }
         }
     }
 
@@ -5070,6 +5102,7 @@ class MusicService :
         const val ALBUM = "album"
         const val PLAYLIST = "playlist"
 
+        private const val TAG = "MusicService"
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
         const val ERROR_CODE_NO_STREAM = 1000001
