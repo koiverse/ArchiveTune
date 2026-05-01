@@ -123,6 +123,9 @@ import moe.koiverse.archivetune.constants.LyricsTextPositionKey
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
 import moe.koiverse.archivetune.constants.LyricsLineBlurKey
+import moe.koiverse.archivetune.constants.LyricsV2BounceFactorKey
+import moe.koiverse.archivetune.constants.LyricsV2FillTransitionWidthKey
+import moe.koiverse.archivetune.constants.LyricsV2GlowFactorKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeChineseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeHindiKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
@@ -219,6 +222,9 @@ fun LyricsV2(
     val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
     val (lyricsLineBlur) = rememberPreference(LyricsLineBlurKey, defaultValue = true)
+    val (bounceFactor) = rememberPreference(LyricsV2BounceFactorKey, defaultValue = 1f)
+    val (glowFactor) = rememberPreference(LyricsV2GlowFactorKey, defaultValue = 1f)
+    val (fillTransitionWidth) = rememberPreference(LyricsV2FillTransitionWidthKey, defaultValue = 8f)
     val (romanizeChinese) = rememberPreference(LyricsRomanizeChineseKey, defaultValue = true)
     val (romanizeHindi) = rememberPreference(LyricsRomanizeHindiKey, defaultValue = true)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
@@ -705,6 +711,9 @@ fun LyricsV2(
                                 textAlign = textAlign,
                                 lyricsFontFamily = lyricsFontFamily,
                                 isRtl = lineIsRtl,
+                                bounceFactor = bounceFactor,
+                                glowFactor = glowFactor,
+                                fillTransitionWidth = fillTransitionWidth,
                             )
                         } else {
                             Text(
@@ -987,6 +996,9 @@ private fun LyricsLineV2(
     textAlign: TextAlign,
     lyricsFontFamily: FontFamily?,
     isRtl: Boolean,
+    bounceFactor: Float,
+    glowFactor: Float,
+    fillTransitionWidth: Float,
 ) {
     val arrangement = when (textAlign) {
         TextAlign.Center -> Arrangement.Center
@@ -1033,6 +1045,9 @@ private fun LyricsLineV2(
                     isBackground = isLineAllBackground,
                     lyricsFontFamily = lyricsFontFamily,
                     isRtl = isRtl,
+                    bounceFactor = bounceFactor,
+                    glowFactor = glowFactor,
+                    fillTransitionWidth = fillTransitionWidth,
                 )
             }
         }
@@ -1072,6 +1087,9 @@ private fun LyricsLineV2(
                     isBackground = true, // Force dimmer styling inside AnimatedWordV2
                     lyricsFontFamily = lyricsFontFamily,
                     isRtl = isRtl,
+                    bounceFactor = bounceFactor,
+                    glowFactor = glowFactor,
+                    fillTransitionWidth = fillTransitionWidth,
                 )
             }
         }
@@ -1096,6 +1114,9 @@ private fun AnimatedWordV2(
     isBackground: Boolean,
     lyricsFontFamily: FontFamily?,
     isRtl: Boolean,
+    bounceFactor: Float,
+    glowFactor: Float,
+    fillTransitionWidth: Float,
 ) {
     val wordStartMs = (word.startTime * 1000).toLong()
     val wordEndMs = (word.endTime * 1000).toLong()
@@ -1114,26 +1135,27 @@ private fun AnimatedWordV2(
     // ── Bounce and Float animation ──
     // Subtle scale up peaking halfway through the word. Exact timing sync!
     val sinProgress = kotlin.math.sin(progress * kotlin.math.PI).toFloat()
-    val wordScale = 1f + (0.015f * sinProgress)
+    val wordScale = 1f + (0.015f * bounceFactor * sinProgress)
     
     // Float is only applied when the word is actively sung, making it pop from the line.
     // We use animateFloatAsState so that when it finishes (and drops to 0f), 
     // it smoothly decays back into place rather than a harsh mathematical snap.
-    val targetFloat = if (isWordActive) -4f * sinProgress else 0f
+    val targetFloat = if (isWordActive) -4f * bounceFactor * sinProgress else 0f
     val floatOffset by androidx.compose.animation.core.animateFloatAsState(
         targetValue = targetFloat,
         animationSpec = androidx.compose.animation.core.tween(
             durationMillis = if (isWordActive) 50 else 350,
             easing = androidx.compose.animation.core.FastOutSlowInEasing
-        )
+        ),
+        label = "v2FloatOffset"
     )
 
     // ── Glow intensity ──
     // "lines and words that are done animating shouldnt continue to glow"
     // Make glow build up faster: reach max intensity at 50% progress
     val glowProgress = (progress * 2f).coerceAtMost(1f)
-    val glowAlpha = if (isWordActive) glowProgress * 0.45f else 0f
-    val glowRadius = if (isWordActive) glowProgress * 12f else 0f
+    val glowAlpha = if (isWordActive) glowProgress * 0.45f * glowFactor else 0f
+    val glowRadius = if (isWordActive) glowProgress * 12f * glowFactor else 0f
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
     val fontWeight = if (isLineActive || isLinePast) FontWeight.ExtraBold else FontWeight.SemiBold
@@ -1206,7 +1228,7 @@ private fun AnimatedWordV2(
                         .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                         .drawWithContent {
                             drawContent()
-                            val edgeWidth = 8.dp.toPx()
+                            val edgeWidth = fillTransitionWidth.dp.toPx()
                             val center = if (isRtl) {
                                 size.width - ((size.width + edgeWidth * 2) * progress - edgeWidth)
                             } else {
