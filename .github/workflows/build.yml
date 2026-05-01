@@ -111,8 +111,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
-            BUILD_SUFFIX="$(printf '%s' "${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}:${GITHUB_SHA}" | sha256sum | cut -d' ' -f1 | base32 --wrap=0 | tr 'A-Z' 'a-z' | tr -d '=' | cut -c1-5)"
-            echo "value=nightly-${BUILD_SUFFIX}" >> "$GITHUB_OUTPUT"
+            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           else
             echo "value=" >> "$GITHUB_OUTPUT"
           fi
@@ -270,8 +269,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
-            BUILD_SUFFIX="$(printf '%s' "${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}:${GITHUB_SHA}" | sha256sum | cut -d' ' -f1 | base32 --wrap=0 | tr 'A-Z' 'a-z' | tr -d '=' | cut -c1-5)"
-            echo "value=nightly-${BUILD_SUFFIX}" >> "$GITHUB_OUTPUT"
+            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           else
             echo "value=" >> "$GITHUB_OUTPUT"
           fi
