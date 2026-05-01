@@ -341,4 +341,5 @@
     <string name="local_songs_no_matches_title">Sin canciones locales que coincidan</string>
     <string name="local_songs_no_matches_desc">Prueba con otra canción, otro artista u otro álbum.</string>
     <string name="sort_by_album">Álbum</string>
+    <string name="lyrics_line_blur">Desenfocar letras de canciones</string>
 </resources>
