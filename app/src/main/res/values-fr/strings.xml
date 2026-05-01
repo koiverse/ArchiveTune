@@ -864,4 +864,12 @@
     <string name="testing_proxy_connection">Vérification de la connexion au proxy…</string>
     <string name="proxy_connection_success">Connexion via le proxy établie !</string>
     <string name="proxy_connection_failed">Échec de la connexion au serveur proxy : %s</string>
+    <string name="enable_paxsenix_lyrics">Activer les paroles de Paxsenix</string>
+    <string name="clear_lyrics_cache">Vider le cache des paroles</string>
+    <string name="clear_lyrics_cache_confirm">Êtes-vous sûr de vouloir vider tout le cache des paroles ?</string>
+    <string name="paxsenix_stats">Statistiques de l\'API Paxsenix</string>
+    <string name="uptime">Temps de fonctionnement</string>
+    <string name="total_requests">Nombre total de demandes</string>
+    <string name="success_rate">Taux de réussite</string>
+    <string name="providers">Fournisseurs</string>
 </resources>
