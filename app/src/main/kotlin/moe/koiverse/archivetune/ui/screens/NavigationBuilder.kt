@@ -342,7 +342,7 @@ fun NavGraphBuilder.navigationBuilder(
         PalettePickerScreen(navController)
     }
     composable("settings/appearance/lyrics_animations") {
-        LyricsAnimationSettings(scrollBehavior)
+        LyricsAnimationSettings(navController, scrollBehavior)
     }
     composable("settings/appearance/theme_creator") {
         ThemeCreatorScreen(navController)
