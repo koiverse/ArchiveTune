@@ -768,7 +768,6 @@
     <string name="joined">Entrou</string>
     <string name="loading">Carregando</string>
     <string name="connecting">Conectando…</string>
-    <string name="copy_link">Copiar link</string>
     <string name="together_host_section">Anfitrião</string>
     <string name="together_join_section">Entrar</string>
     <string name="together_status">Status</string>
