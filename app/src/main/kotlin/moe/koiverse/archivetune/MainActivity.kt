@@ -162,6 +162,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.isLowRamDevice
@@ -825,7 +826,27 @@ class MainActivity : ComponentActivity() {
                         defaultValue = PlayerBackgroundStyle.DEFAULT,
                     )
 
-                    LaunchedEffect(useDarkTheme, playerBottomSheetState.isExpanded, playerBackground) {
+                    val aodModeEnabled by remember(playerConnection) {
+                        playerConnection?.aodModeEnabled ?: MutableStateFlow(false)
+                    }.collectAsStateWithLifecycle()
+
+                    LaunchedEffect(aodModeEnabled) {
+                        val controller = WindowCompat.getInsetsController(window, window.decorView)
+                        if (aodModeEnabled) {
+                            controller.systemBarsBehavior =
+                                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                            controller.hide(WindowInsetsCompat.Type.systemBars())
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            controller.show(WindowInsetsCompat.Type.systemBars())
+                            controller.systemBarsBehavior =
+                                WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+
+                    LaunchedEffect(useDarkTheme, playerBottomSheetState.isExpanded, playerBackground, aodModeEnabled) {
+                        if (aodModeEnabled) return@LaunchedEffect
                         val isDarkStatusBar = if (playerBottomSheetState.isExpanded &&
                             playerBackground != PlayerBackgroundStyle.DEFAULT
                         ) {

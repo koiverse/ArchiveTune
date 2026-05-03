@@ -131,6 +131,8 @@
     <string name="action_sync">Sync</string>
     <string name="advanced">Advanced</string>
     <string name="tempo_and_pitch">Tempo and Pitch</string>
+    <string name="aod_mode">AOD Mode</string>
+    <string name="aod_mode_exit">Exit AOD</string>
     <string name="tempo">Tempo</string>
     <string name="pitch">Pitch</string>
     <string name="pitch_mode_semitones_short">st</string>
