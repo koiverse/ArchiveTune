@@ -229,6 +229,7 @@
     <string name="error_no_stream">No stream available</string>
     <string name="error_no_internet">No network connection</string>
     <string name="error_timeout">Timeout</string>
+    <string name="error_malformed_stream">Source error</string>
     <string name="error_unknown">Unknown error</string>
     <!-- Player action -->
     <string name="action_like">Like</string>

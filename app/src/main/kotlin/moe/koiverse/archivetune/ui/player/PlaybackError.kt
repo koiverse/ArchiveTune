@@ -55,6 +55,7 @@ fun PlaybackError(
     val fallbackNoInternet = stringResource(R.string.error_no_internet)
     val fallbackTimeout = stringResource(R.string.error_timeout)
     val fallbackNoStream = stringResource(R.string.error_no_stream)
+    val fallbackMalformedStream = stringResource(R.string.error_malformed_stream)
     val retryText = stringResource(R.string.retry)
     val copyText = stringResource(R.string.copy)
     val copiedText = stringResource(R.string.copied)
@@ -74,6 +75,7 @@ fun PlaybackError(
             PlaybackErrorKind.NoInternet -> fallbackNoInternet
             PlaybackErrorKind.Timeout -> fallbackTimeout
             PlaybackErrorKind.NoStream -> fallbackNoStream
+            PlaybackErrorKind.MalformedStream -> fallbackMalformedStream
             PlaybackErrorKind.Decoder -> "$fallbackUnknown (code ${error.errorCode})"
             PlaybackErrorKind.Http -> "$fallbackUnknown (HTTP $httpCode)"
             PlaybackErrorKind.Unknown -> error.cause?.message?.takeIf { it.isNotBlank() }

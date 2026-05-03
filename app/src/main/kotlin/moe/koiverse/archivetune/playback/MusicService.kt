@@ -4335,6 +4335,16 @@ class MusicService :
             }
         }
 
+        if (error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED && !isFullyCachedMedia) {
+            playbackUrlCache.remove(currentMediaId)
+            YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
+            if (playbackStreamRecoveryTracker.registerRetryAttempt(currentMediaId)) {
+                Timber.tag("MusicService").i("Retrying playback for %s after malformed container error", currentMediaId)
+                player.prepare()
+                return
+            }
+        }
+
         if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
             skipOnError()
         } else {

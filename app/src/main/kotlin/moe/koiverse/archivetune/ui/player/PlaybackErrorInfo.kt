@@ -18,6 +18,7 @@ internal enum class PlaybackErrorKind {
     NoInternet,
     Timeout,
     NoStream,
+    MalformedStream,
     Decoder,
     Http,
     Unknown,
@@ -40,9 +41,9 @@ internal fun PlaybackException.toPlaybackErrorInfo(currentMediaId: String? = nul
             errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED -> PlaybackErrorKind.NoInternet
             errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> PlaybackErrorKind.Timeout
             httpCode in setOf(403, 404, 410, 416) -> PlaybackErrorKind.NoStream
+            errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED -> PlaybackErrorKind.MalformedStream
             errorCode in setOf(
                 PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
-                PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
                 PlaybackException.ERROR_CODE_DECODING_FAILED,
                 PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
             ) -> PlaybackErrorKind.Decoder
