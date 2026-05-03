@@ -185,6 +185,8 @@ import moe.koiverse.archivetune.constants.MiniPlayerLastAnchorKey
 import moe.koiverse.archivetune.constants.NavigationBarAnimationSpec
 import moe.koiverse.archivetune.constants.PauseSearchHistoryKey
 import moe.koiverse.archivetune.constants.PureBlackKey
+import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
+import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.RemindAfterKey
 import moe.koiverse.archivetune.constants.SYSTEM_DEFAULT
 import moe.koiverse.archivetune.constants.SearchSource
@@ -583,9 +585,6 @@ class MainActivity : ComponentActivity() {
                 remember(darkTheme, isSystemInDarkTheme) {
                     if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
                 }
-            LaunchedEffect(useDarkTheme) {
-                setSystemBarAppearance(useDarkTheme)
-            }
             val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
             val pureBlack = pureBlackEnabled && useDarkTheme
 
@@ -821,6 +820,22 @@ class MainActivity : ComponentActivity() {
                             expandedBound = maxHeight,
                         )
 
+                    val playerBackground by rememberEnumPreference(
+                        key = PlayerBackgroundStyleKey,
+                        defaultValue = PlayerBackgroundStyle.DEFAULT,
+                    )
+
+                    LaunchedEffect(useDarkTheme, playerBottomSheetState.isExpanded, playerBackground) {
+                        val isDarkStatusBar = if (playerBottomSheetState.isExpanded &&
+                            playerBackground != PlayerBackgroundStyle.DEFAULT
+                        ) {
+                            true
+                        } else {
+                            useDarkTheme
+                        }
+                        setSystemBarAppearance(isDarkStatusBar)
+                    }
+
                     val miniPlayerAnchor by remember {
                         derivedStateOf {
                             when {
@@ -963,6 +978,13 @@ class MainActivity : ComponentActivity() {
                         }
 
                         previousRoute = currentRoute
+
+                        if ((currentRoute?.startsWith("artist/") == true ||
+                                currentRoute?.startsWith("album/") == true) &&
+                            playerBottomSheetState.isExpanded
+                        ) {
+                            playerBottomSheetState.collapseSoft()
+                        }
 
                         if (navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
                             val searchQuery =
