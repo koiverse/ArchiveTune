@@ -159,6 +159,7 @@ import moe.koiverse.archivetune.extensions.mediaItems
 import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.extensions.setOffloadEnabled
 import moe.koiverse.archivetune.extensions.toMediaItem
+import moe.koiverse.archivetune.extensions.toContinuationQueue
 import moe.koiverse.archivetune.extensions.toPersistQueue
 import moe.koiverse.archivetune.extensions.toQueue
 import moe.koiverse.archivetune.lyrics.LyricsHelper
@@ -1129,17 +1130,18 @@ class MusicService :
     }
 
     private suspend fun restorePersistentQueue(persistedQueue: PersistQueue) {
-        val restoredQueue = persistedQueue.toQueue()
+        val itemQueue = persistedQueue.toQueue()
+        val continuationQueue = persistedQueue.toContinuationQueue()
         val hideExplicit = dataStore.get(HideExplicitKey, false)
         val hideVideo = dataStore.get(HideVideoKey, false)
         val initialStatus =
-            restoredQueue
+            itemQueue
                 .getInitialStatus()
                 .filterExplicit(hideExplicit)
                 .filterVideo(hideVideo)
 
         withContext(Dispatchers.Main) {
-            currentQueue = restoredQueue
+            currentQueue = continuationQueue
             queueTitle = initialStatus.title
 
             val items = initialStatus.items

@@ -10,110 +10,116 @@
 
 package moe.koiverse.archivetune.extensions
 
+import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.models.PersistQueue
 import moe.koiverse.archivetune.models.QueueData
 import moe.koiverse.archivetune.models.QueueType
 import moe.koiverse.archivetune.models.MediaMetadata
-import moe.koiverse.archivetune.playback.queues.*
-import moe.koiverse.archivetune.db.entities.AlbumEntity
+import moe.koiverse.archivetune.playback.queues.ListQueue
+import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
+import moe.koiverse.archivetune.playback.queues.Queue
+import moe.koiverse.archivetune.playback.queues.YouTubeAlbumRadio
+import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 
 fun Queue.toPersistQueue(
     title: String?,
     items: List<MediaMetadata>,
     mediaItemIndex: Int,
-    position: Long
-): PersistQueue {
-    return when (this) {
-        is ListQueue -> PersistQueue(
-            title = title,
-            items = items,
-            mediaItemIndex = mediaItemIndex,
-            position = position,
-            queueType = QueueType.LIST
-        )
-        is YouTubeQueue -> {
-            // Since endpoint is private, we'll store a simplified version
-            val endpoint = "youtube_queue"
-            PersistQueue(
-                title = title,
-                items = items,
-                mediaItemIndex = mediaItemIndex,
-                position = position,
-                queueType = QueueType.YOUTUBE,
-                queueData = QueueData.YouTubeData(endpoint = endpoint)
-            )
-        }
-        is YouTubeAlbumRadio -> {
-            // Since playlistId is private, we'll store a simplified version
-            PersistQueue(
-                title = title,
-                items = items,
-                mediaItemIndex = mediaItemIndex,
-                position = position,
-                queueType = QueueType.YOUTUBE_ALBUM_RADIO,
-                queueData = QueueData.YouTubeAlbumRadioData(
-                    playlistId = "youtube_album_radio"
-                )
-            )
-        }
-        is LocalAlbumRadio -> {
-            // Since albumWithSongs and startIndex are private, we'll store a simplified version
-            PersistQueue(
-                title = title,
-                items = items,
-                mediaItemIndex = mediaItemIndex,
-                position = position,
-                queueType = QueueType.LOCAL_ALBUM_RADIO,
-                queueData = QueueData.LocalAlbumRadioData(
-                    albumId = "local_album_radio",
-                    startIndex = 0
-                )
-            )
-        }
-        else -> PersistQueue(
-            title = title,
-            items = items,
-            mediaItemIndex = mediaItemIndex,
-            position = position,
-            queueType = QueueType.LIST
-        )
-    }
+    position: Long,
+): PersistQueue = when (this) {
+    is ListQueue -> PersistQueue(
+        title = title,
+        items = items,
+        mediaItemIndex = mediaItemIndex,
+        position = position,
+        queueType = QueueType.LIST,
+    )
+    is YouTubeQueue -> PersistQueue(
+        title = title,
+        items = items,
+        mediaItemIndex = mediaItemIndex,
+        position = position,
+        queueType = QueueType.YOUTUBE,
+        queueData = QueueData.YouTubeData(
+            videoId = endpoint.videoId,
+            playlistId = endpoint.playlistId,
+            endpointParams = endpoint.params,
+            followAutomixPreview = followAutomixPreview,
+        ),
+    )
+    is YouTubeAlbumRadio -> PersistQueue(
+        title = title,
+        items = items,
+        mediaItemIndex = mediaItemIndex,
+        position = position,
+        queueType = QueueType.YOUTUBE_ALBUM_RADIO,
+        queueData = QueueData.YouTubeAlbumRadioData(
+            playlistId = playlistId,
+            albumSongCount = albumSongCount,
+            continuation = continuation,
+            firstTimeLoaded = firstTimeLoaded,
+        ),
+    )
+    is LocalAlbumRadio -> PersistQueue(
+        title = title,
+        items = items,
+        mediaItemIndex = mediaItemIndex,
+        position = position,
+        queueType = QueueType.LOCAL_ALBUM_RADIO,
+        queueData = QueueData.LocalAlbumRadioData(
+            albumId = albumWithSongs.album.id,
+            startIndex = startIndex,
+        ),
+    )
+    else -> PersistQueue(
+        title = title,
+        items = items,
+        mediaItemIndex = mediaItemIndex,
+        position = position,
+        queueType = QueueType.LIST,
+    )
 }
 
-fun PersistQueue.toQueue(): Queue {
-    return when (queueType) {
-        is QueueType.LIST -> ListQueue(
-            title = title,
-            items = items.map { it.toMediaItem() },
-            startIndex = mediaItemIndex,
-            position = position
+fun PersistQueue.toQueue(): Queue = ListQueue(
+    title = title,
+    items = items.map { it.toMediaItem() },
+    startIndex = mediaItemIndex,
+    position = position,
+)
+
+fun PersistQueue.toContinuationQueue(): Queue = when (queueType) {
+    is QueueType.LIST -> ListQueue(
+        title = title,
+        items = items.map { it.toMediaItem() },
+        startIndex = mediaItemIndex,
+        position = position,
+    )
+    is QueueType.YOUTUBE -> {
+        val data = queueData as? QueueData.YouTubeData
+            ?: return ListQueue(title, items.map { it.toMediaItem() }, mediaItemIndex, position)
+        YouTubeQueue(
+            endpoint = WatchEndpoint(
+                videoId = data.videoId,
+                playlistId = data.playlistId,
+                params = data.endpointParams,
+            ),
+            followAutomixPreview = data.followAutomixPreview,
         )
-        is QueueType.YOUTUBE -> {
-            // For now, fallback to ListQueue since we can't reconstruct YouTubeQueue properly
-            ListQueue(
-                title = title,
-                items = items.map { it.toMediaItem() },
-                startIndex = mediaItemIndex,
-                position = position
-            )
-        }
-        is QueueType.YOUTUBE_ALBUM_RADIO -> {
-            // For now, fallback to ListQueue since we can't reconstruct YouTubeAlbumRadio properly
-            ListQueue(
-                title = title,
-                items = items.map { it.toMediaItem() },
-                startIndex = mediaItemIndex,
-                position = position
-            )
-        }
-        is QueueType.LOCAL_ALBUM_RADIO -> {
-            // For now, fallback to ListQueue since we can't reconstruct LocalAlbumRadio properly
-            ListQueue(
-                title = title,
-                items = items.map { it.toMediaItem() },
-                startIndex = mediaItemIndex,
-                position = position
-            )
-        }
     }
+    is QueueType.YOUTUBE_ALBUM_RADIO -> {
+        val data = queueData as? QueueData.YouTubeAlbumRadioData
+            ?: return ListQueue(title, items.map { it.toMediaItem() }, mediaItemIndex, position)
+        YouTubeAlbumRadio(
+            playlistId = data.playlistId,
+            albumSongCount = data.albumSongCount,
+            continuation = data.continuation,
+            firstTimeLoaded = data.firstTimeLoaded,
+        )
+    }
+    is QueueType.LOCAL_ALBUM_RADIO -> ListQueue(
+        title = title,
+        items = items.map { it.toMediaItem() },
+        startIndex = mediaItemIndex,
+        position = position,
+    )
 }

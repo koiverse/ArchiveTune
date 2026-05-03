@@ -42,14 +42,16 @@ sealed class QueueType : Serializable {
 
 sealed class QueueData : Serializable {
     data class YouTubeData(
-        val endpoint: String,
-        val continuation: String? = null
+        val videoId: String? = null,
+        val playlistId: String? = null,
+        val endpointParams: String? = null,
+        val followAutomixPreview: Boolean = false,
     ) : QueueData() {
         companion object {
-            private const val serialVersionUID = 1L
+            private const val serialVersionUID = 2L
         }
     }
-    
+
     data class YouTubeAlbumRadioData(
         val playlistId: String,
         val albumSongCount: Int = 0,
