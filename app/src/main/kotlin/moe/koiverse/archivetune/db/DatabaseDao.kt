@@ -124,19 +124,9 @@ interface DatabaseDao {
             }).map { songs ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
-                songs
-                    .sortedWith(
-                        compareBy(collator) { song ->
-                            song.artists.joinToString("") { artist -> artist.name }
-                        },
-                    ).groupBy { it.album?.title }
-                    .flatMap { (_, songsByAlbum) ->
-                        songsByAlbum.sortedBy { album ->
-                            album.artists.joinToString(
-                                "",
-                            ) { artist -> artist.name }
-                        }
-                    }
+                songs.sortedWith(compareBy(collator) { song ->
+                    song.artists.joinToString("") { artist -> artist.name }
+                })
             }
 
         SongSortType.PLAY_TIME -> songsByPlayTimeAsc()
@@ -237,19 +227,9 @@ interface DatabaseDao {
             }).map { songs ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
-                songs
-                    .sortedWith(
-                        compareBy(collator) { song ->
-                            song.artists.joinToString("") { artist -> artist.name }
-                        },
-                    ).groupBy { it.album?.title }
-                    .flatMap { (_, songsByAlbum) ->
-                        songsByAlbum.sortedBy { album ->
-                            album.artists.joinToString(
-                                "",
-                            ) { artist -> artist.name }
-                        }
-                    }
+                songs.sortedWith(compareBy(collator) { song ->
+                    song.artists.joinToString("") { artist -> artist.name }
+                })
             }
 
         SongSortType.PLAY_TIME -> likedSongsByPlayTimeAsc()
