@@ -80,7 +80,6 @@ fun ChangelogScreen(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->

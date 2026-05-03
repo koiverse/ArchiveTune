@@ -375,7 +375,6 @@ fun MusicTogetherScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
     ) {
         TopAppBar(
             title = { Text(stringResource(R.string.music_together)) },
@@ -387,7 +386,6 @@ fun MusicTogetherScreen(
                     Icon(painterResource(R.drawable.arrow_back), null)
                 }
             },
-            scrollBehavior = scrollBehavior,
         )
 
         Column(

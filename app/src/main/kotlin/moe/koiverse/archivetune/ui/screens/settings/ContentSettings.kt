@@ -499,7 +499,6 @@ fun ContentSettings(
 
     TopAppBar(
         title = { Text(stringResource(R.string.content)) },
-        scrollBehavior = scrollBehavior,
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,

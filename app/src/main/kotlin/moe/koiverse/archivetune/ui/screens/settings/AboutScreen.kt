@@ -379,13 +379,11 @@ fun AboutScreen(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
             )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
                 .fillMaxWidth()
                 .padding(innerPadding)

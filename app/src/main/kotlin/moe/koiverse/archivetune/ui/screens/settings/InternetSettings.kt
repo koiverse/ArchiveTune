@@ -347,6 +347,5 @@ fun InternetSettings(
                 )
             }
         },
-        scrollBehavior = scrollBehavior
     )
 }
