@@ -44,6 +44,7 @@ import moe.koiverse.archivetune.utils.rememberPreference
 @Composable
 fun LyricsAnimationSettings(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val (bounceFactor, onBounceFactorChange) = rememberPreference(LyricsV2BounceFactorKey, defaultValue = 1f)
     val (glowFactor, onGlowFactorChange) = rememberPreference(LyricsV2GlowFactorKey, defaultValue = 1f)
@@ -52,6 +53,7 @@ fun LyricsAnimationSettings(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) {
         TopAppBar(
             title = { Text(text = stringResource(R.string.lyrics_animation_style)) },
@@ -66,6 +68,7 @@ fun LyricsAnimationSettings(
                     )
                 }
             },
+            scrollBehavior = scrollBehavior,
         )
 
         Column(

@@ -75,6 +75,7 @@ enum class ActivitySource { ARTIST, ALBUM, SONG, APP }
 @Composable
 fun DiscordSettings(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val song by playerConnection.currentSong.collectAsState(null)

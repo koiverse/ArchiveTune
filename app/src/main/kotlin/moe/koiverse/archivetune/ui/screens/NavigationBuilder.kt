@@ -336,46 +336,46 @@ fun NavGraphBuilder.navigationBuilder(
         AccountSettings(navController, scrollBehavior, latestVersionName)
     }
     composable("settings/appearance") {
-        AppearanceSettings(navController)
+        AppearanceSettings(navController, scrollBehavior)
     }
     composable("settings/appearance/palette_picker") {
         PalettePickerScreen(navController)
     }
     composable("settings/appearance/lyrics_animations") {
-        LyricsAnimationSettings(navController)
+        LyricsAnimationSettings(navController, scrollBehavior)
     }
     composable("settings/appearance/theme_creator") {
         ThemeCreatorScreen(navController)
     }
     composable("settings/content") {
-        ContentSettings(navController)
+        ContentSettings(navController, scrollBehavior)
     }
     composable("settings/internet") {
-        InternetSettings(navController)
+        InternetSettings(navController, scrollBehavior)
     }
     composable("settings/player") {
-        PlayerSettings(navController)
+        PlayerSettings(navController, scrollBehavior)
     }
     composable("settings/storage") {
-        StorageSettings(navController)
+        StorageSettings(navController, scrollBehavior)
     }
     composable("settings/privacy") {
-        PrivacySettings(navController)
+        PrivacySettings(navController, scrollBehavior)
     }
     composable("settings/backup_restore") {
-        BackupAndRestore(navController)
+        BackupAndRestore(navController, scrollBehavior)
     }
     composable("settings/discord") {
-        DiscordSettings(navController)
+        DiscordSettings(navController, scrollBehavior)
     }
     composable("settings/integration") {
-        IntegrationScreen(navController)
+        IntegrationScreen(navController, scrollBehavior)
     }
     composable("settings/music_together") {
-        MusicTogetherScreen(navController)
+        MusicTogetherScreen(navController, scrollBehavior)
     }
     composable("settings/lastfm") {
-        LastFMSettings(navController)
+        LastFMSettings(navController, scrollBehavior)
     }
     composable("settings/discord/experimental") {
         moe.koiverse.archivetune.ui.screens.settings.DiscordExperimental(navController)
@@ -384,19 +384,19 @@ fun NavGraphBuilder.navigationBuilder(
         DebugSettings(navController)
     }
     composable("settings/update") {
-        UpdateScreen(navController)
+        UpdateScreen(navController, scrollBehavior)
     }
     composable("settings/changelog") {
-        ChangelogScreen(navController)
+        ChangelogScreen(navController, scrollBehavior)
     }
     composable("settings/discord/login") {
         DiscordLoginScreen(navController)
     }
     composable("settings/about") {
-        AboutScreen(navController)
+        AboutScreen(navController, scrollBehavior)
     }
     composable("settings/po_token") {
-        PoTokenScreen(navController)
+        PoTokenScreen(navController, scrollBehavior)
     }
     composable("customize_background") {
         CustomizeBackground(navController)

@@ -47,6 +47,7 @@ import moe.koiverse.archivetune.utils.rememberPreference
 @Composable
 fun IntegrationScreen(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
 

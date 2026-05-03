@@ -125,6 +125,7 @@ import kotlin.math.floor
 @Composable
 fun MusicTogetherScreen(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current
@@ -375,6 +376,7 @@ fun MusicTogetherScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
     ) {
         TopAppBar(
             title = { Text(stringResource(R.string.music_together)) },
@@ -386,6 +388,7 @@ fun MusicTogetherScreen(
                     Icon(painterResource(R.drawable.arrow_back), null)
                 }
             },
+            scrollBehavior = scrollBehavior,
         )
 
         Column(

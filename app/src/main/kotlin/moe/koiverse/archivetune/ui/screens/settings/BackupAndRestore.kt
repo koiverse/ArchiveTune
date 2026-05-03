@@ -114,6 +114,7 @@ private val CSV_MIME_TYPES =
 @Composable
 fun BackupAndRestore(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: BackupRestoreViewModel = hiltViewModel(),
 ) {
     var importedTitle by remember { mutableStateOf("") }
@@ -175,6 +176,7 @@ fun BackupAndRestore(
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.surface,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
@@ -203,6 +205,7 @@ fun BackupAndRestore(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
+                scrollBehavior = scrollBehavior,
             )
         },
     ) { innerPadding ->

@@ -130,6 +130,7 @@ fun InternetWarningBox(modifier: Modifier = Modifier) {
 @Composable
 fun InternetSettings(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -347,5 +348,6 @@ fun InternetSettings(
                 )
             }
         },
+        scrollBehavior = scrollBehavior
     )
 }

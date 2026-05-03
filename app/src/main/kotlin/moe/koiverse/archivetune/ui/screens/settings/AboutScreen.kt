@@ -258,6 +258,7 @@ private fun AboutBadge(text: String) {
 @Composable
 fun AboutScreen(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
@@ -379,11 +380,13 @@ fun AboutScreen(
                         )
                     }
                 },
+                scrollBehavior = scrollBehavior
             )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
                 .fillMaxWidth()
                 .padding(innerPadding)

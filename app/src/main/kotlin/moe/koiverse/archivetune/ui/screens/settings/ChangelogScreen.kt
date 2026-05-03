@@ -38,6 +38,7 @@ import java.util.Locale
 @Composable
 fun ChangelogScreen(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val coroutineScope = rememberCoroutineScope()
     var releases by remember { mutableStateOf<List<ReleaseInfo>>(emptyList()) }
@@ -80,6 +81,7 @@ fun ChangelogScreen(
                         )
                     }
                 },
+                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->

@@ -80,6 +80,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun StorageSettings(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
     val imageDiskCache = context.imageLoader.diskCache ?: return

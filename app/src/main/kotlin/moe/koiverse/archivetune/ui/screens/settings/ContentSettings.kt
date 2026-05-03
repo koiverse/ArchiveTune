@@ -54,6 +54,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 @Composable
 fun ContentSettings(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: ContentSettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -499,6 +500,7 @@ fun ContentSettings(
 
     TopAppBar(
         title = { Text(stringResource(R.string.content)) },
+        scrollBehavior = scrollBehavior,
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,

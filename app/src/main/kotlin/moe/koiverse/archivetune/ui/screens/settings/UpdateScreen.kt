@@ -106,6 +106,7 @@ import java.util.TimeZone
 @Composable
 fun UpdateScreen(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
@@ -336,6 +337,7 @@ fun UpdateScreen(
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.surface,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
@@ -365,6 +367,7 @@ fun UpdateScreen(
                     }
                 },
                 actions = {},
+                scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.largeTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
