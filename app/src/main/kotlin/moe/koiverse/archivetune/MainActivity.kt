@@ -101,6 +101,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -1044,7 +1045,10 @@ class MainActivity : ComponentActivity() {
                         miniPlayerAnchorPersistenceEnabled = true
                     }
 
-                    DisposableEffect(playerConnection, playerBottomSheetState) {
+                    val currentPlayerBottomSheetState = rememberUpdatedState(playerBottomSheetState)
+                    val currentIsYearInMusicScreen = rememberUpdatedState(isYearInMusicScreen)
+
+                    DisposableEffect(playerConnection) {
                         val player =
                             playerConnection?.player ?: return@DisposableEffect onDispose { }
                         val listener =
@@ -1055,10 +1059,10 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED &&
                                         mediaItem != null &&
-                                        playerBottomSheetState.isDismissed &&
-                                        !isYearInMusicScreen
+                                        currentPlayerBottomSheetState.value.isDismissed &&
+                                        !currentIsYearInMusicScreen.value
                                     ) {
-                                        playerBottomSheetState.collapseSoft()
+                                        currentPlayerBottomSheetState.value.collapseSoft()
                                     }
                                 }
                             }
