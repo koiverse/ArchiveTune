@@ -258,7 +258,6 @@ private fun AboutBadge(text: String) {
 @Composable
 fun AboutScreen(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current

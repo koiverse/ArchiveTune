@@ -54,7 +54,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 @Composable
 fun ContentSettings(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: ContentSettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current

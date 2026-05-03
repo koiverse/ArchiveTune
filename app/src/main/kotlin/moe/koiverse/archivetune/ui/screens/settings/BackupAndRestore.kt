@@ -114,7 +114,6 @@ private val CSV_MIME_TYPES =
 @Composable
 fun BackupAndRestore(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: BackupRestoreViewModel = hiltViewModel(),
 ) {
     var importedTitle by remember { mutableStateOf("") }

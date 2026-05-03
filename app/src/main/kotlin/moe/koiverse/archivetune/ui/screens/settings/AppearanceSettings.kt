@@ -128,7 +128,6 @@ private val NoExitTransition = ExitTransition.None
 @Composable
 fun AppearanceSettings(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
     val defaultDisableAnimations = remember(context) { context.isLowRamDevice() }

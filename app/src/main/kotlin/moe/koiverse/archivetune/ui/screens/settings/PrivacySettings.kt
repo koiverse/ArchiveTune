@@ -55,7 +55,6 @@ import moe.koiverse.archivetune.utils.rememberPreference
 @Composable
 fun PrivacySettings(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val database = LocalDatabase.current
     val (pauseListenHistory, onPauseListenHistoryChange) = rememberPreference(

@@ -106,7 +106,6 @@ import java.util.TimeZone
 @Composable
 fun UpdateScreen(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current

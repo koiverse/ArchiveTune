@@ -103,7 +103,6 @@ private val SUPPORTED_CLIENTS = listOf(
 @Composable
 fun PoTokenScreen(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: PoTokenViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current

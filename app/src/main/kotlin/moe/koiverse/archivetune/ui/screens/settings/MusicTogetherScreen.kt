@@ -125,7 +125,6 @@ import kotlin.math.floor
 @Composable
 fun MusicTogetherScreen(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current

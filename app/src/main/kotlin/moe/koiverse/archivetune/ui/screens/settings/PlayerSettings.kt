@@ -87,7 +87,6 @@ import moe.koiverse.archivetune.LocalDatabase
 @Composable
 fun PlayerSettings(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
         AudioQualityKey,
