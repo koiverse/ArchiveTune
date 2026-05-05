@@ -21,7 +21,7 @@
     <string name="history_local_empty_desc">Lagu yang Kamu putar di perangkat ini akan muncul di sini.</string>
     <string name="history_remote_loading">Menyinkronkan riwayat jarak jauh</string>
     <string name="history_remote_empty_title">Tidak ada riwayat jarak jauh yang tersedia</string>
-    <string name="history_remote_empty_desc">Histori tontonan Anda yang tersinkron akan muncul di sini setelah Anda mendengarkan di YouTube Music.</string>
+    <string name="history_remote_empty_desc">Riwayat tontonan Anda yang tersinkron akan muncul di sini setelah Anda mendengarkan di YouTube Music.</string>
     <string name="history_remote_error_title">Tidak dapat memuat riwayat jarak jauh</string>
     <string name="history_remote_error_desc">Coba sebentar lagi.</string>
     <string name="history_no_results_title">Tidak ada lagu yang cocok</string>
@@ -244,7 +244,7 @@
     <string name="past_month">Bulan lalu</string>
     <string name="past_year">Tahun lalu</string>
     <string name="top_length">Panjang daftar teratas saya</string>
-    <string name="history_duration">Durasi sejarah</string>
+    <string name="history_duration">Durasi riwayat</string>
     <string name="information">Informasi</string>
     <string name="description">Deskripsi</string>
     <string name="numbers">Angka</string>
@@ -268,7 +268,7 @@
         <item quantity="one">1 second</item>
         <item quantity="other">%d detik</item>
     </plurals>
-    <string name="audio_crossfade_title">memudar silang</string>
+    <string name="audio_crossfade_title">Crossfade</string>
     <string name="audio_crossfade_description">Transisi antar lagu dengan lancar dengan memudarkan dan masuk.</string>
     <string name="audio_crossfade_dialog_title">Durasi crossfade</string>
     <string name="audio_crossfade_seconds">%1$s dtk</string>
@@ -338,4 +338,5 @@
     <string name="restore_step_restoring_settings">Memulihkan pengaturan</string>
     <string name="restore_step_restoring_file">Memulihkan %1$s</string>
     <string name="restore_step_restarting">Memulai ulang aplikasi</string>
+    <string name="lyrics_line_blur">Buramkan baris lirik</string>
 </resources>
