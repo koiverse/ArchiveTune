@@ -148,36 +148,44 @@ fun MusicRecognitionScreen(
     val requestPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) {
-                recognitionJob?.cancel()
-                recognitionJob =
-                    scope.launch {
-                        runRecognitionFlow(
-                            strings = strings,
-                            onState = { state = it },
-                            onHaptic = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
-                            onSearch = { query -> navController.navigate("search/${Uri.encode(query)}") },
-                        )
-                    }
+                launchRecognition(
+                    scope = scope,
+                    strings = strings,
+                    onState = { state = it },
+                    onHaptic = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
+                    onSearch = { query -> navController.navigate("search/${Uri.encode(query)}") },
+                    onReplaceJob = {
+                        recognitionJob?.cancel()
+                        recognitionJob = it
+                    },
+                )
             } else {
                 state = MusicRecognitionState.PermissionRequired
             }
         }
+
+    fun cancelRecognition() {
+        recognitionJob?.cancel()
+        recognitionJob = null
+        state = MusicRecognitionState.Ready
+    }
 
     fun startOrRequestPermission() {
         val permission =
             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
                 PackageManager.PERMISSION_GRANTED
         if (permission) {
-            recognitionJob?.cancel()
-            recognitionJob =
-                scope.launch {
-                    runRecognitionFlow(
-                        strings = strings,
-                        onState = { state = it },
-                        onHaptic = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
-                        onSearch = { query -> navController.navigate("search/${Uri.encode(query)}") },
-                    )
-                }
+            launchRecognition(
+                scope = scope,
+                strings = strings,
+                onState = { state = it },
+                onHaptic = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
+                onSearch = { query -> navController.navigate("search/${Uri.encode(query)}") },
+                onReplaceJob = {
+                    recognitionJob?.cancel()
+                    recognitionJob = it
+                },
+            )
         } else {
             requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
@@ -389,6 +397,26 @@ fun MusicRecognitionScreen(
                     }
                 }
 
+                AnimatedVisibility(
+                    visible = state is MusicRecognitionState.Listening,
+                    enter = fadeIn(tween(180)),
+                    exit = fadeOut(tween(120)),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedButton(
+                            onClick = ::cancelRecognition,
+                            modifier = Modifier.heightIn(min = 44.dp),
+                            shapes = ButtonDefaults.shapes(),
+                        ) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(20.dp))
             }
         }
@@ -410,6 +438,26 @@ private data class MusicRecognitionStrings(
     val noMatchFallback: String,
     val recognitionFailedFallback: String,
 )
+
+private fun launchRecognition(
+    scope: kotlinx.coroutines.CoroutineScope,
+    strings: MusicRecognitionStrings,
+    onState: (MusicRecognitionState) -> Unit,
+    onHaptic: () -> Unit,
+    onSearch: (String) -> Unit,
+    onReplaceJob: (Job) -> Unit,
+) {
+    onReplaceJob(
+        scope.launch {
+            runRecognitionFlow(
+                strings = strings,
+                onState = onState,
+                onHaptic = onHaptic,
+                onSearch = onSearch,
+            )
+        },
+    )
+}
 
 private suspend fun runRecognitionFlow(
     strings: MusicRecognitionStrings,

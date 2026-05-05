@@ -131,6 +131,8 @@
     <string name="action_sync">Sync</string>
     <string name="advanced">Advanced</string>
     <string name="tempo_and_pitch">Tempo and Pitch</string>
+    <string name="aod_mode">AOD Mode</string>
+    <string name="aod_mode_exit">Exit AOD</string>
     <string name="tempo">Tempo</string>
     <string name="pitch">Pitch</string>
     <string name="pitch_mode_semitones_short">st</string>
@@ -229,6 +231,7 @@
     <string name="error_no_stream">No stream available</string>
     <string name="error_no_internet">No network connection</string>
     <string name="error_timeout">Timeout</string>
+    <string name="error_malformed_stream">Source error</string>
     <string name="error_unknown">Unknown error</string>
     <!-- Player action -->
     <string name="action_like">Like</string>
@@ -634,6 +637,11 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="close_dialog">Close</string>
     <string name="select_dialog">Select</string>
     <string name="support_github">Star ArchiveTune!</string>
+    <string name="support_development_title">Support development</string>
+    <string name="support_development_message">Hey there! I\'m Koiverse, the developer of ArchiveTune. If ArchiveTune has earned a place in your daily listening, you can help keep it moving forward by donating or starring the project on GitHub. Thanks for supporting the work behind the app.</string>
+    <string name="support_development_donate">Donate to support development</string>
+    <string name="support_development_star">Star on GitHub</string>
+    <string name="later">Later</string>
     <!-- Update dialog -->
     <string name="new_update_available">New update available</string>
     <string name="release_notes_unavailable">Release notes are unavailable</string>

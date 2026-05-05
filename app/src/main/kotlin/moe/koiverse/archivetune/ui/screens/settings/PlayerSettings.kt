@@ -329,13 +329,15 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.animation), null) },
             checked = crossfadeEnabled,
             onCheckedChange = onCrossfadeEnabledChange,
-            isEnabled = !audioOffload,
+            //isEnabled = !audioOffload,
+            isEnabled = false,
         )
 
         CrossfadeSliderPreference(
             valueSeconds = crossfadeDurationSeconds,
             onValueChange = onCrossfadeDurationSecondsChange,
-            isEnabled = crossfadeEnabled && !audioOffload,
+            //isEnabled = crossfadeEnabled && !audioOffload,
+            isEnabled = false,
         )
 
         SwitchPreference(
@@ -344,7 +346,8 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.fast_forward), null) },
             checked = crossfadeGapless,
             onCheckedChange = onCrossfadeGaplessChange,
-            isEnabled = crossfadeEnabled && !audioOffload,
+            //isEnabled = crossfadeEnabled && !audioOffload,
+            isEnabled = false,
         )
 
         SwitchPreference(

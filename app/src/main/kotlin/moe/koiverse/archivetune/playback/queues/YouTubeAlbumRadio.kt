@@ -19,7 +19,7 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
 
 class YouTubeAlbumRadio(
-    private var playlistId: String,
+    internal val playlistId: String,
 ) : Queue {
     override val preloadItem: MediaMetadata? = null
 
@@ -29,9 +29,20 @@ class YouTubeAlbumRadio(
             params = "wAEB"
         )
 
-    private var albumSongCount = 0
-    private var continuation: String? = null
-    private var firstTimeLoaded: Boolean = false
+    internal var albumSongCount = 0
+    internal var continuation: String? = null
+    internal var firstTimeLoaded: Boolean = false
+
+    internal constructor(
+        playlistId: String,
+        albumSongCount: Int,
+        continuation: String?,
+        firstTimeLoaded: Boolean,
+    ) : this(playlistId) {
+        this.albumSongCount = albumSongCount
+        this.continuation = continuation
+        this.firstTimeLoaded = firstTimeLoaded
+    }
 
     override suspend fun getInitialStatus(): Queue.Status = withContext(IO) {
         val albumSongs = YouTube.albumSongs(playlistId).getOrThrow()

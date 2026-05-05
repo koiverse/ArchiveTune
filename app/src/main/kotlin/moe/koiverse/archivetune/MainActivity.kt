@@ -101,6 +101,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -161,6 +162,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.isLowRamDevice
@@ -184,6 +186,8 @@ import moe.koiverse.archivetune.constants.MiniPlayerLastAnchorKey
 import moe.koiverse.archivetune.constants.NavigationBarAnimationSpec
 import moe.koiverse.archivetune.constants.PauseSearchHistoryKey
 import moe.koiverse.archivetune.constants.PureBlackKey
+import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
+import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.RemindAfterKey
 import moe.koiverse.archivetune.constants.SYSTEM_DEFAULT
 import moe.koiverse.archivetune.constants.SearchSource
@@ -582,9 +586,6 @@ class MainActivity : ComponentActivity() {
                 remember(darkTheme, isSystemInDarkTheme) {
                     if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
                 }
-            LaunchedEffect(useDarkTheme) {
-                setSystemBarAppearance(useDarkTheme)
-            }
             val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
             val pureBlack = pureBlackEnabled && useDarkTheme
 
@@ -820,6 +821,42 @@ class MainActivity : ComponentActivity() {
                             expandedBound = maxHeight,
                         )
 
+                    val playerBackground by rememberEnumPreference(
+                        key = PlayerBackgroundStyleKey,
+                        defaultValue = PlayerBackgroundStyle.DEFAULT,
+                    )
+
+                    val aodModeEnabled by remember(playerConnection) {
+                        playerConnection?.aodModeEnabled ?: MutableStateFlow(false)
+                    }.collectAsStateWithLifecycle()
+
+                    LaunchedEffect(aodModeEnabled) {
+                        val controller = WindowCompat.getInsetsController(window, window.decorView)
+                        if (aodModeEnabled) {
+                            controller.systemBarsBehavior =
+                                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                            controller.hide(WindowInsetsCompat.Type.systemBars())
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            controller.show(WindowInsetsCompat.Type.systemBars())
+                            controller.systemBarsBehavior =
+                                WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+
+                    LaunchedEffect(useDarkTheme, playerBottomSheetState.isExpanded, playerBackground, aodModeEnabled) {
+                        if (aodModeEnabled) return@LaunchedEffect
+                        val isDarkStatusBar = if (playerBottomSheetState.isExpanded &&
+                            playerBackground != PlayerBackgroundStyle.DEFAULT
+                        ) {
+                            true
+                        } else {
+                            useDarkTheme
+                        }
+                        setSystemBarAppearance(isDarkStatusBar)
+                    }
+
                     val miniPlayerAnchor by remember {
                         derivedStateOf {
                             when {
@@ -963,6 +1000,13 @@ class MainActivity : ComponentActivity() {
 
                         previousRoute = currentRoute
 
+                        if ((currentRoute?.startsWith("artist/") == true ||
+                                currentRoute?.startsWith("album/") == true) &&
+                            playerBottomSheetState.isExpanded
+                        ) {
+                            playerBottomSheetState.collapseSoft()
+                        }
+
                         if (navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
                             val searchQuery =
                                 withContext(Dispatchers.IO) {
@@ -1044,7 +1088,10 @@ class MainActivity : ComponentActivity() {
                         miniPlayerAnchorPersistenceEnabled = true
                     }
 
-                    DisposableEffect(playerConnection, playerBottomSheetState) {
+                    val currentPlayerBottomSheetState = rememberUpdatedState(playerBottomSheetState)
+                    val currentIsYearInMusicScreen = rememberUpdatedState(isYearInMusicScreen)
+
+                    DisposableEffect(playerConnection) {
                         val player =
                             playerConnection?.player ?: return@DisposableEffect onDispose { }
                         val listener =
@@ -1055,10 +1102,10 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED &&
                                         mediaItem != null &&
-                                        playerBottomSheetState.isDismissed &&
-                                        !isYearInMusicScreen
+                                        currentPlayerBottomSheetState.value.isDismissed &&
+                                        !currentIsYearInMusicScreen.value
                                     ) {
-                                        playerBottomSheetState.collapseSoft()
+                                        currentPlayerBottomSheetState.value.collapseSoft()
                                     }
                                 }
                             }
@@ -1122,7 +1169,7 @@ class MainActivity : ComponentActivity() {
                     if (showStarDialog) {
                         StarDialog(
                             onDismissRequest = { showStarDialog = false },
-                            onStar = {
+                            onSupport = {
                                 coroutineScope.launch {
                                     try {
                                         withContext(Dispatchers.IO) {

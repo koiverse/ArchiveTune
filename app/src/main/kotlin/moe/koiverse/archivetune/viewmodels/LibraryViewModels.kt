@@ -126,19 +126,9 @@ constructor(
                                             val collator =
                                                 Collator.getInstance(Locale.getDefault())
                                             collator.strength = Collator.PRIMARY
-                                            songs
-                                                .sortedWith(
-                                                    compareBy(collator) { song: Song ->
-                                                        song.artists.joinToString("") { artist -> artist.name }
-                                                    },
-                                                ).groupBy { it.album?.title }
-                                                .flatMap { (_, songsByAlbum) ->
-                                                    songsByAlbum.sortedBy { album ->
-                                                        album.artists.joinToString(
-                                                            "",
-                                                        ) { artist -> artist.name }
-                                                    }
-                                                }
+                                            songs.sortedWith(compareBy(collator) { song: Song ->
+                                                song.artists.joinToString("") { artist -> artist.name }
+                                            })
                                         }
 
                                         SongSortType.PLAY_TIME -> songs.sortedBy { song: Song -> song.song.totalPlayTime }

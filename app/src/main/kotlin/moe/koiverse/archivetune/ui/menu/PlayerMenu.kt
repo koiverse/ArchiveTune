@@ -840,6 +840,26 @@ fun PlayerMenu(
                             modifier = Modifier.clickable { showPitchTempoDialog = true },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+
+                        ListItem(
+                            headlineContent = { Text(text = stringResource(R.string.aod_mode)) },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.bedtime),
+                                    contentDescription = null,
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                playerConnection.aodModeEnabled.value = true
+                                onDismiss()
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
                     }
                 }
             }

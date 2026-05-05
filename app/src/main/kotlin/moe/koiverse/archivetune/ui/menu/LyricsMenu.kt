@@ -64,6 +64,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import java.util.Locale
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -499,7 +500,13 @@ fun LyricsMenu(
                 }
             }
             var expanded by remember { mutableStateOf(false) }
-            var selectedLanguageCode by rememberSaveable { mutableStateOf("ENGLISH") }
+            val defaultLanguageCode = remember(configuration) {
+                configuration.locales.get(0)
+                    .getDisplayLanguage(Locale.ENGLISH)
+                    .uppercase(Locale.US)
+                    .replace(' ', '_')
+            }
+            var selectedLanguageCode by rememberSaveable { mutableStateOf(defaultLanguageCode) }
             var isTranslating by remember { mutableStateOf(false) }
             val selectedLanguageName =
                 languages.firstOrNull { it.code == selectedLanguageCode }?.name ?: selectedLanguageCode

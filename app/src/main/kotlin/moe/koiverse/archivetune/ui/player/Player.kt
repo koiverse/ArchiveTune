@@ -183,6 +183,9 @@ import moe.koiverse.archivetune.ui.component.MenuState
 import moe.koiverse.archivetune.ui.component.PlayerSliderTrack
 import moe.koiverse.archivetune.ui.component.ResizableIconButton
 import moe.koiverse.archivetune.ui.component.rememberBottomSheetState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.ui.menu.PlayerMenu
 import moe.koiverse.archivetune.ui.screens.settings.DarkMode
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
@@ -291,6 +294,9 @@ fun BottomSheetPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
+    val aodModeEnabled by playerConnection.aodModeEnabled.collectAsStateWithLifecycle()
+    val (thumbnailCornerRadius) = rememberPreference(ThumbnailCornerRadiusKey, defaultValue = 8f)
+
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
 
     var position by rememberSaveable(mediaMetadata?.id) {
@@ -336,6 +342,7 @@ fun BottomSheetPlayer(
     }
     
     LaunchedEffect(mediaMetadata?.id, playerBackground) {
+        if (aodModeEnabled) return@LaunchedEffect
         if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
@@ -527,11 +534,11 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
-    LaunchedEffect(mediaMetadata?.id, playbackState) {
+    LaunchedEffect(mediaMetadata?.id, playbackState, aodModeEnabled) {
         val startTime = SystemClock.elapsedRealtime()
         if (playbackState == STATE_READY) {
             while (isActive) {
-                delay(100)
+                delay(if (aodModeEnabled) 500L else 100L)
                 val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
                 val currentPlayerPosition = playerConnection.player.currentPosition
                 val currentPlayerDuration = playerConnection.player.duration
@@ -616,6 +623,9 @@ fun BottomSheetPlayer(
     LaunchedEffect(state.isExpanded) {
         if (state.isExpanded) {
             focusRequester.requestFocus()
+        }
+        if (!state.isExpanded && aodModeEnabled) {
+            playerConnection.aodModeEnabled.value = false
         }
     }
 
@@ -818,7 +828,7 @@ fun BottomSheetPlayer(
             )
         }
 
-        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.V7) {
+        if (!state.isCollapsed && !aodModeEnabled && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.V7) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -1169,6 +1179,34 @@ fun BottomSheetPlayer(
                         navController = navController
                     )
                 }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = aodModeEnabled,
+            enter = fadeIn(tween(300)),
+            exit = fadeOut(tween(300)),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+        ) {
+            mediaMetadata?.let { metadata ->
+                AodPlayerScreen(
+                    mediaMetadata = metadata,
+                    isPlaying = isPlaying,
+                    position = position,
+                    duration = duration,
+                    sliderPosition = sliderPosition,
+                    canSkipPrevious = canSkipPrevious,
+                    canSkipNext = canSkipNext,
+                    thumbnailCornerRadius = thumbnailCornerRadius,
+                    onPlayPause = { playerConnection.player.togglePlayPause() },
+                    onSkipPrevious = playerConnection::seekToPrevious,
+                    onSkipNext = playerConnection::seekToNext,
+                    onSeek = { sliderPosition = it },
+                    onSeekFinished = onSliderValueChangeFinished,
+                    onExit = { playerConnection.aodModeEnabled.value = false },
+                )
             }
         }
     }

@@ -8,9 +8,9 @@ body:
       label: Bug Submission Checklist
       description: >
         Before submitting, please ensure you have completed the following steps. 
-        Incomplete reports or reports for versions other than the latest debug build may be closed.
+        Incomplete reports or reports for versions other than the latest nightly build may be closed.
       options:
-        - label: I have tested this bug on the [latest debug version](https://github.com/koiverse/ArchiveTune/actions).
+        - label: I have tested this bug on the [latest nightly version](https://github.com/koiverse/ArchiveTune/actions).
           required: true
         - label: I have searched existing issues (open and closed) to avoid duplicates.
           required: true
@@ -73,12 +73,11 @@ body:
     validations:
       required: true
 
-  - type: textarea
+  - type: upload
     id: visual-evidence
     attributes:
       label: Visual Evidence
-      description: Screenshots or screen recordings are highly encouraged to help us diagnose the UI/UX issues.
-      placeholder: Drag and drop files here...
+      description: Attach screenshots, screen recordings, or other relevant files to help diagnose UI or UX issues.
 
   - type: textarea
     id: logs
@@ -88,6 +87,17 @@ body:
         Please provide `adb logcat` output or app-generated logs. 
         **Note:** Without logs, it is often impossible to fix internal crashes.
       placeholder: Paste your logs here or attach a .txt file.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment-release-channel
+    attributes:
+      label: Release Channel
+      description: Select the build channel you are using.
+      options:
+        - Stable
+        - Nightly
     validations:
       required: true
 
