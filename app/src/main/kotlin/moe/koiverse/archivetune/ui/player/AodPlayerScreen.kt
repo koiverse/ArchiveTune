@@ -173,16 +173,14 @@ private fun AodSliderSection(
     val durationText = remember(duration, seekEnabled) {
         if (seekEnabled) makeTimeString(duration) else ""
     }
-    val sliderColors = remember {
-        SliderDefaults.colors(
-            thumbColor = Color.White,
-            activeTrackColor = Color.White,
-            inactiveTrackColor = White30,
-            disabledThumbColor = White30,
-            disabledActiveTrackColor = White30,
-            disabledInactiveTrackColor = White15,
-        )
-    }
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = Color.White,
+        activeTrackColor = Color.White,
+        inactiveTrackColor = White30,
+        disabledThumbColor = White30,
+        disabledActiveTrackColor = White30,
+        disabledInactiveTrackColor = White15,
+    )
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Slider(
@@ -223,12 +221,10 @@ private fun AodControls(
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
 ) {
-    val playButtonColors = remember {
-        IconButtonDefaults.filledIconButtonColors(
-            containerColor = Color.White,
-            contentColor = Color.Black,
-        )
-    }
+    val playButtonColors = IconButtonDefaults.filledIconButtonColors(
+        containerColor = Color.White,
+        contentColor = Color.Black,
+    )
 
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
