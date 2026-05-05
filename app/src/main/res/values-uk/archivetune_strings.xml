@@ -331,4 +331,18 @@
     <string name="local_songs_scan_subtitle">Оновити пісні що зберігаються на цьому пристрої та оновити метадані локальної бібліотеки.</string>
     <string name="local_songs_latest_scan">Останнє сканування</string>
     <string name="local_songs_scan_filters_title">Фільтри сканування</string>
+    <string name="local_songs_scan_filters_note">Зміни набудуть чинності під час наступного сканування цього пристрою.</string>
+    <string name="local_songs_scan_duration_title">Виключити короткі пісні</string>
+    <string name="local_songs_scan_duration_desc">Пропускати пісні, тривалість яких менша за вказану.</string>
+    <string name="local_songs_scan_folders_title">Виключені папки</string>
+    <string name="local_songs_scan_folders_desc">Пропускати пісні, що зберігаються у папках, які відповідають будь-якому з цих шляхів.</string>
+    <string name="local_songs_scan_folders_empty">Поки що жодних папок не виключено.</string>
+    <string name="local_songs_scan_folders_hint">Приклади: Music/Ringtones або Download/Voice Notes</string>
+    <string name="local_songs_scan_folders_add">Додати папку</string>
+    <string name="local_songs_scan_folders_dialog_title">Виключити папку</string>
+    <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>
+    <string name="local_songs_no_matches_title">Локально не знайдено відповідних пісень</string>
+    <string name="local_songs_no_matches_desc">Спробуйте ввести іншу назву пісні, виконавця або альбому.</string>
+    <string name="sort_by_album">Альбом</string>
+    <string name="lyrics_line_blur">Розмиті рядки тексту пісні</string>
 </resources>
