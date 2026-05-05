@@ -63,6 +63,3 @@ body:
     attributes:
       label: Visual Context & Attachments
       description: Add any mockups, screenshots, or diagrams that help visualize the request.
-      placeholder: Drag and drop images here...
-    validations:
-      required: false
