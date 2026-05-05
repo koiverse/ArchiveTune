@@ -1978,6 +1978,53 @@ class MusicService :
         player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
     }
 
+    private fun buildPlayNextShuffleOrder(
+        currentIndex: Int,
+        insertionIndex: Int,
+        insertionCount: Int,
+    ): DefaultShuffleOrder? {
+        if (insertionCount <= 0 || player.currentTimeline.isEmpty) return null
+
+        fun adjustedIndex(index: Int): Int =
+            if (index >= insertionIndex) {
+                index + insertionCount
+            } else {
+                index
+            }
+
+        val timeline = player.currentTimeline
+        val previousIndices = ArrayDeque<Int>()
+        var traversalIndex = currentIndex
+        while (true) {
+            traversalIndex = timeline.getPreviousWindowIndex(traversalIndex, REPEAT_MODE_OFF, true)
+            if (traversalIndex == C.INDEX_UNSET) {
+                break
+            }
+            previousIndices.addFirst(adjustedIndex(traversalIndex))
+        }
+
+        val nextIndices = mutableListOf<Int>()
+        traversalIndex = currentIndex
+        while (true) {
+            traversalIndex = timeline.getNextWindowIndex(traversalIndex, REPEAT_MODE_OFF, true)
+            if (traversalIndex == C.INDEX_UNSET) {
+                break
+            }
+            nextIndices += adjustedIndex(traversalIndex)
+        }
+
+        val shuffledIndices = buildList(player.mediaItemCount + insertionCount) {
+            addAll(previousIndices)
+            add(currentIndex)
+            repeat(insertionCount) { offset ->
+                add(insertionIndex + offset)
+            }
+            addAll(nextIndices)
+        }.toIntArray()
+
+        return DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis())
+    }
+
     fun startRadioSeamlessly() {
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
         if (!isTogetherApplyingRemote() && joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
@@ -2119,10 +2166,20 @@ class MusicService :
             return
         }
         suppressAutoPlayback = false
-        player.addMediaItems(
-            if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1,
-            items
-        )
+        val insertionIndex = if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1
+        val playNextShuffleOrder =
+            if (player.shuffleModeEnabled && player.mediaItemCount > 0) {
+                buildPlayNextShuffleOrder(
+                    currentIndex = player.currentMediaItemIndex,
+                    insertionIndex = insertionIndex,
+                    insertionCount = items.size,
+                )
+            } else {
+                null
+            }
+
+        player.addMediaItems(insertionIndex, items)
+        playNextShuffleOrder?.let(player::setShuffleOrder)
         player.prepare()
     }
 
@@ -4711,7 +4768,7 @@ class MusicService :
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean,
             ) = DefaultAudioSink
-                .Builder(this@MusicService)
+                .Builder(context)
                 .setEnableFloatOutput(false)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
