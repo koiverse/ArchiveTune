@@ -42,7 +42,7 @@
     <string name="most_played_albums">Album yang paling banyak diputar</string>
     <!-- Search -->
     <string name="search">Cari</string>
-    <string name="search_yt_music">Telusuri Musik YouTube…</string>
+    <string name="search_yt_music">Telusuri YouTube Music…</string>
     <string name="search_library">Cari perpustakaan…</string>
     <string name="filter_library">Perpustakaan</string>
     <string name="filter_liked">Disukai</string>
@@ -360,7 +360,7 @@
     <string name="dark_theme_on">Aktif</string>
     <string name="dark_theme_off">Mati</string>
     <string name="show_button">Tampilkan tombol</string>
-    <string name="corner_radius">Jari-jari sudut: %1$d</string>
+    <string name="corner_radius">Radius sudut: %1$d</string>
     <string name="adjust_radius">Sesuaikan radius sudut</string>
     <string name="cancel_button">Batalkan</string>
     <string name="ok_button">Oke</string>
@@ -529,7 +529,7 @@
     <string name="clear_song_cache">Hapus cache lagu</string>
     <string name="size_used">%s digunakan</string>
     <string name="privacy">Privasi</string>
-    <string name="listen_history">Dengarkan sejarah</string>
+    <string name="listen_history">Riwayat Mendengarkan</string>
     <string name="pause_listen_history">Jeda mendengarkan riwayat</string>
     <string name="clear_listen_history">Hapus riwayat mendengarkan</string>
     <string name="clear_listen_history_confirm">Apakah Anda yakin ingin menghapus semua riwayat mendengarkan?</string>
@@ -543,7 +543,7 @@
     <string name="disable_screenshot_desc">Jika opsi ini aktif, tangkapan layar dan tampilan aplikasi di Terbaru akan dinonaktifkan.</string>
     <string name="enable_lrclib">Aktifkan penyedia lirik LrcLib</string>
     <string name="enable_kugou">Aktifkan penyedia lirik KuGou</string>
-    <string name="preload_queue_lyrics">Lirik antrian pramuat</string>
+    <string name="preload_queue_lyrics">Pramuat lirik antrean</string>
     <string name="queue_lyrics_preload_count">Jumlah lagu yang akan dimuat sebelumnya</string>
     <string name="hide_explicit">Sembunyikan konten eksplisit</string>
     <string name="hide_video">Sembunyikan video musik</string>
@@ -744,7 +744,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="playlist_suggestion_source_title">Judul daftar putar</string>
     <string name="playlist_suggestion_source_content">Konten daftar putar</string>
     <string name="playlist_suggestion_source_both">Judul dan konten daftar putar</string>
-    <string name="music_together">ArsipTune Musik Bersama</string>
+    <string name="music_together">ArchiveTune Musik Bersama</string>
     <string name="together_display_name">Nama tampilan</string>
     <string name="together_display_name_placeholder">Namamu</string>
     <string name="together_port">Pelabuhan sesi</string>
@@ -801,7 +801,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="got_it">Mengerti</string>
     <string name="together_dont_show_again">Jangan tampilkan ini lagi</string>
     <string name="together_welcome_title">Selamat datang di ArchiveTune Musik Bersama</string>
-    <string name="together_welcome_body">Music Together memungkinkan beberapa perangkat berbagi sesi langsung dengan antrean dan pemutaran yang disinkronkan.</string>
+    <string name="together_welcome_body">Musik Bersama memungkinkan beberapa perangkat berbagi sesi langsung dengan antrean dan pemutaran yang disinkronkan.</string>
     <string name="together_welcome_host_title">Selenggarakan sesi</string>
     <string name="together_welcome_host_body">Ketuk Mulai sesi, lalu bagikan tautan sesi. Biarkan ArchiveTune tetap terbuka di latar belakang saat menghosting.</string>
     <string name="together_welcome_join_title">Bergabunglah dari perangkat lain</string>
@@ -837,4 +837,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="po_token_account_notice_body">Masuk di sini dengan akun Google yang sama yang sudah Anda gunakan untuk YouTube Music di dalam ArchiveTune sebelum membuat token PO.</string>
     <string name="po_token_account_notice_same_account">Jika WebView ini menggunakan akun lain, token yang dihasilkan tidak akan berfungsi dengan benar.</string>
     <string name="po_token_account_notice_mismatch">Gunakan akun yang cocok, selesaikan alur masuk, lalu buka youtube.com/account dan buat token dari halaman tersebut.</string>
+    <string name="clear_lyrics_cache">Bersihkan cache lirik</string>
+    <string name="clear_lyrics_cache_confirm">Apakah kamu yakin ingin membersihkan semua cache lirik?</string>
+    <string name="enable_paxsenix_lyrics">Aktifkan lirik Paxsenix</string>
 </resources>
