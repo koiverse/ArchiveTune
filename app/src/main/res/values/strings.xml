@@ -637,6 +637,10 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="close_dialog">Close</string>
     <string name="select_dialog">Select</string>
     <string name="support_github">Star ArchiveTune!</string>
+    <string name="support_development_title">Support development</string>
+    <string name="support_development_message">Hey there! I\'m Koiverse, the developer of ArchiveTune. If ArchiveTune has earned a place in your daily listening, you can help keep it moving forward by donating or starring the project on GitHub. Thanks for supporting the work behind the app.</string>
+    <string name="support_development_donate">Donate to support development</string>
+    <string name="support_development_star">Star on GitHub</string>
     <!-- Update dialog -->
     <string name="new_update_available">New update available</string>
     <string name="release_notes_unavailable">Release notes are unavailable</string>

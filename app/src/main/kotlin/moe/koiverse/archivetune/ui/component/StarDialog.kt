@@ -12,34 +12,29 @@
 
 package moe.koiverse.archivetune.ui.component
 
-import android.content.Intent
-import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Button
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.R
 
@@ -47,75 +42,73 @@ import moe.koiverse.archivetune.R
 @Composable
 fun StarDialog(
     onDismissRequest: () -> Unit,
-    onStar: () -> Unit,
+    onSupport: () -> Unit,
     onLater: () -> Unit,
 ) {
-    val context = LocalContext.current
-    AlertDialog(
+    val uriHandler = LocalUriHandler.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        title = {
-            Text(text = "Support development", style = MaterialTheme.typography.titleLarge)
-        },
-        text = {
-            Column {
-                Text(
-                    text = "Hey there! I\'m Koiverse, the developer of ArchiveTune. I have been putting a lot of love into making this app better every day. \n\nIf you enjoy using ArchiveTune, you can support its development by giving the project a star — it really helps and keeps me motivated to keep improving it!\n\nThanks a bunch for your support and for being part of this journey!",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-        },
-        confirmButton = {
-            FilledTonalButton(
+        sheetState = sheetState,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.support_development_title),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+
+            Text(
+                text = stringResource(R.string.support_development_message),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            Button(
                 onClick = {
-                    try {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://t.me/ArchiveTuneGC")
-                        )
-                        context.startActivity(intent)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                    uriHandler.openUri("https://koiiverse.cloud/donate")
+                    onSupport()
                 },
-                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.telegram),
-                    contentDescription = "Telegram",
+                    painter = painterResource(id = R.drawable.coffee),
+                    contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "Telegram")
+                Text(text = stringResource(R.string.support_development_donate))
             }
+
             FilledTonalButton(
                 onClick = {
-                    try {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://github.com/koiverse/ArchiveTune")
-                        )
-                        context.startActivity(intent)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                    onStar()
+                    uriHandler.openUri("https://github.com/koiverse/ArchiveTune")
+                    onSupport()
                 },
-                colors = ButtonDefaults.buttonColors(),
+                modifier = Modifier.fillMaxWidth(),
                 shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.star),
-                    contentDescription = "Star",
+                    contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "Star")
+                Text(text = stringResource(R.string.support_development_star))
+            }
+
+            TextButton(
+                onClick = onLater,
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(text = stringResource(R.string.later))
             }
         },
-        dismissButton = {
-            TextButton(onClick = onLater, shapes = ButtonDefaults.shapes()) {
-                Text(text = "Later")
-            }
-        }
-    )
+    }
 }

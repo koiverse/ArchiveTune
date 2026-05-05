@@ -1169,7 +1169,7 @@ class MainActivity : ComponentActivity() {
                     if (showStarDialog) {
                         StarDialog(
                             onDismissRequest = { showStarDialog = false },
-                            onStar = {
+                            onSupport = {
                                 coroutineScope.launch {
                                     try {
                                         withContext(Dispatchers.IO) {
