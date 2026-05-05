@@ -338,4 +338,5 @@
     <string name="local_songs_no_matches_title">Không có bài hát nội bộ phù hợp</string>
     <string name="local_songs_no_matches_desc">Hãy thử một bài hát, nghệ sĩ hoặc tên album khác.</string>
     <string name="sort_by_album">Album</string>
+    <string name="lyrics_line_blur">Làm mờ lời bài hát</string>
 </resources>
