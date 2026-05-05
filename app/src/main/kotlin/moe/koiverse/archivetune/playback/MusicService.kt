@@ -4706,7 +4706,16 @@ class MusicService :
         }
 
         override fun open(dataSpec: DataSpec): Long {
-            val selectedFactory = if (dataSpec.uri.shouldBypassPlayerCache()) directFactory else cachedFactory
+            val normalizedScheme = dataSpec.uri.scheme?.lowercase(Locale.US)
+            val selectedFactory = if (
+                normalizedScheme == "content" ||
+                normalizedScheme == "file" ||
+                normalizedScheme == "android.resource"
+            ) {
+                directFactory
+            } else {
+                cachedFactory
+            }
             val selectedDataSource = selectedFactory.createDataSource()
             transferListeners.forEach(selectedDataSource::addTransferListener)
             delegate = selectedDataSource
