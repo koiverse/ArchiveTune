@@ -1,15 +1,6 @@
 name: Notify Issue Author
 
-on:
-  push:
-    branches: [ 'main', 'dev' ]
-    paths-ignore:
-      - 'README.md'
-      - 'fastlane/**'
-      - 'assets/**'
-      - '.github/**/*.md'
-      - '.github/FUNDING.yml'
-      - '.github/ISSUE_TEMPLATE/**'
+on: [push]
 
 jobs:
   notify-author:
