@@ -109,6 +109,6 @@ fun StarDialog(
             ) {
                 Text(text = stringResource(R.string.later))
             }
-        },
+        }
     }
 }
