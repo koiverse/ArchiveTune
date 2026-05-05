@@ -62,6 +62,7 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
 import androidx.media3.datasource.cache.Cache
@@ -1977,6 +1978,53 @@ class MusicService :
         player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
     }
 
+    private fun buildPlayNextShuffleOrder(
+        currentIndex: Int,
+        insertionIndex: Int,
+        insertionCount: Int,
+    ): DefaultShuffleOrder? {
+        if (insertionCount <= 0 || player.currentTimeline.isEmpty) return null
+
+        fun adjustedIndex(index: Int): Int =
+            if (index >= insertionIndex) {
+                index + insertionCount
+            } else {
+                index
+            }
+
+        val timeline = player.currentTimeline
+        val previousIndices = ArrayDeque<Int>()
+        var traversalIndex = currentIndex
+        while (true) {
+            traversalIndex = timeline.getPreviousWindowIndex(traversalIndex, REPEAT_MODE_OFF, true)
+            if (traversalIndex == C.INDEX_UNSET) {
+                break
+            }
+            previousIndices.addFirst(adjustedIndex(traversalIndex))
+        }
+
+        val nextIndices = mutableListOf<Int>()
+        traversalIndex = currentIndex
+        while (true) {
+            traversalIndex = timeline.getNextWindowIndex(traversalIndex, REPEAT_MODE_OFF, true)
+            if (traversalIndex == C.INDEX_UNSET) {
+                break
+            }
+            nextIndices += adjustedIndex(traversalIndex)
+        }
+
+        val shuffledIndices = buildList(player.mediaItemCount + insertionCount) {
+            addAll(previousIndices)
+            add(currentIndex)
+            repeat(insertionCount) { offset ->
+                add(insertionIndex + offset)
+            }
+            addAll(nextIndices)
+        }.toIntArray()
+
+        return DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis())
+    }
+
     fun startRadioSeamlessly() {
         val joined = togetherSessionState.value as? moe.koiverse.archivetune.together.TogetherSessionState.Joined
         if (!isTogetherApplyingRemote() && joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest) {
@@ -2118,10 +2166,20 @@ class MusicService :
             return
         }
         suppressAutoPlayback = false
-        player.addMediaItems(
-            if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1,
-            items
-        )
+        val insertionIndex = if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1
+        val playNextShuffleOrder =
+            if (player.shuffleModeEnabled && player.mediaItemCount > 0) {
+                buildPlayNextShuffleOrder(
+                    currentIndex = player.currentMediaItemIndex,
+                    insertionIndex = insertionIndex,
+                    insertionCount = items.size,
+                )
+            } else {
+                null
+            }
+
+        player.addMediaItems(insertionIndex, items)
+        playNextShuffleOrder?.let(player::setShuffleOrder)
         player.prepare()
     }
 
@@ -4308,6 +4366,7 @@ class MusicService :
         super.onPlayerError(error)
 
         val currentMediaId = player.currentMediaItem?.mediaId ?: return
+        val isLocalMedia = currentMediaId.isLocalMediaId()
 
         val isFullyCachedMedia = runCatching {
             val cachedInDownload = downloadCache.getContentMetadata(currentMediaId).get(ContentMetadata.KEY_CONTENT_LENGTH, -1L) > 0L
@@ -4318,7 +4377,7 @@ class MusicService :
         val isConnectionError = (error.cause?.cause is PlaybackException) &&
                 (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
 
-        if (!isFullyCachedMedia && (!isNetworkConnected.value || isConnectionError)) {
+        if (!isLocalMedia && !isFullyCachedMedia && (!isNetworkConnected.value || isConnectionError)) {
             waitOnNetworkError()
             return
         }
@@ -4405,10 +4464,19 @@ class MusicService :
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
     private fun createDataSourceFactory(): DataSource.Factory {
-        return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
-            resolvePlaybackDataSpec(
-                dataSpec = dataSpec,
-                allowCacheShortCircuit = true,
+        val cachedFactory =
+            ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
+                resolvePlaybackDataSpec(
+                    dataSpec = dataSpec,
+                    allowCacheShortCircuit = true,
+                )
+            }
+        val directFactory = createResolvedUpstreamDataSourceFactory()
+
+        return DataSource.Factory {
+            SchemeRoutingDataSource(
+                cachedFactory = cachedFactory,
+                directFactory = directFactory,
             )
         }
     }
@@ -4603,6 +4671,13 @@ class MusicService :
             normalizedScheme == "https"
     }
 
+    private fun Uri.shouldBypassPlayerCache(): Boolean {
+        val normalizedScheme = scheme?.lowercase(Locale.US)
+        return normalizedScheme == "content" ||
+            normalizedScheme == "file" ||
+            normalizedScheme == "android.resource"
+    }
+
     private fun deviceSupportsMimeType(mimeType: String): Boolean {
         return runCatching {
             val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
@@ -4617,6 +4692,48 @@ class MusicService :
             createDataSourceFactory(),
             DefaultExtractorsFactory(),
         )
+
+    private class SchemeRoutingDataSource(
+        private val cachedFactory: DataSource.Factory,
+        private val directFactory: DataSource.Factory,
+    ) : DataSource {
+        private val transferListeners = mutableListOf<TransferListener>()
+        private var delegate: DataSource? = null
+
+        override fun addTransferListener(transferListener: TransferListener) {
+            transferListeners += transferListener
+            delegate?.addTransferListener(transferListener)
+        }
+
+        override fun open(dataSpec: DataSpec): Long {
+            val normalizedScheme = dataSpec.uri.scheme?.lowercase(Locale.US)
+            val selectedFactory = if (
+                normalizedScheme == "content" ||
+                normalizedScheme == "file" ||
+                normalizedScheme == "android.resource"
+            ) {
+                directFactory
+            } else {
+                cachedFactory
+            }
+            val selectedDataSource = selectedFactory.createDataSource()
+            transferListeners.forEach(selectedDataSource::addTransferListener)
+            delegate = selectedDataSource
+            return selectedDataSource.open(dataSpec)
+        }
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int =
+            checkNotNull(delegate).read(buffer, offset, length)
+
+        override fun getUri(): Uri? = delegate?.uri
+
+        override fun getResponseHeaders(): Map<String, List<String>> = delegate?.responseHeaders ?: emptyMap()
+
+        override fun close() {
+            delegate?.close()
+            delegate = null
+        }
+    }
 
     private fun updateAudioOffload(enabled: Boolean) {
         runCatching {
@@ -4660,7 +4777,7 @@ class MusicService :
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean,
             ) = DefaultAudioSink
-                .Builder(this@MusicService)
+                .Builder(context)
                 .setEnableFloatOutput(false)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(

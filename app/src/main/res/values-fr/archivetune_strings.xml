@@ -343,4 +343,5 @@
     <string name="local_songs_no_matches_title">Aucun titre local correspondant</string>
     <string name="local_songs_no_matches_desc">Essayez un autre titre, artiste ou nom d\'album.</string>
     <string name="sort_by_album">Album</string>
+    <string name="lyrics_line_blur">Lignes de paroles floues</string>
 </resources>

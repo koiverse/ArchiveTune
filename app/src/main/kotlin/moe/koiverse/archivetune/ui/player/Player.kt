@@ -114,6 +114,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -189,6 +190,7 @@ import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.ui.menu.PlayerMenu
 import moe.koiverse.archivetune.ui.screens.settings.DarkMode
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
+import moe.koiverse.archivetune.ui.utils.resize
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -205,6 +207,9 @@ import kotlin.math.roundToLong
 
 private const val SeekbarSettleToleranceMs = 1_500L
 private const val V7BackdropBlurHeightFraction = 0.54f // The height of the blur layout in PlayerDesignStyle V7
+private const val V7BackdropMinArtworkSizePx = 1_024
+private const val V7BackdropMaxArtworkSizePx = 2_048
+private const val V7BackdropOverscanFactor = 1.15f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1219,6 +1224,8 @@ private fun V7PlayerBackdrop(
     label: String,
     modifier: Modifier = Modifier,
 ) {
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
     val cloudyRadius = 100
     val blurMaskStart = (1f - V7BackdropBlurHeightFraction).coerceIn(0f, 0.85f)
     val blurMaskMid = (blurMaskStart + 0.12f).coerceIn(blurMaskStart, 0.95f)
@@ -1226,6 +1233,19 @@ private fun V7PlayerBackdrop(
     val baseArtworkScale = if (disableBlur) 1.03f else 1.06f
     val baseArtworkAlpha = if (disableBlur) 0.72f else 0.82f
     val surfaceTint = MaterialTheme.colorScheme.surface
+    val backdropArtworkSizePx = remember(
+        configuration.screenWidthDp,
+        configuration.screenHeightDp,
+        density.density,
+        baseArtworkScale,
+    ) {
+        with(density) {
+            (maxOf(configuration.screenWidthDp, configuration.screenHeightDp).dp.toPx() *
+                maxOf(baseArtworkScale, V7BackdropOverscanFactor))
+                .roundToInt()
+                .coerceIn(V7BackdropMinArtworkSizePx, V7BackdropMaxArtworkSizePx)
+        }
+    }
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -1238,9 +1258,13 @@ private fun V7PlayerBackdrop(
             label = label,
         ) { artworkUrl ->
             if (artworkUrl != null) {
+                val backdropArtworkModel = remember(artworkUrl, backdropArtworkSizePx) {
+                    artworkUrl.resize(backdropArtworkSizePx, backdropArtworkSizePx)
+                }
+
                 Box(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
-                        model = artworkUrl,
+                        model = backdropArtworkModel,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -1254,7 +1278,7 @@ private fun V7PlayerBackdrop(
 
                     if (!disableBlur) {
                         AsyncImage(
-                            model = artworkUrl,
+                            model = backdropArtworkModel,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
