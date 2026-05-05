@@ -21,6 +21,7 @@ import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.ui.utils.resize
+import moe.koiverse.archivetune.utils.isLocalMediaId
 
 const val ExtraIsMusicVideo = "moe.koiverse.archivetune.extra.IS_MUSIC_VIDEO"
 private const val NotificationArtworkSizePx = 544
@@ -30,12 +31,19 @@ val MediaItem.metadata: MediaMetadata?
 
 private fun String?.toNotificationArtworkUri() = this?.resize(NotificationArtworkSizePx, NotificationArtworkSizePx)?.toUri()
 
+private fun MediaItem.Builder.setCacheKeyIfRemote(mediaId: String): MediaItem.Builder {
+    if (!mediaId.isLocalMediaId()) {
+        setCustomCacheKey(mediaId)
+    }
+    return this
+}
+
 fun Song.toMediaItem() =
     MediaItem
         .Builder()
         .setMediaId(song.id)
         .setUri(song.id)
-        .setCustomCacheKey(song.id)
+        .setCacheKeyIfRemote(song.id)
         .setTag(toMediaMetadata())
         .setMediaMetadata(
             androidx.media3.common.MediaMetadata
@@ -56,7 +64,7 @@ fun SongItem.toMediaItem() =
         .Builder()
         .setMediaId(id)
         .setUri(id)
-        .setCustomCacheKey(id)
+        .setCacheKeyIfRemote(id)
         .setTag(toMediaMetadata())
         .setMediaMetadata(
             androidx.media3.common.MediaMetadata
@@ -77,7 +85,7 @@ fun MediaMetadata.toMediaItem() =
         .Builder()
         .setMediaId(id)
         .setUri(id)
-        .setCustomCacheKey(id)
+        .setCacheKeyIfRemote(id)
         .setTag(this)
         .setMediaMetadata(
             androidx.media3.common.MediaMetadata
