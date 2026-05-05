@@ -15,11 +15,21 @@ jobs:
   notify-author:
     runs-on: ubuntu-latest
     steps:
+      - name: Extract issue number from commit message
+        id: extract_issue
+        shell: bash
+        run: |
+          message="${{ github.event.head_commit.message }}"
+          if [[ "$message" =~ \#([0-9]+) ]]; then
+            echo "issue_number=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Comment on issue
+        if: ${{ steps.extract_issue.outputs.issue_number != '' }}
         uses: peter-evans/create-or-update-comment@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.head_commit.message }} # Requires custom regex parsing
+          issue-number: ${{ steps.extract_issue.outputs.issue_number }}
           body: |
             Hello, and thank you for your report.
 
@@ -29,3 +39,7 @@ jobs:
             Please try the latest nightly build once it becomes available and check whether the issue is resolved.
 
             If the issue is fixed in the nightly build, please close this issue. If it is still reproducible, leave a comment with any updated details so we can continue investigating.
+
+      - name: Skip when no issue number is present
+        if: ${{ steps.extract_issue.outputs.issue_number == '' }}
+        run: echo "No issue reference found in the head commit message; skipping comment."
