@@ -58,8 +58,8 @@ body:
     validations:
       required: false
 
-  - type: textarea
-    id: visual-context
+  - type: upload
+    id: visual-evidence
     attributes:
       label: Visual Context & Attachments
       description: Add any mockups, screenshots, or diagrams that help visualize the request.
