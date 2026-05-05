@@ -1,0 +1,31 @@
+name: Notify Issue Author
+
+on:
+  push:
+    branches: [ 'main', 'dev' ]
+    paths-ignore:
+      - 'README.md'
+      - 'fastlane/**'
+      - 'assets/**'
+      - '.github/**/*.md'
+      - '.github/FUNDING.yml'
+      - '.github/ISSUE_TEMPLATE/**'
+
+jobs:
+  notify-author:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on issue
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.head_commit.message }} # Requires custom regex parsing
+          body: |
+            Hello, and thank you for your report.
+
+            A new commit that may address this issue has been pushed:
+            ${{ github.event.head_commit.url }}
+
+            Please try the latest nightly build once it becomes available and check whether the issue is resolved.
+
+            If the issue is fixed in the nightly build, please close this issue. If it is still reproducible, leave a comment with any updated details so we can continue investigating.
