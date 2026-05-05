@@ -62,6 +62,7 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
 import androidx.media3.datasource.cache.Cache
@@ -4308,6 +4309,7 @@ class MusicService :
         super.onPlayerError(error)
 
         val currentMediaId = player.currentMediaItem?.mediaId ?: return
+        val isLocalMedia = currentMediaId.isLocalMediaId()
 
         val isFullyCachedMedia = runCatching {
             val cachedInDownload = downloadCache.getContentMetadata(currentMediaId).get(ContentMetadata.KEY_CONTENT_LENGTH, -1L) > 0L
@@ -4318,7 +4320,7 @@ class MusicService :
         val isConnectionError = (error.cause?.cause is PlaybackException) &&
                 (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
 
-        if (!isFullyCachedMedia && (!isNetworkConnected.value || isConnectionError)) {
+        if (!isLocalMedia && !isFullyCachedMedia && (!isNetworkConnected.value || isConnectionError)) {
             waitOnNetworkError()
             return
         }
@@ -4405,10 +4407,19 @@ class MusicService :
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
     private fun createDataSourceFactory(): DataSource.Factory {
-        return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
-            resolvePlaybackDataSpec(
-                dataSpec = dataSpec,
-                allowCacheShortCircuit = true,
+        val cachedFactory =
+            ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
+                resolvePlaybackDataSpec(
+                    dataSpec = dataSpec,
+                    allowCacheShortCircuit = true,
+                )
+            }
+        val directFactory = createResolvedUpstreamDataSourceFactory()
+
+        return DataSource.Factory {
+            SchemeRoutingDataSource(
+                cachedFactory = cachedFactory,
+                directFactory = directFactory,
             )
         }
     }
@@ -4603,6 +4614,13 @@ class MusicService :
             normalizedScheme == "https"
     }
 
+    private fun Uri.shouldBypassPlayerCache(): Boolean {
+        val normalizedScheme = scheme?.lowercase(Locale.US)
+        return normalizedScheme == "content" ||
+            normalizedScheme == "file" ||
+            normalizedScheme == "android.resource"
+    }
+
     private fun deviceSupportsMimeType(mimeType: String): Boolean {
         return runCatching {
             val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
@@ -4617,6 +4635,39 @@ class MusicService :
             createDataSourceFactory(),
             DefaultExtractorsFactory(),
         )
+
+    private class SchemeRoutingDataSource(
+        private val cachedFactory: DataSource.Factory,
+        private val directFactory: DataSource.Factory,
+    ) : DataSource {
+        private val transferListeners = mutableListOf<TransferListener>()
+        private var delegate: DataSource? = null
+
+        override fun addTransferListener(transferListener: TransferListener) {
+            transferListeners += transferListener
+            delegate?.addTransferListener(transferListener)
+        }
+
+        override fun open(dataSpec: DataSpec): Long {
+            val selectedFactory = if (dataSpec.uri.shouldBypassPlayerCache()) directFactory else cachedFactory
+            val selectedDataSource = selectedFactory.createDataSource()
+            transferListeners.forEach(selectedDataSource::addTransferListener)
+            delegate = selectedDataSource
+            return selectedDataSource.open(dataSpec)
+        }
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int =
+            checkNotNull(delegate).read(buffer, offset, length)
+
+        override fun getUri(): Uri? = delegate?.uri
+
+        override fun getResponseHeaders(): Map<String, List<String>> = delegate?.responseHeaders ?: emptyMap()
+
+        override fun close() {
+            delegate?.close()
+            delegate = null
+        }
+    }
 
     private fun updateAudioOffload(enabled: Boolean) {
         runCatching {
