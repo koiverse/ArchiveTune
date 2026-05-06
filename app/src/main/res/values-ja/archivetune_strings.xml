@@ -45,7 +45,6 @@
     <string name="local_songs_scan_folders_title">除外フォルダー</string>
     <string name="local_songs_scan_folders_desc">これらのパスのいずれかに一致するフォルダーに保存されている曲をスキップします。</string>
     <string name="local_songs_scan_folders_empty">まだ除外されたフォルダーはありません。</string>
-    <string name="local_songs_scan_folders_hint">例: 音楽/着信音またはダウンロード/ボイスメモ</string>
     <string name="local_songs_scan_folders_add">フォルダーの追加</string>
     <string name="local_songs_scan_folders_dialog_title">除外フォルダー</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>

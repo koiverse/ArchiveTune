@@ -45,7 +45,6 @@
     <string name="local_songs_scan_folders_title">Excluded folders</string>
     <string name="local_songs_scan_folders_desc">Skip songs stored in folders that match any of these paths.</string>
     <string name="local_songs_scan_folders_empty">No folders excluded yet.</string>
-    <string name="local_songs_scan_folders_hint">Examples: Music/Ringtones or Download/Voice Notes</string>
     <string name="local_songs_scan_folders_add">Add folder</string>
     <string name="local_songs_scan_folders_dialog_title">Exclude folder</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>

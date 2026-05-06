@@ -334,7 +334,6 @@
     <string name="local_songs_scan_folders_title">Carpetas excluidas</string>
     <string name="local_songs_scan_folders_desc">Omite las canciones almacenadas en carpetas que coincidan con cualquiera de estas rutas.</string>
     <string name="local_songs_scan_folders_empty">Aún no se ha excluido ninguna carpeta.</string>
-    <string name="local_songs_scan_folders_hint">Ejemplos: Música/Tonos de llamada o Descargas/Notas de voz</string>
     <string name="local_songs_scan_folders_add">Añadir carpeta</string>
     <string name="local_songs_scan_folders_dialog_title">Excluir carpeta</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Música/Tonos de llamada</string>

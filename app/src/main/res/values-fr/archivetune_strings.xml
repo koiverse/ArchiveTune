@@ -336,7 +336,6 @@
     <string name="local_songs_scan_folders_title">Dossiers exclus</string>
     <string name="local_songs_scan_folders_desc">Ignorez les titres stockés dans les dossiers dont le chemin correspond à l\'un de ces chemins.</string>
     <string name="local_songs_scan_folders_empty">Aucun dossier n\'a encore été exclu.</string>
-    <string name="local_songs_scan_folders_hint">Exemples : Musique/Sonneries ou Téléchargements/Notes vocales</string>
     <string name="local_songs_scan_folders_add">Ajouter un dossier</string>
     <string name="local_songs_scan_folders_dialog_title">Exclure le dossier</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Musique/Sonneries</string>

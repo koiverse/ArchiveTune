@@ -45,7 +45,6 @@
     <string name="local_songs_scan_folders_title">Folder yang dikecualikan</string>
     <string name="local_songs_scan_folders_desc">Lewati lagu yang disimpan dalam folder yang cocok dengan salah satu jalur ini.</string>
     <string name="local_songs_scan_folders_empty">Belum ada folder yang dikecualikan.</string>
-    <string name="local_songs_scan_folders_hint">Contoh: Musik/Nada Dering atau Unduhan/Catatan Suara</string>
     <string name="local_songs_scan_folders_add">Tambahkan folder</string>
     <string name="local_songs_scan_folders_dialog_title">Kecualikan folder</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Musik/Nada dering</string>

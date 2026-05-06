@@ -315,7 +315,6 @@
     <string name="local_songs_scan_folders_title">Исключённые папки</string>
     <string name="local_songs_scan_folders_desc">Пропустить песни хранящиеся в папках которые совпадают с этими путями.</string>
     <string name="local_songs_scan_folders_empty">Пока что нет исключённых папок.</string>
-    <string name="local_songs_scan_folders_hint">Пример: Music/Ringtones или Download/Voice Notes</string>
     <string name="local_songs_scan_folders_add">Добавить папку</string>
     <string name="local_songs_scan_folders_dialog_title">Исключить папку</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>

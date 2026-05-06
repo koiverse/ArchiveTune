@@ -45,7 +45,6 @@
     <string name="local_songs_scan_folders_title">제외된 폴더</string>
     <string name="local_songs_scan_folders_desc">이러한 경로와 일치하는 폴더에 저장된 노래를 건너뜁니다.</string>
     <string name="local_songs_scan_folders_empty">아직 제외된 폴더가 없습니다.</string>
-    <string name="local_songs_scan_folders_hint">예: 음악/벨소리 또는 다운로드/음성 메모</string>
     <string name="local_songs_scan_folders_add">폴더 추가</string>
     <string name="local_songs_scan_folders_dialog_title">폴더 제외</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>

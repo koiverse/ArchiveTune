@@ -883,12 +883,6 @@ private fun LocalSongScanSheet(
                                 }
                             }
                         }
-
-                        Text(
-                            text = stringResource(R.string.local_songs_scan_folders_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 }
             }

@@ -331,7 +331,6 @@
     <string name="local_songs_scan_folders_title">Các thư mục bị loại trừ</string>
     <string name="local_songs_scan_folders_desc">Bỏ qua các bài hát được lưu trữ trong các thư mục phù hợp với bất kỳ đường dẫn nào trong số này.</string>
     <string name="local_songs_scan_folders_empty">Chưa có thư mục nào bị loại trừ.</string>
-    <string name="local_songs_scan_folders_hint">Ví dụ: Music/Ringtones hoặc Download/Voice Notes</string>
     <string name="local_songs_scan_folders_add">Thêm thư mục</string>
     <string name="local_songs_scan_folders_dialog_title">Loại trừ thư mục</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>

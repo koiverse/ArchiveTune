@@ -274,7 +274,6 @@
     <string name="local_songs_scan_folders_title">Pastas excluídas</string>
     <string name="local_songs_scan_folders_desc">Ignore as músicas armazenadas em pastas que correspondam a qualquer um destes caminhos.</string>
     <string name="local_songs_scan_folders_empty">Nenhuma pasta foi excluída ainda.</string>
-    <string name="local_songs_scan_folders_hint">Exemplos: Music/Ringtones ou Download/Voice Notes</string>
     <string name="local_songs_scan_folders_add">Adicionar pasta</string>
     <string name="local_songs_scan_folders_dialog_title">Excluir pasta</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Música/Toques</string>
