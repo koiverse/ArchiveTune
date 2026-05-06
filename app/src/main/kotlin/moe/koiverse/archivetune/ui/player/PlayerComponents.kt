@@ -116,6 +116,7 @@ import moe.koiverse.archivetune.ui.menu.PlayerMenu
 import moe.koiverse.archivetune.ui.theme.PlayerBackgroundColorUtils
 import moe.koiverse.archivetune.ui.theme.PlayerSliderColors
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
+import moe.koiverse.archivetune.ui.utils.highRes
 import moe.koiverse.archivetune.utils.makeTimeString
 
 @Composable
@@ -1869,7 +1870,7 @@ fun PlayerBackground(
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = thumbnailUrl,
+                                model = thumbnailUrl.highRes(),
                                 contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
@@ -1970,7 +1971,7 @@ fun PlayerBackground(
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = thumbnailUrl,
+                                model = thumbnailUrl.highRes(),
                                 contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
