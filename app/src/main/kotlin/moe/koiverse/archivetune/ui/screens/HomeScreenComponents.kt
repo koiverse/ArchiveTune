@@ -122,7 +122,8 @@ import moe.koiverse.archivetune.ui.menu.YouTubeAlbumMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeArtistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubePlaylistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
-import moe.koiverse.archivetune.ui.utils.SnapLayoutInfoProvider
+import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
+import moe.koiverse.archivetune.ui.utils.SnapLayoutInfoProvider as buildSnapLayoutInfoProvider
 import moe.koiverse.archivetune.models.SimilarRecommendation
 import kotlin.math.ceil
 import kotlin.random.Random
@@ -267,7 +268,7 @@ fun QuickPicksSection(
             val itemWidth = maxWidth * widthFactor
             val lazyGridState = rememberLazyGridState()
             val snapLayoutInfoProvider = remember(lazyGridState, widthFactor) {
-                SnapLayoutInfoProvider(
+                buildSnapLayoutInfoProvider(
                     lazyGridState = lazyGridState,
                     positionInLayout = { layoutSize, itemSize ->
                         layoutSize * widthFactor / 2f - itemSize / 2f
