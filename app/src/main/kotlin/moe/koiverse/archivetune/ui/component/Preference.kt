@@ -37,8 +37,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -298,36 +298,53 @@ fun <T> ListPreference(
         mutableStateOf(false)
     }
     if (showDialog) {
-        ListDialog(
+        var pendingValue by remember { mutableStateOf(selectedValue) }
+        DefaultDialog(
             onDismiss = { showDialog = false },
-        ) {
-            items(values) { value ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .selectable(
-                            selected = value == selectedValue,
-                            onClick = {
-                                showDialog = false
-                                onValueSelected(value)
-                            },
-                            role = Role.RadioButton,
-                        )
-                        .padding(horizontal = 16.dp),
+            title = title,
+            contentScrollable = true,
+            buttons = {
+                TextButton(
+                    onClick = { showDialog = false },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
-                    RadioButton(
-                        selected = value == selectedValue,
-                        onClick = null,
-                    )
-
-                    Text(
-                        text = valueText(value),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(start = 16.dp),
-                    )
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(
+                    onClick = {
+                        onValueSelected(pendingValue)
+                        showDialog = false
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+        ) {
+            Column {
+                values.forEach { value ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .selectable(
+                                selected = value == pendingValue,
+                                onClick = { pendingValue = value },
+                                role = Role.RadioButton,
+                            )
+                            .padding(horizontal = 16.dp),
+                    ) {
+                        RadioButton(
+                            selected = value == pendingValue,
+                            onClick = null,
+                        )
+                        Text(
+                            text = valueText(value),
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 16.dp),
+                        )
+                    }
                 }
             }
         }
