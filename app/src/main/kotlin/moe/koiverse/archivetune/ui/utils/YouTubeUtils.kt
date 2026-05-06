@@ -17,18 +17,47 @@ fun String.resize(
     height: Int? = null,
 ): String {
     if (width == null && height == null) return this
-    "https://lh3\\.googleusercontent\\.com/.*=w(\\d+)-h(\\d+).*".toRegex()
-        .matchEntire(this)?.groupValues?.let { group ->
-        val (W, H) = group.drop(1).map { it.toInt() }
-        var w = width
-        var h = height
-        if (w != null && h == null) h = (w / W) * H
-        if (w == null && h != null) w = (h / H) * W
-        return "${split("=w")[0]}=w$w-h$h-p-l90-rj"
+
+    // Support for various Google CDN domains (lh3-6, yt3, etc.)
+    val isGoogleCdn = contains("googleusercontent.com") || contains("ggpht.com")
+    val isYtimg = contains("i.ytimg.com")
+
+    if (isGoogleCdn) {
+        val w = width ?: height!!
+        val h = height ?: width!!
+
+        // Handle wNNN-hNNN pattern often used in path segments
+        if (contains(Regex("w\\d+-h\\d+"))) {
+            return replace(Regex("w\\d+-h\\d+"), "w$w-h$h")
+        }
+
+        // Handle =wNNN-hNNN query-param style
+        "=w(\\d+)-h(\\d+)".toRegex().find(this)?.let {
+            return "${split("=w")[0]}=w$w-h$h-p-l90-rj"
+        }
+
+        // Handle =sNNN (square) style used by yt3.ggpht.com
+        if (this matches "https://yt3\\.ggpht\\.com/.*=s(\\d+)".toRegex()) {
+            return "${split("=s")[0]}=s${maxOf(w, h)}"
+        }
+
+        return this
     }
-    if (this matches "https://yt3\\.ggpht\\.com/.*=s(\\d+)".toRegex()) {
-        return "$this-s${width ?: height}"
+
+    if (isYtimg) {
+        // Replace any known resolution token with maxresdefault for best quality
+        val resTokens = listOf(
+            "maxresdefault", "sddefault", "hqdefault", "mqdefault", "default",
+            "sd1", "sd2", "sd3", "hq1", "hq2", "hq3", "mq1", "mq2", "mq3",
+        )
+        for (token in resTokens) {
+            if (contains("$token.jpg")) {
+                return replace("$token.jpg", "maxresdefault.jpg")
+            }
+        }
+        return this
     }
+
     return this
 }
 
