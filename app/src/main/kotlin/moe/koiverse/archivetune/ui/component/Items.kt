@@ -138,6 +138,7 @@ import moe.koiverse.archivetune.utils.joinByBullet
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
+import moe.koiverse.archivetune.ui.utils.resize
 import moe.koiverse.archivetune.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -379,7 +380,7 @@ fun SongListItem(
             badges = badges,
             thumbnailContent = {
                 ItemThumbnail(
-                    thumbnailUrl = song.song.thumbnailUrl,
+                    thumbnailUrl = song.song.thumbnailUrl?.resize(200, 200),
                     albumIndex = albumIndex,
                     isSelected = isSelected,
                     isActive = isActive,
@@ -1335,7 +1336,7 @@ fun YouTubeListItem(
 
     if (item is SongItem && isSwipeable && swipeEnabled) {
         SwipeToSongBox(
-            mediaItem = item.toMediaItem(),
+            mediaItem = item.copy(thumbnail = item.thumbnail.resize(1080, 1080)).toMediaItem(),
             modifier = Modifier.fillMaxWidth()
         ) {
             content()
@@ -1564,7 +1565,7 @@ fun ItemThumbnail(
             if (shouldLoadImage) {
                 val request = remember(thumbnailUrl, widthPx, heightPx) {
                     ImageRequest.Builder(context)
-                        .data(thumbnailUrl)
+                        .data(thumbnailUrl?.resize(544, 544))
                         .allowHardware(true)
                         .apply {
                             if (widthPx != null && heightPx != null) {
@@ -1789,7 +1790,7 @@ fun PlaylistThumbnail(
         1 -> {
             val request = remember(thumbnails, sizePx) {
                 ImageRequest.Builder(context)
-                    .data(thumbnails[0])
+                    .data(thumbnails[0].resize((sizePx * 1.5).toInt(), (sizePx * 1.5).toInt()))
                     .size(sizePx, sizePx)
                     .allowHardware(true)
                     .build()
@@ -1818,7 +1819,7 @@ fun PlaylistThumbnail(
                 val url = thumbnails.getOrNull(index)
                 val request = remember(url, halfPx) {
                     ImageRequest.Builder(context)
-                        .data(url)
+                        .data(url?.resize((halfPx * 1.5).toInt(), (halfPx * 1.5).toInt()))
                         .size(halfPx, halfPx)
                         .allowHardware(true)
                         .build()
