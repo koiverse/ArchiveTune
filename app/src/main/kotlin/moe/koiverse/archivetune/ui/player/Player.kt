@@ -114,6 +114,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -206,7 +207,9 @@ import kotlin.math.roundToLong
 
 private const val SeekbarSettleToleranceMs = 1_500L
 private const val V7BackdropBlurHeightFraction = 0.54f // The height of the blur layout in PlayerDesignStyle V7
+private const val V7BackdropMinArtworkSizePx = 1_024
 private const val V7BackdropMaxArtworkSizePx = 2_048
+private const val V7BackdropOverscanFactor = 1.15f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -343,15 +346,9 @@ fun BottomSheetPlayer(
         }
     }
     
-    LaunchedEffect(mediaMetadata?.id, playerBackground, playerDesignStyle) {
+    LaunchedEffect(mediaMetadata?.id, playerBackground) {
         if (aodModeEnabled) return@LaunchedEffect
-        val shouldExtractColors = playerDesignStyle == PlayerDesignStyle.V7 ||
-            playerBackground == PlayerBackgroundStyle.GRADIENT ||
-            playerBackground == PlayerBackgroundStyle.COLORING ||
-            playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT ||
-            playerBackground == PlayerBackgroundStyle.GLOW ||
-            playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED
-        if (shouldExtractColors) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
                 // Check cache first
@@ -937,7 +934,6 @@ fun BottomSheetPlayer(
                     ) {
                         V7PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
-                            paletteColors = gradientColors,
                             disableBlur = disableBlur,
                             label = "v7BackdropLandscape",
                         )
@@ -1082,7 +1078,6 @@ fun BottomSheetPlayer(
                     ) {
                         V7PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
-                            paletteColors = gradientColors,
                             disableBlur = disableBlur,
                             label = "v7BackdropPortrait",
                         )
@@ -1225,34 +1220,36 @@ fun BottomSheetPlayer(
 @Composable
 private fun V7PlayerBackdrop(
     thumbnailUrl: String?,
-    paletteColors: List<Color>,
     disableBlur: Boolean,
     label: String,
     modifier: Modifier = Modifier,
 ) {
-    val artworkTopFraction = 1f - V7BackdropBlurHeightFraction
-    val blurFadeStart = (artworkTopFraction - 0.04f).coerceAtLeast(0f)
-    val blurFadeMid = (artworkTopFraction + 0.10f).coerceAtMost(1f)
-    val blurFadeSolid = (artworkTopFraction + 0.20f).coerceAtMost(1f)
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val cloudyRadius = 100
+    val blurMaskStart = (1f - V7BackdropBlurHeightFraction).coerceIn(0f, 0.85f)
+    val blurMaskMid = (blurMaskStart + 0.12f).coerceIn(blurMaskStart, 0.95f)
+    val blurMaskSolid = (blurMaskStart + 0.22f).coerceIn(blurMaskMid, 1f)
+    val baseArtworkScale = if (disableBlur) 1.03f else 1.06f
+    val baseArtworkAlpha = if (disableBlur) 0.72f else 0.82f
     val surfaceTint = MaterialTheme.colorScheme.surface
-    val dominantDark = remember(paletteColors) {
-        paletteColors.firstOrNull()?.let { PlayerBackgroundColorUtils.darkenColor(it, 0.38f) }
-            ?: Color.Black
-    }
-    val secondaryDark = remember(paletteColors) {
-        paletteColors.getOrNull(1)?.let { PlayerBackgroundColorUtils.darkenColor(it, 0.32f) }
-            ?: Color(0xFF0A0A0A)
+    val backdropArtworkSizePx = remember(
+        configuration.screenWidthDp,
+        configuration.screenHeightDp,
+        density.density,
+        baseArtworkScale,
+    ) {
+        with(density) {
+            (maxOf(configuration.screenWidthDp, configuration.screenHeightDp).dp.toPx() *
+                maxOf(baseArtworkScale, V7BackdropOverscanFactor))
+                .roundToInt()
+                .coerceIn(V7BackdropMinArtworkSizePx, V7BackdropMaxArtworkSizePx)
+        }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(listOf(dominantDark, secondaryDark, Color.Black))
-                )
-        )
-
+    Box(
+        modifier = modifier.fillMaxSize(),
+    ) {
         AnimatedContent(
             targetState = thumbnailUrl,
             transitionSpec = {
@@ -1261,22 +1258,32 @@ private fun V7PlayerBackdrop(
             label = label,
         ) { artworkUrl ->
             if (artworkUrl != null) {
-                val blurArtworkModel = remember(artworkUrl) {
-                    artworkUrl.resize(512, 512)
-                }
-                val sharpArtworkModel = remember(artworkUrl) {
-                    artworkUrl.resize(V7BackdropMaxArtworkSizePx, V7BackdropMaxArtworkSizePx)
+                val backdropArtworkModel = remember(artworkUrl, backdropArtworkSizePx) {
+                    artworkUrl.resize(backdropArtworkSizePx, backdropArtworkSizePx)
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    AsyncImage(
+                        model = backdropArtworkModel,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = baseArtworkScale
+                                scaleY = baseArtworkScale
+                                alpha = baseArtworkAlpha
+                            }
+                    )
+
                     if (!disableBlur) {
                         AsyncImage(
-                            model = blurArtworkModel,
+                            model = backdropArtworkModel,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .cloudy(radius = 100)
+                                .cloudy(radius = cloudyRadius)
                                 .graphicsLayer {
                                     compositingStrategy = CompositingStrategy.Offscreen
                                 }
@@ -1284,46 +1291,23 @@ private fun V7PlayerBackdrop(
                                     val blurMask = Brush.verticalGradient(
                                         colorStops = arrayOf(
                                             0f to Color.Transparent,
-                                            blurFadeStart to Color.Transparent,
-                                            blurFadeMid to Color.Black.copy(alpha = 0.6f),
-                                            blurFadeSolid to Color.Black,
+                                            blurMaskStart to Color.Transparent,
+                                            blurMaskMid to Color.Black.copy(alpha = 0.6f),
+                                            blurMaskSolid to Color.Black,
                                             1f to Color.Black,
                                         )
                                     )
+
                                     onDrawWithContent {
                                         drawContent()
-                                        drawRect(brush = blurMask, blendMode = BlendMode.DstIn)
+                                        drawRect(
+                                            brush = blurMask,
+                                            blendMode = BlendMode.DstIn,
+                                        )
                                     }
                                 }
                         )
                     }
-
-                    AsyncImage(
-                        model = sharpArtworkModel,
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        alignment = Alignment.TopCenter,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(artworkTopFraction)
-                            .align(Alignment.TopCenter)
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colorStops = arrayOf(
-                                        0f to Color.Transparent,
-                                        blurFadeStart to Color.Transparent,
-                                        artworkTopFraction to dominantDark.copy(alpha = 0.55f),
-                                        (artworkTopFraction + 0.15f).coerceAtMost(1f) to Color.Black.copy(alpha = 0.70f),
-                                        1f to Color.Black.copy(alpha = 0.88f),
-                                    )
-                                )
-                            )
-                    )
                 }
             } else {
                 Box(
