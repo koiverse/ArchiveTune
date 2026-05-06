@@ -24,7 +24,7 @@ import moe.koiverse.archivetune.ui.utils.resize
 import moe.koiverse.archivetune.utils.isLocalMediaId
 
 const val ExtraIsMusicVideo = "moe.koiverse.archivetune.extra.IS_MUSIC_VIDEO"
-private const val NotificationArtworkSizePx = 544
+private const val NotificationArtworkSizePx = 1080
 
 val MediaItem.metadata: MediaMetadata?
     get() = localConfiguration?.tag as? MediaMetadata
