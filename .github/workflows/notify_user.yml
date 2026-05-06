@@ -6,17 +6,29 @@ jobs:
   notify-author:
     runs-on: ubuntu-latest
     steps:
+      - name: Check if push is from a pull request branch
+        id: check_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          count=$(gh pr list --repo "$REPO" --head "$REF_NAME" --state open --json number --jq 'length')
+          echo "has_pr=$([ "$count" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
       - name: Extract issue number from commit message
+        if: steps.check_pr.outputs.has_pr == 'false'
         id: extract_issue
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         shell: bash
         run: |
-          message="${{ github.event.head_commit.message }}"
-          if [[ "$message" =~ \#([0-9]+) ]]; then
+          if [[ "$COMMIT_MESSAGE" =~ \#([0-9]+) ]]; then
             echo "issue_number=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Comment on issue
-        if: ${{ steps.extract_issue.outputs.issue_number != '' }}
+        if: steps.check_pr.outputs.has_pr == 'false' && steps.extract_issue.outputs.issue_number != ''
         uses: peter-evans/create-or-update-comment@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -32,5 +44,5 @@ jobs:
             If the issue is fixed in the nightly build, please close this issue. If it is still reproducible, leave a comment with any updated details so we can continue investigating.
 
       - name: Skip when no issue number is present
-        if: ${{ steps.extract_issue.outputs.issue_number == '' }}
+        if: steps.check_pr.outputs.has_pr == 'false' && steps.extract_issue.outputs.issue_number == ''
         run: echo "No issue reference found in the head commit message; skipping comment."
