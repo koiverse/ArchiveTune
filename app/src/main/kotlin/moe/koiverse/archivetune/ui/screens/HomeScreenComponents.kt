@@ -122,7 +122,7 @@ import moe.koiverse.archivetune.ui.menu.YouTubeAlbumMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeArtistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubePlaylistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
-import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
+import moe.koiverse.archivetune.ui.utils.SnapLayoutInfoProvider
 import moe.koiverse.archivetune.models.SimilarRecommendation
 import kotlin.math.ceil
 import kotlin.random.Random
