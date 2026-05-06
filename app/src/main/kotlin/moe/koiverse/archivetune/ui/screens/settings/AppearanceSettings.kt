@@ -802,6 +802,19 @@ fun AppearanceSettings(
         )
 
         EnumListPreference(
+            title = { Text(stringResource(R.string.quick_picks_display_mode)) },
+            icon = { Icon(painterResource(R.drawable.grid_view), null) },
+            selectedValue = quickPicksDisplayMode,
+            onValueSelected = onQuickPicksDisplayModeChange,
+            valueText = {
+                when (it) {
+                    QuickPicksDisplayMode.CARD -> stringResource(R.string.quick_picks_display_mode_card)
+                    QuickPicksDisplayMode.LIST -> stringResource(R.string.quick_picks_display_mode_list)
+                }
+            },
+        )
+
+        EnumListPreference(
             title = { Text(stringResource(R.string.default_open_tab)) },
             icon = { Icon(painterResource(R.drawable.nav_bar), null) },
             selectedValue = defaultOpenTab,
@@ -902,23 +915,6 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.cached), null) },
             checked = showCachedPlaylist,
             onCheckedChange = onShowCachedPlaylistChange
-        )
-
-        PreferenceGroupTitle(
-            title = stringResource(R.string.card_and_list)
-        )
-
-        EnumListPreference(
-            title = { Text(stringResource(R.string.quick_picks_display_mode)) },
-            icon = { Icon(painterResource(R.drawable.grid_view), null) },
-            selectedValue = quickPicksDisplayMode,
-            onValueSelected = onQuickPicksDisplayModeChange,
-            valueText = {
-                when (it) {
-                    QuickPicksDisplayMode.CARD -> stringResource(R.string.quick_picks_display_mode_card)
-                    QuickPicksDisplayMode.LIST -> stringResource(R.string.quick_picks_display_mode_list)
-                }
-            },
         )
     }
 
