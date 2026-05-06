@@ -188,6 +188,10 @@
     <string name="show_downloaded_playlist">Show \"Downloaded\" playlist</string>
     <string name="show_top_playlist">Show \"Top\" playlist</string>
     <string name="show_cached_playlist">Show \"Cached\" playlist</string>
+    <string name="card_and_list">Card &amp; List</string>
+    <string name="quick_picks_display_mode">Quick Picks display mode</string>
+    <string name="quick_picks_display_mode_card">Card</string>
+    <string name="quick_picks_display_mode_list">List</string>
     <string name="google">Google</string>
     <string name="discord">Discord</string>
     <string name="advanced_login">Login with token</string>

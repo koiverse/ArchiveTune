@@ -52,6 +52,8 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
+import moe.koiverse.archivetune.constants.QuickPicksDisplayMode
+import moe.koiverse.archivetune.constants.QuickPicksDisplayModeKey
 import moe.koiverse.archivetune.constants.ShowHomeCategoryChipsKey
 import moe.koiverse.archivetune.ui.component.ChipsRow
 import moe.koiverse.archivetune.ui.component.LocalBottomSheetPageState
@@ -59,6 +61,7 @@ import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.NavigationTitle
 import moe.koiverse.archivetune.ui.utils.SnapLayoutInfoProvider
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
 
@@ -96,6 +99,7 @@ fun HomeScreen(
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val (showHomeCategoryChips) = rememberPreference(ShowHomeCategoryChipsKey, true)
+    val (quickPicksDisplayMode) = rememberEnumPreference(QuickPicksDisplayModeKey, QuickPicksDisplayMode.CARD)
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in parseCookieString(innerTubeCookie)
     }
@@ -306,6 +310,7 @@ fun HomeScreen(
                         quickPicks = picks,
                         mediaMetadata = mediaMetadata,
                         isPlaying = isPlaying,
+                        displayMode = quickPicksDisplayMode,
                         navController = navController,
                         playerConnection = playerConnection,
                         menuState = menuState,

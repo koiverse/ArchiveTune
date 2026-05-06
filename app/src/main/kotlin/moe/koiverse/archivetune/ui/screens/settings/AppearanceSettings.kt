@@ -97,6 +97,8 @@ import moe.koiverse.archivetune.constants.ShowHomeCategoryChipsKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowTagsInLibraryKey
+import moe.koiverse.archivetune.constants.QuickPicksDisplayMode
+import moe.koiverse.archivetune.constants.QuickPicksDisplayModeKey
 import moe.koiverse.archivetune.constants.SwipeThumbnailKey
 import moe.koiverse.archivetune.constants.SwipeSensitivityKey
 import moe.koiverse.archivetune.constants.SwipeToSongKey
@@ -235,6 +237,10 @@ fun AppearanceSettings(
     val (showHomeCategoryChips, onShowHomeCategoryChipsChange) = rememberPreference(
         ShowHomeCategoryChipsKey,
         defaultValue = true
+    )
+    val (quickPicksDisplayMode, onQuickPicksDisplayModeChange) = rememberEnumPreference(
+        QuickPicksDisplayModeKey,
+        defaultValue = QuickPicksDisplayMode.CARD
     )
 
     val availableBackgroundStyles = PlayerBackgroundStyle.entries.filter {
@@ -896,6 +902,23 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.cached), null) },
             checked = showCachedPlaylist,
             onCheckedChange = onShowCachedPlaylistChange
+        )
+
+        PreferenceGroupTitle(
+            title = stringResource(R.string.card_and_list)
+        )
+
+        EnumListPreference(
+            title = { Text(stringResource(R.string.quick_picks_display_mode)) },
+            icon = { Icon(painterResource(R.drawable.grid_view), null) },
+            selectedValue = quickPicksDisplayMode,
+            onValueSelected = onQuickPicksDisplayModeChange,
+            valueText = {
+                when (it) {
+                    QuickPicksDisplayMode.CARD -> stringResource(R.string.quick_picks_display_mode_card)
+                    QuickPicksDisplayMode.LIST -> stringResource(R.string.quick_picks_display_mode_list)
+                }
+            },
         )
     }
 

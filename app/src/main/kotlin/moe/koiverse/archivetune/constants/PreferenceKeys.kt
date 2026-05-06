@@ -265,6 +265,13 @@ enum class LibraryViewType {
         }
 }
 
+enum class QuickPicksDisplayMode {
+    CARD,
+    LIST,
+}
+
+val QuickPicksDisplayModeKey = stringPreferencesKey("quickPicksDisplayMode")
+
 enum class SongFilter {
     LIBRARY,
     LIKED,
