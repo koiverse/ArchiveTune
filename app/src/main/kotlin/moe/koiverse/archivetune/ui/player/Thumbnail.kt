@@ -106,6 +106,7 @@ import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.HidePlayerThumbnailKey
 import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.extensions.toMediaItem
+import moe.koiverse.archivetune.ui.utils.highRes
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.utils.rememberEnumPreference
@@ -681,7 +682,8 @@ fun Thumbnail(
                                                 playerDesignStyle != PlayerDesignStyle.V7
 
                                         AsyncImage(
-                                            model = item.mediaMetadata.artworkUri?.toString(),
+                                            model = item.metadata?.thumbnailUrl?.highRes()
+                                                ?: item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
                                             contentScale = ContentScale.FillBounds,
                                             modifier = Modifier
@@ -694,7 +696,8 @@ fun Thumbnail(
                                         )
 
                                         AsyncImage(
-                                            model = item.mediaMetadata.artworkUri?.toString(),
+                                            model = item.metadata?.thumbnailUrl?.highRes()
+                                                ?: item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
                                             contentScale = if (shouldCropArtwork) ContentScale.Crop else ContentScale.Fit,
                                             modifier = Modifier
