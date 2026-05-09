@@ -302,7 +302,7 @@
     <string name="lyrics_share_export_not_supported">Para compartir imágenes se requiere Android 6.0 o superior</string>
     <string name="lyrics_sync_offset">Desfase de sincronización de la letra</string>
     <string name="audio_crossfade_seconds">%1$s seg</string>
-    <string name="crossfade_gapless_title">Gapless crossfade</string>
+    <string name="crossfade_gapless_title">Reproducción continua</string>
     <string name="crossfade_gapless_description">Atenuación gradual de entrada y salida sin superposición de audio.</string>
     <string name="history_local_summary">Reproducido en este dispositivo</string>
     <string name="history_remote_summary">Sincronizado desde YouTube Music</string>
@@ -341,4 +341,25 @@
     <string name="local_songs_no_matches_desc">Prueba con otra canción, otro artista u otro álbum.</string>
     <string name="sort_by_album">Álbum</string>
     <string name="lyrics_line_blur">Desenfocar letras de canciones</string>
+    <string name="card_and_list">Tarjeta y lista</string>
+    <string name="quick_picks_display_mode">Modo de visualización «Selecciones rápidas»</string>
+    <string name="quick_picks_display_mode_card">Tarjeta</string>
+    <string name="quick_picks_display_mode_list">Lista</string>
+    <string name="stats_favourite_artist">Tu artista favorito</string>
+    <string name="stats_favourite_song">Tu canción favorita</string>
+    <string name="stats_total_time_listened">Tiempo total de escucha</string>
+    <string name="stats_total_plays">Reproducciones totales</string>
+    <string name="stats_unique_songs">Canciones únicas</string>
+    <string name="stats_unique_artists">Unique Artists</string>
+    <string name="stats_unique_albums">Álbumes únicos</string>
+    <string name="stats_listening_by_day">Escuchado por día</string>
+    <string name="stats_listening_by_hour">Escuchado por hora</string>
+    <string name="stats_peak_hour">Los más activos: %s</string>
+    <string name="day_sun">Dom.</string>
+    <string name="day_mon">Lun.</string>
+    <string name="day_tue">Mar.</string>
+    <string name="day_wed">Mié.</string>
+    <string name="day_thu">Jue.</string>
+    <string name="day_fri">Vie.</string>
+    <string name="day_sat">Sáb.</string>
 </resources>
