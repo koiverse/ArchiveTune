@@ -204,7 +204,7 @@
     <string name="share_summary">Partager le résumé</string>
     <string name="no_listening_data">Aucune donnée d\'écoute pour cette année</string>
     <string name="played">joués</string>
-    <string name="custom_theme">Thème personnalisé</string>
+    <string name="custom_theme">Thème Personnalisé</string>
     <string name="import_theme">Importer un thème</string>
     <string name="export_theme">Exporter le thème</string>
     <string name="palette_custom">Personnalisé</string>
@@ -343,4 +343,25 @@
     <string name="local_songs_no_matches_desc">Essayez un autre titre, artiste ou nom d\'album.</string>
     <string name="sort_by_album">Album</string>
     <string name="lyrics_line_blur">Lignes de paroles floues</string>
+    <string name="card_and_list">Fiche &amp; Liste</string>
+    <string name="quick_picks_display_mode">Mode d\'affichage « Sélection Rapide »</string>
+    <string name="quick_picks_display_mode_card">Fiche</string>
+    <string name="quick_picks_display_mode_list">Liste</string>
+    <string name="stats_favourite_artist">Votre Artiste Préféré</string>
+    <string name="stats_favourite_song">Ton Titre Préféré</string>
+    <string name="stats_total_time_listened">Durée Totale d\'Écoute</string>
+    <string name="stats_total_plays">Nombre Total de Lectures</string>
+    <string name="stats_unique_songs">Titres Uniques</string>
+    <string name="stats_unique_artists">Artistes Uniques</string>
+    <string name="stats_unique_albums">Albums Uniques</string>
+    <string name="stats_listening_by_hour">Écoute par Heure</string>
+    <string name="stats_listening_by_day">Écoute par Jour</string>
+    <string name="stats_peak_hour">Les Plus Actifs : %s</string>
+    <string name="day_sun">Dim</string>
+    <string name="day_mon">Lun</string>
+    <string name="day_tue">Mar</string>
+    <string name="day_wed">Mer</string>
+    <string name="day_thu">Jeu</string>
+    <string name="day_fri">Ven</string>
+    <string name="day_sat">Sam</string>
 </resources>
