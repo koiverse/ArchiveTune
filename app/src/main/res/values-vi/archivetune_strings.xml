@@ -338,4 +338,25 @@
     <string name="local_songs_no_matches_desc">Hãy thử một bài hát, nghệ sĩ hoặc tên album khác.</string>
     <string name="sort_by_album">Album</string>
     <string name="lyrics_line_blur">Làm mờ lời bài hát</string>
+    <string name="card_and_list">Thẻ &amp; Danh sách</string>
+    <string name="quick_picks_display_mode">Chế độ hiển thị chọn nhanh</string>
+    <string name="quick_picks_display_mode_card">Thẻ</string>
+    <string name="quick_picks_display_mode_list">Danh sách</string>
+    <string name="stats_favourite_artist">Nghệ sĩ yêu thích của bạn</string>
+    <string name="stats_favourite_song">Bài hát yêu thích của bạn</string>
+    <string name="stats_total_time_listened">Tổng thời gian đã nghe</string>
+    <string name="stats_total_plays">Tổng lượt phát</string>
+    <string name="stats_unique_songs">Bài hát độc đáo</string>
+    <string name="stats_unique_artists">Nghệ sĩ độc đáo</string>
+    <string name="stats_unique_albums">Album độc đáo</string>
+    <string name="stats_listening_by_day">Nghe theo ngày</string>
+    <string name="stats_listening_by_hour">Nghe theo giờ</string>
+    <string name="stats_peak_hour">Tích cực nhất: %s</string>
+    <string name="day_sun">CN</string>
+    <string name="day_mon">T2</string>
+    <string name="day_tue">T3</string>
+    <string name="day_wed">T4</string>
+    <string name="day_thu">T5</string>
+    <string name="day_fri">T6</string>
+    <string name="day_sat">T7</string>
 </resources>
