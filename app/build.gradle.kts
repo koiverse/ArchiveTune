@@ -266,7 +266,7 @@ val generatedAppIconsResDir = layout.buildDirectory.dir("generated/appicons/res"
 android {
     sourceSets {
         named("main") {
-            res.srcDirs(generatedAppIconsResDir.get().asFile)
+            res.directories.add(generatedAppIconsResDir.get().asFile)
         }
     }
 }
@@ -275,10 +275,11 @@ tasks.register("syncAppIcons") {
     group = "build"
     val assetsDir = file("src/main/assets/AppIcon")
     val manifestFile = file("src/main/AndroidManifest.xml")
+    val outputDir = generatedAppIconsResDir
     inputs.dir(assetsDir)
-    outputs.dir(generatedAppIconsResDir)
+    outputs.dir(outputDir)
     doLast {
-        val mipmapDir = generatedAppIconsResDir.get().asFile.resolve("mipmap-xxxhdpi")
+        val mipmapDir = outputDir.get().asFile.resolve("mipmap-xxxhdpi")
         mipmapDir.mkdirs()
         val pngFiles = assetsDir.listFiles { f -> f.extension == "png" } ?: emptyArray()
         val aliases = StringBuilder()
