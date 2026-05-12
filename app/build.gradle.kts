@@ -263,11 +263,9 @@ dependencies {
 
 val generatedAppIconsResDir = layout.buildDirectory.dir("generated/appicons/res")
 
-android {
-    sourceSets {
-        named("main") {
-            res.srcDirs(generatedAppIconsResDir)
-        }
+androidComponents {
+    onVariants { variant ->
+        variant.sources.res?.addGeneratedDirectory(generatedAppIconsResDir)
     }
 }
 
