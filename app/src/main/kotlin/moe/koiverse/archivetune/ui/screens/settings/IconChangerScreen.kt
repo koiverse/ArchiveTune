@@ -12,6 +12,7 @@ package moe.koiverse.archivetune.ui.screens.settings
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -20,17 +21,19 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -39,14 +42,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -57,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -117,11 +123,27 @@ fun IconChangerScreen(
             }
 
             is IconChangerUiState.Success -> {
+                val currentItem = remember(state.currentAlias, state.icons) {
+                    state.icons.firstOrNull { it.aliasSuffix == state.currentAlias }
+                        ?: state.icons.firstOrNull()
+                }
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
+                    contentPadding = PaddingValues(
+                        horizontal = SettingsDimensions.ScreenHorizontalPadding,
+                        vertical = SettingsDimensions.SectionSpacing,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(SettingsDimensions.SectionSpacing),
                 ) {
+                    if (currentItem != null) {
+                        item(key = "preview", contentType = "preview") {
+                            CurrentIconPreviewCard(item = currentItem)
+                        }
+                    }
+
                     items(
                         items = state.icons,
                         key = { it.aliasSuffix },
@@ -135,10 +157,6 @@ fun IconChangerScreen(
                                     viewModel.setPendingSelection(item)
                                 }
                             },
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 92.dp, end = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
                     }
                 }
@@ -156,6 +174,93 @@ fun IconChangerScreen(
 }
 
 @Composable
+private fun CurrentIconPreviewCard(
+    item: AppIconItem,
+) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SettingsDimensions.HeroCardCornerRadius),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.06f),
+                            Color.Transparent,
+                        ),
+                    ),
+                )
+                .padding(20.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(RoundedCornerShape(SettingsDimensions.GroupCardCornerRadius)),
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(
+                                if (item.assetPath == null) R.mipmap.ic_launcher
+                                else Uri.parse("file:///android_asset/AppIcon/${item.assetPath}")
+                            )
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.app_icon),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = item.displayName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (item.author != null) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.app_icon_author, item.author),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun IconListItem(
     item: AppIconItem,
     isSelected: Boolean,
@@ -164,84 +269,110 @@ private fun IconListItem(
     val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessHigh),
+        targetValue = if (isPressed) SettingsAnimations.PressScale else 1f,
+        animationSpec = SettingsAnimations.pressSpring(),
         label = "iconItemScale",
     )
 
-    Row(
+    val containerColor by animateColorAsState(
+        targetValue = if (isSelected)
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+        else
+            MaterialTheme.colorScheme.surfaceContainerLow,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "iconCardColor",
+    )
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
+            .focusable()
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            ),
+        shape = RoundedCornerShape(SettingsDimensions.GroupCardCornerRadius),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(60.dp)
-                .clip(RoundedCornerShape(14.dp)),
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(
-                        if (item.assetPath == null) R.mipmap.ic_launcher
-                        else Uri.parse("file:///android_asset/AppIcon/${item.assetPath}")
-                    )
-                    .crossfade(true)
-                    .build(),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        }
-
-        Spacer(Modifier.width(16.dp))
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text(
-                text = item.displayName,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-            )
-            if (item.author != null) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = stringResource(R.string.app_icon_author, item.author),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(SettingsDimensions.RowIconCornerRadius + 2.dp)),
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(
+                            if (item.assetPath == null) R.mipmap.ic_launcher
+                            else Uri.parse("file:///android_asset/AppIcon/${item.assetPath}")
+                        )
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
                 )
             }
-        }
 
-        AnimatedContent(
-            targetState = isSelected,
-            transitionSpec = {
-                (fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
-                    scaleIn(
-                        spring(stiffness = Spring.StiffnessMedium),
-                        initialScale = 0.6f,
-                    )) togetherWith
-                    (fadeOut(tween(120)) + scaleOut(tween(120), targetScale = 0.6f))
-            },
-            label = "selectionIndicator",
-        ) { selected ->
-            RadioButton(
-                selected = selected,
-                onClick = null,
-            )
+            Spacer(Modifier.width(14.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = item.displayName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (item.author != null) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.app_icon_author, item.author),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            AnimatedContent(
+                targetState = isSelected,
+                transitionSpec = {
+                    (fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
+                        scaleIn(
+                            spring(stiffness = Spring.StiffnessMedium),
+                            initialScale = 0.6f,
+                        )) togetherWith
+                        (fadeOut(tween(120)) + scaleOut(tween(120), targetScale = 0.6f))
+                },
+                label = "selectionIndicator",
+            ) { selected ->
+                RadioButton(
+                    selected = selected,
+                    onClick = null,
+                )
+            }
         }
     }
 }
@@ -258,7 +389,18 @@ private fun IconChangeConfirmDialog(
             Text(stringResource(R.string.icon_change_dialog_title))
         },
         text = {
-            Text(stringResource(R.string.icon_change_dialog_message))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = item.displayName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = stringResource(R.string.icon_change_dialog_message),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         },
         confirmButton = {
             TextButton(
@@ -267,7 +409,6 @@ private fun IconChangeConfirmDialog(
             ) {
                 Text(
                     text = stringResource(R.string.icon_change_confirm),
-                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                 )
             }
