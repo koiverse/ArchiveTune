@@ -108,6 +108,7 @@ import moe.koiverse.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.koiverse.archivetune.constants.CropThumbnailToSquareKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.BlurRadiusKey
+import moe.koiverse.archivetune.constants.AppIconKey
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -321,6 +322,13 @@ fun AppearanceSettings(
     ) {
         PreferenceGroupTitle(
             title = stringResource(R.string.theme),
+        )
+
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.app_icon)) },
+            description = stringResource(R.string.app_icon_desc),
+            icon = { Icon(painterResource(R.drawable.app_icon_small), null) },
+            onClick = { navController.navigate("settings/appearance/icon_changer") },
         )
 
         SwitchPreference(

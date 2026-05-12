@@ -261,6 +261,66 @@ dependencies {
     implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-beta01")
 }
 
+val generatedAppIconsResDir = layout.buildDirectory.dir("generated/appicons/res")
+
+android {
+    sourceSets {
+        named("main") {
+            res.srcDirs(generatedAppIconsResDir)
+        }
+    }
+}
+
+tasks.register("syncAppIcons") {
+    group = "build"
+    val assetsDir = file("src/main/assets/AppIcon")
+    val manifestFile = file("src/main/AndroidManifest.xml")
+    inputs.dir(assetsDir)
+    outputs.dir(generatedAppIconsResDir)
+    doLast {
+        val mipmapDir = generatedAppIconsResDir.get().asFile.resolve("mipmap-xxxhdpi")
+        mipmapDir.mkdirs()
+        val pngFiles = assetsDir.listFiles { f -> f.extension == "png" } ?: emptyArray()
+        val aliases = StringBuilder()
+        for (pngFile in pngFiles.sortedBy { it.name }) {
+            val baseName = pngFile.nameWithoutExtension
+            val aliasSuffix = baseName.substringBefore("_")
+            val resourceName = "ic_launcher_${aliasSuffix.lowercase()}"
+            pngFile.copyTo(mipmapDir.resolve("$resourceName.png"), overwrite = true)
+            aliases.appendLine(
+                "        <activity-alias\n" +
+                "            android:name=\".MainActivityAlias_$aliasSuffix\"\n" +
+                "            android:enabled=\"false\"\n" +
+                "            android:exported=\"true\"\n" +
+                "            android:icon=\"@mipmap/$resourceName\"\n" +
+                "            android:roundIcon=\"@mipmap/$resourceName\"\n" +
+                "            android:targetActivity=\".MainActivity\"\n" +
+                "            android:label=\"@string/app_name\">\n" +
+                "            <intent-filter>\n" +
+                "                <action android:name=\"android.intent.action.MAIN\" />\n" +
+                "                <category android:name=\"android.intent.category.LAUNCHER\" />\n" +
+                "            </intent-filter>\n" +
+                "        </activity-alias>"
+            )
+        }
+        val content = manifestFile.readText()
+        val startMarker = "<!-- ICON_ALIASES_START -->"
+        val endMarker = "<!-- ICON_ALIASES_END -->"
+        val startIndex = content.indexOf(startMarker)
+        val endIndex = content.indexOf(endMarker)
+        if (startIndex != -1 && endIndex != -1) {
+            val newContent = content.substring(0, startIndex + startMarker.length) +
+                "\n" + aliases.toString() +
+                "        " + content.substring(endIndex)
+            manifestFile.writeText(newContent)
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("syncAppIcons")
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_21)

@@ -21,6 +21,7 @@ import java.time.ZoneOffset
 
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
 val CustomThemeColorKey = stringPreferencesKey("customThemeColor")
+val AppIconKey = stringPreferencesKey("appIcon")
 val RandomThemeOnStartupKey = booleanPreferencesKey("randomThemeOnStartup")
 val DarkModeKey = stringPreferencesKey("darkMode")
 val PureBlackKey = booleanPreferencesKey("pureBlack")
