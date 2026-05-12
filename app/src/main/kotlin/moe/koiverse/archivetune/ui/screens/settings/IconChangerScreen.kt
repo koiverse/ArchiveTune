@@ -20,7 +20,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -191,24 +190,18 @@ private fun IconListItem(
                 .size(60.dp)
                 .clip(RoundedCornerShape(14.dp)),
         ) {
-            if (item.assetPath == null) {
-                Image(
-                    painter = painterResource(R.mipmap.ic_launcher),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(Uri.parse("file:///android_asset/AppIcon/${item.assetPath}"))
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            }
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(
+                        if (item.assetPath == null) R.mipmap.ic_launcher
+                        else Uri.parse("file:///android_asset/AppIcon/${item.assetPath}")
+                    )
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
         }
 
         Spacer(Modifier.width(16.dp))
