@@ -266,7 +266,7 @@ val generatedAppIconsResDir = layout.buildDirectory.dir("generated/appicons/res"
 android {
     sourceSets {
         named("main") {
-            res.directories.add(generatedAppIconsResDir.get().asFile)
+            res.directories.add(generatedAppIconsResDir.get().asFile.absolutePath)
         }
     }
 }
