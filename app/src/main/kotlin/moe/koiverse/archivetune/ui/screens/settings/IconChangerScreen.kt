@@ -11,8 +11,8 @@ package moe.koiverse.archivetune.ui.screens.settings
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -272,7 +272,7 @@ private fun IconListItem(
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) SettingsAnimations.PressScale else 1f,
-        animationSpec = SettingsAnimations.pressSpring(),
+        animationSpec = SettingsAnimations.pressSpring<Float>(),
         label = "iconItemScale",
     )
 
