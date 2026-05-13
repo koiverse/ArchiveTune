@@ -274,21 +274,30 @@ android {
 
 tasks.register("syncAppIcons") {
     group = "build"
-    val assetsDir = file("src/main/assets/AppIcon")
+    val assetsFilesDir = file("src/main/assets/AppIcon/Files")
+    val metadataFile = file("src/main/assets/AppIcon/metadata.json")
     val manifestFile = file("src/main/AndroidManifest.xml")
     val outputDir = generatedAppIconsResDir
-    inputs.dir(assetsDir)
+    inputs.dir(assetsFilesDir)
+    inputs.file(metadataFile)
     outputs.dir(outputDir)
+    outputs.file(manifestFile)
     doLast {
-        val mipmapDir = outputDir.get().asFile.resolve("mipmap-xxxhdpi")
+        @Suppress("UNCHECKED_CAST")
+        val metadata = groovy.json.JsonSlurper().parse(metadataFile) as List<Map<String, Any>>
+        val suffixByFilename: Map<String, String> = metadata.associate {
+            it["Filename"].toString() to it["AliasSuffix"].toString()
+        }
+
+        val mipmapDir = outputDir.get().asFile.resolve("mipmap-anydpi")
         mipmapDir.mkdirs()
-        val pngFiles = assetsDir.listFiles { f -> f.extension == "png" } ?: emptyArray()
+        val webpFiles = assetsFilesDir.listFiles { f -> f.extension == "webp" } ?: emptyArray()
         val aliases = StringBuilder()
-        for (pngFile in pngFiles.sortedBy { it.name }) {
-            val baseName = pngFile.nameWithoutExtension
-            val aliasSuffix = baseName.substringBefore("_")
+        for (webpFile in webpFiles.sortedBy { it.name }) {
+            val aliasSuffix = suffixByFilename[webpFile.name]
+                ?: webpFile.nameWithoutExtension.substringBefore("_")
             val resourceName = "ic_launcher_${aliasSuffix.lowercase()}"
-            pngFile.copyTo(mipmapDir.resolve("$resourceName.png"), overwrite = true)
+            webpFile.copyTo(mipmapDir.resolve("$resourceName.webp"), overwrite = true)
             aliases.appendLine(
                 "        <activity-alias\n" +
                 "            android:name=\".MainActivityAlias_$aliasSuffix\"\n" +
