@@ -285,9 +285,11 @@ tasks.register("syncAppIcons") {
     doLast {
         @Suppress("UNCHECKED_CAST")
         val metadata = groovy.json.JsonSlurper().parse(metadataFile) as List<Map<String, Any>>
-        val suffixByFilename: Map<String, String> = metadata.associate {
-            it["Filename"].toString() to it["AliasSuffix"].toString()
-        }
+        val suffixByFilename: Map<String, String> = metadata.mapNotNull { entry ->
+            val filename = entry["Filename"]?.toString()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val suffix = entry["AliasSuffix"]?.toString()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            filename to suffix
+        }.toMap()
 
         val mipmapDir = outputDir.get().asFile.resolve("mipmap-anydpi")
         mipmapDir.mkdirs()
