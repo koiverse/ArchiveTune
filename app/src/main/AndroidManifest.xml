@@ -48,7 +48,6 @@
             android:launchMode="singleTask"
             android:theme="@style/Theme.ArchiveTune"
             android:windowSoftInputMode="adjustResize">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.VIEW" />
@@ -151,6 +150,9 @@
 
                 <data android:mimeType="audio/*" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
