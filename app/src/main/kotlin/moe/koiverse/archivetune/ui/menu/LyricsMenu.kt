@@ -163,6 +163,10 @@ fun LyricsMenu(
         }
 
     val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
+    val results by viewModel.results.collectAsState()
+    var expandedItemIndex by rememberSaveable { mutableStateOf(-1) }
+    val isTranslateEnabled = !isTtml(lyricsProvider()?.lyrics.orEmpty()) &&
+        (results.getOrNull(expandedItemIndex)?.let { !isTtml(it.lyrics) } ?: true)
 
     if (showSearchDialog) {
         SearchLyricsInputDialog(
@@ -203,15 +207,13 @@ fun LyricsMenu(
     }
 
     if (showSearchResultDialog) {
-        val results by viewModel.results.collectAsState()
         val isLoading by viewModel.isLoading.collectAsState()
 
-        var expandedItemIndex by rememberSaveable {
-            mutableStateOf(-1)
-        }
-
         ListDialog(
-            onDismiss = { showSearchResultDialog = false },
+            onDismiss = {
+                expandedItemIndex = -1
+                showSearchResultDialog = false
+            },
         ) {
             item {
                 Row(
@@ -764,7 +766,8 @@ fun LyricsMenu(
                                 )
                             },
                             text = stringResource(R.string.translate),
-                            onClick = { showTranslateDialog = true }
+                            onClick = { showTranslateDialog = true },
+                            enabled = isTranslateEnabled
                         ),
                         NewAction(
                             icon = {
