@@ -24,13 +24,10 @@ import io.ktor.client.request.parameter
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import moe.koiverse.archivetune.canvas.models.CanvasArtwork
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.DurationUnit
 
 object ArchiveTuneCanvas {
     private const val BASE_URL = "https://artwork-archivetune.koiiverse.cloud/"
@@ -101,7 +98,7 @@ object ArchiveTuneCanvas {
             when (response?.status) {
                 HttpStatusCode.OK -> runCatching { response.body<CanvasArtwork>() }.getOrNull()
                 else -> null
-            }
+            } ?: AppleMusicProvider.getBySongArtist(song, artist, null, storefront)
 
         cache[key] =
             CacheEntry(
@@ -130,7 +127,7 @@ object ArchiveTuneCanvas {
             when (response?.status) {
                 HttpStatusCode.OK -> runCatching { response.body<CanvasArtwork>() }.getOrNull()
                 else -> null
-            }
+            } ?: AppleMusicProvider.getByAlbumId(albumId)
 
         cache[key] =
             CacheEntry(
@@ -155,11 +152,15 @@ object ArchiveTuneCanvas {
                 }
             }.getOrNull()
 
-        val value =
+        val primary =
             when (response?.status) {
                 HttpStatusCode.OK -> runCatching { response.body<CanvasArtwork>() }.getOrNull()
                 else -> null
             }
+
+        val value = primary ?: parseAppleMusicAlbumUrl(url)?.let { (albumId, storefront) ->
+            AppleMusicProvider.getByAlbumId(albumId, storefront)
+        }
 
         cache[key] =
             CacheEntry(
@@ -175,6 +176,16 @@ object ArchiveTuneCanvas {
         return response.status == HttpStatusCode.OK
     }
 
+    private fun parseAppleMusicAlbumUrl(url: String): Pair<String, String>? {
+        if (!url.contains("music.apple.com")) return null
+        val albumPart = url.substringAfter("/album/", "").substringBefore("?")
+        val albumId = albumPart.substringAfterLast("/", "")
+        if (albumId.isBlank() || !albumId.all { it.isDigit() }) return null
+        val storefront = url.substringAfter("music.apple.com/").substringBefore("/")
+        if (storefront.isBlank()) return null
+        return albumId to storefront
+    }
+
     private fun cacheKey(prefix: String, vararg parts: String): String {
         val normalized =
             parts
@@ -184,16 +195,4 @@ object ArchiveTuneCanvas {
     }
 }
 
-@Serializable
-data class CanvasArtwork(
-    val name: String? = null,
-    val artist: String? = null,
-    @SerialName("albumId")
-    val albumId: String? = null,
-    val static: String? = null,
-    val animated: String? = null,
-    val videoUrl: String? = null,
-) {
-    val preferredAnimationUrl: String?
-        get() = animated ?: videoUrl
-}
+
