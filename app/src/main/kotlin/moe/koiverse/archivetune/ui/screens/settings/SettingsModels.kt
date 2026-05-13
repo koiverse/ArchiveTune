@@ -24,4 +24,5 @@ data class SettingsItem(
     val showUpdateIndicator: Boolean = false,
     val accentColor: Color = Color.Unspecified,
     val keywords: List<String> = emptyList(),
+    val onClick: () -> Unit,
 )

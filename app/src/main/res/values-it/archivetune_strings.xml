@@ -281,7 +281,6 @@
     <string name="local_songs_scan_folders_title">Cartelle escluse</string>
     <string name="local_songs_scan_folders_desc">Salta brani presenti nelle cartelle che corrispondono a questi percorsi.</string>
     <string name="local_songs_scan_folders_empty">Ancora nessuna cartella esclusa.</string>
-    <string name="local_songs_scan_folders_hint">Esempi: Music/Ringtones o Download/Voice Notes</string>
     <string name="local_songs_scan_folders_add">Aggiungi cartella</string>
     <string name="local_songs_scan_folders_dialog_title">Escludi cartella</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>
