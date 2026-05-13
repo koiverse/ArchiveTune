@@ -91,7 +91,7 @@ import androidx.compose.material3.Icon
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.canvas.ArchiveTuneCanvas
-import moe.koiverse.archivetune.canvas.CanvasArtwork
+import moe.koiverse.archivetune.canvas.models.CanvasArtwork
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PlayerDesignStyle
