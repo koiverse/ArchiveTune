@@ -24,6 +24,7 @@ import moe.koiverse.archivetune.utils.AppIconManager
 import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.getAsync
+import org.json.JSONArray
 import javax.inject.Inject
 
 @Immutable
@@ -32,6 +33,7 @@ data class AppIconItem(
     val displayName: String,
     val author: String?,
     val assetPath: String?,
+    val link: String? = null,
 )
 
 sealed interface IconChangerUiState {
@@ -59,22 +61,33 @@ class IconChangerViewModel @Inject constructor(
 
     private fun loadIcons() {
         viewModelScope.launch(Dispatchers.IO) {
-            val assetFiles = runCatching {
-                context.assets.list("AppIcon")
-                    ?.filter { it.endsWith(".png") }
-                    ?: emptyList()
+            val metadataEntries = runCatching {
+                val json = context.assets.open("AppIcon/metadata.json")
+                    .bufferedReader().use { it.readText() }
+                val array = JSONArray(json)
+                (0 until array.length()).map { array.getJSONObject(it) }
             }.getOrDefault(emptyList())
 
-            val assetItems = assetFiles.sortedBy { it }.map { filename ->
-                val nameWithoutExt = filename.removeSuffix(".png")
-                val parts = nameWithoutExt.split("_", limit = 2)
-                AppIconItem(
-                    aliasSuffix = parts[0],
-                    displayName = parts[0],
-                    author = parts.getOrNull(1),
-                    assetPath = filename,
-                )
-            }
+            val existingFiles = runCatching {
+                context.assets.list("AppIcon/Files")
+                    ?.filter { it.endsWith(".webp") }
+                    ?.toSet()
+                    ?: emptySet()
+            }.getOrDefault(emptySet())
+
+            val assetItems = metadataEntries
+                .filter { it.getString("Filename") in existingFiles }
+                .sortedBy { it.getString("Name") }
+                .map { entry ->
+                    val filename = entry.getString("Filename")
+                    AppIconItem(
+                        aliasSuffix = entry.getString("Name"),
+                        displayName = entry.getString("Name"),
+                        author = entry.getString("Author").ifBlank { null },
+                        assetPath = "Files/$filename",
+                        link = entry.getString("Link").ifBlank { null },
+                    )
+                }
 
             val savedAlias = context.dataStore.getAsync(AppIconKey)
                 ?: AppIconManager.resolveActiveAlias(context)

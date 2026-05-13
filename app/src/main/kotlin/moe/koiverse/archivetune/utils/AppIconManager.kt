@@ -61,9 +61,9 @@ object AppIconManager {
 
     fun buildAllSuffixes(context: Context): List<String> {
         val assetSuffixes = runCatching {
-            context.assets.list("AppIcon")
-                ?.filter { it.endsWith(".png") }
-                ?.map { it.removeSuffix(".png").substringBefore("_") }
+            context.assets.list("AppIcon/Files")
+                ?.filter { it.endsWith(".webp") }
+                ?.map { it.removeSuffix(".webp").substringBefore("_") }
                 ?: emptyList()
         }.getOrDefault(emptyList())
         return listOf(DEFAULT_ALIAS_SUFFIX) + assetSuffixes.sortedBy { it }

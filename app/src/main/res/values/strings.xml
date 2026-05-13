@@ -263,6 +263,7 @@
     <string name="app_icon">App Icon</string>
     <string name="app_icon_desc">See more uwu app icons</string>
     <string name="app_icon_author">Author: %s</string>
+    <string name="app_icon_view_source">View Source</string>
     <string name="icon_change_default_name">Default</string>
     <string name="icon_change_dialog_title">Change app icon?</string>
     <string name="icon_change_dialog_message">The launcher icon will be updated. It may briefly disappear from your home screen while the change takes effect.</string>
