@@ -70,7 +70,6 @@ import moe.koiverse.archivetune.ui.screens.search.OnlineSearchResult
 import moe.koiverse.archivetune.ui.screens.settings.AboutScreen
 import moe.koiverse.archivetune.ui.screens.settings.AccountSettings
 import moe.koiverse.archivetune.ui.screens.settings.AppearanceSettings
-import moe.koiverse.archivetune.ui.screens.settings.IconChangerScreen
 import moe.koiverse.archivetune.ui.screens.settings.CustomizeBackground
 import moe.koiverse.archivetune.ui.screens.settings.BackupAndRestore
 import moe.koiverse.archivetune.ui.screens.settings.ChangelogScreen
@@ -347,9 +346,6 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/appearance/theme_creator") {
         ThemeCreatorScreen(navController)
-    }
-    composable("settings/appearance/icon_changer") {
-        IconChangerScreen(navController)
     }
     composable("settings/content") {
         ContentSettings(navController, scrollBehavior)
