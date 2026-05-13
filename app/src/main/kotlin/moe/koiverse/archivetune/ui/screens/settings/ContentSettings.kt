@@ -180,6 +180,7 @@ fun ContentSettings(
         rememberPreference(key = EnablePaxsenixMusixmatchLyricsKey, defaultValue = true)
     val (enablePaxsenixKuGouLyrics, onEnablePaxsenixKuGouLyricsChange) =
         rememberPreference(key = EnablePaxsenixKuGouLyricsKey, defaultValue = true)
+    val (enableUnisonLyrics, onEnableUnisonLyricsChange) = rememberPreference(key = EnableUnisonLyricsKey, defaultValue = true)
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
             key = PreferredLyricsProviderKey,
@@ -335,6 +336,12 @@ fun ContentSettings(
             onCheckedChange = onEnableBetterLyricsChange,
         )
         SwitchPreference(
+            title = { Text(stringResource(R.string.enable_unison_lyrics)) },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = enableUnisonLyrics,
+            onCheckedChange = onEnableUnisonLyricsChange,
+        )
+        SwitchPreference(
             title = { Text(stringResource(R.string.enable_simpmusic_lyrics)) },
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             checked = enableSimpMusicLyrics,
@@ -397,6 +404,7 @@ fun ContentSettings(
                 PreferredLyricsProvider.PAXSENIX_SPOTIFY,
                 PreferredLyricsProvider.PAXSENIX_MUSIXMATCH,
                 PreferredLyricsProvider.PAXSENIX_KUGOU,
+                PreferredLyricsProvider.UNISON,
             ),
             valueText = {
                 when (it) {
@@ -409,6 +417,7 @@ fun ContentSettings(
                     PreferredLyricsProvider.PAXSENIX_SPOTIFY -> "Paxsenix: Spotify"
                     PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> "Paxsenix: Musixmatch"
                     PreferredLyricsProvider.PAXSENIX_KUGOU -> "Paxsenix: KuGou"
+                    PreferredLyricsProvider.UNISON -> "Unison"
                 }
             },
             onValueSelected = onPreferredProviderChange,

@@ -42,6 +42,7 @@ constructor(
         listOf(
             SimpMusicLyricsProvider,
             BetterLyricsProvider,
+            UnisonLyricsProvider,
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
             PaxsenixAppleMusicLyricsProvider,
@@ -182,6 +183,7 @@ constructor(
                 PreferredLyricsProvider.PAXSENIX_SPOTIFY -> PaxsenixSpotifyLyricsProvider
                 PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> PaxsenixMusixmatchLyricsProvider
                 PreferredLyricsProvider.PAXSENIX_KUGOU -> PaxsenixKuGouLyricsProvider
+                PreferredLyricsProvider.UNISON -> UnisonLyricsProvider
             }
 
         return listOf(first) + baseProviders.filterNot { provider -> provider == first }

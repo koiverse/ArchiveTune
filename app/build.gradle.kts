@@ -233,6 +233,7 @@ dependencies {
     implementation(project(":lrclib"))
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
+    implementation(project(":unison"))
     implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
     implementation(project(":paxsenix"))
