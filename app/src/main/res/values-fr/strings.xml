@@ -8,8 +8,8 @@
     <string name="playlists">Playlists</string>
     <!-- Top bar -->
     <plurals name="n_selected">
-        <item quantity="one"/>
-        <item quantity="many"/>
+        <item quantity="one">%d sélectionné</item>
+        <item quantity="many">%d sélectionnés</item>
         <item quantity="other">%d sélectionnés</item>
     </plurals>
     <!-- Home -->
@@ -149,37 +149,37 @@
     <!-- Noun -->
     <plurals name="n_song">
         <item quantity="one">%d titre</item>
-        <item quantity="many"/>
+        <item quantity="many">%d titres</item>
         <item quantity="other">%d titres</item>
     </plurals>
     <plurals name="n_artist">
         <item quantity="one">%d artiste</item>
-        <item quantity="many"/>
+        <item quantity="many">%d artistes</item>
         <item quantity="other">%d artistes</item>
     </plurals>
     <plurals name="n_album">
         <item quantity="one">%d album</item>
-        <item quantity="many"/>
+        <item quantity="many">%d albums</item>
         <item quantity="other">%d albums</item>
     </plurals>
     <plurals name="n_playlist">
         <item quantity="one">%d playlist</item>
-        <item quantity="many"/>
+        <item quantity="many">%d playlists</item>
         <item quantity="other">%d playlists</item>
     </plurals>
     <plurals name="n_week">
         <item quantity="one">%d semaine</item>
-        <item quantity="many"/>
+        <item quantity="many">%d semaines</item>
         <item quantity="other">%d semaines</item>
     </plurals>
     <plurals name="n_month">
         <item quantity="one">%d mois</item>
-        <item quantity="many"/>
+        <item quantity="many">%d mois</item>
         <item quantity="other">%d mois</item>
     </plurals>
     <plurals name="n_year">
         <item quantity="one">%d an</item>
-        <item quantity="many"/>
+        <item quantity="many">%d ans</item>
         <item quantity="other">%d ans</item>
     </plurals>
     <!-- Snackbar -->
@@ -193,7 +193,7 @@
     <string name="end_of_song">Fin du titre</string>
     <plurals name="minute">
         <item quantity="one">1 minute</item>
-        <item quantity="many"/>
+        <item quantity="many">%d minutes</item>
         <item quantity="other">%d minutes</item>
     </plurals>
     <string name="error_no_stream">Aucun flux disponible</string>
