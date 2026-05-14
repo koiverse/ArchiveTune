@@ -113,6 +113,7 @@ fun SettingsScreen(
 
     val shouldShowPermissionHint = !isStorageGranted || !isNotificationGranted
     val hasUpdate = !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
+    var isUpdateDismissed by remember { mutableStateOf(false) }
     val settingsGroups = buildSettingsGroups(navController, isAndroid12OrLater, hasUpdate, context)
 
     Scaffold(
@@ -172,10 +173,7 @@ fun SettingsScreen(
                     onClick = { navController.navigate("settings/account") },
                     modifier = Modifier
                         .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
-                        .padding(
-                            top = SettingsDimensions.SectionSpacing,
-                            bottom = SettingsDimensions.SectionSpacing,
-                        ),
+                        .padding(bottom = SettingsDimensions.SectionSpacing),
                 )
             }
 
@@ -200,11 +198,12 @@ fun SettingsScreen(
                 }
             }
 
-            if (hasUpdate) {
+            if (hasUpdate && !isUpdateDismissed) {
                 item(key = "update") {
                     SettingsUpdateBanner(
                         latestVersion = latestVersionName,
                         onClick = { navController.navigate("settings/update") },
+                        onDismiss = { isUpdateDismissed = true },
                         modifier = Modifier
                             .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
                             .padding(bottom = SettingsDimensions.SectionSpacing),

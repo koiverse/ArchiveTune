@@ -63,7 +63,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.R
 
 @Composable
@@ -79,66 +78,63 @@ fun SettingsProfileHeader(
         animationSpec = SettingsAnimations.pressSpring(),
         label = "profileHeaderScale",
     )
-    val title = if (state.isLoading) {
-        stringResource(R.string.loading)
-    } else if (state.isLoggedIn) {
-        state.accountName.ifBlank { stringResource(R.string.account) }
-    } else {
-        stringResource(R.string.login)
+    val title = when {
+        state.isLoading -> stringResource(R.string.loading)
+        state.isLoggedIn -> state.accountName.ifBlank { stringResource(R.string.account) }
+        else -> stringResource(R.string.login)
+    }
+    val subtitle = when {
+        state.isLoggedIn && state.accountEmail.isNotBlank() -> state.accountEmail
+        state.isLoggedIn -> state.accountName.ifBlank { null }
+        else -> null
     }
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .scale(scale)
-            .focusable()
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
+    Column(modifier = modifier) {
+        Text(
+            text = stringResource(R.string.account).uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = MaterialTheme.typography.labelSmall.letterSpacing * 1.2f,
+            modifier = Modifier.padding(
+                horizontal = SettingsDimensions.SectionHeaderHorizontalPadding,
+                vertical = SettingsDimensions.SectionHeaderBottomPadding,
             ),
-        shape = RoundedCornerShape(SettingsDimensions.HeroCardCornerRadius),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.06f),
-                            Color.Transparent,
-                        ),
-                    ),
-                )
-                .padding(horizontal = 20.dp, vertical = 20.dp),
+        )
+        Card(
+            shape = RoundedCornerShape(SettingsDimensions.GroupCardCornerRadius),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                    .focusable()
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick,
+                    )
+                    .padding(
+                        horizontal = SettingsDimensions.RowHorizontalPadding,
+                        vertical = SettingsDimensions.RowVerticalPadding,
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(SettingsDimensions.HeroIconSize)
+                        .size(SettingsDimensions.RowIconSize)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
-                                ),
-                            ),
-                        ),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (state.isLoading) {
                         CircularWavyProgressIndicator(
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(22.dp),
                             color = MaterialTheme.colorScheme.primary,
                         )
                     } else if (state.isLoggedIn && !state.accountImageUrl.isNullOrBlank()) {
@@ -156,57 +152,40 @@ fun SettingsProfileHeader(
                             ),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(SettingsDimensions.HeroIconInnerSize),
+                            modifier = Modifier.size(SettingsDimensions.RowIconInnerSize),
                         )
                     }
                 }
 
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(
-                        text = stringResource(R.string.account),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
                         text = title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    ) {
+                    if (subtitle != null) {
                         Text(
-                            text = "v${BuildConfig.VERSION_NAME}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.arrow_forward),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+                Icon(
+                    painter = painterResource(R.drawable.navigate_next),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.size(SettingsDimensions.ChevronSize),
+                )
             }
         }
     }
@@ -301,6 +280,7 @@ fun SettingsPermissionBanner(
 fun SettingsUpdateBanner(
     latestVersion: String,
     onClick: () -> Unit,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -323,45 +303,27 @@ fun SettingsUpdateBanner(
             ),
         shape = RoundedCornerShape(SettingsDimensions.BannerCardCornerRadius),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            Color.Transparent,
-                        ),
-                        start = Offset(0f, 0f),
-                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
-                    ),
-                )
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
                     .size(SettingsDimensions.BannerIconSize)
                     .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                            ),
-                        ),
-                    ),
+                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(R.drawable.update),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(SettingsDimensions.BannerIconInnerSize),
                 )
             }
@@ -376,27 +338,21 @@ fun SettingsUpdateBanner(
                     text = stringResource(R.string.new_version_available),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
                     text = "v$latestVersion",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                     fontWeight = FontWeight.Medium,
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
-                contentAlignment = Alignment.Center,
-            ) {
+            androidx.compose.material3.IconButton(onClick = onDismiss) {
                 Icon(
-                    painter = painterResource(R.drawable.arrow_forward),
+                    painter = painterResource(R.drawable.close),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -487,7 +443,7 @@ fun SettingsRow(
             Box(
                 modifier = Modifier
                     .size(SettingsDimensions.RowIconSize)
-                    .clip(RoundedCornerShape(SettingsDimensions.RowIconCornerRadius))
+                    .clip(CircleShape)
                     .background(effectiveAccent.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
