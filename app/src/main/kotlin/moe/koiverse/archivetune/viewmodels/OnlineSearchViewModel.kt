@@ -19,6 +19,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.YouTube.SearchFilter.Companion.FILTER_ALBUM
+import moe.koiverse.archivetune.innertube.YouTube.SearchFilter.Companion.FILTER_ARTIST
+import moe.koiverse.archivetune.innertube.YouTube.SearchFilter.Companion.FILTER_COMMUNITY_PLAYLIST
+import moe.koiverse.archivetune.innertube.YouTube.SearchFilter.Companion.FILTER_FEATURED_PLAYLIST
+import moe.koiverse.archivetune.innertube.YouTube.SearchFilter.Companion.FILTER_SONG
+import moe.koiverse.archivetune.innertube.YouTube.SearchFilter.Companion.FILTER_VIDEO
 import moe.koiverse.archivetune.innertube.models.filterExplicit
 import moe.koiverse.archivetune.innertube.models.filterVideo
 import moe.koiverse.archivetune.innertube.pages.SearchSummaryPage
@@ -46,42 +52,81 @@ constructor(
     var summaryPage by mutableStateOf<SearchSummaryPage?>(null)
     val viewStateMap = mutableStateMapOf<String, ItemsPage?>()
 
+    private val allModeFilters =
+        listOf(
+            FILTER_SONG,
+            FILTER_VIDEO,
+            FILTER_ALBUM,
+            FILTER_ARTIST,
+            FILTER_COMMUNITY_PLAYLIST,
+            FILTER_FEATURED_PLAYLIST,
+        )
+    private var isSummaryLoading = false
+    private val loadingFilters = mutableSetOf<String>()
+
     init {
         viewModelScope.launch {
-            filter.collect { filter ->
-                if (filter == null) {
-                    if (summaryPage == null) {
-                        YouTube
-                            .searchSummary(query)
-                            .onSuccess {
-                                summaryPage = it.filterExplicit(context.dataStore.get(HideExplicitKey, false)).filterVideo(context.dataStore.get(HideVideoKey, false))
-                            }.onFailure {
-                                reportException(it)
-                            }
+            filter.collect { selectedFilter ->
+                if (selectedFilter == null) {
+                    viewModelScope.launch {
+                        loadSummaryIfNeeded()
+                    }
+                    allModeFilters.forEach { allModeFilter ->
+                        viewModelScope.launch {
+                            loadFilterIfNeeded(allModeFilter)
+                        }
                     }
                 } else {
-                    if (viewStateMap[filter.value] == null) {
-                        YouTube
-                            .search(query, filter)
-                            .onSuccess { result ->
-                                viewStateMap[filter.value] =
-                                    ItemsPage(
-                                        result.items
-                                            .distinctBy { it.id }
-                                            .filterExplicit(
-                                                context.dataStore.get(
-                                                    HideExplicitKey,
-                                                    false
-                                                )
-                                            ).filterVideo(context.dataStore.get(HideVideoKey, false)),
-                                        result.continuation,
-                                    )
-                            }.onFailure {
-                                reportException(it)
-                            }
-                    }
+                    loadFilterIfNeeded(selectedFilter)
                 }
             }
+        }
+    }
+
+    private suspend fun loadSummaryIfNeeded() {
+        if (summaryPage != null || isSummaryLoading) return
+
+        isSummaryLoading = true
+        try {
+            YouTube
+                .searchSummary(query)
+                .onSuccess {
+                    summaryPage =
+                        it.filterExplicit(context.dataStore.get(HideExplicitKey, false))
+                            .filterVideo(context.dataStore.get(HideVideoKey, false))
+                }.onFailure {
+                    reportException(it)
+                }
+        } finally {
+            isSummaryLoading = false
+        }
+    }
+
+    private suspend fun loadFilterIfNeeded(filter: YouTube.SearchFilter) {
+        val filterKey = filter.value
+        if (viewStateMap.containsKey(filterKey) || !loadingFilters.add(filterKey)) return
+
+        try {
+            YouTube
+                .search(query, filter)
+                .onSuccess { result ->
+                    viewStateMap[filterKey] =
+                        ItemsPage(
+                            result.items
+                                .distinctBy { it.id }
+                                .filterExplicit(
+                                    context.dataStore.get(
+                                        HideExplicitKey,
+                                        false
+                                    )
+                                ).filterVideo(context.dataStore.get(HideVideoKey, false)),
+                            result.continuation,
+                        )
+                }.onFailure {
+                    reportException(it)
+                }
+        } finally {
+            loadingFilters.remove(filterKey)
         }
     }
 
