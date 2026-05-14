@@ -64,6 +64,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import moe.koiverse.archivetune.R
 
@@ -537,28 +538,19 @@ fun SettingsFlatItem(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    ListItem(
-        headlineContent = {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        },
-        supportingContent = item.subtitle?.let { subtitle ->
-            {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (item.showUpdateIndicator) effectiveAccent
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        },
-        leadingContent = {
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = item.onClick),
+        color = Color.Transparent,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             if (item.showUpdateIndicator) {
                 BadgedBox(
                     badge = {
@@ -567,12 +559,12 @@ fun SettingsFlatItem(
                             modifier = Modifier.size(8.dp),
                         )
                     },
+                    modifier = Modifier.padding(start = 8.dp, end = 16.dp),
                 ) {
                     Icon(
                         painter = item.icon,
                         contentDescription = null,
                         tint = effectiveAccent,
-                        modifier = Modifier.size(24.dp),
                     )
                 }
             } else {
@@ -580,12 +572,31 @@ fun SettingsFlatItem(
                     painter = item.icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.padding(start = 8.dp, end = 16.dp),
                 )
             }
-        },
-        trailingContent = item.badge?.let { badge ->
-            {
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.title,
+                    maxLines = if (item.subtitle == null) 2 else 1,
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                item.subtitle?.let { subtitle ->
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (item.showUpdateIndicator) effectiveAccent
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            item.badge?.let { badge ->
+                Spacer(modifier = Modifier.width(6.dp))
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -598,10 +609,6 @@ fun SettingsFlatItem(
                     )
                 }
             }
-        },
-        colors = ListItemDefaults.colors(
-            containerColor = Color.Transparent,
-        ),
-        modifier = modifier.clickable(onClick = item.onClick),
-    )
+        }
+    }
 }
