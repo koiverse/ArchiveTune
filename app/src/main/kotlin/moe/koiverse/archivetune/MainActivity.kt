@@ -232,7 +232,7 @@ import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.NetworkStatusBanner
 import moe.koiverse.archivetune.ui.component.StarDialog
 import moe.koiverse.archivetune.ui.component.TvNavigationRail
-import com.mikepenz.markdown.m3.Markdown
+import moe.koiverse.archivetune.ui.component.MarkdownText
 import moe.koiverse.archivetune.ui.component.TopSearch
 import moe.koiverse.archivetune.ui.component.rememberBottomSheetState
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerTheme
@@ -531,10 +531,12 @@ class MainActivity : ComponentActivity() {
                         ) {
                             val notes = releaseNotesState.value
                             if (notes != null && notes.isNotBlank()) {
-                                Markdown(
-                                    content = notes,
+                                MarkdownText(
+                                    markdown = notes,
                                     modifier = Modifier
-                                        .fillMaxWidth().padding(end = 8.dp)
+                                        .fillMaxWidth().padding(end = 8.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             } else {
                                 Text(

@@ -202,7 +202,12 @@ dependencies {
 
     implementation(libs.material3)
     implementation(libs.palette)
-    implementation(libs.multiplatform.markdown)
+    implementation(libs.markwon.core)
+    implementation(libs.markwon.ext.strikethrough)
+    implementation(libs.markwon.ext.tables)
+    implementation(libs.markwon.ext.tasklist)
+    implementation(libs.markwon.html)
+    implementation(libs.markwon.linkify)
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
@@ -224,7 +229,6 @@ dependencies {
     implementation(libs.apache.lang3)
 
     implementation(libs.hilt)
-    implementation(libs.jsoup)
     implementation(libs.re2j)
     ksp(libs.hilt.compiler)
 

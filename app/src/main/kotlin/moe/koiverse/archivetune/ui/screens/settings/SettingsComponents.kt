@@ -42,8 +42,6 @@ import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -54,8 +52,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.isSpecified
@@ -85,86 +81,84 @@ fun SettingsProfileHeader(
         else -> null
     }
 
-    Column(modifier = modifier) {
-        Text(
-            text = stringResource(R.string.account).uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = MaterialTheme.typography.labelSmall.letterSpacing * 1.2f,
-            modifier = Modifier.padding(
-                horizontal = SettingsDimensions.SectionHeaderHorizontalPadding,
-                vertical = SettingsDimensions.SectionHeaderBottomPadding,
-            ),
-        )
-        ListItem(
-            headlineContent = {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(SettingsDimensions.BannerCardCornerRadius),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(SettingsDimensions.ProfileCardAvatarSize)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (state.isLoading) {
+                    CircularWavyProgressIndicator(
+                        modifier = Modifier.size(SettingsDimensions.BannerIconInnerSize),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                } else if (state.isLoggedIn && !state.accountImageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = state.accountImageUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(
+                            if (state.isLoggedIn) R.drawable.account else R.drawable.login,
+                        ),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(SettingsDimensions.ProfileCardAvatarIconSize),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-            },
-            supportingContent = subtitle?.let { s ->
-                {
+                subtitle?.let { s ->
                     Text(
                         text = s,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-            },
-            leadingContent = {
-                Box(
-                    modifier = Modifier
-                        .size(SettingsDimensions.RowIconSize)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (state.isLoading) {
-                        CircularWavyProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    } else if (state.isLoggedIn && !state.accountImageUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = state.accountImageUrl,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape),
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(
-                                if (state.isLoggedIn) R.drawable.account else R.drawable.login,
-                            ),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(SettingsDimensions.RowIconInnerSize),
-                        )
-                    }
-                }
-            },
-            trailingContent = {
-                Icon(
-                    painter = painterResource(R.drawable.navigate_next),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                    modifier = Modifier.size(SettingsDimensions.ChevronSize),
-                )
-            },
-            colors = ListItemDefaults.colors(
-                containerColor = Color.Transparent,
-            ),
-            modifier = Modifier.clickable(onClick = onClick),
-        )
+            }
+
+            Icon(
+                painter = painterResource(R.drawable.navigate_next),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
+                modifier = Modifier.size(SettingsDimensions.ChevronSize),
+            )
+        }
     }
 }
 
@@ -177,21 +171,13 @@ fun SettingsPermissionBanner(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SettingsDimensions.BannerCardCornerRadius),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                            Color.Transparent,
-                        ),
-                    ),
-                )
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -199,13 +185,13 @@ fun SettingsPermissionBanner(
                 modifier = Modifier
                     .size(SettingsDimensions.BannerIconSize)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    .background(MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(R.drawable.security),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.size(SettingsDimensions.BannerIconInnerSize),
                 )
             }
@@ -220,14 +206,14 @@ fun SettingsPermissionBanner(
                     text = stringResource(R.string.permissions_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = stringResource(R.string.permissions_subtitle),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -238,7 +224,8 @@ fun SettingsPermissionBanner(
             Button(
                 onClick = onRequestPermission,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.secondaryContainer,
                 ),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 shapes = ButtonDefaults.shapes(),

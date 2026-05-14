@@ -30,16 +30,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.R
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.jsoup.Jsoup
+import moe.koiverse.archivetune.utils.Updater
 
 @Composable
 fun ReleaseNotesCard() {
-    var releaseNotes by remember { mutableStateOf<List<String>>(emptyList()) }
+    var releaseNotes by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        releaseNotes = fetchReleaseNotesText()
+        Updater.getLatestReleaseNotes().onSuccess { body ->
+            if (!body.isNullOrBlank()) {
+                releaseNotes = body
+            }
+        }
     }
 
     Card(
@@ -59,35 +61,16 @@ fun ReleaseNotesCard() {
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
-            releaseNotes.forEach { note ->
-                Text(
-                    text = "• $note",
+            val notes = releaseNotes
+            if (notes != null) {
+                MarkdownText(
+                    markdown = notes,
+                    modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = 2.dp)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
     }
     Spacer(modifier = Modifier.height(16.dp))
-}
-
-suspend fun fetchReleaseNotesText(): List<String> {
-    return withContext(Dispatchers.IO) {
-        try {
-            val document =
-                Jsoup.connect("https://github.com/koiverse/archivetune/releases/latest").get()
-            val changelogElement = document.selectFirst(".markdown-body")
-            val htmlContent = changelogElement?.html() ?: "No release notes found"
-
-            val textContent = htmlContent
-                .replace(Regex("<br.*?>|</p>"), "\n")
-                .replace(Regex("<.*?>"), "")
-
-            textContent.split("\n")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-        } catch (e: Exception) {
-            listOf("Error loading release notes")
-        }
-    }
 }

@@ -31,6 +31,9 @@ object SettingsDimensions {
     val BannerIconInnerSize = 22.dp
     val ChevronSize = 18.dp
 
+    val ProfileCardAvatarSize = 56.dp
+    val ProfileCardAvatarIconSize = 28.dp
+
     val DividerThickness = 0.5.dp
     val DividerStartIndent = 60.dp
 
