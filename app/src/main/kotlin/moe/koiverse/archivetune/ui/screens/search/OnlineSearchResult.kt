@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -89,6 +90,7 @@ import moe.koiverse.archivetune.ui.menu.YouTubeAlbumMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeArtistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubePlaylistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
+import moe.koiverse.archivetune.innertube.pages.SearchSummary
 import moe.koiverse.archivetune.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.launch
 
@@ -116,6 +118,36 @@ fun OnlineSearchResult(
             }
         }
     }
+    val allModeSections =
+        buildList<SearchSummary> {
+            searchSummary?.summaries?.firstOrNull()?.takeIf { it.items.isNotEmpty() }?.let(::add)
+
+            listOf(
+                FILTER_SONG to stringResource(R.string.filter_songs),
+                FILTER_VIDEO to stringResource(R.string.filter_videos),
+                FILTER_ALBUM to stringResource(R.string.filter_albums),
+                FILTER_ARTIST to stringResource(R.string.filter_artists),
+                FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
+                FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
+            ).forEach { (sectionFilter, sectionTitle) ->
+                viewModel.viewStateMap[sectionFilter.value]
+                    ?.items
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { items ->
+                        add(SearchSummary(title = sectionTitle, items = items))
+                    }
+            }
+        }
+    val isAllModeLoaded =
+        searchSummary != null ||
+            listOf(
+                FILTER_SONG,
+                FILTER_VIDEO,
+                FILTER_ALBUM,
+                FILTER_ARTIST,
+                FILTER_COMMUNITY_PLAYLIST,
+                FILTER_FEATURED_PLAYLIST,
+            ).all { viewModel.viewStateMap.containsKey(it.value) }
 
     LaunchedEffect(lazyListState) {
         snapshotFlow {
@@ -216,7 +248,7 @@ fun OnlineSearchResult(
             .asPaddingValues(),
     ) {
         if (searchFilter == null) {
-            searchSummary?.summaries?.forEachIndexed { index, summary ->
+            allModeSections.forEachIndexed { index, summary ->
                 if (index > 0) {
                     item(key = "divider_$index") {
                         HorizontalDivider(
@@ -227,7 +259,7 @@ fun OnlineSearchResult(
                     }
                 }
 
-                item {
+                item(key = "section_header_${summary.title}_$index") {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
@@ -249,18 +281,19 @@ fun OnlineSearchResult(
                     }
                 }
 
-                items(
+                itemsIndexed(
                     items = summary.items,
-                    key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" },
-                    itemContent = ytItemContent,
-                )
+                    key = { itemIndex, item -> "${summary.title}/${item.id}/$itemIndex" },
+                ) { _, item ->
+                    ytItemContent(item)
+                }
 
-                item {
+                item(key = "section_spacer_${summary.title}_$index") {
                     Spacer(Modifier.height(4.dp))
                 }
             }
 
-            if (searchSummary?.summaries?.isEmpty() == true) {
+            if (allModeSections.isEmpty() && isAllModeLoaded) {
                 item {
                     EmptyPlaceholder(
                         icon = R.drawable.search,
@@ -295,7 +328,7 @@ fun OnlineSearchResult(
             }
         }
 
-        if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
+        if (searchFilter == null && allModeSections.isEmpty() && !isAllModeLoaded || searchFilter != null && itemsPage == null) {
             item {
                 ShimmerHost {
                     repeat(8) {
