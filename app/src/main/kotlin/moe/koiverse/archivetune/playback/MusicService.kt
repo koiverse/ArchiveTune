@@ -1292,24 +1292,28 @@ class MusicService :
 
     private fun onAudioOutputDeviceChanged() {
         if (!::player.isInitialized) return
+        val previousOutputSignature = lastAudioOutputDeviceSignature
         val outputSignature = currentAudioOutputDeviceSignature()
-        if (outputSignature == lastAudioOutputDeviceSignature) return
+        if (outputSignature == previousOutputSignature) return
         lastAudioOutputDeviceSignature = outputSignature
         player.setAudioAttributes(playbackAudioAttributes(), false)
         audioRouteRecoveryJob?.cancel()
         audioRouteRecoveryJob =
             scope.launch {
                 delay(AUDIO_ROUTE_CHANGE_DEBOUNCE_MS)
-                recoverAudioRouteAfterDeviceChange()
+                recoverAudioRouteAfterDeviceChange(previousOutputSignature, outputSignature)
             }
     }
 
-    private suspend fun recoverAudioRouteAfterDeviceChange() {
+    private suspend fun recoverAudioRouteAfterDeviceChange(
+        previousOutputSignature: String?,
+        outputSignature: String,
+    ) {
         if (!::player.isInitialized) return
 
         rebindAudioEffectsAfterRouteChange()
 
-        if (!shouldRebuildPlaybackForAudioRouteChange()) return
+        if (!shouldRebuildPlaybackForAudioRouteChange(previousOutputSignature, outputSignature)) return
 
         val now = android.os.SystemClock.elapsedRealtime()
         if (now - lastAudioRouteRecoveryRealtimeMs < AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS) return
@@ -1345,10 +1349,46 @@ class MusicService :
         openAudioEffectSession()
     }
 
-    private fun shouldRebuildPlaybackForAudioRouteChange(): Boolean {
+    private fun shouldRebuildPlaybackForAudioRouteChange(
+        previousOutputSignature: String?,
+        outputSignature: String,
+    ): Boolean {
+        if (isBluetoothAudioRouteChange(previousOutputSignature, outputSignature)) return false
         if (player.currentMediaItem == null) return false
         if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) return false
         return player.playWhenReady || player.playbackState == Player.STATE_BUFFERING
+    }
+
+    private fun isBluetoothAudioRouteChange(
+        previousOutputSignature: String?,
+        outputSignature: String,
+    ): Boolean =
+        audioOutputSignatureHasBluetoothDevice(previousOutputSignature.orEmpty()) ||
+            audioOutputSignatureHasBluetoothDevice(outputSignature)
+
+    private fun audioOutputSignatureHasBluetoothDevice(signature: String): Boolean {
+        if (signature.isBlank()) return false
+
+        val bluetoothOutputTypes = mutableSetOf(
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            bluetoothOutputTypes += AudioDeviceInfo.TYPE_HEARING_AID
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            bluetoothOutputTypes += AudioDeviceInfo.TYPE_BLE_HEADSET
+            bluetoothOutputTypes += AudioDeviceInfo.TYPE_BLE_SPEAKER
+        }
+
+        return signature
+            .split('|')
+            .any { deviceSignature ->
+                deviceSignature
+                    .substringBefore(':')
+                    .toIntOrNull()
+                    ?.let { it in bluetoothOutputTypes } == true
+            }
     }
 
     private fun currentAudioOutputDeviceSignature(): String =
