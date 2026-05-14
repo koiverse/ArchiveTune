@@ -161,6 +161,19 @@ fun SettingsScreen(
                 bottom = 32.dp,
             ),
         ) {
+            if (hasUpdate && !isUpdateDismissed) {
+                item(key = "update") {
+                    SettingsUpdateBanner(
+                        latestVersion = latestVersionName,
+                        onClick = { navController.navigate("settings/update") },
+                        onDismiss = { isUpdateDismissed = true },
+                        modifier = Modifier
+                            .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
+                            .padding(top = 8.dp, bottom = SettingsDimensions.SectionSpacing),
+                    )
+                }
+            }
+
             item(key = "profile") {
                 SettingsProfileHeader(
                     state = SettingsProfileState(
@@ -171,13 +184,16 @@ fun SettingsScreen(
                         accountImageUrl = if (isAccountLoggedIn) accountImageUrl else null,
                     ),
                     onClick = { navController.navigate("settings/account") },
-                    modifier = Modifier
-                        .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
-                        .padding(bottom = SettingsDimensions.SectionSpacing),
                 )
             }
 
             if (shouldShowPermissionHint) {
+                item(key = "permission_header") {
+                    SettingsSectionLabel(
+                        text = stringResource(R.string.permissions_title),
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
                 item(key = "permission") {
                     SettingsPermissionBanner(
                         onRequestPermission = {
@@ -193,32 +209,16 @@ fun SettingsScreen(
                         },
                         modifier = Modifier
                             .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
-                            .padding(bottom = SettingsDimensions.SectionSpacing),
-                    )
-                }
-            }
-
-            if (hasUpdate && !isUpdateDismissed) {
-                item(key = "update") {
-                    SettingsUpdateBanner(
-                        latestVersion = latestVersionName,
-                        onClick = { navController.navigate("settings/update") },
-                        onDismiss = { isUpdateDismissed = true },
-                        modifier = Modifier
-                            .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
-                            .padding(bottom = SettingsDimensions.SectionSpacing),
+                            .padding(bottom = 4.dp),
                     )
                 }
             }
 
             settingsGroups.forEach { group ->
-                item(key = group.title) {
-                    SettingsGroupCard(
-                        group = group,
-                        modifier = Modifier
-                            .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
-                            .padding(bottom = SettingsDimensions.SectionSpacing),
-                    )
+                group.items.forEach { settingsItem ->
+                    item(key = settingsItem.title) {
+                        SettingsFlatItem(item = settingsItem)
+                    }
                 }
             }
 
