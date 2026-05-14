@@ -193,7 +193,7 @@ fun Queue(
         isVisible = showChoosePlaylistDialog,
         onGetSong = {
             selectedSongs.map {
-                database.transaction {
+                database.withTransaction {
                     insert(it)
                 }
                 it.id

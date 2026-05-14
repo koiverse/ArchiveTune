@@ -152,7 +152,7 @@ fun YouTubePlaylistMenu(
                 }.map {
                     it.toMediaMetadata()
                 }
-            database.transaction {
+            database.withTransaction {
                 allSongs.forEach(::insert)
             }
             allSongs.map { it.id }
@@ -308,7 +308,7 @@ fun YouTubePlaylistMenu(
                 }.map {
                     it.toMediaMetadata()
                 }
-            database.transaction {
+            database.withTransaction {
                 allSongs.forEach(::insert)
             }
             allSongs.map { it.id }
