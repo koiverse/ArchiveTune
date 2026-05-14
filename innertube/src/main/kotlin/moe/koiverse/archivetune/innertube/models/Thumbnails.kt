@@ -22,4 +22,6 @@ data class Thumbnail(
     val url: String,
     val width: Int?,
     val height: Int?,
-)
+) {
+    val normalizedUrl: String get() = if (url.startsWith("//")) "https:$url" else url
+}
