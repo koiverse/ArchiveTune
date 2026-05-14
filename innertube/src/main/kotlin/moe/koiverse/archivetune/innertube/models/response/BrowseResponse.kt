@@ -132,7 +132,9 @@ data class BrowseResponse(
         @Serializable
         data class MusicThumbnail(
             val url: String?,
-        )
+        ) {
+            val normalizedUrl: String? get() = url?.let { if (it.startsWith("//")) "https:$it" else it }
+        }
         @Serializable
         data class MusicThumbnailRenderer(
             val musicThumbnailRenderer: MusicThumbnailRenderer,
