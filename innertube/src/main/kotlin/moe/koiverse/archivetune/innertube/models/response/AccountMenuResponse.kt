@@ -53,7 +53,7 @@ data class AccountMenuResponse(
                                     name = name,
                                     email = email?.runs?.firstOrNull()?.text,
                                     channelHandle = channelHandle?.runs?.firstOrNull()?.text,
-                                    thumbnailUrl = accountPhoto.thumbnails.lastOrNull()?.url,
+                                    thumbnailUrl = accountPhoto.thumbnails.lastOrNull()?.normalizedUrl,
                                 )
                             }
                         }
