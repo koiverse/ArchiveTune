@@ -337,7 +337,6 @@
     <string name="local_songs_scan_folders_title">Виключені папки</string>
     <string name="local_songs_scan_folders_desc">Пропускати пісні, що зберігаються у папках, які відповідають будь-якому з цих шляхів.</string>
     <string name="local_songs_scan_folders_empty">Поки що жодних папок не виключено.</string>
-    <string name="local_songs_scan_folders_hint">Приклади: Music/Ringtones або Download/Voice Notes</string>
     <string name="local_songs_scan_folders_add">Додати папку</string>
     <string name="local_songs_scan_folders_dialog_title">Виключити папку</string>
     <string name="local_songs_scan_folders_dialog_placeholder">Music/Ringtones</string>
