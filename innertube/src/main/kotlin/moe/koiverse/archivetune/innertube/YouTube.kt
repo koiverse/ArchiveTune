@@ -522,7 +522,7 @@ object YouTube {
         if (header == null) throw IllegalStateException("PLAYLIST_PRIVATE")
 
         val title = header.title.runs?.firstOrNull()?.text ?: throw IllegalStateException("PLAYLIST_PRIVATE")
-        val thumbnail = header.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url
+        val thumbnail = header.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.normalizedUrl
             ?: throw IllegalStateException("PLAYLIST_PRIVATE")
 
         val editable = base?.musicEditablePlaylistDetailHeaderRenderer != null
@@ -700,8 +700,8 @@ object YouTube {
                 ?: response.header?.musicDetailHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
                 ?: response.header?.musicEditablePlaylistDetailHeaderRenderer?.header?.musicDetailHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
                 ?: response.header?.musicEditablePlaylistDetailHeaderRenderer?.header?.musicResponsiveHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
-                ?: response.header?.musicHeaderRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url
-                ?: response.header?.musicHeaderRenderer?.straplineThumbnail?.thumbnails?.lastOrNull()?.url
+                ?: response.header?.musicHeaderRenderer?.thumbnail?.thumbnails?.lastOrNull()?.normalizedUrl
+                ?: response.header?.musicHeaderRenderer?.straplineThumbnail?.thumbnails?.lastOrNull()?.normalizedUrl
                 ?: browseItems.asSequence().flatMap { it.items.asSequence() }.mapNotNull { it.thumbnail }.firstOrNull(),
             items = browseItems,
         )
