@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
@@ -55,7 +56,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -100,11 +100,6 @@ private fun rememberPreferenceIconShape(): Shape {
 }
 
 @Composable
-private fun rememberPreferenceGroupItemShape(): Shape {
-    return MaterialShapes.Arch.toShape()
-}
-
-@Composable
 fun PreferenceEntry(
     modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
@@ -117,7 +112,6 @@ fun PreferenceEntry(
 ) {
     val inGroup = LocalPreferenceInGroup.current
     val preferenceIconShape = rememberPreferenceIconShape()
-    val preferenceGroupItemShape = rememberPreferenceGroupItemShape()
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -183,13 +177,7 @@ fun PreferenceEntry(
     }
 
     if (inGroup) {
-        Surface(
-            shape = preferenceGroupItemShape,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-        ) {
+        Box(modifier = modifier.fillMaxWidth()) {
             rowContent()
         }
     } else {
@@ -842,11 +830,20 @@ fun PreferenceGroup(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
             )
         }
-        CompositionLocalProvider(LocalPreferenceInGroup provides true) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                content = content,
-            )
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            CompositionLocalProvider(LocalPreferenceInGroup provides true) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    content = content,
+                )
+            }
         }
     }
 }
