@@ -48,15 +48,6 @@ fun String.resize(
     }
 
     if (isYtimg) {
-        val resTokens = listOf(
-            "maxresdefault", "sddefault", "hqdefault", "mqdefault", "default",
-            "sd1", "sd2", "sd3", "hq1", "hq2", "hq3", "mq1", "mq2", "mq3",
-        )
-        for (token in resTokens) {
-            if (contains("$token.jpg")) {
-                return replace("$token.jpg", "maxresdefault.jpg")
-            }
-        }
         return this
     }
 
