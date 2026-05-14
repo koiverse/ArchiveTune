@@ -13,6 +13,7 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.content.Intent
+import android.os.Process
 import android.text.format.DateFormat
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
@@ -104,9 +105,11 @@ import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.media3.common.Player
 import androidx.navigation.NavController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -117,6 +120,11 @@ import moe.koiverse.archivetune.utils.GlobalLog
 import moe.koiverse.archivetune.utils.LogEntry
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -398,6 +406,8 @@ private fun DebugTimestampItem(
 @Composable
 private fun LogViewerPanel() {
     val allLogs by GlobalLog.logs.collectAsState()
+    var logcatEntries by remember { mutableStateOf<List<LogEntry>>(emptyList()) }
+    var clearTimestamp by remember { mutableStateOf(0L) }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
@@ -408,8 +418,26 @@ private fun LogViewerPanel() {
     }
     var levelsMenuExpanded by remember { mutableStateOf(false) }
 
-    val filtered = remember(allLogs, filterMode, selectedLevels) {
-        allLogs.filter { entry ->
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            logcatEntries = readLogcatEntries()
+            delay(2000L)
+        }
+    }
+
+    val allEntries = remember(allLogs, logcatEntries, clearTimestamp) {
+        val seen = HashSet<String>()
+        (allLogs + logcatEntries)
+            .filter { it.time >= clearTimestamp }
+            .sortedBy { it.time }
+            .filter { entry ->
+                val key = "${entry.time / 100}|${entry.level}|${entry.message.take(80)}"
+                seen.add(key)
+            }
+    }
+
+    val filtered = remember(allEntries, filterMode, selectedLevels) {
+        allEntries.filter { entry ->
             val tagMatch = when (filterMode) {
                 0 -> (entry.tag?.contains("DiscordRPC", true) == true) ||
                         (entry.tag?.contains("DiscordPresenceManager", true) == true) ||
@@ -619,7 +647,10 @@ private fun LogViewerPanel() {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilledTonalButton(
-                    onClick = { GlobalLog.clear() },
+                    onClick = {
+                        GlobalLog.clear()
+                        clearTimestamp = System.currentTimeMillis()
+                    },
                     enabled = filtered.isNotEmpty(),
                     modifier = Modifier.weight(1f),
                     shapes = ButtonDefaults.shapes(),
@@ -1229,4 +1260,37 @@ private fun NerdStatChip(
             )
         }
     }
+}
+
+private suspend fun readLogcatEntries(): List<LogEntry> = withContext(Dispatchers.IO) {
+    val result = mutableListOf<LogEntry>()
+    try {
+        val pid = Process.myPid()
+        val sdf = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US)
+        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        val pattern = Regex("""^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+([VDIWEF])/(.+?)\(\s*\d+\):\s*(.*)$""")
+        val process = ProcessBuilder("logcat", "--pid=$pid", "-v", "time", "-t", "500")
+            .redirectErrorStream(true)
+            .start()
+        BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+            reader.forEachLine { line ->
+                val match = pattern.matchEntire(line.trim()) ?: return@forEachLine
+                val (timeStr, levelChar, tag, message) = match.destructured
+                val level = when (levelChar) {
+                    "V" -> Log.VERBOSE
+                    "D" -> Log.DEBUG
+                    "I" -> Log.INFO
+                    "W" -> Log.WARN
+                    "E" -> Log.ERROR
+                    else -> return@forEachLine
+                }
+                val cal = Calendar.getInstance()
+                cal.time = sdf.parse(timeStr) ?: return@forEachLine
+                cal.set(Calendar.YEAR, currentYear)
+                result.add(LogEntry(time = cal.timeInMillis, level = level, tag = tag.trim(), message = message))
+            }
+        }
+        process.waitFor()
+    } catch (_: Exception) {}
+    result
 }
