@@ -518,7 +518,6 @@ fun LyricsV2(
                     distanceFromActive == 3 -> 0.18f
                     else -> 0.10f
                 }
-                val wordLineAlpha = lineAlpha
                 val targetBlur = when {
                     !isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling -> 0f
                     distanceFromActive == 1 -> 2f
@@ -533,8 +532,29 @@ fun LyricsV2(
                     ),
                     label = "v2LyricBlur",
                 )
-
-
+                val animatedLineScale by androidx.compose.animation.core.animateFloatAsState(
+                    targetValue = if (isActive) 1f else 0.95f,
+                    animationSpec = androidx.compose.animation.core.tween(
+                        durationMillis = 166,
+                        easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                    ),
+                    label = "v2LineScale",
+                )
+                val animatedLineAlpha by androidx.compose.animation.core.animateFloatAsState(
+                    targetValue = lineAlpha,
+                    animationSpec = androidx.compose.animation.core.tween(
+                        durationMillis = if (isActive) 330 else 500,
+                        easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                    ),
+                    label = "v2LineAlpha",
+                )
+                val lineTransformOrigin = remember(item.agent) {
+                    when (item.agent?.lowercase()) {
+                        "v2" -> androidx.compose.ui.graphics.TransformOrigin(1f, 0.5f)
+                        "v1", null -> androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                        else -> androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
+                    }
+                }
 
                 // Background vocal detection
                 val hasBackgroundWords = item.words?.any { it.isBackground } == true
@@ -579,7 +599,12 @@ fun LyricsV2(
                                     Modifier
                                 }
                             )
-                            .alpha(wordLineAlpha)
+                            .graphicsLayer {
+                                scaleX = animatedLineScale
+                                scaleY = animatedLineScale
+                                alpha = animatedLineAlpha
+                                transformOrigin = lineTransformOrigin
+                            }
                             .combinedClickable(
                                 enabled = true,
                                 onClick = {
