@@ -5,9 +5,7 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
-
-
-
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 
 package moe.koiverse.archivetune.ui.screens.settings
 
@@ -21,10 +19,15 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,23 +38,25 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.navigation.NavController
-import androidx.compose.material3.LoadingIndicator
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.*
+import moe.koiverse.archivetune.paxsenix.models.ProviderStats
+import moe.koiverse.archivetune.paxsenix.models.PaxsenixStats
 import moe.koiverse.archivetune.ui.component.*
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.setAppLocale
 import moe.koiverse.archivetune.viewmodels.ContentSettingsViewModel
+import moe.koiverse.archivetune.viewmodels.PaxsenixStatsState
 import java.net.Proxy
 import java.util.Locale
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContentSettings(
     navController: NavController,
@@ -77,79 +82,17 @@ fun ContentSettings(
     }
 
     if (showPaxsenixStatsDialog) {
-        val stats by viewModel.paxsenixStats.collectAsState()
-        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-        
+        val statsState by viewModel.paxsenixStatsState.collectAsStateWithLifecycle()
+
         LaunchedEffect(Unit) {
             viewModel.fetchPaxsenixStats()
         }
 
-        DefaultDialog(
+        PaxsenixStatsDialog(
+            state = statsState,
             onDismiss = { showPaxsenixStatsDialog = false },
-            title = { Text(stringResource(R.string.paxsenix_stats)) },
-            icon = { Icon(painterResource(R.drawable.stats), null) },
-            buttons = {
-                TextButton(onClick = { uriHandler.openUri("https://lyrics.paxsenix.org/") }) {
-                    Text("Visit Website")
-                }
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = { showPaxsenixStatsDialog = false }) {
-                    Text(stringResource(android.R.string.ok))
-                }
-            }
-        ) {
-            if (stats == null) {
-                LoadingIndicator()
-            } else {
-                val currentStats = stats!!
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("${stringResource(R.string.uptime)}: ${currentStats.uptimeSeconds.toInt()}s")
-                    Text("${stringResource(R.string.total_requests)}: ${currentStats.totalRequests}")
-                    Text("${stringResource(R.string.success_rate)}: ${currentStats.overallSuccessRate}")
-                    
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        stringResource(R.string.providers),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    currentStats.providers.forEach { (name, pStats) ->
-                        Text("$name: ${pStats.hits} hits (${pStats.successRate} success)")
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Recent Requests",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    currentStats.requestLog.take(10).forEach { entry ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (entry.success) 
-                                    MaterialTheme.colorScheme.surfaceVariant 
-                                else 
-                                    MaterialTheme.colorScheme.errorContainer
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(8.dp)) {
-                                Text("${entry.endpoint} [${entry.provider}]", style = MaterialTheme.typography.bodySmall)
-                                Text("Time: ${entry.responseTimeMs}ms | Status: ${if (entry.success) "OK" else "Failed"}", style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+            onRetry = { viewModel.fetchPaxsenixStats() },
+        )
     }
 
     // Used only before Android 13
@@ -523,4 +466,336 @@ fun ContentSettings(
             }
         }
     )
+}
+
+private enum class PaxsenixServerStatus { Operational, Degraded, Down }
+
+private fun successRateToStatus(rate: Float): PaxsenixServerStatus = when {
+    rate >= 90f -> PaxsenixServerStatus.Operational
+    rate >= 70f -> PaxsenixServerStatus.Degraded
+    else -> PaxsenixServerStatus.Down
+}
+
+private fun formatUptimeSeconds(seconds: Double): String {
+    val total = seconds.toLong()
+    val days = total / 86400L
+    val hours = (total % 86400L) / 3600L
+    val minutes = (total % 3600L) / 60L
+    return when {
+        days > 0L -> "${days}d ${hours}h ${minutes}m"
+        hours > 0L -> "${hours}h ${minutes}m"
+        else -> "${minutes}m"
+    }
+}
+
+@Composable
+private fun PaxsenixStatsDialog(
+    state: PaxsenixStatsState,
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    val uriHandler = LocalUriHandler.current
+
+    DefaultDialog(
+        onDismiss = onDismiss,
+        title = { Text(stringResource(R.string.paxsenix_stats)) },
+        icon = { Icon(painterResource(R.drawable.stats), contentDescription = null) },
+        buttons = {
+            if (state is PaxsenixStatsState.Error) {
+                TextButton(onClick = onRetry) {
+                    Text(stringResource(R.string.retry))
+                }
+            } else {
+                TextButton(onClick = { uriHandler.openUri("https://lyrics.paxsenix.org/") }) {
+                    Text(stringResource(R.string.visit_website))
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(android.R.string.ok))
+            }
+        }
+    ) {
+        when (state) {
+            PaxsenixStatsState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingIndicator()
+                }
+            }
+
+            PaxsenixStatsState.Error -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        painterResource(R.drawable.error),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(32.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.paxsenix_stats_failed),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            is PaxsenixStatsState.Success -> {
+                PaxsenixStatsContent(stats = state.stats)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaxsenixStatsContent(stats: PaxsenixStats) {
+    val overallRate = remember(stats.overallSuccessRate) {
+        stats.overallSuccessRate.trimEnd('%').toFloatOrNull() ?: 0f
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PaxsenixStatusBar(successRate = overallRate)
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(R.string.uptime),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = formatUptimeSeconds(stats.uptimeSeconds),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(R.string.total_requests),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = stats.totalRequests.toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(R.string.success_rate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = stats.overallSuccessRate,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
+
+        if (stats.providers.isNotEmpty()) {
+            HorizontalDivider()
+            Text(
+                text = stringResource(R.string.providers),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                stats.providers.forEach { (name, providerStats) ->
+                    key(name) {
+                        PaxsenixProviderRow(name = name, providerStats = providerStats)
+                    }
+                }
+            }
+        }
+
+        if (stats.requestLog.isNotEmpty()) {
+            HorizontalDivider()
+            Text(
+                text = stringResource(R.string.recent_requests),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                stats.requestLog.take(5).forEach { entry ->
+                    key(entry.timestamp + entry.endpoint) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (entry.success)
+                                    MaterialTheme.colorScheme.surfaceContainerHigh
+                                else
+                                    MaterialTheme.colorScheme.errorContainer,
+                            ),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = entry.endpoint,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = entry.provider,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (entry.success)
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        else
+                                            MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                }
+                                Text(
+                                    text = "${entry.responseTimeMs.toInt()}ms",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (entry.success)
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    else
+                                        MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaxsenixStatusBar(successRate: Float) {
+    val status = remember(successRate) { successRateToStatus(successRate) }
+    val statusColor = when (status) {
+        PaxsenixServerStatus.Operational -> Color(0xFF4CAF50)
+        PaxsenixServerStatus.Degraded -> Color(0xFFFF9800)
+        PaxsenixServerStatus.Down -> MaterialTheme.colorScheme.error
+    }
+    val statusLabel = when (status) {
+        PaxsenixServerStatus.Operational -> stringResource(R.string.paxsenix_status_operational)
+        PaxsenixServerStatus.Degraded -> stringResource(R.string.paxsenix_status_degraded)
+        PaxsenixServerStatus.Down -> stringResource(R.string.paxsenix_status_down)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(statusColor),
+                )
+                Text(
+                    text = statusLabel,
+                    style = MaterialTheme.typography.titleSmall,
+                )
+            }
+            Text(
+                text = "${successRate.toInt()}%",
+                style = MaterialTheme.typography.titleSmall,
+                color = statusColor,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaxsenixProviderRow(name: String, providerStats: ProviderStats) {
+    val rate = remember(providerStats.successRate) {
+        providerStats.successRate.trimEnd('%').toFloatOrNull() ?: 0f
+    }
+    val status = remember(rate) { successRateToStatus(rate) }
+    val dotColor = when (status) {
+        PaxsenixServerStatus.Operational -> Color(0xFF4CAF50)
+        PaxsenixServerStatus.Degraded -> Color(0xFFFF9800)
+        PaxsenixServerStatus.Down -> MaterialTheme.colorScheme.error
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(dotColor),
+            )
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "${providerStats.hits} hits",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = providerStats.successRate,
+                style = MaterialTheme.typography.labelSmall,
+                color = dotColor,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
 }

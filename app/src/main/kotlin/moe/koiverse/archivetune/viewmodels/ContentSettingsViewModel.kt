@@ -21,20 +21,27 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
+sealed interface PaxsenixStatsState {
+    data object Loading : PaxsenixStatsState
+    data class Success(val stats: PaxsenixStats) : PaxsenixStatsState
+    data object Error : PaxsenixStatsState
+}
+
 @HiltViewModel
 class ContentSettingsViewModel @Inject constructor(
     private val lyricsHelper: LyricsHelper,
     private val database: MusicDatabase,
 ) : ViewModel() {
 
-    private val _paxsenixStats = MutableStateFlow<PaxsenixStats?>(null)
-    val paxsenixStats = _paxsenixStats.asStateFlow()
+    private val _paxsenixStatsState = MutableStateFlow<PaxsenixStatsState>(PaxsenixStatsState.Loading)
+    val paxsenixStatsState = _paxsenixStatsState.asStateFlow()
 
     fun fetchPaxsenixStats() {
+        _paxsenixStatsState.value = PaxsenixStatsState.Loading
         viewModelScope.launch(Dispatchers.IO) {
-            PaxsenixLyrics.getStats().onSuccess {
-                _paxsenixStats.value = it
-            }
+            PaxsenixLyrics.getStats()
+                .onSuccess { _paxsenixStatsState.value = PaxsenixStatsState.Success(it) }
+                .onFailure { _paxsenixStatsState.value = PaxsenixStatsState.Error }
         }
     }
 

@@ -557,6 +557,12 @@
     <string name="total_requests">Total Requests</string>
     <string name="success_rate">Success Rate</string>
     <string name="providers">Providers</string>
+    <string name="paxsenix_status_operational">Operational</string>
+    <string name="paxsenix_status_degraded">Degraded</string>
+    <string name="paxsenix_status_down">Down</string>
+    <string name="paxsenix_stats_failed">Failed to load API stats</string>
+    <string name="visit_website">Visit Website</string>
+    <string name="recent_requests">Recent Requests</string>
     <string name="size_used">%s used</string>
     <string name="privacy">Privacy</string>
     <string name="listen_history">Listen history</string>
