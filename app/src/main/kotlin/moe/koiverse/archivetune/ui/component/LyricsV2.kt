@@ -16,6 +16,7 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -111,6 +112,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -655,6 +657,18 @@ fun LyricsV2(
                                 glowFactor = glowFactor,
                                 fillTransitionWidth = fillTransitionWidth,
                             )
+                        } else if (isSynced) {
+                            LyricsLineLrcBounce(
+                                text = item.text,
+                                isActive = isActive,
+                                textColor = textColor.copy(alpha = if (isActive) 1f else 0.52f),
+                                fontSize = lyricsTextSize,
+                                lineSpacing = lyricsLineSpacing,
+                                isAllBackground = isAllBackground,
+                                lyricsFontFamily = lyricsFontFamily,
+                                textAlign = textAlign,
+                                bounceFactor = bounceFactor,
+                            )
                         } else {
                             Text(
                                 text = item.text,
@@ -1194,4 +1208,131 @@ private fun AnimatedWordV2(
             )
         }
     }
+}
+
+
+// ──────────────────────────────────────────────────────────────────────
+// LRC bounce: word-by-word spring bounce for line-synced lyrics
+// ──────────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LyricsLineLrcBounce(
+    text: String,
+    isActive: Boolean,
+    textColor: Color,
+    fontSize: Float,
+    lineSpacing: Float,
+    isAllBackground: Boolean,
+    lyricsFontFamily: FontFamily?,
+    textAlign: TextAlign,
+    bounceFactor: Float,
+) {
+    val words = remember(text) { text.split(" ").filter { it.isNotEmpty() } }
+    val effectiveFontSize = if (isAllBackground) fontSize * 0.82f else fontSize
+    val fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.SemiBold
+    val fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal
+    val scaleAnimatables = remember(words.size) { List(words.size) { Animatable(1f) } }
+    val floatAnimatables = remember(words.size) { List(words.size) { Animatable(0f) } }
+
+    LaunchedEffect(isActive) {
+        if (!isActive || bounceFactor == 0f) return@LaunchedEffect
+        words.indices.forEach { i ->
+            launch {
+                delay(i * 40L)
+                try {
+                    scaleAnimatables[i].animateTo(
+                        targetValue = 1f + 0.045f * bounceFactor,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessHigh,
+                        ),
+                    )
+                    scaleAnimatables[i].animateTo(
+                        targetValue = 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMediumLow,
+                        ),
+                    )
+                } finally {
+                    withContext(NonCancellable) { scaleAnimatables[i].snapTo(1f) }
+                }
+            }
+            launch {
+                delay(i * 40L)
+                try {
+                    floatAnimatables[i].animateTo(
+                        targetValue = -5f * bounceFactor,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessHigh,
+                        ),
+                    )
+                    floatAnimatables[i].animateTo(
+                        targetValue = 0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMediumLow,
+                        ),
+                    )
+                } finally {
+                    withContext(NonCancellable) { floatAnimatables[i].snapTo(0f) }
+                }
+            }
+        }
+    }
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = when (textAlign) {
+            TextAlign.Center -> Arrangement.Center
+            TextAlign.End -> Arrangement.End
+            else -> Arrangement.Start
+        },
+    ) {
+        words.forEachIndexed { i, word ->
+            LrcBouncingWord(
+                text = if (i < words.lastIndex) "$word " else word,
+                scaleAnim = scaleAnimatables[i],
+                floatAnim = floatAnimatables[i],
+                color = textColor,
+                fontSize = effectiveFontSize,
+                lineSpacing = lineSpacing,
+                fontWeight = fontWeight,
+                fontStyle = fontStyle,
+                lyricsFontFamily = lyricsFontFamily,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LrcBouncingWord(
+    text: String,
+    scaleAnim: Animatable<Float, AnimationVector1D>,
+    floatAnim: Animatable<Float, AnimationVector1D>,
+    color: Color,
+    fontSize: Float,
+    lineSpacing: Float,
+    fontWeight: FontWeight,
+    fontStyle: FontStyle,
+    lyricsFontFamily: FontFamily?,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.headlineMedium.copy(
+            fontSize = fontSize.sp,
+            fontWeight = fontWeight,
+            fontStyle = fontStyle,
+            lineHeight = (fontSize * lineSpacing).sp,
+            fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
+        ),
+        color = color,
+        modifier = Modifier.graphicsLayer {
+            scaleX = scaleAnim.value
+            scaleY = scaleAnim.value
+            translationY = floatAnim.value
+        },
+    )
 }
