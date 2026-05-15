@@ -151,6 +151,7 @@ import moe.koiverse.archivetune.utils.serializeSpeedDialPins
 import moe.koiverse.archivetune.utils.toggleSpeedDialPin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
@@ -1439,9 +1440,105 @@ fun EqualizerDialog(
             else -> stringResource(R.string.eq_profile_hint)
         }
 
+    val coroutineScope = rememberCoroutineScope()
     var showSaveProfileDialog by rememberSaveable { mutableStateOf(false) }
     var showManageProfilesDialog by rememberSaveable { mutableStateOf(false) }
-    var showImportProfilesDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingExportProfileJson by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val exportFileLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        val raw = pendingExportProfileJson ?: return@rememberLauncherForActivityResult
+        pendingExportProfileJson = null
+        if (uri == null) return@rememberLauncherForActivityResult
+        coroutineScope.launch(Dispatchers.IO) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { stream ->
+                    stream.write(raw.toByteArray(Charsets.UTF_8))
+                }
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, context.getString(R.string.backup_create_success), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val importFileLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val currentProfiles = profiles
+        coroutineScope.launch(Dispatchers.IO) {
+            val raw = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    stream.readBytes().toString(Charsets.UTF_8)
+                }
+            }.getOrNull()
+
+            if (raw.isNullOrBlank()) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, context.getString(R.string.eq_import_failed), Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
+            val payload =
+                decodeProfilesPayload(raw).takeIf { it.profiles.isNotEmpty() }
+                    ?: runCatching {
+                        EqProfilesPayload(EqualizerJson.json.decodeFromString<List<EqProfile>>(raw))
+                    }.getOrNull()
+                    ?: EqProfilesPayload()
+
+            if (payload.profiles.isEmpty()) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, context.getString(R.string.eq_import_failed), Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
+            val existingIds = currentProfiles.map { it.id }.toMutableSet()
+            val normalizedImported =
+                payload.profiles.map { p ->
+                    val baseName = p.name.trim().ifBlank { context.getString(R.string.eq_imported_profile) }
+                    val incomingId = p.id.trim()
+                    val finalId =
+                        if (incomingId.isBlank() || !existingIds.add(incomingId)) {
+                            generateSequence { UUID.randomUUID().toString() }.first { existingIds.add(it) }
+                        } else {
+                            incomingId
+                        }
+                    p.copy(id = finalId, name = baseName)
+                }
+
+            val updatedPayload =
+                EqProfilesPayload(
+                    profiles =
+                        (currentProfiles + normalizedImported)
+                            .distinctBy { it.id }
+                            .sortedBy { it.name.lowercase() },
+                )
+
+            val firstImported = normalizedImported.firstOrNull() ?: return@launch
+
+            withContext(Dispatchers.Main) {
+                setEqEnabled(true)
+                setBandLevelsRaw(encodeBandLevelsMb(firstImported.bandLevelsMb))
+                setOutputGainMb(firstImported.outputGainMb)
+                setOutputGainEnabled(firstImported.outputGainMb != 0)
+                setBassBoostStrength(firstImported.bassBoostStrength)
+                setBassBoostEnabled(firstImported.bassBoostStrength != 0)
+                setVirtualizerStrength(firstImported.virtualizerStrength)
+                setVirtualizerEnabled(firstImported.virtualizerStrength != 0)
+                setCustomProfilesJson(encodeProfilesPayload(updatedPayload))
+                setSelectedProfileId("profile:${firstImported.id}")
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.eq_import_success, normalizedImported.size),
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
 
     if (showSaveProfileDialog) {
         TextFieldDialog(
@@ -1471,77 +1568,12 @@ fun EqualizerDialog(
 
                     setCustomProfilesJson(encodeProfilesPayload(updatedPayload))
                     setSelectedProfileId("profile:${newProfile.id}")
+                    pendingExportProfileJson = encodeProfilesPayload(EqProfilesPayload(listOf(newProfile)))
+                    val safeName = trimmed.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+                    exportFileLauncher.launch("$safeName-eq.json")
                 }
             },
             onDismiss = { showSaveProfileDialog = false },
-        )
-    }
-
-    if (showImportProfilesDialog) {
-        TextFieldDialog(
-            title = { Text(text = stringResource(R.string.eq_import_profiles)) },
-            placeholder = { Text(text = stringResource(R.string.eq_import_profiles_placeholder)) },
-            singleLine = false,
-            maxLines = 10,
-            isInputValid = { it.trim().isNotBlank() },
-            onDone = { raw ->
-                val trimmed = raw.trim()
-                val payload =
-                    decodeProfilesPayload(trimmed).takeIf { it.profiles.isNotEmpty() }
-                        ?: runCatching {
-                            EqProfilesPayload(EqualizerJson.json.decodeFromString<List<EqProfile>>(trimmed))
-                        }.getOrNull()
-                        ?: EqProfilesPayload()
-
-                if (payload.profiles.isEmpty()) {
-                    Toast
-                        .makeText(context, context.getString(R.string.eq_import_failed), Toast.LENGTH_SHORT)
-                        .show()
-                    return@TextFieldDialog
-                }
-
-                val existingIds = profiles.map { it.id }.toMutableSet()
-                val normalizedImported =
-                    payload.profiles
-                        .map { p ->
-                            val baseName = p.name.trim().ifBlank { context.getString(R.string.eq_imported_profile) }
-                            val incomingId = p.id.trim()
-                            val finalId =
-                                if (incomingId.isBlank() || !existingIds.add(incomingId)) {
-                                    generateSequence { UUID.randomUUID().toString() }
-                                        .first { existingIds.add(it) }
-                                } else {
-                                    incomingId
-                                }
-
-                            p.copy(
-                                id = finalId,
-                                name = baseName,
-                            )
-                        }
-
-                val updatedPayload =
-                    EqProfilesPayload(
-                        profiles =
-                            (profiles + normalizedImported)
-                                .distinctBy { it.id }
-                                .sortedBy { it.name.lowercase() },
-                    )
-
-                setCustomProfilesJson(encodeProfilesPayload(updatedPayload))
-                val firstImportedId = normalizedImported.firstOrNull()?.id
-                if (firstImportedId != null) {
-                    setSelectedProfileId("profile:$firstImportedId")
-                }
-
-                Toast
-                    .makeText(
-                        context,
-                        context.getString(R.string.eq_import_success, normalizedImported.size),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-            },
-            onDismiss = { showImportProfilesDialog = false },
         )
     }
 
@@ -1795,7 +1827,7 @@ fun EqualizerDialog(
                             FilledTonalButton(onClick = { showSaveProfileDialog = true }) {
                                 Text(text = stringResource(R.string.eq_save))
                             }
-                            OutlinedButton(onClick = { showImportProfilesDialog = true }) {
+                            OutlinedButton(onClick = { importFileLauncher.launch(arrayOf("application/json")) }) {
                                 Text(text = stringResource(R.string.eq_import))
                             }
                         }
@@ -1967,7 +1999,7 @@ private fun EqActivateRow(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
+                .padding(horizontal = 20.dp, vertical = 20.dp),
         ) {
             Text(
                 text = stringResource(R.string.tap_to_activate_equalizer),
@@ -2065,6 +2097,8 @@ private fun EqHeroCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+
+                Spacer(Modifier.height(8.dp))
 
                 FilledTonalButton(
                     onClick = onOpenSystemEqualizer,
