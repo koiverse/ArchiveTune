@@ -263,4 +263,27 @@
     <string name="error_no_song_playing">暂无正在播放的歌曲</string>
     <string name="error_no_similar_songs">暂无相似歌曲</string>
     <string name="error_automix_failed">获取相似歌曲失败</string>
+    <string name="music_recognition_tap_to_listen">点击聆听</string>
+    <string name="music_recognition_listening">聆听中…</string>
+    <string name="music_recognition_processing">处理中…</string>
+    <string name="music_recognition_listen_again">再听一次</string>
+    <string name="music_recognition_no_match">未找到相关歌曲</string>
+    <string name="music_recognition_signature_failed">无法解析音频信息</string>
+    <string name="music_recognition_recognition_failed">没能听出这首歌</string>
+    <string name="music_recognition_open_shazam">打开 Shazam</string>
+    <string name="music_recognition_lyrics_preview">歌词预览</string>
+    <string name="music_recognition_error">好像出了点问题</string>
+    <string name="history_remote_error_title">无法加载云端记录</string>
+    <string name="history_remote_summary">同步自 YouTube Music</string>
+    <string name="local_songs_empty_desc">通过顶部栏进入设置，扫描设备以查找本地音频</string>
+    <string name="local_songs_scan_folders_dialog_placeholder">歌曲与铃声</string>
+    <string name="local_songs_empty_title">未找到本地歌曲</string>
+    <string name="local_songs_scan_folders_desc">跳过这些路径下的文件夹扫描</string>
+    <string name="lyrics_line_blur">歌词模糊效果</string>
+    <string name="lyrics_share_layout_square">正方形</string>
+    <string name="lyrics_romanize_chinese">歌词标注拼音</string>
+    <string name="lyrics_romanize_hindi">印地语歌词罗马音</string>
+    <string name="local_songs_scan_title">扫描本地歌曲</string>
+    <string name="local_songs_permission_body">允许访问存储空间以扫描本地音频文件</string>
+    <string name="local_songs_no_matches_title">未发现符合条件的本地歌曲</string>
 </resources>

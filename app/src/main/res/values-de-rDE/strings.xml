@@ -580,4 +580,11 @@
     <string name="use_system_font_desc">Nutze die Geräteschriftar anstelle der Appschriftart</string>
     <string name="music_recognition">Musik Erkennung</string>
     <string name="removed_song_from_queue">\"%s\" aus der Warteschlange entfernen</string>
+    <string name="mood_and_genres_supporting">Nach Gefühl, Epoche oder Energie spielen</string>
+    <string name="mood_and_genres_count">%d Auswahlen</string>
+    <string name="speed_dial">Schnellwahl</string>
+    <string name="speed_dial_random">Zufälligen Kurzwahl-Song abspielen</string>
+    <string name="top_results">Top-Ergebnisse</string>
+    <string name="pin_to_speed_dial">An Schnellwahl anheften</string>
+    <string name="remove_from_speed_dial">Aus der Schnellwahl entfernen</string>
 </resources>

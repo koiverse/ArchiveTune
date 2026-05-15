@@ -362,4 +362,12 @@
     <string name="day_thu">Jue.</string>
     <string name="day_fri">Vie.</string>
     <string name="day_sat">Sáb.</string>
+    <string name="backup_options_title">¿Qué respaldar?</string>
+    <string name="restore_options_title">¿Qué restaurar?</string>
+    <string name="backup_category_library">Datos de la biblioteca</string>
+    <string name="backup_category_library_desc">Listas de reproducción, canciones, historia y artistas</string>
+    <string name="backup_category_settings">Configuración de la aplicación</string>
+    <string name="backup_category_settings_desc">Apariencia, reproducción y preferencias</string>
+    <string name="backup_category_account">Detalles de la cuenta</string>
+    <string name="backup_category_account_desc">YouTube, Last.fm, Discord y credenciales del proxy</string>
 </resources>

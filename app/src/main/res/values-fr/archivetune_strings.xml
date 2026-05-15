@@ -56,12 +56,12 @@
     <string name="already_in_playlist">Déjà dans la playlist :</string>
     <plurals name="n_element">
         <item quantity="one">%d élément</item>
-        <item quantity="many"/>
+        <item quantity="many">%d éléments</item>
         <item quantity="other">%d éléments</item>
     </plurals>
     <plurals name="n_time">
         <item quantity="one">%d fois</item>
-        <item quantity="many"/>
+        <item quantity="many">%d fois</item>
         <item quantity="other">%d fois</item>
     </plurals>
     <string name="seek_backward">5 secondes en arrière</string>
@@ -168,7 +168,7 @@
     <string name="empty_playlist_desc">Cette playlist ne contient aucun titre.</string>
     <plurals name="seconds">
         <item quantity="one">1 seconde</item>
-        <item quantity="many"/>
+        <item quantity="many">%d secondes</item>
         <item quantity="other">%d secondes</item>
     </plurals>
     <!-- Player Settings -->
@@ -364,4 +364,12 @@
     <string name="day_thu">Jeu</string>
     <string name="day_fri">Ven</string>
     <string name="day_sat">Sam</string>
+    <string name="backup_options_title">Que faut-il sauvegarder ?</string>
+    <string name="restore_options_title">Que faut-il restaurer ?</string>
+    <string name="backup_category_library">Données de la bibliothèque</string>
+    <string name="backup_category_library_desc">Playlists, titres, historique &amp; artistes</string>
+    <string name="backup_category_settings">Paramètres de l\'application</string>
+    <string name="backup_category_settings_desc">Apparence, lecture &amp; préférences</string>
+    <string name="backup_category_account">Détails du compte</string>
+    <string name="backup_category_account_desc">YouTube, Last.fm, Discord &amp; identifiants de proxy</string>
 </resources>
