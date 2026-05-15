@@ -62,7 +62,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
@@ -75,6 +76,8 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.SplitButtonDefaults
+import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -95,6 +98,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -126,6 +130,7 @@ import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AccountNameKey
 import moe.koiverse.archivetune.constants.DataSyncIdKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
+import moe.koiverse.archivetune.constants.SavedAccountsKey
 import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
 import moe.koiverse.archivetune.constants.UseLoginForBrowse
 import moe.koiverse.archivetune.constants.VisitorDataKey
@@ -140,10 +145,14 @@ import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.screens.buildLoginRoute
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.PreferenceStore
+import moe.koiverse.archivetune.utils.SavedAccount
 import moe.koiverse.archivetune.utils.Updater
 import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.decodeSavedAccounts
+import moe.koiverse.archivetune.utils.encodeSavedAccounts
 import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
+import java.util.UUID
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
 import kotlin.math.floor
 
@@ -179,6 +188,9 @@ fun AccountSettings(
     val (dataSyncId, onDataSyncIdChange) = rememberPreference(DataSyncIdKey, "")
     val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
     val (ytmSync, onYtmSyncChange) = rememberPreference(YtmSyncKey, true)
+    val (selectedYtmPlaylists, _) = rememberPreference(SelectedYtmPlaylistsKey, "")
+    val (savedAccountsJson, onSavedAccountsJsonChange) = rememberPreference(SavedAccountsKey, "")
+    val savedAccounts = remember(savedAccountsJson) { decodeSavedAccounts(savedAccountsJson) }
 
     val onLegacyPoTokenChange: (String) -> Unit = { value ->
         PreferenceStore.launchEdit(context.dataStore) {
@@ -220,6 +232,42 @@ fun AccountSettings(
         !isLoggedIn -> stringResource(R.string.advanced_login)
         showToken -> stringResource(R.string.token_shown)
         else -> stringResource(R.string.token_hidden)
+    }
+
+    val saveCurrentAccount: () -> Unit = {
+        val existing = decodeSavedAccounts(savedAccountsJson)
+        if (isLoggedIn && existing.none { it.innerTubeCookie == innerTubeCookie }) {
+            val newAccount = SavedAccount(
+                id = UUID.randomUUID().toString(),
+                name = if (accountNameFromViewModel.isNotBlank()) accountNameFromViewModel else accountNamePref,
+                email = accountEmail,
+                channelHandle = accountChannelHandle,
+                innerTubeCookie = innerTubeCookie,
+                visitorData = visitorData,
+                dataSyncId = dataSyncId,
+                ytmSync = ytmSync,
+                selectedYtmPlaylists = selectedYtmPlaylists,
+            )
+            onSavedAccountsJsonChange(encodeSavedAccounts(existing + newAccount))
+        }
+    }
+
+    val switchToAccount: (SavedAccount) -> Unit = { account ->
+        PreferenceStore.launchEdit(context.dataStore) {
+            this[InnerTubeCookieKey] = account.innerTubeCookie
+            this[VisitorDataKey] = account.visitorData
+            this[DataSyncIdKey] = account.dataSyncId
+            this[AccountNameKey] = account.name
+            this[AccountEmailKey] = account.email
+            this[AccountChannelHandleKey] = account.channelHandle
+            this[YtmSyncKey] = account.ytmSync
+            this[SelectedYtmPlaylistsKey] = account.selectedYtmPlaylists
+        }
+    }
+
+    val removeAccount: (SavedAccount) -> Unit = { account ->
+        val existing = decodeSavedAccounts(savedAccountsJson)
+        onSavedAccountsJsonChange(encodeSavedAccounts(existing.filter { it.id != account.id }))
     }
 
     Scaffold(
@@ -322,6 +370,8 @@ fun AccountSettings(
                     accountEmail = accountEmail,
                     accountHandle = accountChannelHandle,
                     accountImageUrl = accountImageUrl,
+                    savedAccounts = savedAccounts,
+                    activeInnerTubeCookie = innerTubeCookie,
                     onPrimaryAction = {
                         if (isLoggedIn) {
                             navController.navigate("account")
@@ -338,6 +388,9 @@ fun AccountSettings(
                             showTokenEditor = true
                         }
                     },
+                    onSaveAccount = saveCurrentAccount,
+                    onSwitchAccount = switchToAccount,
+                    onRemoveAccount = removeAccount,
                 )
             }
 
@@ -506,8 +559,13 @@ private fun ProfileIdentityCard(
     accountEmail: String,
     accountHandle: String,
     accountImageUrl: String?,
+    savedAccounts: List<SavedAccount>,
+    activeInnerTubeCookie: String,
     onPrimaryAction: () -> Unit,
     onSecondaryAction: () -> Unit,
+    onSaveAccount: () -> Unit,
+    onSwitchAccount: (SavedAccount) -> Unit,
+    onRemoveAccount: (SavedAccount) -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -515,6 +573,12 @@ private fun ProfileIdentityCard(
         targetValue = if (isPressed) PressScale else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessHigh),
         label = "heroScale",
+    )
+    var accountMenuExpanded by remember { mutableStateOf(false) }
+    val menuChevronRotation by animateFloatAsState(
+        targetValue = if (accountMenuExpanded) 180f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessHigh),
+        label = "accountMenuChevron",
     )
 
     Card(
@@ -684,30 +748,161 @@ private fun ProfileIdentityCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(top = 4.dp),
             ) {
-                ElevatedButton(
-                    onClick = onPrimaryAction,
-                    colors = ButtonDefaults.elevatedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ),
-                    elevation = ButtonDefaults.elevatedButtonElevation(
-                        defaultElevation = 1.dp,
-                        pressedElevation = 0.dp,
-                    ),
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            if (isLoggedIn) R.drawable.account else R.drawable.login,
-                        ),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                Box {
+                    SplitButtonLayout(
+                        leadingButton = {
+                            SplitButtonDefaults.ElevatedLeadingButton(
+                                onClick = onPrimaryAction,
+                                colors = ButtonDefaults.elevatedButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                ),
+                                elevation = ButtonDefaults.elevatedButtonElevation(
+                                    defaultElevation = 1.dp,
+                                    pressedElevation = 0.dp,
+                                ),
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (isLoggedIn) R.drawable.account else R.drawable.login,
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = if (isLoggedIn) stringResource(R.string.account) else stringResource(R.string.login),
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        },
+                        trailingButton = {
+                            SplitButtonDefaults.ElevatedTrailingButton(
+                                checked = accountMenuExpanded,
+                                onCheckedChange = { accountMenuExpanded = it },
+                                enabled = isLoggedIn || savedAccounts.isNotEmpty(),
+                                colors = ButtonDefaults.elevatedButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                ),
+                                elevation = ButtonDefaults.elevatedButtonElevation(
+                                    defaultElevation = 1.dp,
+                                    pressedElevation = 0.dp,
+                                ),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.expand_more),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(SplitButtonDefaults.TrailingIconSize)
+                                        .rotate(menuChevronRotation),
+                                )
+                            }
+                        },
                     )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = if (isLoggedIn) stringResource(R.string.account) else stringResource(R.string.login),
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    DropdownMenu(
+                        expanded = accountMenuExpanded,
+                        onDismissRequest = { accountMenuExpanded = false },
+                    ) {
+                        Text(
+                            text = stringResource(R.string.saved_accounts),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
+                        if (savedAccounts.isEmpty()) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.no_saved_accounts),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                onClick = {},
+                                enabled = false,
+                            )
+                        } else {
+                            savedAccounts.forEach { account ->
+                                val isActive = account.innerTubeCookie == activeInnerTubeCookie
+                                DropdownMenuItem(
+                                    text = {
+                                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                            Text(
+                                                text = account.name.ifBlank { account.email },
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            if (account.email.isNotBlank()) {
+                                                Text(
+                                                    text = account.email,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            }
+                                        }
+                                    },
+                                    leadingContent = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.account),
+                                            contentDescription = null,
+                                            tint = if (isActive) MaterialTheme.colorScheme.primary
+                                                   else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    },
+                                    trailingContent = {
+                                        OutlinedIconButton(
+                                            onClick = { onRemoveAccount(account) },
+                                            modifier = Modifier.size(32.dp),
+                                            border = null,
+                                            colors = IconButtonDefaults.outlinedIconButtonColors(
+                                                contentColor = MaterialTheme.colorScheme.error,
+                                            ),
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.delete),
+                                                contentDescription = stringResource(R.string.remove_account),
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        if (!isActive) onSwitchAccount(account)
+                                        accountMenuExpanded = false
+                                    },
+                                )
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        }
+                        if (isLoggedIn) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.save_current_account),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                },
+                                leadingContent = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.bookmark),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                },
+                                onClick = {
+                                    onSaveAccount()
+                                    accountMenuExpanded = false
+                                },
+                            )
+                        }
+                    }
                 }
 
                 OutlinedButton(

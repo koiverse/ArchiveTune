@@ -163,7 +163,7 @@ fun PlayerSettings(
     )
     val (crossfadeGapless, onCrossfadeGaplessChange) = rememberPreference(
         CrossfadeGaplessKey,
-        defaultValue = true
+        defaultValue = false
     )
 
     val (artistSeparators, onArtistSeparatorsChange) = rememberPreference(

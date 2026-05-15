@@ -880,7 +880,7 @@ class MusicService :
             .map { prefs ->
                 val enabled = prefs[CrossfadeEnabledKey] ?: false
                 val durationSeconds = prefs[CrossfadeDurationKey] ?: 5f
-                val gapless = prefs[CrossfadeGaplessKey] ?: true
+                val gapless = prefs[CrossfadeGaplessKey] ?: false
                 val offload = prefs[AudioOffload] ?: false
                 CrossfadeConfig(
                     enabled = enabled,

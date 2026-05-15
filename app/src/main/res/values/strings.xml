@@ -883,4 +883,8 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="po_token_account_notice_body">Sign in here with the same Google account that you already use for YouTube Music inside ArchiveTune before generating a PO token.</string>
     <string name="po_token_account_notice_same_account">If this WebView uses a different account, the generated token will not work correctly.</string>
     <string name="po_token_account_notice_mismatch">Use the matching account, finish the sign-in flow, then open youtube.com/account and generate the token from that page.</string>
+    <string name="saved_accounts">Saved accounts</string>
+    <string name="save_current_account">Save current account</string>
+    <string name="no_saved_accounts">No saved accounts yet</string>
+    <string name="remove_account">Remove account</string>
 </resources>
