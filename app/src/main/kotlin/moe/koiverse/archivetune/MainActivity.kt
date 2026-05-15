@@ -110,6 +110,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusGroup
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -753,6 +754,7 @@ class MainActivity : ComponentActivity() {
 
                     val searchBarFocusRequester = remember { FocusRequester() }
                     val tvRailFocusRequester = remember { FocusRequester() }
+                    val contentAreaFocusRequester = remember { FocusRequester() }
 
                     val openSearch: () -> Unit = {
                         onActiveChange(true)
@@ -1262,7 +1264,7 @@ class MainActivity : ComponentActivity() {
                                             if (active || navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
                                                 searchBarFocusRequester
                                             } else {
-                                                null
+                                                contentAreaFocusRequester
                                             },
                                         onItemClick = { screen ->
                                             val wasPlayerActive = playerBottomSheetState.isExpanded
@@ -1810,15 +1812,22 @@ class MainActivity : ComponentActivity() {
                                             fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
                                         }
                                     },
-                                    modifier = Modifier.nestedScroll(
-                                        if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
-                                            navBackStackEntry?.destination?.route?.startsWith("search/") == true
-                                        ) {
-                                            searchBarScrollBehavior.nestedScrollConnection
-                                        } else {
-                                            topAppBarScrollBehavior.nestedScrollConnection
-                                        }
-                                    )
+                                    modifier = Modifier
+                                        .then(
+                                            if (isTvDevice) Modifier
+                                                .focusRequester(contentAreaFocusRequester)
+                                                .focusGroup()
+                                            else Modifier
+                                        )
+                                        .nestedScroll(
+                                            if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
+                                                navBackStackEntry?.destination?.route?.startsWith("search/") == true
+                                            ) {
+                                                searchBarScrollBehavior.nestedScrollConnection
+                                            } else {
+                                                topAppBarScrollBehavior.nestedScrollConnection
+                                            }
+                                        )
                                 ) {
                                     navigationBuilder(
                                         navController,
