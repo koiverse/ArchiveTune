@@ -847,7 +847,7 @@ private fun ProfileIdentityCard(
                                             }
                                         }
                                     },
-                                    leadingContent = {
+                                    leadingIcon = {
                                         Icon(
                                             painter = painterResource(R.drawable.account),
                                             contentDescription = null,
@@ -856,7 +856,7 @@ private fun ProfileIdentityCard(
                                             modifier = Modifier.size(20.dp),
                                         )
                                     },
-                                    trailingContent = {
+                                    trailingIcon = {
                                         OutlinedIconButton(
                                             onClick = { onRemoveAccount(account) },
                                             modifier = Modifier.size(32.dp),
@@ -888,7 +888,7 @@ private fun ProfileIdentityCard(
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                 },
-                                leadingContent = {
+                                leadingIcon = {
                                     Icon(
                                         painter = painterResource(R.drawable.bookmark),
                                         contentDescription = null,
