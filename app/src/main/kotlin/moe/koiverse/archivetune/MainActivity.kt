@@ -1001,6 +1001,13 @@ class MainActivity : ComponentActivity() {
                             topAppBarScrollBehavior.state.resetHeightOffset()
                         }
 
+                        val isEnteringSubScreen = currentRoute != null &&
+                            currentRoute !in topLevelScreens &&
+                            currentRoute.startsWith("search/") != true
+                        if (isEnteringSubScreen) {
+                            topAppBarScrollBehavior.state.contentOffset = 0f
+                        }
+
                         previousRoute = currentRoute
 
                         if ((currentRoute?.startsWith("artist/") == true ||
