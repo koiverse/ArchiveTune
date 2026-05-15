@@ -67,8 +67,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.ToggleButton
-import androidx.compose.material3.ToggleButtonDefaults
+
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ListItem
@@ -1650,14 +1649,18 @@ fun EqualizerDialog(
                             .padding(bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    EqHeroCard(
+                    EqActivateRow(
                         enabled = eqEnabled,
-                        profileTitle = currentProfileTitle,
-                        profileSubtitle = currentProfileSupportingText,
                         onEnabledChange = {
                             setEqEnabled(it)
                             if (it && selectedProfileId.isBlank()) setSelectedProfileId("manual")
                         },
+                    )
+
+                    EqHeroCard(
+                        enabled = eqEnabled,
+                        profileTitle = currentProfileTitle,
+                        profileSubtitle = currentProfileSupportingText,
                         onOpenSystemEqualizer = openSystemEqualizer,
                     )
 
@@ -1944,11 +1947,55 @@ private fun EqSection(
 }
 
 @Composable
+private fun EqActivateRow(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+) {
+    val containerColor by animateColorAsState(
+        targetValue = if (enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow),
+        label = "eqActivateContainer",
+    )
+
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.tap_to_activate_equalizer),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = enabled,
+                onCheckedChange = onEnabledChange,
+                thumbContent = if (enabled) {
+                    {
+                        Icon(
+                            painter = painterResource(R.drawable.check),
+                            contentDescription = null,
+                            modifier = Modifier.size(SwitchDefaults.IconSize),
+                        )
+                    }
+                } else null,
+            )
+        }
+    }
+}
+
+@Composable
 private fun EqHeroCard(
     enabled: Boolean,
     profileTitle: String,
     profileSubtitle: String,
-    onEnabledChange: (Boolean) -> Unit,
     onOpenSystemEqualizer: () -> Unit,
 ) {
     val heroAccentColor by animateColorAsState(
@@ -2017,45 +2064,6 @@ private fun EqHeroCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-
-                Spacer(Modifier.height(20.dp))
-
-                ToggleButton(
-                    checked = enabled,
-                    onCheckedChange = onEnabledChange,
-                    colors =
-                        ToggleButtonDefaults.toggleButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                            checkedContainerColor = MaterialTheme.colorScheme.primary,
-                            checkedContentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.tap_to_activate_equalizer),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Icon(
-                            painter = painterResource(if (enabled) R.drawable.check else R.drawable.close),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(if (enabled) R.string.enabled else R.string.disabled),
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
 
                 FilledTonalButton(
                     onClick = onOpenSystemEqualizer,
