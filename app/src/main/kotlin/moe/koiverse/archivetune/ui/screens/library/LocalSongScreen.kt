@@ -104,6 +104,8 @@ import moe.koiverse.archivetune.constants.CONTENT_TYPE_HEADER
 import moe.koiverse.archivetune.constants.CONTENT_TYPE_SONG
 import moe.koiverse.archivetune.constants.LocalSongsExcludedFoldersKey
 import moe.koiverse.archivetune.constants.LocalSongsMinDurationSecondsKey
+import moe.koiverse.archivetune.constants.LocalSongsSortDescendingKey
+import moe.koiverse.archivetune.constants.LocalSongsSortTypeKey
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.localmedia.LocalSongScanConfig
@@ -142,8 +144,8 @@ fun LocalSongScreen(
     val scanSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showScanSheet by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
-    var sortDescending by rememberSaveable { mutableStateOf(true) }
-    var sortTypeName by rememberSaveable { mutableStateOf(LocalSongSortType.MODIFIED.name) }
+    val (sortDescending, onSortDescendingChange) = rememberPreference(LocalSongsSortDescendingKey, true)
+    val (sortTypeName, onSortTypeNameChange) = rememberPreference(LocalSongsSortTypeKey, LocalSongSortType.MODIFIED.name)
     val (minimumDurationSeconds, onMinimumDurationSecondsChange) = rememberPreference(
         LocalSongsMinDurationSecondsKey,
         0,
@@ -310,8 +312,8 @@ fun LocalSongScreen(
                     sortType = sortType,
                     sortDescending = sortDescending,
                     visibleSongCount = visibleSongs.size,
-                    onSortTypeChange = { sortTypeName = it.name },
-                    onSortDescendingChange = { sortDescending = it },
+                    onSortTypeChange = { onSortTypeNameChange(it.name) },
+                    onSortDescendingChange = onSortDescendingChange,
                 )
             }
 
