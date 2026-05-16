@@ -129,6 +129,7 @@ import moe.koiverse.archivetune.constants.AccountChannelHandleKey
 import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AccountNameKey
 import moe.koiverse.archivetune.constants.DataSyncIdKey
+import moe.koiverse.archivetune.constants.ForceSyncOnAccountSwitchKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.SavedAccountsKey
 import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
@@ -188,6 +189,8 @@ fun AccountSettings(
     val (dataSyncId, onDataSyncIdChange) = rememberPreference(DataSyncIdKey, "")
     val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
     val (ytmSync, onYtmSyncChange) = rememberPreference(YtmSyncKey, true)
+    val (forceSyncOnAccountSwitch, onForceSyncOnAccountSwitchChange) =
+        rememberPreference(ForceSyncOnAccountSwitchKey, false)
     val (selectedYtmPlaylists, _) = rememberPreference(SelectedYtmPlaylistsKey, "")
     val (savedAccountsJson, onSavedAccountsJsonChange) = rememberPreference(SavedAccountsKey, "")
     val savedAccounts = remember(savedAccountsJson) { decodeSavedAccounts(savedAccountsJson) }
@@ -253,16 +256,10 @@ fun AccountSettings(
     }
 
     val switchToAccount: (SavedAccount) -> Unit = { account ->
-        PreferenceStore.launchEdit(context.dataStore) {
-            this[InnerTubeCookieKey] = account.innerTubeCookie
-            this[VisitorDataKey] = account.visitorData
-            this[DataSyncIdKey] = account.dataSyncId
-            this[AccountNameKey] = account.name
-            this[AccountEmailKey] = account.email
-            this[AccountChannelHandleKey] = account.channelHandle
-            this[YtmSyncKey] = account.ytmSync
-            this[SelectedYtmPlaylistsKey] = account.selectedYtmPlaylists
-        }
+        viewModel.switchToAccount(
+            account = account,
+            forceSyncOnSwitch = forceSyncOnAccountSwitch,
+        )
     }
 
     val removeAccount: (SavedAccount) -> Unit = { account ->
@@ -468,6 +465,16 @@ fun AccountSettings(
                             title = stringResource(R.string.yt_sync),
                             checked = ytmSync,
                             onCheckedChange = onYtmSyncChange,
+                        )
+
+                        ExpressiveDivider()
+
+                        ExpressiveSwitchRow(
+                            icon = painterResource(R.drawable.sync),
+                            title = stringResource(R.string.force_sync_on_switch_account),
+                            subtitle = stringResource(R.string.force_sync_on_switch_account_desc),
+                            checked = forceSyncOnAccountSwitch,
+                            onCheckedChange = onForceSyncOnAccountSwitchChange,
                         )
                     }
                 }
