@@ -67,8 +67,9 @@ data class SectionListRenderer(
     ) {
         @Serializable
         data class ItemSectionContent(
-            val gridRenderer: GridRenderer?,
-            val musicShelfRenderer: MusicShelfRenderer?,
+            val musicResponsiveListItemRenderer: MusicResponsiveListItemRenderer? = null,
+            val gridRenderer: GridRenderer? = null,
+            val musicShelfRenderer: MusicShelfRenderer? = null,
         )
     }
 }
