@@ -12,6 +12,7 @@
 package moe.koiverse.archivetune.viewmodels
 
 import android.content.Context
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.innertube.YouTube
@@ -24,12 +25,18 @@ import moe.koiverse.archivetune.innertube.pages.ExplorePage
 import moe.koiverse.archivetune.innertube.pages.HomePage
 import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.constants.AccountChannelHandleKey
+import moe.koiverse.archivetune.constants.AccountEmailKey
+import moe.koiverse.archivetune.constants.AccountNameKey
+import moe.koiverse.archivetune.constants.DataSyncIdKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.QuickPicks
 import moe.koiverse.archivetune.constants.QuickPicksKey
+import moe.koiverse.archivetune.constants.SelectedYtmPlaylistsKey
 import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
+import moe.koiverse.archivetune.constants.VisitorDataKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.*
@@ -38,9 +45,11 @@ import moe.koiverse.archivetune.models.SimilarRecommendation
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.parseSpeedDialPins
+import moe.koiverse.archivetune.utils.SavedAccount
 import moe.koiverse.archivetune.utils.SpeedDialPinType
 import moe.koiverse.archivetune.utils.SyncUtils
 import moe.koiverse.archivetune.utils.reportException
+import moe.koiverse.archivetune.utils.toPlaybackAuthState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -405,6 +414,36 @@ class HomeViewModel @Inject constructor(
             } finally {
                 isAccountLoading.value = false
                 isProcessingAccountData = false
+            }
+        }
+    }
+
+    fun switchToAccount(
+        account: SavedAccount,
+        forceSyncOnSwitch: Boolean,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                context.dataStore.edit { preferences ->
+                    preferences[InnerTubeCookieKey] = account.innerTubeCookie
+                    preferences[VisitorDataKey] = account.visitorData
+                    preferences[DataSyncIdKey] = account.dataSyncId
+                    preferences[AccountNameKey] = account.name
+                    preferences[AccountEmailKey] = account.email
+                    preferences[AccountChannelHandleKey] = account.channelHandle
+                    preferences[YtmSyncKey] = account.ytmSync
+                    preferences[SelectedYtmPlaylistsKey] = account.selectedYtmPlaylists
+                }
+
+                val authState = context.dataStore.data.first().toPlaybackAuthState()
+                YouTube.authState = authState
+
+                if (forceSyncOnSwitch && account.ytmSync && authState.hasLoginCookie) {
+                    syncUtils.performFullSync(authoritative = true)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error switching account")
+                reportException(e)
             }
         }
     }

@@ -199,6 +199,8 @@
     <string name="token_adv_login_description">This is an ADVANCED login method. As an alternative to the web portal, you may directly enter or update your login token here. For example, this can speed up logging in on multiple devices. Please note that any invalid token formats the app fails to parse will not be accepted</string>
     <string name="ytm_sync">Automatically sync with your YouTube Music account</string>
     <string name="yt_sync">Auto sync with account</string>
+    <string name="force_sync_on_switch_account">Force Sync on Switch Account</string>
+    <string name="force_sync_on_switch_account_desc">Re-sync playlists, liked songs, artists, and albums from the selected account after switching</string>
     <string name="more_content">More content</string>
     <string name="general">General</string>
     <string name="proxy">Proxy</string>
