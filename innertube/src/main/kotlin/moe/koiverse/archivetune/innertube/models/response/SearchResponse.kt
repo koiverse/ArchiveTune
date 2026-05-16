@@ -12,6 +12,7 @@
 package moe.koiverse.archivetune.innertube.models.response
 
 import moe.koiverse.archivetune.innertube.models.Continuation
+import moe.koiverse.archivetune.innertube.models.ContinuationItemRenderer
 import moe.koiverse.archivetune.innertube.models.MusicResponsiveListItemRenderer
 import moe.koiverse.archivetune.innertube.models.Tabs
 import kotlinx.serialization.Serializable
@@ -37,7 +38,8 @@ data class SearchResponse(
         ) {
             @Serializable
             data class Content(
-                val musicResponsiveListItemRenderer: MusicResponsiveListItemRenderer,
+                val musicResponsiveListItemRenderer: MusicResponsiveListItemRenderer? = null,
+                val continuationItemRenderer: ContinuationItemRenderer? = null,
             )
         }
     }
