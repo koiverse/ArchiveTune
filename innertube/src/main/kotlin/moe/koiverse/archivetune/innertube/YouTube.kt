@@ -238,59 +238,145 @@ object YouTube {
 
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
+        val contents =
+            response.contents
+                ?.tabbedSearchResultsRenderer
+                ?.tabs
+                ?.firstOrNull()
+                ?.tabRenderer
+                ?.content
+                ?.sectionListRenderer
+                ?.contents
+                .orEmpty()
+        val topItems = mutableListOf<YTItem>()
+        val summaries = mutableListOf<SearchSummary>()
+
+        contents.forEach { content ->
+            content.musicCardShelfRenderer?.let { renderer ->
+                topItems +=
+                    listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(renderer))
+                        .plus(
+                            renderer.contents
+                                ?.mapNotNull { it.musicResponsiveListItemRenderer }
+                                ?.mapNotNull { SearchSummaryPage.fromMusicResponsiveListItemRenderer(it) }
+                                .orEmpty()
+                        )
+                return@forEach
+            }
+
+            content.itemSectionRenderer?.contents?.let { sectionContents ->
+                topItems +=
+                    sectionContents.mapNotNull {
+                        it.musicResponsiveListItemRenderer?.let { renderer ->
+                            SearchSummaryPage.fromMusicResponsiveListItemRenderer(renderer)
+                        }
+                    }
+                summaries +=
+                    sectionContents.mapNotNull { it.musicShelfRenderer?.toSearchSummary() }
+                return@forEach
+            }
+
+            content.musicShelfRenderer?.toSearchSummary()?.let(summaries::add)
+        }
+
         SearchSummaryPage(
-            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { it ->
-                if (it.musicCardShelfRenderer != null)
-                    SearchSummary(
-                        title = it.musicCardShelfRenderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
-                        items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(it.musicCardShelfRenderer))
-                            .plus(
-                                it.musicCardShelfRenderer.contents
-                                    ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                                    ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
-                                    .orEmpty()
-                            )
-                            .distinctBy { it.id }
-                            .ifEmpty { null } ?: return@mapNotNull null
-                    )
-                else
-                    SearchSummary(
-                        title = it.musicShelfRenderer?.title?.runs?.firstOrNull()?.text ?: "Other",
-                        items = it.musicShelfRenderer?.contents?.getItems()
-                            ?.mapNotNull {
-                                SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
-                            }
-                            ?.distinctBy { it.id }
-                            ?.ifEmpty { null } ?: return@mapNotNull null
-                    )
-            }!!
+            summaries =
+                buildList {
+                    topItems
+                        .distinctBy { it.id }
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { add(SearchSummary(title = "Top results", items = it)) }
+                    addAll(summaries)
+                }
         )
     }
 
     suspend fun search(query: String, filter: SearchFilter): Result<SearchResult> = runCatching {
         val response = innerTube.search(WEB_REMIX, query, filter.value).body<SearchResponse>()
+        val contents =
+            response.contents
+                ?.tabbedSearchResultsRenderer
+                ?.tabs
+                ?.firstOrNull()
+                ?.tabRenderer
+                ?.content
+                ?.sectionListRenderer
+                ?.contents
+                .orEmpty()
+        val shelves =
+            contents.flatMap { content ->
+                buildList {
+                    content.musicShelfRenderer?.let { add(it) }
+                    content.itemSectionRenderer?.contents
+                        ?.mapNotNull { it.musicShelfRenderer }
+                        ?.let { addAll(it) }
+                }
+            }
+        val inlineItems =
+            contents.flatMap { content ->
+                content.itemSectionRenderer?.contents
+                    ?.mapNotNull { it.musicResponsiveListItemRenderer }
+                    .orEmpty()
+            }
         SearchResult(
-            items = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
-                ?.tabRenderer?.content?.sectionListRenderer?.contents?.lastOrNull()
-                ?.musicShelfRenderer?.contents?.getItems()?.mapNotNull {
-                    SearchPage.toYTItem(it)
-                }.orEmpty(),
-            continuation = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
-                ?.tabRenderer?.content?.sectionListRenderer?.contents?.lastOrNull()
-                ?.musicShelfRenderer?.continuations?.getContinuation()
+            items =
+                shelves
+                    .flatMap { it.contents?.getItems().orEmpty() }
+                    .plus(inlineItems)
+                    .mapNotNull { SearchPage.toYTItem(it) }
+                    .distinctBy { it.id },
+            continuation =
+                shelves
+                    .asSequence()
+                    .mapNotNull { it.continuations?.getContinuation() ?: it.contents?.getContinuation() }
+                    .firstOrNull()
         )
     }
 
     suspend fun searchContinuation(continuation: String): Result<SearchResult> = runCatching {
         val response = innerTube.search(WEB_REMIX, continuation = continuation).body<SearchResponse>()
-        val items = response.continuationContents?.musicShelfContinuation?.contents
-            ?.mapNotNull {
-                SearchPage.toYTItem(it.musicResponsiveListItemRenderer)
-            } ?: emptyList()
+        val continuationPage = response.continuationContents?.musicShelfContinuation
+        val items =
+            continuationPage
+                ?.contents
+                ?.mapNotNull {
+                    it.musicResponsiveListItemRenderer?.let { renderer -> SearchPage.toYTItem(renderer) }
+                }
+                ?: emptyList()
         SearchResult(
             items = items,
-            continuation = if (items.isEmpty()) null else response.continuationContents?.musicShelfContinuation?.continuations?.getContinuation()
+            continuation =
+                if (items.isEmpty()) {
+                    null
+                } else {
+                    continuationPage?.continuations?.getContinuation()
+                        ?: continuationPage?.contents
+                            ?.firstOrNull { it.continuationItemRenderer != null }
+                            ?.continuationItemRenderer
+                            ?.continuationEndpoint
+                            ?.continuationCommand
+                            ?.token
+                }
         )
+    }
+
+    private fun MusicShelfRenderer.toSearchSummary(): SearchSummary? {
+        val items =
+            contents
+                ?.getItems()
+                ?.mapNotNull { SearchSummaryPage.fromMusicResponsiveListItemRenderer(it) }
+                ?.distinctBy { it.id }
+                .orEmpty()
+        if (items.isEmpty()) return null
+
+        val title =
+            title
+                ?.runs
+                ?.joinToString(separator = "") { it.text }
+                ?.takeIf { it.isNotBlank() }
+                ?: "Other"
+
+        return SearchSummary(title = title, items = items)
     }
 
     suspend fun album(browseId: String, withSongs: Boolean = true): Result<AlbumPage> = runCatching {
