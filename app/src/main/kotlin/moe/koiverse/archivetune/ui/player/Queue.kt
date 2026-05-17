@@ -338,10 +338,6 @@ fun Queue(
                                     mediaMetadata = mediaMetadata,
                                     navController = navController,
                                     playerBottomSheetState = playerBottomSheetState,
-                                    isQueueTrigger = true,
-                                    onRemoveFromQueue = {
-                                        currentWindow?.let { onRemoveWithUndo(it) }
-                                    },
                                     onShowDetailsDialog = {
                                         mediaMetadata?.id?.let {
                                             bottomSheetPageState.show {
@@ -378,10 +374,6 @@ fun Queue(
                                     mediaMetadata = mediaMetadata,
                                     navController = navController,
                                     playerBottomSheetState = playerBottomSheetState,
-                                    isQueueTrigger = true,
-                                    onRemoveFromQueue = {
-                                        currentWindow?.let { onRemoveWithUndo(it) }
-                                    },
                                     onShowDetailsDialog = {
                                         mediaMetadata?.id?.let {
                                             bottomSheetPageState.show {
