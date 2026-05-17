@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -84,6 +85,7 @@ import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.extensions.move
 import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
+import moe.koiverse.archivetune.ui.component.ExpressivePullToRefreshBox
 import moe.koiverse.archivetune.ui.component.LibraryAlbumSpotlightCard
 import moe.koiverse.archivetune.ui.component.LibraryArtistSpotlightCard
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
@@ -180,6 +182,7 @@ fun LibraryMixScreen(
     val albums by viewModel.albums.collectAsState()
     val artists by viewModel.artists.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     val collator = remember {
         Collator.getInstance(Locale.getDefault()).apply {
@@ -336,206 +339,212 @@ fun LibraryMixScreen(
         }
     }
 
-    LazyColumn(
-        state = lazyListState,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+    ExpressivePullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { if (ytmSync) viewModel.syncAllLibrary() },
+        modifier = Modifier.fillMaxSize(),
     ) {
-        item(key = "filter") {
-            filterContent()
-        }
-
-        item(key = "controls") {
-            LibraryControlCard(
-                canEnterReorderMode = canEnterReorderMode,
-                reorderEnabled = reorderEnabled,
-                onToggleReorder = { reorderEnabled = !reorderEnabled },
-            ) {
-                LibraryMixSortSplitButton(
-                    sortType = sortType,
-                    sortDescending = sortDescending,
-                    onSortTypeChange = onSortTypeChange,
-                    onSortDescendingChange = onSortDescendingChange,
-                    sortTypeText = { type ->
-                        when (type) {
-                            MixSortType.CREATE_DATE -> R.string.sort_by_create_date
-                            MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated
-                            MixSortType.NAME -> R.string.sort_by_name
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                )
+        LazyColumn(
+            state = lazyListState,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+        ) {
+            item(key = "filter") {
+                filterContent()
             }
-        }
 
-        if (shortcuts.isNotEmpty()) {
-            item(key = "shortcuts") {
-                LibraryShortcutGrid(
-                    entries = shortcuts,
-                    onClick = navController::navigate,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
+            item(key = "controls") {
+                LibraryControlCard(
+                    canEnterReorderMode = canEnterReorderMode,
+                    reorderEnabled = reorderEnabled,
+                    onToggleReorder = { reorderEnabled = !reorderEnabled },
+                ) {
+                    LibraryMixSortSplitButton(
+                        sortType = sortType,
+                        sortDescending = sortDescending,
+                        onSortTypeChange = onSortTypeChange,
+                        onSortDescendingChange = onSortDescendingChange,
+                        sortTypeText = { type ->
+                            when (type) {
+                                MixSortType.CREATE_DATE -> R.string.sort_by_create_date
+                                MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated
+                                MixSortType.NAME -> R.string.sort_by_name
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
-        }
 
-        item(key = "playlist_section_header") {
-            LibrarySectionHeaderText(
+            if (shortcuts.isNotEmpty()) {
+                item(key = "shortcuts") {
+                    LibraryShortcutGrid(
+                        entries = shortcuts,
+                        onClick = navController::navigate,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+            }
+
+            item(key = "playlist_section_header") {
+                LibrarySectionHeaderText(
                     title = stringResource(R.string.playlists),
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
 
-        if (customPlaylistMode && canReorderPlaylists) {
-            itemsIndexed(
-                items = mutableVisiblePlaylists,
-                key = { _, item -> item.id },
-            ) { _, item ->
-                ReorderableItem(
-                    state = reorderableState,
-                    key = item.id,
-                ) {
+            if (customPlaylistMode && canReorderPlaylists) {
+                itemsIndexed(
+                    items = mutableVisiblePlaylists,
+                    key = { _, item -> item.id },
+                ) { _, item ->
+                    ReorderableItem(
+                        state = reorderableState,
+                        key = item.id,
+                    ) {
+                        LibraryPlaylistListItem(
+                            navController = navController,
+                            menuState = menuState,
+                            coroutineScope = coroutineScope,
+                            playlist = item,
+                            showDragHandle = true,
+                            dragHandleModifier = Modifier.draggableHandle(),
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .animateItem(),
+                        )
+                    }
+                }
+            } else {
+                items(
+                    items = visiblePlaylists,
+                    key = { it.id },
+                ) { item ->
                     LibraryPlaylistListItem(
                         navController = navController,
                         menuState = menuState,
                         coroutineScope = coroutineScope,
                         playlist = item,
-                        showDragHandle = true,
-                        dragHandleModifier = Modifier.draggableHandle(),
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .animateItem(),
                     )
                 }
             }
-        } else {
-            items(
-                items = visiblePlaylists,
-                key = { it.id },
-            ) { item ->
-                LibraryPlaylistListItem(
-                    navController = navController,
-                    menuState = menuState,
-                    coroutineScope = coroutineScope,
-                    playlist = item,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .animateItem(),
-                )
-            }
-        }
 
-        if (sortedAlbums.isNotEmpty()) {
+            if (sortedAlbums.isNotEmpty()) {
 
-        item(key = "album_section_header") {
-            LibrarySectionHeaderText(
-                    title = stringResource(R.string.albums),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
+                item(key = "album_section_header") {
+                    LibrarySectionHeaderText(
+                        title = stringResource(R.string.albums),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
 
-            items(
-                items = sortedAlbums,
-                key = { it.id },
-            ) { album ->
-                LibraryAlbumSpotlightCard(
-                    album = album,
-                    isActive = album.id == mediaMetadata?.album?.id,
-                    isPlaying = isPlaying,
-                    onPlay = {
-                        coroutineScope.launch {
-                            database.albumWithSongs(album.id).firstOrNull()?.let { albumWithSongs ->
-                                playerConnection.playQueue(LocalAlbumRadio(albumWithSongs))
+                items(
+                    items = sortedAlbums,
+                    key = { it.id },
+                ) { album ->
+                    LibraryAlbumSpotlightCard(
+                        album = album,
+                        isActive = album.id == mediaMetadata?.album?.id,
+                        isPlaying = isPlaying,
+                        onPlay = {
+                            coroutineScope.launch {
+                                database.albumWithSongs(album.id).firstOrNull()?.let { albumWithSongs ->
+                                    playerConnection.playQueue(LocalAlbumRadio(albumWithSongs))
+                                }
                             }
-                        }
-                    },
-                    trailingContent = {
-                        IconButton(
-                            onClick = {
-                                menuState.show {
-                                    AlbumMenu(
-                                        originalAlbum = album,
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss,
-                                    )
-                                }
-                            },
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.more_vert),
-                                contentDescription = null,
+                        },
+                        trailingContent = {
+                            IconButton(
+                                onClick = {
+                                    menuState.show {
+                                        AlbumMenu(
+                                            originalAlbum = album,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss,
+                                        )
+                                    }
+                                },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.more_vert),
+                                    contentDescription = null,
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .combinedClickable(
+                                onClick = { navController.navigate("album/${album.id}") },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        AlbumMenu(
+                                            originalAlbum = album,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss,
+                                        )
+                                    }
+                                },
                             )
-                        }
-                    },
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .combinedClickable(
-                            onClick = { navController.navigate("album/${album.id}") },
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                menuState.show {
-                                    AlbumMenu(
-                                        originalAlbum = album,
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss,
-                                    )
-                                }
-                            },
-                        )
-                        .animateItem(),
-                )
-            }
-        }
-
-        if (sortedArtists.isNotEmpty()) {
-
-        item(key = "artist_section_header") {
-            LibrarySectionHeaderText(
-                    title = stringResource(R.string.artists),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
+                            .animateItem(),
+                    )
+                }
             }
 
-            items(
-                items = sortedArtists,
-                key = { it.id },
-            ) { artist ->
-                LibraryArtistSpotlightCard(
-                    artist = artist,
-                    trailingContent = {
-                        IconButton(
-                            onClick = {
-                                menuState.show {
-                                    ArtistMenu(
-                                        originalArtist = artist,
-                                        coroutineScope = coroutineScope,
-                                        onDismiss = menuState::dismiss,
-                                    )
-                                }
-                            },
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.more_vert),
-                                contentDescription = null,
+            if (sortedArtists.isNotEmpty()) {
+
+                item(key = "artist_section_header") {
+                    LibrarySectionHeaderText(
+                        title = stringResource(R.string.artists),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+
+                items(
+                    items = sortedArtists,
+                    key = { it.id },
+                ) { artist ->
+                    LibraryArtistSpotlightCard(
+                        artist = artist,
+                        trailingContent = {
+                            IconButton(
+                                onClick = {
+                                    menuState.show {
+                                        ArtistMenu(
+                                            originalArtist = artist,
+                                            coroutineScope = coroutineScope,
+                                            onDismiss = menuState::dismiss,
+                                        )
+                                    }
+                                },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.more_vert),
+                                    contentDescription = null,
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .combinedClickable(
+                                onClick = { navController.navigate("artist/${artist.id}") },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        ArtistMenu(
+                                            originalArtist = artist,
+                                            coroutineScope = coroutineScope,
+                                            onDismiss = menuState::dismiss,
+                                        )
+                                    }
+                                },
                             )
-                        }
-                    },
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .combinedClickable(
-                            onClick = { navController.navigate("artist/${artist.id}") },
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                menuState.show {
-                                    ArtistMenu(
-                                        originalArtist = artist,
-                                        coroutineScope = coroutineScope,
-                                        onDismiss = menuState::dismiss,
-                                    )
-                                }
-                            },
-                        )
-                        .animateItem(),
-                )
+                            .animateItem(),
+                    )
+                }
             }
         }
     }

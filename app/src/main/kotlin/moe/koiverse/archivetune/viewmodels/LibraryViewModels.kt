@@ -421,14 +421,22 @@ constructor(
     database: MusicDatabase,
     private val syncUtils: SyncUtils,
 ) : ViewModel() {
-    val syncAllLibrary = {
-         viewModelScope.launch(Dispatchers.IO) {
-             try {
-                 syncUtils.performFullSync()
-             } catch (e: Exception) {
-                 timber.log.Timber.e(e, "Error during manual sync")
-             }
-         }
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
+    fun syncAllLibrary() {
+        if (_isRefreshing.value) return
+        _isRefreshing.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                syncUtils.performFullSync()
+            } catch (e: Exception) {
+                timber.log.Timber.e(e, "Error during manual sync")
+                reportException(e)
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
     }
     val topValue =
         context.dataStore.data
