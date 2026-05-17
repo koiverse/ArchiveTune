@@ -49,10 +49,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.LeadingIconTab
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
@@ -77,7 +77,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -129,17 +128,6 @@ fun NewReleaseScreen(
                         Icon(
                             painterResource(R.drawable.arrow_back),
                             contentDescription = null,
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { navController.navigate(Screens.Search.route) },
-                        onLongClick = {},
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.search),
-                            contentDescription = stringResource(R.string.search),
                         )
                     }
                 },
@@ -546,30 +534,22 @@ private fun NewReleaseTabs(
     ) {
         tabs.forEach { tab ->
             val selected = tab == selectedTab
+            val title = stringResource(tab.titleRes)
 
-            LeadingIconTab(
+            Tab(
                 selected = selected,
                 onClick = { onTabSelected(tab) },
                 icon = {
                     Icon(
                         imageVector = tab.icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(21.dp),
-                    )
-                },
-                text = {
-                    Text(
-                        text = stringResource(tab.titleRes),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        contentDescription = title,
+                        modifier = Modifier.size(24.dp),
                     )
                 },
                 selectedContentColor = selectedContentColor,
                 unselectedContentColor = unselectedContentColor,
                 modifier = Modifier
-                    .padding(horizontal = 3.dp, vertical = 4.dp)
+                    .padding(horizontal = 3.dp, vertical = 6.dp)
                     .height(56.dp)
                     .clip(tabShape)
                     .background(if (selected) selectedContainer else unselectedContainer),
