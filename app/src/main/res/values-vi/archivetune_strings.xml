@@ -367,4 +367,5 @@
     <string name="backup_category_settings_desc">Giao diện, phát lại &amp; tùy chọn</string>
     <string name="backup_category_account">Chi tiết tài khoản</string>
     <string name="backup_category_account_desc">Thông tin đăng nhập YouTube, Last.fm, Discord và proxy</string>
+    <string name="login_success">Đăng nhập thành công</string>
 </resources>

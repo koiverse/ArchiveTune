@@ -17,6 +17,7 @@ import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -26,6 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -84,6 +87,8 @@ fun LoginScreen(
     var accountEmail by rememberPreference(AccountEmailKey, "")
     var accountChannelHandle by rememberPreference(AccountChannelHandleKey, "")
 
+    var hasNavigated by remember { mutableStateOf(false) }
+
     var webView: WebView? = null
 
     AndroidView(
@@ -110,6 +115,12 @@ fun LoginScreen(
                                     accountName = it.name
                                     accountEmail = it.email.orEmpty()
                                     accountChannelHandle = it.channelHandle.orEmpty()
+
+                                    if (!hasNavigated) {
+                                        hasNavigated = true
+                                        Toast.makeText(context, R.string.login_success, Toast.LENGTH_SHORT).show()
+                                        navController.navigateUp()
+                                    }
                                 }.onFailure {
                                     reportException(it)
                                 }
