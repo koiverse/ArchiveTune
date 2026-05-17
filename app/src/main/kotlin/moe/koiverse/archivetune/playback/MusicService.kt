@@ -561,7 +561,6 @@ class MusicService :
     }
 
     private fun ensureStartedAsForeground() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (hasCalledStartForeground) return
 
         val notification =
@@ -615,6 +614,14 @@ class MusicService :
         idleStopJob = null
     }
 
+    private fun hasResumablePlaybackNotification(): Boolean {
+        val state = player.playbackState
+        return player.mediaItemCount > 0 &&
+            player.currentMediaItem != null &&
+            state != Player.STATE_IDLE &&
+            state != Player.STATE_ENDED
+    }
+
     private fun stopForegroundAndSelf() {
         cancelIdleStop()
         runCatching {
@@ -630,12 +637,10 @@ class MusicService :
 
     private fun scheduleStopIfIdle() {
         if (hasBoundClients) return
-        val state = player.playbackState
-        val keepAlive =
-            player.isPlaying ||
-                (player.playWhenReady && (state == Player.STATE_BUFFERING || state == Player.STATE_READY))
-        if (keepAlive) {
+        if (hasResumablePlaybackNotification()) {
             cancelIdleStop()
+            promoteToStartedService()
+            ensureStartedAsForeground()
             return
         }
         val togetherIdle = togetherSessionState.value is moe.koiverse.archivetune.together.TogetherSessionState.Idle
@@ -644,9 +649,9 @@ class MusicService :
             return
         }
 
+        val state = player.playbackState
         val delayMs =
             when (state) {
-                Player.STATE_READY -> 5 * 60_000L
                 Player.STATE_ENDED, Player.STATE_IDLE -> 30_000L
                 else -> 60_000L
             }
@@ -656,11 +661,7 @@ class MusicService :
             scope.launch {
                 delay(delayMs)
                 if (hasBoundClients) return@launch
-                val currentState = player.playbackState
-                val shouldKeep =
-                    player.isPlaying ||
-                        (player.playWhenReady && (currentState == Player.STATE_BUFFERING || currentState == Player.STATE_READY))
-                if (shouldKeep) return@launch
+                if (hasResumablePlaybackNotification()) return@launch
                 if (togetherSessionState.value !is moe.koiverse.archivetune.together.TogetherSessionState.Idle) return@launch
                 stopForegroundAndSelf()
             }
@@ -1777,8 +1778,7 @@ class MusicService :
 
     fun refreshPlaybackNotification() {
         updateNotification()
-        runCatching { super.onUpdateNotification(mediaSession, player.isPlaying) }
-            .onFailure { reportException(it) }
+        onUpdateNotification(mediaSession, hasResumablePlaybackNotification())
     }
 
     private suspend fun recoverSong(
@@ -4177,7 +4177,7 @@ class MusicService :
             closeAudioEffectSession()
         }
         updateWakeLock()
-        if (player.playWhenReady && keepAudioEffectSessionOpen) {
+        if (hasResumablePlaybackNotification()) {
             cancelIdleStop()
             promoteToStartedService()
             ensureStartedAsForeground()
@@ -5234,8 +5234,9 @@ class MusicService :
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        if (startInForegroundRequired) ensureStartedAsForeground()
-        runCatching { super.onUpdateNotification(session, startInForegroundRequired) }
+        val keepInForeground = startInForegroundRequired || hasResumablePlaybackNotification()
+        if (keepInForeground) ensureStartedAsForeground()
+        runCatching { super.onUpdateNotification(session, keepInForeground) }
             .onFailure { reportException(it) }
     }
 
