@@ -429,7 +429,7 @@ private fun NewReleaseHorizontalSection(
         horizontalArrangement = Arrangement.spacedBy(0.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(252.dp),
+            .height(216.dp),
     ) {
         items(
             items = releases,
