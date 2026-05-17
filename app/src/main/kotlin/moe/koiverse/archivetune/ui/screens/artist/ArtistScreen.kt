@@ -16,15 +16,16 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,10 +34,12 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -45,7 +48,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Album
+import androidx.compose.material.icons.outlined.Hearing
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,7 +60,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -68,6 +74,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -81,16 +88,17 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -123,6 +131,7 @@ import moe.koiverse.archivetune.innertube.models.ArtistItem
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
+import moe.koiverse.archivetune.innertube.pages.ArtistPage
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
@@ -146,12 +155,14 @@ import moe.koiverse.archivetune.ui.menu.YouTubePlaylistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.ui.utils.formatCompactCount
 import moe.koiverse.archivetune.ui.utils.resize
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.ArtistViewModel
 import com.valentinilk.shimmer.shimmer
+import java.util.Locale
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ArtistScreen(
     navController: NavController,
@@ -549,58 +560,34 @@ fun ArtistScreen(
                             }
                         }
 
-                        // Stats Row
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp, horizontal = 32.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                        val songsLabel = stringResource(R.string.songs)
+                        val albumsLabel = stringResource(R.string.albums)
+                        val monthlyListenersLabel = stringResource(R.string.monthly_listeners)
+                        val subscribersLabel = stringResource(R.string.subscribers)
+                        val artistStats = remember(
+                            showLocal,
+                            artistPage,
+                            librarySongs.size,
+                            libraryAlbums.size,
+                            songsLabel,
+                            albumsLabel,
+                            monthlyListenersLabel,
+                            subscribersLabel
                         ) {
-                            // Songs count - sum all SongItem instances across all sections
-                            val songSections = artistPage?.sections?.filter { section ->
-                                section.items.any { it is SongItem }
-                            }
-                            val songCount = if (showLocal) {
-                                librarySongs.size
-                            } else {
-                                songSections
-                                    ?.flatMap { it.items }
-                                    ?.filterIsInstance<SongItem>()
-                                    ?.distinctBy { it.id }
-                                    ?.size ?: librarySongs.size
-                            }
-                            // Check if any song section has moreEndpoint (meaning there are more songs)
-                            val hasMoreSongs = !showLocal && songSections?.any { it.moreEndpoint != null } == true
+                            buildArtistStats(
+                                showLocal = showLocal,
+                                artistPage = artistPage,
+                                librarySongCount = librarySongs.size,
+                                libraryAlbumCount = libraryAlbums.size,
+                                songsLabel = songsLabel,
+                                albumsLabel = albumsLabel,
+                                monthlyListenersLabel = monthlyListenersLabel,
+                                subscribersLabel = subscribersLabel
+                            )
+                        }
 
-                            if (songCount > 0) {
-                                StatItem(
-                                    value = if (hasMoreSongs) "$songCount+" else songCount.toString(),
-                                    label = stringResource(R.string.songs)
-                                )
-                            }
-
-                            // Albums count - sum all AlbumItem instances across all sections
-                            val albumSections = artistPage?.sections?.filter { section ->
-                                section.items.any { it is AlbumItem }
-                            }
-                            val albumCount = if (showLocal) {
-                                libraryAlbums.size
-                            } else {
-                                albumSections
-                                    ?.flatMap { it.items }
-                                    ?.filterIsInstance<AlbumItem>()
-                                    ?.distinctBy { it.id }
-                                    ?.size ?: libraryAlbums.size
-                            }
-                            // Check if any album section has moreEndpoint (meaning there are more albums)
-                            val hasMoreAlbums = !showLocal && albumSections?.any { it.moreEndpoint != null } == true
-
-                            if (albumCount > 0) {
-                                StatItem(
-                                    value = if (hasMoreAlbums) "$albumCount+" else albumCount.toString(),
-                                    label = stringResource(R.string.albums)
-                                )
-                            }
+                        if (artistStats.isNotEmpty()) {
+                            ArtistStatsButtonGroup(stats = artistStats)
                         }
 
                         // Action Buttons
@@ -1166,29 +1153,164 @@ fun ArtistScreen(
     )
 }
 
-/**
- * Stat item component for displaying statistics like subscriber count, songs, albums
- */
+@Immutable
+private data class ArtistStatItemUiModel(
+    val icon: ImageVector,
+    val value: String,
+    val contentDescription: String,
+)
+
 @Composable
-private fun StatItem(
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier
+private fun ArtistStatsButtonGroup(
+    stats: List<ArtistStatItemUiModel>,
+    modifier: Modifier = Modifier,
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+    val buttonShapes = ButtonDefaults.shapes()
+
+    FlowRow(
         modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp, horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        stats.fastForEach { stat ->
+            FilledTonalButton(
+                onClick = NoOpStatButtonClick,
+                shapes = buttonShapes,
+                contentPadding = PaddingValues(horizontal = 14.dp),
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .widthIn(min = 72.dp)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = stat.contentDescription
+                    },
+            ) {
+                Icon(
+                    imageVector = stat.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = stat.value,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+            }
+        }
     }
+}
+
+private fun buildArtistStats(
+    showLocal: Boolean,
+    artistPage: ArtistPage?,
+    librarySongCount: Int,
+    libraryAlbumCount: Int,
+    songsLabel: String,
+    albumsLabel: String,
+    monthlyListenersLabel: String,
+    subscribersLabel: String,
+): List<ArtistStatItemUiModel> {
+    val songSections = artistPage?.sections?.filter { section ->
+        section.items.any { it is SongItem }
+    }
+    val songCount = if (showLocal) {
+        librarySongCount
+    } else {
+        songSections
+            ?.asSequence()
+            ?.flatMap { it.items.asSequence() }
+            ?.filterIsInstance<SongItem>()
+            ?.distinctBy { it.id }
+            ?.count() ?: librarySongCount
+    }
+    val hasMoreSongs = !showLocal && songSections?.any { it.moreEndpoint != null } == true
+
+    val albumSections = artistPage?.sections?.filter { section ->
+        section.items.any { it is AlbumItem }
+    }
+    val albumCount = if (showLocal) {
+        libraryAlbumCount
+    } else {
+        albumSections
+            ?.asSequence()
+            ?.flatMap { it.items.asSequence() }
+            ?.filterIsInstance<AlbumItem>()
+            ?.distinctBy { it.id }
+            ?.count() ?: libraryAlbumCount
+    }
+    val hasMoreAlbums = !showLocal && albumSections?.any { it.moreEndpoint != null } == true
+
+    return buildList {
+        if (songCount > 0) {
+            val value = compactCountText(songCount, hasMoreSongs)
+            add(
+                ArtistStatItemUiModel(
+                    icon = Icons.Outlined.MusicNote,
+                    value = value,
+                    contentDescription = "$songsLabel $value",
+                )
+            )
+        }
+
+        if (albumCount > 0) {
+            val value = compactCountText(albumCount, hasMoreAlbums)
+            add(
+                ArtistStatItemUiModel(
+                    icon = Icons.Outlined.Album,
+                    value = value,
+                    contentDescription = "$albumsLabel $value",
+                )
+            )
+        }
+
+        artistPage?.artist?.monthlyListenerCountText?.toArtistCompactCountText()?.let { value ->
+            add(
+                ArtistStatItemUiModel(
+                    icon = Icons.Outlined.Hearing,
+                    value = value,
+                    contentDescription = "$monthlyListenersLabel $value",
+                )
+            )
+        }
+
+        artistPage?.artist?.subscriberCountText?.toArtistCompactCountText()?.let { value ->
+            add(
+                ArtistStatItemUiModel(
+                    icon = Icons.Outlined.PersonAdd,
+                    value = value,
+                    contentDescription = "$subscribersLabel $value",
+                )
+            )
+        }
+    }
+}
+
+private fun compactCountText(count: Int, hasMore: Boolean): String {
+    val value = formatCompactCount(count.toLong())
+    return if (hasMore) "$value+" else value
+}
+
+private val CompactArtistCountPattern = Regex("""\d+(?:[.,]\d+)?\s*[KMB]""", RegexOption.IGNORE_CASE)
+private val ArtistCountPattern = Regex("""\d+(?:[.,]\d+)*""")
+private val NoOpStatButtonClick: () -> Unit = {}
+
+private fun String.toArtistCompactCountText(): String? {
+    val compactText = CompactArtistCountPattern.find(this)?.value
+    if (compactText != null) {
+        return compactText
+            .filterNot { it.isWhitespace() }
+            .replace(',', '.')
+            .uppercase(Locale.US)
+    }
+
+    val count = ArtistCountPattern.find(this)
+        ?.value
+        ?.filter { it.isDigit() }
+        ?.toLongOrNull()
+        ?: return null
+
+    return formatCompactCount(count)
 }
