@@ -569,13 +569,13 @@ fun SettingsSegmentedItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 104.dp)
-                .padding(horizontal = 26.dp, vertical = 18.dp),
+                .heightIn(min = 88.dp)
+                .padding(horizontal = 22.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(52.dp)
                     .clip(CircleShape)
                     .background(effectiveAccent),
                 contentAlignment = Alignment.Center,
@@ -593,7 +593,7 @@ fun SettingsSegmentedItem(
                             painter = item.icon,
                             contentDescription = null,
                             tint = iconContentColor,
-                            modifier = Modifier.size(31.dp),
+                            modifier = Modifier.size(26.dp),
                         )
                     }
                 } else {
@@ -601,12 +601,12 @@ fun SettingsSegmentedItem(
                         painter = item.icon,
                         contentDescription = null,
                         tint = iconContentColor,
-                        modifier = Modifier.size(31.dp),
+                        modifier = Modifier.size(26.dp),
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(24.dp))
+            Spacer(modifier = Modifier.width(18.dp))
 
             Column(
                 modifier = Modifier.weight(1f),
@@ -614,7 +614,7 @@ fun SettingsSegmentedItem(
             ) {
                 Text(
                     text = item.title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -624,7 +624,7 @@ fun SettingsSegmentedItem(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = subtitle,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
