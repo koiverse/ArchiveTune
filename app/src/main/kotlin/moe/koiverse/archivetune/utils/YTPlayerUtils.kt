@@ -49,13 +49,19 @@ object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
     private const val FAILED_CLIENT_BACKOFF_MS = 10 * 60 * 1000L
     private const val DEFAULT_STREAM_EXPIRE_SECONDS = 300
+    const val STREAM_URL_EXPIRY_SAFETY_MS = 60_000L
 
-    private fun extractExpireSecondsFromUrl(url: String): Int? {
+    private fun extractExpireTimestampMsFromUrl(url: String): Long? {
         val expireTimestamp = url.toHttpUrlOrNull()
             ?.queryParameter("expire")
             ?.toLongOrNull()
             ?: return null
-        val remaining = expireTimestamp - (System.currentTimeMillis() / 1000L)
+        return expireTimestamp * 1000L
+    }
+
+    private fun extractExpireSecondsFromUrl(url: String): Int? {
+        val expiresAtMs = extractExpireTimestampMsFromUrl(url) ?: return null
+        val remaining = (expiresAtMs - System.currentTimeMillis()) / 1000L
         return remaining.toInt().takeIf { it > 0 }
     }
 
@@ -220,6 +226,14 @@ object YTPlayerUtils {
     fun invalidateCachedStreamUrls(videoId: String) {
         val marker = ":$videoId:"
         streamUrlCache.keys.removeIf { it.contains(marker) }
+    }
+
+    fun isExpiredOrNearExpiredStreamUrl(
+        url: String,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Boolean {
+        val expiresAtMs = extractExpireTimestampMsFromUrl(url) ?: return false
+        return expiresAtMs <= nowMs + STREAM_URL_EXPIRY_SAFETY_MS
     }
 
     fun markStreamClientFailed(
@@ -597,7 +611,7 @@ object YTPlayerUtils {
                 val cacheKey = buildStreamCacheKey(videoId, candidate.itag, client, authState.fingerprint)
                 val cached = streamUrlCache[cacheKey]
                 val candidateUrl =
-                    if (cached != null && cached.expiresAtMs > System.currentTimeMillis()) {
+                    if (cached != null && cached.expiresAtMs > System.currentTimeMillis() + STREAM_URL_EXPIRY_SAFETY_MS) {
                         cached.url
                     } else {
                         findUrlOrNull(candidate, videoId, client, authState)
