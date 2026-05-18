@@ -67,8 +67,16 @@ fun buildSettingsGroups(
                         title = stringResource(R.string.content),
                         subtitle = stringResource(R.string.content_language),
                         accentColor = MaterialTheme.colorScheme.secondary,
-                        keywords = listOf("language", "content", "lyrics", "translation", "region"),
+                        keywords = listOf("language", "content", "translation", "region"),
                         onClick = { navController.navigate("settings/content") },
+                    ),
+                    SettingsItem(
+                        icon = painterResource(R.drawable.lyrics),
+                        title = stringResource(R.string.lyrics),
+                        subtitle = stringResource(R.string.enable_lrclib),
+                        accentColor = MaterialTheme.colorScheme.secondary,
+                        keywords = listOf("lyrics", "providers", "lrclib", "kugou", "paxsenix", "romanize"),
+                        onClick = { navController.navigate("settings/lyrics") },
                     ),
                     SettingsItem(
                         icon = painterResource(R.drawable.wifi_proxy),

@@ -82,6 +82,7 @@ import moe.koiverse.archivetune.ui.screens.settings.DebugSettings
 import moe.koiverse.archivetune.ui.screens.settings.IntegrationScreen
 import moe.koiverse.archivetune.ui.screens.settings.LastFMSettings
 import moe.koiverse.archivetune.ui.screens.settings.LyricsAnimationSettings
+import moe.koiverse.archivetune.ui.screens.settings.LyricsSettings
 import moe.koiverse.archivetune.ui.screens.settings.MusicTogetherScreen
 import moe.koiverse.archivetune.ui.screens.settings.PalettePickerScreen
 import moe.koiverse.archivetune.ui.screens.settings.PlayerSettings
@@ -350,6 +351,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/content") {
         ContentSettings(navController, scrollBehavior)
+    }
+    composable("settings/lyrics") {
+        LyricsSettings(navController, scrollBehavior)
     }
     composable("settings/internet") {
         InternetSettings(navController, scrollBehavior)

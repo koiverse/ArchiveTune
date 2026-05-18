@@ -581,6 +581,8 @@
     <string name="enable_kugou">Enable KuGou lyrics provider</string>
     <string name="preload_queue_lyrics">Preload queue lyrics</string>
     <string name="queue_lyrics_preload_count">Number of songs to preload</string>
+    <string name="display">Display</string>
+    <string name="romanization">Romanization</string>
     <string name="hide_explicit">Hide explicit content</string>
     <string name="hide_video">Hide music videos</string>
     <string name="backup_restore">Backup and restore</string>
