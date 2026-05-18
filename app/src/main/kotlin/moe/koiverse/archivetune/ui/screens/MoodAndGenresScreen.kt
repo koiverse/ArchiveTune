@@ -374,7 +374,6 @@ private fun rememberMoodAndGenresArtworkModel(
             .diskCacheKey("mood_and_genres:$cacheKey")
             .diskCachePolicy(CachePolicy.ENABLED)
             .size(requestSizePx)
-            .crossfade(true)
             .build()
     }
 }
