@@ -121,6 +121,7 @@ fun PreferenceEntry(
     trailingContent: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     isEnabled: Boolean = true,
+    shape: Shape? = null,
 ) {
     val inGroup = LocalPreferenceInGroup.current
     val preferenceIconShape = rememberPreferenceIconShape()
@@ -192,7 +193,7 @@ fun PreferenceEntry(
     }
 
     Card(
-        shape = preferenceItemShape,
+        shape = shape ?: preferenceItemShape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
