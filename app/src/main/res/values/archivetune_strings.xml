@@ -300,8 +300,6 @@
     <string name="settings_section_player_content">Player &amp; Content</string>
     <string name="settings_section_storage">Storage &amp; Data</string>
     <string name="settings_section_system">System &amp; About</string>
-    <string name="settings_music_management_title">Music Management</string>
-    <string name="settings_music_management_subtitle">Manage folders, refresh library, and parsing options</string>
     <string name="settings_appearance_subtitle">Themes, layout, and visual styles</string>
     <string name="settings_playback_title">Playback</string>
     <string name="settings_playback_subtitle">Audio behavior, crossfade, and background playback</string>
@@ -319,8 +317,7 @@
     <string name="settings_updates_subtitle">Version, release notes, and update channel</string>
     <string name="settings_about_subtitle">App info, licenses, and contributors</string>
     <string name="side_sheet_account_signed_out_subtitle">Sign in and manage account sync</string>
-    <string name="side_sheet_new_release">New Release</string>
-    <string name="side_sheet_statistics">Statistics</string>
+    <string name="side_sheet_title">Settings &amp; Account</string>
     <string name="similar_content">Similar content</string>
     <string name="error_no_song_playing">No song is currently playing</string>
     <string name="error_no_similar_songs">No similar songs found</string>
