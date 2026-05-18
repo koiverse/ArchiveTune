@@ -18,9 +18,7 @@ import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.BrowseEndpoint
 import moe.koiverse.archivetune.innertube.models.filterExplicit
-import moe.koiverse.archivetune.innertube.models.filterVideo
 import moe.koiverse.archivetune.constants.HideExplicitKey
-import moe.koiverse.archivetune.constants.HideVideoKey
 import moe.koiverse.archivetune.models.ItemsPage
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
@@ -41,6 +39,7 @@ constructor(
 ) : ViewModel() {
     private val browseId = savedStateHandle.get<String>("browseId")!!
     private val params = savedStateHandle.get<String>("params")
+        ?.takeUnless { it.isBlank() || it == "null" }
 
     val title = MutableStateFlow("")
     val itemsPage = MutableStateFlow<ItemsPage?>(null)
@@ -59,8 +58,7 @@ constructor(
                         ItemsPage(
                             items = artistItemsPage.items
                                 .distinctBy { it.id }
-                                .filterExplicit(context.dataStore.get(HideExplicitKey, false))
-                                .filterVideo(context.dataStore.get(HideVideoKey, false)),
+                                .filterExplicit(context.dataStore.get(HideExplicitKey, false)),
                             continuation = artistItemsPage.continuation,
                         )
                 }.onFailure {
