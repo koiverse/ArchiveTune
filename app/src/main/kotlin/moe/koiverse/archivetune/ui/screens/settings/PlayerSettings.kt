@@ -11,9 +11,7 @@
 
 package moe.koiverse.archivetune.ui.screens.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,11 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -73,7 +69,6 @@ import moe.koiverse.archivetune.ui.component.TagsManagementDialog
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
-import moe.koiverse.archivetune.ui.component.ListDialog
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SliderPreference
@@ -186,7 +181,6 @@ fun PlayerSettings(
 
     var showArtistSeparatorsDialog by remember { mutableStateOf(false) }
     var showTagsManagementDialog by remember { mutableStateOf(false) }
-    var showPlayerStreamClientDialog by remember { mutableStateOf(false) }
     var showExternalDownloaderPackageDialog by remember { mutableStateOf(false) }
     val database = LocalDatabase.current
 
@@ -221,50 +215,6 @@ fun PlayerSettings(
         )
     }
 
-    if (showPlayerStreamClientDialog) {
-        ListDialog(
-            onDismiss = { showPlayerStreamClientDialog = false },
-            modifier = Modifier.padding(horizontal = 8.dp),
-        ) {
-            items(listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX)) { value ->
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onPlayerStreamClientChange(value)
-                            showPlayerStreamClientDialog = false
-                        }.padding(horizontal = 16.dp, vertical = 12.dp),
-                ) {
-                    RadioButton(
-                        selected = value == playerStreamClient,
-                        onClick = null,
-                    )
-
-                    Column(modifier = Modifier.padding(start = 16.dp)) {
-                        Text(
-                            text =
-                            when (value) {
-                                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
-                                else -> stringResource(R.string.player_stream_client_web_remix)
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text =
-                            when (value) {
-                                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
-                                else -> stringResource(R.string.player_stream_client_web_remix_desc)
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
-                    }
-                }
-            }
-        }
-    }
 
     Column(
         Modifier
@@ -298,15 +248,17 @@ fun PlayerSettings(
             }
         )
 
-        PreferenceEntry(
+        EnumListPreference(
             title = { Text(stringResource(R.string.player_stream_client)) },
-            description =
-            when (playerStreamClient) {
-                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
-                else -> stringResource(R.string.player_stream_client_web_remix)
-            },
             icon = { Icon(painterResource(R.drawable.integration), null) },
-            onClick = { showPlayerStreamClientDialog = true }
+            selectedValue = playerStreamClient,
+            onValueSelected = onPlayerStreamClientChange,
+            valueText = {
+                when (it) {
+                    PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
+                    else -> stringResource(R.string.player_stream_client_web_remix)
+                }
+            },
         )
 
         SwitchPreference(
