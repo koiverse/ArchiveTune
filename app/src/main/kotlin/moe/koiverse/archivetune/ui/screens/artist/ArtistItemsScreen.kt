@@ -116,9 +116,7 @@ fun ArtistItemsScreen(
                 ListItemPlaceHolder()
             }
         }
-    }
-
-    if (itemsPage?.items?.firstOrNull() is SongItem) {
+    } else if (itemsPage?.items?.firstOrNull() is SongItem) {
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
