@@ -241,7 +241,6 @@ import java.time.LocalDateTime
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
-import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -932,35 +931,7 @@ class MusicService :
         ) { format, normalizeAudio ->
             format to normalizeAudio
         }.collectLatest(scope) { (format, normalizeAudio) ->
-            Timber.tag("AudioNormalization").d("Audio normalization enabled: $normalizeAudio")
-            Timber.tag("AudioNormalization").d("Format loudnessDb: ${format?.loudnessDb}, perceptualLoudnessDb: ${format?.perceptualLoudnessDb}")
-            
-            normalizeFactor.value =
-                if (normalizeAudio) {
-                    // Use loudnessDb if available, otherwise fall back to perceptualLoudnessDb
-                    val loudness = format?.loudnessDb ?: format?.perceptualLoudnessDb
-                    
-                    if (loudness != null) {
-                        val loudnessDb = loudness.toFloat()
-                        var factor = 10f.pow(-loudnessDb / 20)
-                        
-                        Timber.tag("AudioNormalization").d("Calculated raw normalization factor: $factor (from loudness: $loudnessDb)")
-                        
-                        if (factor > 1f) {
-                            factor = min(factor, maxSafeGainFactor)
-                            Timber.tag("AudioNormalization").d("Factor capped at maxSafeGainFactor: $factor")
-                        }
-                        
-                        Timber.tag("AudioNormalization").i("Applying normalization factor: $factor")
-                        factor
-                    } else {
-                        Timber.tag("AudioNormalization").w("Normalization enabled but no loudness data available - no normalization applied")
-                        1f
-                    }
-                } else {
-                    Timber.tag("AudioNormalization").d("Normalization disabled - using factor 1.0")
-                    1f
-                }
+            normalizeFactor.value = calculateAudioNormalizationFactor(format, normalizeAudio)
         }
 
         dataStore.data
@@ -1384,9 +1355,44 @@ class MusicService :
         audioFocusVolumeFactor: Float,
     ): Float {
         val safePlayerVolume = playerVolume.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: 1f
-        val safeNormalizeFactor = normalizeFactor.takeIf { it.isFinite() }?.coerceIn(0f, maxSafeGainFactor) ?: 1f
-        val safeAudioFocusVolumeFactor = audioFocusVolumeFactor.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: 1f
+        val safeNormalizeFactor =
+            normalizeFactor.takeIf { it.isFinite() }?.coerceIn(MIN_AUDIO_NORMALIZATION_FACTOR, maxSafeGainFactor) ?: 1f
+        val safeAudioFocusVolumeFactor =
+            audioFocusVolumeFactor.takeIf { it.isFinite() }?.coerceIn(MIN_AUDIO_FOCUS_VOLUME_FACTOR, 1f) ?: 1f
         return (safePlayerVolume * safeNormalizeFactor * safeAudioFocusVolumeFactor).coerceIn(0f, maxSafeGainFactor)
+    }
+
+    private fun calculateAudioNormalizationFactor(
+        format: FormatEntity?,
+        normalizeAudio: Boolean,
+    ): Float {
+        Timber.tag("AudioNormalization").d("Audio normalization enabled: $normalizeAudio")
+        Timber.tag("AudioNormalization").d("Format loudnessDb: ${format?.loudnessDb}, perceptualLoudnessDb: ${format?.perceptualLoudnessDb}")
+
+        if (!normalizeAudio) {
+            Timber.tag("AudioNormalization").d("Normalization disabled - using factor 1.0")
+            return 1f
+        }
+
+        val loudnessDb = (format?.loudnessDb ?: format?.perceptualLoudnessDb)?.toFloat()
+        if (loudnessDb == null || !loudnessDb.isFinite()) {
+            Timber.tag("AudioNormalization").w("Normalization enabled but no valid loudness data available - no normalization applied")
+            return 1f
+        }
+
+        val rawFactor = 10f.pow(-loudnessDb / 20)
+        val factor =
+            if (rawFactor.isFinite()) {
+                rawFactor.coerceIn(MIN_AUDIO_NORMALIZATION_FACTOR, maxSafeGainFactor)
+            } else {
+                1f
+            }
+
+        if (factor != rawFactor) {
+            Timber.tag("AudioNormalization").d("Normalization factor clamped from $rawFactor to $factor")
+        }
+        Timber.tag("AudioNormalization").i("Applying normalization factor: $factor")
+        return factor
     }
 
     private fun shouldKeepPlaybackAudible(): Boolean {
@@ -1410,7 +1416,14 @@ class MusicService :
             if (!isActive) return@launch
             if (lastAudioFocusState != AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) return@launch
             if (audioFocusVolumeFactor.value >= 1f || !shouldKeepPlaybackAudible()) return@launch
-            requestAudioFocus()
+            val focusGranted = requestAudioFocus()
+            if (!focusGranted &&
+                lastAudioFocusState == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK &&
+                shouldKeepPlaybackAudible()
+            ) {
+                audioFocusVolumeFactor.value = 1f
+                lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
+            }
         }
     }
 
@@ -1698,10 +1711,20 @@ class MusicService :
 
         val failedUrl = responseException.dataSpec.uri.toString()
         val requestProfile = StreamClientUtils.resolveRequestProfile(failedUrl)
+        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+        val cachedFailedUrl = playbackUrlCache[mediaId]?.takeIf { it.url == failedUrl }
+        val failedExpiredUrl =
+            YTPlayerUtils.isExpiredOrNearExpiredStreamUrl(failedUrl) ||
+                (cachedFailedUrl?.let {
+                    !it.isValidFor(
+                        authFingerprint = authFingerprint,
+                        minimumRemainingMs = YTPlayerUtils.STREAM_URL_EXPIRY_SAFETY_MS,
+                    )
+                } == true)
 
         playbackUrlCache.remove(mediaId)
         YTPlayerUtils.invalidateCachedStreamUrls(mediaId)
-        if (requestProfile.clientKey.isNotEmpty()) {
+        if (!failedExpiredUrl && requestProfile.clientKey.isNotEmpty()) {
             YTPlayerUtils.markStreamClientFailed(mediaId, requestProfile.clientKey, responseException.responseCode)
         }
 
@@ -4565,7 +4588,13 @@ class MusicService :
         }
 
         val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
-        playbackUrlCache[mediaId]?.takeIf { it.isValidFor(authFingerprint) }?.let {
+        playbackUrlCache[mediaId]
+            ?.takeIf {
+                it.isValidFor(
+                    authFingerprint = authFingerprint,
+                    minimumRemainingMs = YTPlayerUtils.STREAM_URL_EXPIRY_SAFETY_MS,
+                )
+            }?.let {
             scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
             val resolvedDataSpec = dataSpec.withUri(it.url.toUri())
             val length =
@@ -5262,7 +5291,7 @@ class MusicService :
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
         const val ERROR_CODE_NO_STREAM = 1000001
-        const val CHUNK_LENGTH = 512 * 1024L
+        const val CHUNK_LENGTH = 8 * 1024 * 1024L
         val RETRYABLE_STREAM_RESPONSE_CODES = setOf(403, 404, 410, 416)
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"
         const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
@@ -5275,5 +5304,7 @@ class MusicService :
         const val AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS = 150L
         const val AUDIO_FOCUS_DUCKING_RECOVERY_DELAY_MS = 4_000L
         const val AUDIO_FOCUS_DUCK_VOLUME_FACTOR = 0.35f
+        const val MIN_AUDIO_FOCUS_VOLUME_FACTOR = 0.2f
+        const val MIN_AUDIO_NORMALIZATION_FACTOR = 0.25f
     }
 }
