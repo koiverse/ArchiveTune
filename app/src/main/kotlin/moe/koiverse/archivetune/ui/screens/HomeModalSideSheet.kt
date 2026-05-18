@@ -47,6 +47,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -97,13 +98,13 @@ fun HomeModalSideSheet(
             HomeSideSheetItem(
                 key = "new_release",
                 iconRes = R.drawable.new_release,
-                titleRes = R.string.side_sheet_new_release,
+                titleRes = R.string.new_releases,
                 route = "new_release",
             ),
             HomeSideSheetItem(
                 key = "statistics",
                 iconRes = R.drawable.stats,
-                titleRes = R.string.side_sheet_statistics,
+                titleRes = R.string.stats,
                 route = "stats",
             ),
             HomeSideSheetItem(
@@ -202,7 +203,7 @@ fun HomeModalSideSheet(
                                 .fillMaxWidth()
                                 .padding(horizontal = 12.dp)
                                 .padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             IconButton(onClick = onDismiss) {
                                 Icon(
@@ -210,6 +211,10 @@ fun HomeModalSideSheet(
                                     contentDescription = stringResource(R.string.close),
                                 )
                             }
+                            Text(
+                                text = stringResource(R.string.side_sheet_title),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
                         }
 
                         Column(
@@ -235,6 +240,9 @@ fun HomeModalSideSheet(
                                     sheetItems.forEachIndexed { index, item ->
                                         PreferenceEntry(
                                             shape = homeSideSheetItemShape(index, sheetItems.size),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                            ),
                                             title = {
                                                 Text(
                                                     text = stringResource(item.titleRes),
