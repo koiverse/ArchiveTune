@@ -35,7 +35,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -105,7 +104,6 @@ import kotlin.math.roundToInt
 @Composable
 fun LyricsSettings(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: ContentSettingsViewModel = hiltViewModel(),
 ) {
     var showClearLyricsDialog by remember { mutableStateOf(false) }
@@ -521,7 +519,6 @@ fun LyricsSettings(
 
     TopAppBar(
         title = { Text(stringResource(R.string.lyrics)) },
-        scrollBehavior = scrollBehavior,
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,
