@@ -49,7 +49,6 @@ import androidx.core.net.toUri
 @Composable
 fun ContentSettings(
     navController: NavController,
-    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
 
@@ -213,7 +212,6 @@ fun ContentSettings(
 
     TopAppBar(
         title = { Text(stringResource(R.string.content)) },
-        scrollBehavior = scrollBehavior,
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,
