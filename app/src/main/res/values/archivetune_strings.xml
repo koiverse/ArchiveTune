@@ -384,4 +384,5 @@
     <string name="backup_category_settings_desc">Appearance, playback &amp; preferences</string>
     <string name="backup_category_account">Account Details</string>
     <string name="backup_category_account_desc">YouTube, Last.fm, Discord &amp; proxy credentials</string>
+    <string name="login_success">Logged in successfully</string>
 </resources>
