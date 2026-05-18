@@ -15,6 +15,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -128,6 +129,7 @@ import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.innertube.models.AlbumItem
 import moe.koiverse.archivetune.innertube.models.ArtistItem
+import moe.koiverse.archivetune.innertube.models.BrowseEndpoint
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
@@ -895,9 +897,7 @@ fun ArtistScreen(
                                     title = section.title,
                                     onClick = section.moreEndpoint?.let {
                                         {
-                                            navController.navigate(
-                                                "artist/${viewModel.artistId}/items?browseId=${it.browseId}&params=${it.params}",
-                                            )
+                                            navController.navigate(buildArtistItemsRoute(viewModel.artistId, it))
                                         }
                                     },
                                 )
@@ -1313,4 +1313,26 @@ private fun String.toArtistCompactCountText(): String? {
         ?: return null
 
     return formatCompactCount(count)
+}
+
+private fun buildArtistItemsRoute(
+    artistId: String,
+    endpoint: BrowseEndpoint,
+): String {
+    val encodedArtistId = Uri.encode(artistId)
+    val encodedBrowseId = Uri.encode(endpoint.browseId)
+    val encodedParams = endpoint.params
+        ?.takeIf { it.isNotBlank() }
+        ?.let { Uri.encode(it) }
+
+    return buildString {
+        append("artist/")
+        append(encodedArtistId)
+        append("/items?browseId=")
+        append(encodedBrowseId)
+        if (encodedParams != null) {
+            append("&params=")
+            append(encodedParams)
+        }
+    }
 }
