@@ -17,7 +17,8 @@ data class AuthScopedCacheValue(
     fun isValidFor(
         authFingerprint: String,
         nowMs: Long = System.currentTimeMillis(),
+        minimumRemainingMs: Long = 0L,
     ): Boolean {
-        return this.authFingerprint == authFingerprint && expiresAtMs > nowMs
+        return this.authFingerprint == authFingerprint && expiresAtMs > nowMs + minimumRemainingMs
     }
 }
