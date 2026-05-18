@@ -105,11 +105,48 @@ enum class PreferenceGroupPosition { Single, First, Middle, Last }
 val LocalPreferenceGroupPosition = compositionLocalOf<PreferenceGroupPosition?> { null }
 
 private val PreferenceGroupLargeCorner = 28.dp
-private val PreferenceGroupSmallCorner = 4.dp
+private val PreferenceGroupSmallCorner = 6.dp
+private val PreferenceEntryMinHeight = 88.dp
+private val PreferenceEntryHorizontalPadding = 22.dp
+private val PreferenceEntryVerticalPadding = 18.dp
 
 @Composable
 private fun rememberPreferenceIconShape(): Shape {
-    return MaterialShapes.Ghostish.toShape()
+    return remember { MaterialShapes.Ghostish.toShape() }
+}
+
+private fun segmentedPreferenceItemShape(
+    index: Int,
+    count: Int,
+): Shape {
+    val large = PreferenceGroupLargeCorner
+    val small = PreferenceGroupSmallCorner
+    return when {
+        count <= 1 -> RoundedCornerShape(large)
+        index == 0 -> RoundedCornerShape(
+            topStart = large,
+            topEnd = large,
+            bottomEnd = small,
+            bottomStart = small,
+        )
+        index == count - 1 -> RoundedCornerShape(
+            topStart = small,
+            topEnd = small,
+            bottomEnd = large,
+            bottomStart = large,
+        )
+        else -> RoundedCornerShape(small)
+    }
+}
+
+private fun preferenceItemShapeForPosition(position: PreferenceGroupPosition?): Shape {
+    return when (position) {
+        null,
+        PreferenceGroupPosition.Single -> segmentedPreferenceItemShape(index = 0, count = 1)
+        PreferenceGroupPosition.First -> segmentedPreferenceItemShape(index = 0, count = 2)
+        PreferenceGroupPosition.Middle -> segmentedPreferenceItemShape(index = 1, count = 3)
+        PreferenceGroupPosition.Last -> segmentedPreferenceItemShape(index = 1, count = 2)
+    }
 }
 
 @Composable
@@ -127,21 +164,10 @@ fun PreferenceEntry(
     val inGroup = LocalPreferenceInGroup.current
     val groupPosition = LocalPreferenceGroupPosition.current
     val preferenceIconShape = rememberPreferenceIconShape()
-    val extraLargeShape = MaterialTheme.shapes.extraLarge
-    val preferenceItemShape = remember(groupPosition, extraLargeShape) {
-        when (groupPosition) {
-            null, PreferenceGroupPosition.Single -> extraLargeShape
-            PreferenceGroupPosition.First -> RoundedCornerShape(
-                topStart = PreferenceGroupLargeCorner, topEnd = PreferenceGroupLargeCorner,
-                bottomStart = PreferenceGroupSmallCorner, bottomEnd = PreferenceGroupSmallCorner,
-            )
-            PreferenceGroupPosition.Middle -> RoundedCornerShape(PreferenceGroupSmallCorner)
-            PreferenceGroupPosition.Last -> RoundedCornerShape(
-                topStart = PreferenceGroupSmallCorner, topEnd = PreferenceGroupSmallCorner,
-                bottomStart = PreferenceGroupLargeCorner, bottomEnd = PreferenceGroupLargeCorner,
-            )
-        }
+    val preferenceItemShape = remember(groupPosition) {
+        preferenceItemShapeForPosition(groupPosition)
     }
+    val resolvedShape = shape ?: preferenceItemShape
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -155,7 +181,7 @@ fun PreferenceEntry(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 72.dp)
+                .heightIn(min = PreferenceEntryMinHeight)
                 .then(if (isEnabled && onClick != null) Modifier.focusable() else Modifier)
                 .clickable(
                     interactionSource = interactionSource,
@@ -164,7 +190,10 @@ fun PreferenceEntry(
                     onClick = onClick ?: {},
                 )
                 .alpha(if (isEnabled) 1f else 0.5f)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(
+                    horizontal = PreferenceEntryHorizontalPadding,
+                    vertical = PreferenceEntryVerticalPadding,
+                ),
         ) {
             if (icon != null) {
                 Box(
@@ -185,14 +214,14 @@ fun PreferenceEntry(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.weight(1f),
             ) {
-                ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)) {
+                ProvideTextStyle(MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) {
                     title()
                 }
                 if (description != null) {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = description,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -209,7 +238,7 @@ fun PreferenceEntry(
     }
 
     Card(
-        shape = shape ?: preferenceItemShape,
+        shape = resolvedShape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -312,6 +341,7 @@ fun <T> ListPreference(
     selectedValue: T,
     values: List<T>,
     valueText: @Composable (T) -> String,
+    valueDescription: (@Composable (T) -> String)? = null,
     onValueSelected: (T) -> Unit,
     isEnabled: Boolean = true,
 ) {
@@ -327,6 +357,7 @@ fun <T> ListPreference(
             values = values,
             selectedValue = selectedValue,
             valueText = valueText,
+            valueDescription = valueDescription,
             sheetState = sheetState,
             onDismiss = { showBottomSheet = false },
             onValueSelected = { value ->
@@ -388,6 +419,34 @@ inline fun <reified T : Enum<T>> EnumListPreference(
     )
 }
 
+@Composable
+inline fun <reified T : Enum<T>> EnumListDialog(
+    modifier: Modifier = Modifier,
+    noinline title: @Composable () -> Unit,
+    description: String? = null,
+    noinline icon: (@Composable () -> Unit)?,
+    selectedValue: T,
+    noinline valueText: @Composable (T) -> String,
+    noinline valueDescription: @Composable (T) -> String,
+    noinline onValueSelected: (T) -> Unit,
+    isEnabled: Boolean = true,
+) {
+    val values = remember { enumValues<T>().toList() }
+
+    ListPreference(
+        modifier = modifier,
+        title = title,
+        description = description,
+        icon = icon,
+        selectedValue = selectedValue,
+        values = values,
+        valueText = valueText,
+        valueDescription = valueDescription,
+        onValueSelected = onValueSelected,
+        isEnabled = isEnabled,
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun <T> PreferenceSelectionBottomSheet(
@@ -395,6 +454,7 @@ private fun <T> PreferenceSelectionBottomSheet(
     values: List<T>,
     selectedValue: T,
     valueText: @Composable (T) -> String,
+    valueDescription: (@Composable (T) -> String)? = null,
     sheetState: SheetState,
     onDismiss: () -> Unit,
     onValueSelected: (T) -> Unit,
@@ -446,6 +506,7 @@ private fun <T> PreferenceSelectionBottomSheet(
                 ) { _, value ->
                     PreferenceSelectionOption(
                         text = valueText(value),
+                        description = valueDescription?.invoke(value),
                         selected = value == selectedValue,
                         onClick = { onValueSelected(value) },
                     )
@@ -458,6 +519,7 @@ private fun <T> PreferenceSelectionBottomSheet(
 @Composable
 private fun PreferenceSelectionOption(
     text: String,
+    description: String? = null,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -465,11 +527,13 @@ private fun PreferenceSelectionOption(
         if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
     val contentColor =
         if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    val descriptionColor =
+        if (selected) contentColor.copy(alpha = 0.78f) else MaterialTheme.colorScheme.onSurfaceVariant
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp)
+            .heightIn(min = if (description == null) 72.dp else 96.dp)
             .clip(MaterialTheme.shapes.extraLarge)
             .background(containerColor)
             .selectable(
@@ -480,15 +544,29 @@ private fun PreferenceSelectionOption(
             .padding(horizontal = 24.dp, vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            color = contentColor,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+        Column(
+            verticalArrangement = Arrangement.Center,
             modifier = Modifier.weight(1f),
-        )
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                color = contentColor,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (description != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = descriptionColor,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
 
         if (selected) {
             Spacer(Modifier.width(16.dp))
