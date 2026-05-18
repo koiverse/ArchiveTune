@@ -150,7 +150,13 @@ constructor(
                 return@Factory dataSpec
             }
             val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
-            songUrlCache[mediaId]?.takeIf { it.isValidFor(authFingerprint) }?.let {
+            songUrlCache[mediaId]
+                ?.takeIf {
+                    it.isValidFor(
+                        authFingerprint = authFingerprint,
+                        minimumRemainingMs = YTPlayerUtils.STREAM_URL_EXPIRY_SAFETY_MS,
+                    )
+                }?.let {
                 return@Factory dataSpec.withUri(it.url.toUri())
             }
             val playbackData = runBlocking(Dispatchers.IO) {
@@ -313,7 +319,7 @@ constructor(
             val urlStr = exception.dataSpec.uri.toString()
             val videoId = urlStr.toHttpUrlOrNull()?.queryParameter("docid") ?: urlStr.toHttpUrlOrNull()?.queryParameter("id")
             val clientKey = StreamClientUtils.resolveRequestProfile(urlStr).clientKey
-            if (videoId != null && clientKey.isNotEmpty()) {
+            if (videoId != null && clientKey.isNotEmpty() && !YTPlayerUtils.isExpiredOrNearExpiredStreamUrl(urlStr)) {
                 YTPlayerUtils.markStreamClientFailed(videoId, clientKey, exception.responseCode)
             }
         }
