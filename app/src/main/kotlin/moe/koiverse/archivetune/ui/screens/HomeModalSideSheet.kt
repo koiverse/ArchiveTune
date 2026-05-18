@@ -50,6 +50,7 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,7 +61,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -136,7 +137,7 @@ fun HomeModalSideSheet(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.42f))
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -175,15 +176,15 @@ fun HomeModalSideSheet(
                         .fillMaxHeight()
                         .width(sheetWidth),
                     shape = RoundedCornerShape(
-                        topStart = 28.dp,
+                        topStart = 16.dp,
                         topEnd = 0.dp,
                         bottomEnd = 0.dp,
-                        bottomStart = 28.dp,
+                        bottomStart = 16.dp,
                     ),
-                    color = MaterialTheme.colorScheme.surface,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                     contentColor = MaterialTheme.colorScheme.onSurface,
-                    tonalElevation = 6.dp,
-                    shadowElevation = 10.dp,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
                 ) {
                     Column(
                         modifier = Modifier
@@ -193,60 +194,82 @@ fun HomeModalSideSheet(
                                     WindowInsetsSides.Top + WindowInsetsSides.Bottom + WindowInsetsSides.End,
                                 ),
                             )
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 18.dp, vertical = 20.dp),
+                            .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        HomeSideSheetAccountCard(
-                            isLoading = isAccountLoading,
-                            isLoggedIn = isAccountLoggedIn,
-                            accountName = accountName,
-                            accountEmail = accountEmail,
-                            accountImageUrl = accountImageUrl,
-                            onClick = onAccountClick,
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            IconButton(onClick = onDismiss) {
+                                Icon(
+                                    painter = painterResource(R.drawable.close),
+                                    contentDescription = stringResource(R.string.close),
+                                )
+                            }
+                        }
 
-                        CompositionLocalProvider(LocalPreferenceInGroup provides true) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                sheetItems.forEach { item ->
-                                    PreferenceEntry(
-                                        title = {
-                                            Text(
-                                                text = stringResource(item.titleRes),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        },
-                                        icon = {
-                                            if (item.showBadge) {
-                                                BadgedBox(
-                                                    badge = { Badge() },
-                                                ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(horizontal = 24.dp)
+                                .padding(bottom = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            HomeSideSheetAccountCard(
+                                isLoading = isAccountLoading,
+                                isLoggedIn = isAccountLoggedIn,
+                                accountName = accountName,
+                                accountEmail = accountEmail,
+                                accountImageUrl = accountImageUrl,
+                                onClick = onAccountClick,
+                            )
+
+                            CompositionLocalProvider(LocalPreferenceInGroup provides true) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    sheetItems.forEachIndexed { index, item ->
+                                        PreferenceEntry(
+                                            shape = homeSideSheetItemShape(index, sheetItems.size),
+                                            title = {
+                                                Text(
+                                                    text = stringResource(item.titleRes),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            },
+                                            icon = {
+                                                if (item.showBadge) {
+                                                    BadgedBox(
+                                                        badge = { Badge() },
+                                                    ) {
+                                                        Icon(
+                                                            painter = painterResource(item.iconRes),
+                                                            contentDescription = null,
+                                                        )
+                                                    }
+                                                } else {
                                                     Icon(
                                                         painter = painterResource(item.iconRes),
                                                         contentDescription = null,
                                                     )
                                                 }
-                                            } else {
+                                            },
+                                            trailingContent = {
                                                 Icon(
-                                                    painter = painterResource(item.iconRes),
+                                                    painter = painterResource(R.drawable.navigate_next),
                                                     contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(20.dp),
                                                 )
-                                            }
-                                        },
-                                        trailingContent = {
-                                            Icon(
-                                                painter = painterResource(R.drawable.navigate_next),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(20.dp),
-                                            )
-                                        },
-                                        onClick = { onNavigate(item.route) },
-                                    )
+                                            },
+                                            onClick = { onNavigate(item.route) },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -358,6 +381,27 @@ private fun HomeSideSheetAccountCard(
                 )
             }
         }
+    }
+}
+
+private fun homeSideSheetItemShape(index: Int, count: Int): Shape {
+    val large = 28.dp
+    val small = 6.dp
+    return when {
+        count <= 1 -> RoundedCornerShape(large)
+        index == 0 -> RoundedCornerShape(
+            topStart = large,
+            topEnd = large,
+            bottomEnd = small,
+            bottomStart = small,
+        )
+        index == count - 1 -> RoundedCornerShape(
+            topStart = small,
+            topEnd = small,
+            bottomEnd = large,
+            bottomStart = large,
+        )
+        else -> RoundedCornerShape(small)
     }
 }
 
