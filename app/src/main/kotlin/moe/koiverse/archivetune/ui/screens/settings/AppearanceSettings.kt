@@ -632,6 +632,7 @@ fun AppearanceSettings(
                 when (it) {
                     NavigationTab.HOME -> stringResource(R.string.home)
                     NavigationTab.SEARCH -> stringResource(R.string.search)
+                    NavigationTab.MOODANDGENRES -> stringResource(R.string.moods_and_genres)
                     NavigationTab.LIBRARY -> stringResource(R.string.filter_library)
                 }
             },
