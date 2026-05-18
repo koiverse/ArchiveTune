@@ -1,0 +1,97 @@
+/*
+ * ArchiveTune (2026)
+ * © Chartreux Westia — github.com/koiverse
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+
+
+
+
+package moe.koiverse.archivetune.ui.player
+
+import moe.koiverse.archivetune.canvas.ArchiveTuneCanvas
+import moe.koiverse.archivetune.canvas.models.CanvasArtwork
+
+internal suspend fun fetchCanvasArtworkForPlayback(
+    songTitleRaw: String,
+    artistNameRaw: String,
+    storefront: String,
+    requireVertical: Boolean,
+): CanvasArtwork? {
+    val songTitle = normalizeCanvasSongTitle(songTitleRaw)
+    val artistName = normalizeCanvasArtistName(artistNameRaw)
+    val candidates =
+        linkedSetOf(
+            songTitle to artistName,
+            songTitleRaw to artistName,
+            songTitle to artistNameRaw,
+            songTitleRaw to artistNameRaw,
+        ).filter { (song, artist) ->
+            song.isNotBlank() && artist.isNotBlank()
+        }
+
+    return candidates.firstNotNullOfOrNull { (song, artist) ->
+        ArchiveTuneCanvas
+            .getBySongArtist(
+                song = song,
+                artist = artist,
+                storefront = storefront,
+            )?.takeIf { artwork ->
+                if (requireVertical) {
+                    !artwork.preferredVerticalAnimationUrl.isNullOrBlank()
+                } else {
+                    !artwork.preferredAnimationUrl.isNullOrBlank()
+                }
+            }
+    }
+}
+
+private fun normalizeCanvasSongTitle(raw: String): String {
+    val stripped =
+        raw
+            .replace(Regex("\\s*\\[[^]]*]"), "")
+            .replace(
+                Regex(
+                    "\\s*\\((?:feat\\.?|ft\\.?|featuring|with)\\b[^)]*\\)",
+                    RegexOption.IGNORE_CASE,
+                ),
+                "",
+            )
+            .replace(
+                Regex(
+                    "\\s*\\((?:official\\s*)?(?:music\\s*)?(?:video|mv|lyrics?|audio|visualizer|live|remaster(?:ed)?|version|edit|mix|remix)[^)]*\\)",
+                    RegexOption.IGNORE_CASE,
+                ),
+                "",
+            )
+            .replace(
+                Regex(
+                    "\\s*-\\s*(?:official\\s*)?(?:music\\s*)?(?:video|mv|lyrics?|audio|visualizer|live|remaster(?:ed)?|version|edit|mix|remix)\\b.*$",
+                    RegexOption.IGNORE_CASE,
+                ),
+                "",
+            )
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+    return stripped
+        .trim('-')
+        .replace(Regex("\\s+"), " ")
+        .trim()
+}
+
+private fun normalizeCanvasArtistName(raw: String): String {
+    val first =
+        raw
+            .split(
+                Regex(
+                    "(?:\\s*,\\s*|\\s*&\\s*|\\s+x\\s+|\\bfeat\\.?\\b|\\bft\\.?\\b|\\bfeaturing\\b|\\bwith\\b)",
+                    RegexOption.IGNORE_CASE,
+                ),
+                limit = 2,
+            ).firstOrNull().orEmpty()
+
+    return first.replace(Regex("\\s+"), " ").trim()
+}
