@@ -220,7 +220,7 @@ fun buildSettingsGroups(
                             } else {
                                 MaterialTheme.colorScheme.primary
                             },
-                            badge = if (hasUpdate) "v$BuildConfig.VERSION_NAME" else BuildConfig.VERSION_NAME,
+                            badge = if (hasUpdate) "v${BuildConfig.VERSION_NAME}" else BuildConfig.VERSION_NAME,
                             keywords = listOf("update", "version", "release", "changelog"),
                             onClick = { navController.navigate("settings/update") },
                         ),
