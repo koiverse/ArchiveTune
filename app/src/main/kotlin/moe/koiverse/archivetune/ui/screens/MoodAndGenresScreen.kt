@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +62,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.innertube.YouTube
@@ -156,6 +159,7 @@ fun MoodAndGenresButton(
     val colorScheme = MaterialTheme.colorScheme
     val base = remember(stripeColor) { Color(stripeColor) }
     val artworkUrl = rememberMoodAndGenresArtworkUrl(endpoint)
+    val artworkModel = rememberMoodAndGenresArtworkModel(endpoint = endpoint, artworkUrl = artworkUrl)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val coverShadow = with(LocalDensity.current) { 18.dp.toPx() }
@@ -248,9 +252,9 @@ fun MoodAndGenresButton(
                     ),
                 ),
         ) {
-            if (!artworkUrl.isNullOrBlank()) {
+            if (artworkModel != null) {
                 AsyncImage(
-                    model = artworkUrl,
+                    model = artworkModel,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -279,9 +283,9 @@ fun MoodAndGenresButton(
                     ),
                 ),
         ) {
-            if (!artworkUrl.isNullOrBlank()) {
+            if (artworkModel != null) {
                 AsyncImage(
-                    model = artworkUrl,
+                    model = artworkModel,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -350,6 +354,31 @@ private fun rememberMoodAndGenresArtworkUrl(endpoint: BrowseEndpoint?): String? 
     return artworkUrl
 }
 
+@Composable
+private fun rememberMoodAndGenresArtworkModel(
+    endpoint: BrowseEndpoint?,
+    artworkUrl: String?,
+): ImageRequest? {
+    if (artworkUrl.isNullOrBlank()) return null
+
+    val context = LocalContext.current
+    val requestSizePx = with(LocalDensity.current) { MoodAndGenresArtworkRequestSize.roundToPx() }
+    val cacheKey = remember(endpoint, artworkUrl) {
+        endpoint?.let(::buildMoodAndGenresArtworkCacheKey) ?: artworkUrl
+    }
+
+    return remember(context, artworkUrl, cacheKey, requestSizePx) {
+        ImageRequest.Builder(context)
+            .data(artworkUrl)
+            .memoryCacheKey("mood_and_genres:$cacheKey")
+            .diskCacheKey("mood_and_genres:$cacheKey")
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .size(requestSizePx)
+            .crossfade(true)
+            .build()
+    }
+}
+
 private fun buildMoodAndGenresArtworkCacheKey(endpoint: BrowseEndpoint): String =
     "${endpoint.browseId}:${endpoint.params.orEmpty()}"
 
@@ -357,5 +386,6 @@ private val moodAndGenresArtworkCache = ConcurrentHashMap<String, String>()
 
 private val MoodAndGenresButtonShape = RoundedCornerShape(24.dp)
 private val MoodAndGenresCoverShape = RoundedCornerShape(18.dp)
+private val MoodAndGenresArtworkRequestSize = 90.dp
 
 val MoodAndGenresButtonHeight = 100.dp
