@@ -40,8 +40,8 @@ fun buildSettingsGroups(
                     SettingsItem(
                         key = "music_management",
                         icon = painterResource(R.drawable.library_music),
-                        title = stringResource(R.string.settings_music_management_title),
-                        subtitle = stringResource(R.string.settings_music_management_subtitle),
+                        title = stringResource(R.string.local_history),
+                        subtitle = stringResource(R.string.local_songs_ready_desc),
                         accentColor = MaterialTheme.colorScheme.primary,
                         keywords = listOf("music", "library", "folders", "scan", "refresh", "local"),
                         onClick = { navController.navigate("local_songs") },
