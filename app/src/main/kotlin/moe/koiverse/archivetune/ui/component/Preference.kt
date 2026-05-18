@@ -30,7 +30,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -101,14 +100,16 @@ import kotlin.math.roundToInt
 
 val LocalPreferenceInGroup = compositionLocalOf { false }
 
+enum class PreferenceGroupPosition { Single, First, Middle, Last }
+
+val LocalPreferenceGroupPosition = compositionLocalOf<PreferenceGroupPosition?> { null }
+
+private val PreferenceGroupLargeCorner = 28.dp
+private val PreferenceGroupSmallCorner = 4.dp
+
 @Composable
 private fun rememberPreferenceIconShape(): Shape {
     return MaterialShapes.Ghostish.toShape()
-}
-
-@Composable
-private fun rememberPreferenceItemShape(): Shape {
-    return MaterialTheme.shapes.extraLarge
 }
 
 @Composable
@@ -124,8 +125,23 @@ fun PreferenceEntry(
     shape: Shape? = null,
 ) {
     val inGroup = LocalPreferenceInGroup.current
+    val groupPosition = LocalPreferenceGroupPosition.current
     val preferenceIconShape = rememberPreferenceIconShape()
-    val preferenceItemShape = rememberPreferenceItemShape()
+    val extraLargeShape = MaterialTheme.shapes.extraLarge
+    val preferenceItemShape = remember(groupPosition, extraLargeShape) {
+        when (groupPosition) {
+            null, PreferenceGroupPosition.Single -> extraLargeShape
+            PreferenceGroupPosition.First -> RoundedCornerShape(
+                topStart = PreferenceGroupLargeCorner, topEnd = PreferenceGroupLargeCorner,
+                bottomStart = PreferenceGroupSmallCorner, bottomEnd = PreferenceGroupSmallCorner,
+            )
+            PreferenceGroupPosition.Middle -> RoundedCornerShape(PreferenceGroupSmallCorner)
+            PreferenceGroupPosition.Last -> RoundedCornerShape(
+                topStart = PreferenceGroupSmallCorner, topEnd = PreferenceGroupSmallCorner,
+                bottomStart = PreferenceGroupLargeCorner, bottomEnd = PreferenceGroupLargeCorner,
+            )
+        }
+    }
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -194,7 +210,7 @@ fun PreferenceEntry(
 
     Card(
         shape = shape ?: preferenceItemShape,
-        colors = CardDefaults.cardColors
+        colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -958,12 +974,20 @@ fun NumberPickerPreference(
     )
 }
 
+class PreferenceGroupScope internal constructor() {
+    internal val items = mutableListOf<@Composable () -> Unit>()
+    fun item(content: @Composable () -> Unit) { items.add(content) }
+}
+
 @Composable
 fun PreferenceGroup(
     modifier: Modifier = Modifier,
     title: String? = null,
-    content: @Composable ColumnScope.() -> Unit,
+    content: PreferenceGroupScope.() -> Unit,
 ) {
+    val scope = PreferenceGroupScope().apply(content)
+    val itemCount = scope.items.size
+
     Column(modifier = modifier.padding(horizontal = 16.dp)) {
         if (title != null) {
             Text(
@@ -974,12 +998,24 @@ fun PreferenceGroup(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
             )
         }
-        CompositionLocalProvider(LocalPreferenceInGroup provides true) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                content = content,
-            )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            scope.items.forEachIndexed { index, itemContent ->
+                val position = when {
+                    itemCount == 1 -> PreferenceGroupPosition.Single
+                    index == 0 -> PreferenceGroupPosition.First
+                    index == itemCount - 1 -> PreferenceGroupPosition.Last
+                    else -> PreferenceGroupPosition.Middle
+                }
+                CompositionLocalProvider(
+                    LocalPreferenceInGroup provides true,
+                    LocalPreferenceGroupPosition provides position,
+                ) {
+                    itemContent()
+                }
+            }
         }
     }
 }
