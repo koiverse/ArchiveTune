@@ -19,8 +19,13 @@ data class CanvasArtwork(
     val albumName: String? = null,
     val static: String? = null,
     val animated: String? = null,
+    val animatedVertical: String? = null,
     val videoUrl: String? = null,
+    val videoUrlVertical: String? = null,
 ) {
     val preferredAnimationUrl: String?
         get() = animated ?: videoUrl
+
+    val preferredVerticalAnimationUrl: String?
+        get() = animatedVertical ?: videoUrlVertical
 }
