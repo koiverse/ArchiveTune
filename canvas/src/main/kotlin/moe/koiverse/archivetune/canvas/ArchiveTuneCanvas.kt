@@ -32,10 +32,11 @@ import java.util.concurrent.ConcurrentHashMap
 
 object ArchiveTuneCanvas {
     private const val BASE_URL = "https://artwork-archivetune.koiiverse.cloud/"
+    private const val FALLBACK_URL = "https://artwork.boidu.dev/"
 
     @Volatile
     private var bearerToken: String? = null
-
+    
     fun initialize(bearerToken: String?) {
         this.bearerToken = bearerToken?.trim()?.takeIf { it.isNotEmpty() }
     }
@@ -61,7 +62,27 @@ object ArchiveTuneCanvas {
             install(HttpCache)
             defaultRequest {
                 url(BASE_URL)
-                bearerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+                // bearerToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+            }
+            expectSuccess = false
+        }
+    }
+
+    private val fallbackClient by lazy {
+        HttpClient(OkHttp) {
+            install(ContentNegotiation) { json(json) }
+            install(HttpTimeout) {
+                connectTimeoutMillis = 12_000
+                requestTimeoutMillis = 18_000
+                socketTimeoutMillis = 18_000
+            }
+            install(ContentEncoding) {
+                gzip()
+                deflate()
+            }
+            install(HttpCache)
+            defaultRequest {
+                url(FALLBACK_URL)
             }
             expectSuccess = false
         }
@@ -95,11 +116,25 @@ object ArchiveTuneCanvas {
                 }
             }.getOrNull()
 
-        val value =
+        val primary =
             when (response?.status) {
                 HttpStatusCode.OK -> runCatching { response.body<CanvasArtwork>() }.getOrNull()
                 else -> null
-            } ?: AppleMusicProvider.getBySongArtist(song, artist, null, storefront)
+            }
+
+        val value = primary ?: run {
+            val fallbackResponse = runCatching {
+                fallbackClient.get {
+                    parameter("s", song)
+                    parameter("a", artist)
+                    parameter("storefront", storefront)
+                }
+            }.getOrNull()
+            when (fallbackResponse?.status) {
+                HttpStatusCode.OK -> runCatching { fallbackResponse.body<CanvasArtwork>() }.getOrNull()
+                else -> null
+            }
+        } ?: AppleMusicProvider.getBySongArtist(song, artist, null, storefront)
 
         cache[key] =
             CacheEntry(
@@ -124,11 +159,23 @@ object ArchiveTuneCanvas {
                 }
             }.getOrNull()
 
-        val value =
+        val primary =
             when (response?.status) {
                 HttpStatusCode.OK -> runCatching { response.body<CanvasArtwork>() }.getOrNull()
                 else -> null
-            } ?: AppleMusicProvider.getByAlbumId(albumId)
+            }
+
+        val value = primary ?: run {
+            val fallbackResponse = runCatching {
+                fallbackClient.get {
+                    parameter("id", albumId)
+                }
+            }.getOrNull()
+            when (fallbackResponse?.status) {
+                HttpStatusCode.OK -> runCatching { fallbackResponse.body<CanvasArtwork>() }.getOrNull()
+                else -> null
+            }
+        } ?: AppleMusicProvider.getByAlbumId(albumId)
 
         cache[key] =
             CacheEntry(
@@ -159,7 +206,19 @@ object ArchiveTuneCanvas {
                 else -> null
             }
 
-        val value = primary ?: parseAppleMusicAlbumUrl(url)?.let { (albumId, storefront) ->
+        val fallback = primary ?: run {
+            val fallbackResponse = runCatching {
+                fallbackClient.get {
+                    parameter("url", url)
+                }
+            }.getOrNull()
+            when (fallbackResponse?.status) {
+                HttpStatusCode.OK -> runCatching { fallbackResponse.body<CanvasArtwork>() }.getOrNull()
+                else -> null
+            }
+        }
+
+        val value = fallback ?: parseAppleMusicAlbumUrl(url)?.let { (albumId, storefront) ->
             AppleMusicProvider.getByAlbumId(albumId, storefront)
         }
 
