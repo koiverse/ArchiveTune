@@ -1368,20 +1368,20 @@ private fun V7PlayerBackdrop(
                             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
                             modifier = Modifier.fillMaxSize(),
                         )
-                    } else {
-                        AsyncImage(
-                            model = backdropArtworkModel,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    scaleX = baseArtworkScale
-                                    scaleY = baseArtworkScale
-                                    alpha = baseArtworkAlpha
-                                }
-                        )
                     }
+
+                    AsyncImage(
+                        model = backdropArtworkModel,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = baseArtworkScale
+                                scaleY = baseArtworkScale
+                                alpha = if (hasCanvas) baseArtworkAlpha * 0.28f else baseArtworkAlpha
+                            }
+                    )
 
                     if (!disableBlur) {
                         AsyncImage(
