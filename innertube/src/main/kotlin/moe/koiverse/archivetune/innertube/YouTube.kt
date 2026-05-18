@@ -22,9 +22,11 @@ import moe.koiverse.archivetune.innertube.models.MediaInfo
 import moe.koiverse.archivetune.innertube.models.MusicResponsiveListItemRenderer
 import moe.koiverse.archivetune.innertube.models.MusicTwoRowItemRenderer
 import moe.koiverse.archivetune.innertube.models.MusicCarouselShelfRenderer
+import moe.koiverse.archivetune.innertube.models.MusicPlaylistShelfRenderer
 import moe.koiverse.archivetune.innertube.models.MusicShelfRenderer
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.SearchSuggestions
+import moe.koiverse.archivetune.innertube.models.SectionListRenderer
 import moe.koiverse.archivetune.innertube.models.Run
 import moe.koiverse.archivetune.innertube.models.Runs
 import moe.koiverse.archivetune.innertube.models.SongItem
@@ -534,9 +536,8 @@ object YouTube {
 
     suspend fun artistItems(endpoint: BrowseEndpoint): Result<ArtistItemsPage> = runCatching {
         val response = innerTube.browse(WEB_REMIX, endpoint.browseId, endpoint.params).body<BrowseResponse>()
-        val gridRenderer = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
-            ?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()
-            ?.gridRenderer
+        val sectionContents = response.artistItemsSectionContents()
+        val gridRenderer = sectionContents.firstNotNullOfOrNull { it.findGridRenderer() }
         if (gridRenderer != null) {
             ArtistItemsPage(
                 title = gridRenderer.header?.gridHeaderRenderer?.title?.runs?.firstOrNull()?.text.orEmpty(),
@@ -548,18 +549,35 @@ object YouTube {
                 continuation = gridRenderer.continuations?.getContinuation()
             )
         } else {
-            val musicPlaylistShelfRenderer = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
-                ?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()
-                ?.musicPlaylistShelfRenderer
+            val musicPlaylistShelfRenderer = sectionContents.firstNotNullOfOrNull { it.findMusicPlaylistShelfRenderer() }
+            val musicShelfRenderer = sectionContents.firstNotNullOfOrNull { it.findMusicShelfRenderer() }
+            val shelfContents = musicPlaylistShelfRenderer?.contents ?: musicShelfRenderer?.contents.orEmpty()
             ArtistItemsPage(
-                title = response.header?.musicHeaderRenderer?.title?.runs?.firstOrNull()?.text!!,
-                items = musicPlaylistShelfRenderer?.contents?.getItems()?.mapNotNull {
+                title = response.header?.musicHeaderRenderer?.title?.runs?.firstOrNull()?.text
+                    ?: musicShelfRenderer?.title?.runs?.firstOrNull()?.text
+                    ?: "",
+                items = shelfContents.getItems().mapNotNull {
                         ArtistItemsPage.fromMusicResponsiveListItemRenderer(it)
-                    } ?: emptyList(),
-                continuation = musicPlaylistShelfRenderer?.contents?.getContinuation()
+                    },
+                continuation = shelfContents.getContinuation()
+                    ?: musicPlaylistShelfRenderer?.continuations?.getContinuation()
+                    ?: musicShelfRenderer?.continuations?.getContinuation()
             )
         }
     }
+
+    private fun BrowseResponse.artistItemsSectionContents(): List<SectionListRenderer.Content> =
+        contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
+            ?.tabRenderer?.content?.sectionListRenderer?.contents.orEmpty()
+
+    private fun SectionListRenderer.Content.findGridRenderer(): GridRenderer? =
+        gridRenderer ?: itemSectionRenderer?.contents?.firstNotNullOfOrNull { it.gridRenderer }
+
+    private fun SectionListRenderer.Content.findMusicPlaylistShelfRenderer(): MusicPlaylistShelfRenderer? =
+        musicPlaylistShelfRenderer
+
+    private fun SectionListRenderer.Content.findMusicShelfRenderer(): MusicShelfRenderer? =
+        musicShelfRenderer ?: itemSectionRenderer?.contents?.firstNotNullOfOrNull { it.musicShelfRenderer }
 
     suspend fun artistItemsContinuation(continuation: String): Result<ArtistItemsContinuationPage> = runCatching {
         val response = innerTube.browse(WEB_REMIX, continuation = continuation).body<BrowseResponse>()
