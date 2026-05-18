@@ -203,13 +203,20 @@ object AppleMusicProvider {
                 // Check for immediate motion in search result
                 val ev = attributes["editorialVideo"]?.jsonObject
                 if (ev != null) {
-                    val hlsUrl = extractEditorialVideoUrl(ev)
-                    if (!hlsUrl.isNullOrBlank()) {
+                    val videoUrls = extractEditorialVideoUrls(ev)
+                    if (!videoUrls.animated.isNullOrBlank() || !videoUrls.animatedVertical.isNullOrBlank()) {
                         val name = attributes["name"]?.jsonPrimitive?.contentOrNull
                         val collName = attributes["collectionName"]?.jsonPrimitive?.contentOrNull
                         val resolvedAlbumName = if (itemType == "songs") collName else name
                         Log.d("Found direct editorialVideo for $name (ID: $targetAlbumId)")
-                        return@runCatching CanvasArtwork(name, resultArtistName, targetAlbumId, albumName = resolvedAlbumName, animated = hlsUrl)
+                        return@runCatching CanvasArtwork(
+                            name = name,
+                            artist = resultArtistName,
+                            albumId = targetAlbumId,
+                            albumName = resolvedAlbumName,
+                            animated = videoUrls.animated,
+                            animatedVertical = videoUrls.animatedVertical,
+                        )
                     }
                 }
 
@@ -282,10 +289,17 @@ object AppleMusicProvider {
 
             val ev = attributes?.get("editorialVideo")?.jsonObject
             if (ev != null) {
-                val hlsUrl = extractEditorialVideoUrl(ev)
-                if (!hlsUrl.isNullOrBlank()) {
+                val videoUrls = extractEditorialVideoUrls(ev)
+                if (!videoUrls.animated.isNullOrBlank() || !videoUrls.animatedVertical.isNullOrBlank()) {
                     Log.d("found editorialVideo for $finalTitle (album: $albumName, id: $albumId)")
-                    return@runCatching CanvasArtwork(finalTitle, finalArtist, albumId, albumName = albumName, animated = hlsUrl)
+                    return@runCatching CanvasArtwork(
+                        name = finalTitle,
+                        artist = finalArtist,
+                        albumId = albumId,
+                        albumName = albumName,
+                        animated = videoUrls.animated,
+                        animatedVertical = videoUrls.animatedVertical,
+                    )
                 }
             }
 
@@ -403,27 +417,31 @@ object AppleMusicProvider {
         return albumId
     }
 
-    /**
-     * Extracts the HLS/video URL from an editorialVideo JSON object,
-     * trying each motion asset variant in priority order.
-     */
-    private fun extractEditorialVideoUrl(ev: JsonObject): String? {
-        val assets = listOf(
-            ev["motionDetailRaw"]?.jsonObject,
-            ev["motionDetailSquare"]?.jsonObject,
-            ev["motionDetailTall"]?.jsonObject,
-            ev["motionDetailStatic"]?.jsonObject,
-        ).filterNotNull()
+    private data class EditorialVideoUrls(
+        val animated: String?,
+        val animatedVertical: String?,
+    )
 
-        for (asset in assets) {
-            val video = asset["video"]?.jsonPrimitive?.contentOrNull
-                ?: asset["videoUrl"]?.jsonPrimitive?.contentOrNull
-                ?: asset["hlsUrl"]?.jsonPrimitive?.contentOrNull
-                ?: asset["url"]?.jsonPrimitive?.contentOrNull
-            if (!video.isNullOrBlank()) return video
+    private fun extractEditorialVideoUrls(ev: JsonObject): EditorialVideoUrls {
+        fun JsonObject.videoUrl(): String? =
+            this["video"]?.jsonPrimitive?.contentOrNull
+                ?: this["videoUrl"]?.jsonPrimitive?.contentOrNull
+                ?: this["hlsUrl"]?.jsonPrimitive?.contentOrNull
+                ?: this["url"]?.jsonPrimitive?.contentOrNull
+
+        val raw = ev["motionDetailRaw"]?.jsonObject?.videoUrl()
+        val square = ev["motionDetailSquare"]?.jsonObject?.videoUrl()
+        val tall = ev["motionDetailTall"]?.jsonObject?.videoUrl()
+        val static = ev["motionDetailStatic"]?.jsonObject?.videoUrl()
+        val animated = raw ?: square ?: static ?: tall
+
+        if (animated.isNullOrBlank() && tall.isNullOrBlank()) {
+            Log.d("editorialVideo found but no video link in assets: ${ev.keys}")
         }
 
-        Log.d("editorialVideo found but no video link in assets: ${ev.keys}")
-        return null
+        return EditorialVideoUrls(
+            animated = animated,
+            animatedVertical = tall,
+        )
     }
 }
