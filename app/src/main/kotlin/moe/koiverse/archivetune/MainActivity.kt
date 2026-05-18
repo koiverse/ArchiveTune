@@ -1763,6 +1763,7 @@ class MainActivity : ComponentActivity() {
                                         when (tabOpenedFromShortcut ?: defaultOpenTab) {
                                             NavigationTab.HOME -> Screens.Home.route
                                             NavigationTab.LIBRARY -> Screens.Library.route
+                                            NavigationTab.MOODANDGENRES -> Screens.MoodAndGenres.route
                                             else -> Screens.Home.route
                                         }
                                     },
