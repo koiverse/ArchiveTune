@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -79,6 +80,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -88,6 +90,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
@@ -119,6 +122,9 @@ import moe.koiverse.archivetune.ui.theme.PlayerSliderColors
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.ui.utils.highRes
 import moe.koiverse.archivetune.utils.makeTimeString
+import kotlin.math.PI
+import kotlin.math.floor
+import kotlin.math.sin
 
 @Composable
 fun PlayerTitleSection(
@@ -368,61 +374,37 @@ fun PlayerTopActions(
         }
 
         PlayerDesignStyle.V4 -> {
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    onClick = {
-                        val intent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            type = "text/plain"
-                            putExtra(
-                                Intent.EXTRA_TEXT,
-                                "https://music.youtube.com/watch?v=${mediaMetadata.id}"
-                            )
-                        }
-                        context.startActivity(Intent.createChooser(intent, null))
-                    },
-                    shape = RoundedCornerShape(14.dp),
-                    color = textBackgroundColor.copy(alpha = 0.12f),
+                ToggleButton(
+                    checked = currentSongLiked,
+                    onCheckedChange = { playerConnection.toggleLike() },
+                    shapes = ToggleButtonDefaults.shapes(
+                        shape = ToggleButtonDefaults.roundShape, checkedShape = RoundedCornerShape(14.dp), pressedShape = RoundedCornerShape(14.dp)
+                    ),
+                    colors = ToggleButtonDefaults.toggleButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = textBackgroundColor,
+                        checkedContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.25f),
+                        checkedContentColor = MaterialTheme.colorScheme.error
+                    ),
+                    contentPadding = PaddingValues(0.dp),
                     modifier = Modifier
                         .height(44.dp)
                         .width(44.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            painter = painterResource(R.drawable.share),
-                            contentDescription = null,
-                            tint = textBackgroundColor,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
+                    Icon(
+                        painter = painterResource(
+                            if (currentSongLiked) R.drawable.favorite
+                            else R.drawable.favorite_border
+                        ),
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                    )
 
-                Surface(
-                    onClick = { playerConnection.toggleLike() },
-                    shape = RoundedCornerShape(14.dp),
-                    color = if (currentSongLiked)
-                        MaterialTheme.colorScheme.error.copy(alpha = 0.25f)
-                    else textBackgroundColor.copy(alpha = 0.12f),
-                    modifier = Modifier
-                        .height(44.dp)
-                        .width(44.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            painter = painterResource(
-                                if (currentSongLiked) R.drawable.favorite
-                                else R.drawable.favorite_border
-                            ),
-                            contentDescription = null,
-                            tint = if (currentSongLiked)
-                                MaterialTheme.colorScheme.error
-                            else textBackgroundColor,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
                 }
 
                 // More menu button - cinematic glass card
@@ -445,7 +427,7 @@ fun PlayerTopActions(
                         }
                     },
                     shape = RoundedCornerShape(14.dp),
-                    color = textBackgroundColor.copy(alpha = 0.12f),
+                    color = Color.Transparent,
                     modifier = Modifier
                         .height(44.dp)
                         .width(44.dp)
@@ -873,7 +855,7 @@ fun PlayerPlaybackControls(
     iconButtonColor: Color,
     textBackgroundColor: Color,
     icBackgroundColor: Color,
-    playPauseRoundness: androidx.compose.ui.unit.Dp,
+    playPauseRoundness: Dp,
     playerConnection: PlayerConnection,
     currentSongLiked: Boolean
 ) {
@@ -1945,7 +1927,9 @@ fun PlayerBackground(
                         val baseColor = PlayerBackgroundColorUtils.ensureComfortableColor(colors.first())
                         val gradientStops = PlayerBackgroundColorUtils.buildColoringStops(baseColor)
                         Box(modifier = Modifier.fillMaxSize()) {
-                            Box(modifier = Modifier.fillMaxSize().background(baseColor))
+                            Box(modifier = Modifier
+                                .fillMaxSize()
+                                .background(baseColor))
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -2098,7 +2082,7 @@ fun PlayerBackground(
                                         center = Offset(width * 0.9f, height * 0.15f),
                                         radius = width * 1.0f
                                     )
-                                    
+
                                     // Bottom-Left (Quaternary)
                                     val brush4 = Brush.radialGradient(
                                         colors = listOf(
@@ -2109,7 +2093,7 @@ fun PlayerBackground(
                                         center = Offset(width * 0.1f, height * 0.9f),
                                         radius = width * 1.0f
                                     )
-                                    
+
                                     // Top-Center (Quinary)
                                     val brush5 = Brush.radialGradient(
                                         colors = listOf(
@@ -2120,7 +2104,7 @@ fun PlayerBackground(
                                         center = Offset(width * 0.5f, height * 0.1f),
                                         radius = width * 0.9f
                                     )
-                                    
+
                                     // Bottom-Center (Senary)
                                     val brush6 = Brush.radialGradient(
                                         colors = listOf(
@@ -2171,15 +2155,15 @@ fun PlayerBackground(
                         fun rotatedColorAt(index: Int): Color {
                             val size = colors.size
                             val idx = index.toFloat() + progress * size
-                            val a = kotlin.math.floor(idx).toInt() % size
+                            val a = floor(idx).toInt() % size
                             val b = (a + 1) % size
-                            val frac = idx - kotlin.math.floor(idx)
-                            return androidx.compose.ui.graphics.lerp(colors.getOrElse(a) { Color.DarkGray }, colors.getOrElse(b) { Color.DarkGray }, frac)
+                            val frac = idx - floor(idx)
+                            return lerp(colors.getOrElse(a) { Color.DarkGray }, colors.getOrElse(b) { Color.DarkGray }, frac)
                         }
 
                         fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
                             // speed MUST be an integer to ensure seamless looping when progress wraps from 1f to 0f.
-                            val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
+                            val v = sin(2f * PI.toFloat() * (progress * speed + phase)).toFloat()
                             return min + (max - min) * ((v + 1f) * 0.5f)
                         }
 
