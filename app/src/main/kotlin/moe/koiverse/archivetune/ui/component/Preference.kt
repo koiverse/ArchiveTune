@@ -122,7 +122,6 @@ fun PreferenceEntry(
     onClick: (() -> Unit)? = null,
     isEnabled: Boolean = true,
     shape: Shape? = null,
-    colors: CardColors? = null,
 ) {
     val inGroup = LocalPreferenceInGroup.current
     val preferenceIconShape = rememberPreferenceIconShape()
@@ -195,7 +194,7 @@ fun PreferenceEntry(
 
     Card(
         shape = shape ?: preferenceItemShape,
-        colors = colors ?: CardDefaults.cardColors(
+        colors = CardDefaults.cardColors
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

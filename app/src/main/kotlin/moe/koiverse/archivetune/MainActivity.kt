@@ -169,7 +169,6 @@ import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.utils.PreferenceStore
 import moe.koiverse.archivetune.utils.isLowRamDevice
 import kotlinx.coroutines.withContext
-import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AppBarHeight
 import moe.koiverse.archivetune.constants.AppLanguageKey
 import moe.koiverse.archivetune.constants.CustomThemeColorKey
@@ -242,7 +241,6 @@ import moe.koiverse.archivetune.ui.component.shimmer.ShimmerTheme
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 import moe.koiverse.archivetune.ui.player.BottomSheetPlayer
 import moe.koiverse.archivetune.ui.screens.LOGIN_URL_ARGUMENT
-import moe.koiverse.archivetune.ui.screens.HomeModalSideSheet
 import moe.koiverse.archivetune.ui.screens.Screens
 import moe.koiverse.archivetune.ui.screens.buildLoginRoute
 import moe.koiverse.archivetune.ui.screens.navigationBuilder
@@ -701,10 +699,6 @@ class MainActivity : ComponentActivity() {
                     val networkBannerViewModel: NetworkBannerViewModel = hiltViewModel()
                     val allLocalItems by homeViewModel.allLocalItems.collectAsState()
                     val allYtItems by homeViewModel.allYtItems.collectAsState()
-                    val sideSheetAccountName by homeViewModel.accountName.collectAsStateWithLifecycle()
-                    val sideSheetAccountImageUrl by homeViewModel.accountImageUrl.collectAsStateWithLifecycle()
-                    val sideSheetAccountLoading by homeViewModel.isAccountLoading.collectAsStateWithLifecycle()
-                    val sideSheetAccountLoggedIn by homeViewModel.isAccountLoggedIn.collectAsStateWithLifecycle()
                     val networkBannerState by networkBannerViewModel.bannerState.collectAsStateWithLifecycle()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val (previousTab) = rememberSaveable { mutableStateOf("home") }
@@ -718,7 +712,6 @@ class MainActivity : ComponentActivity() {
                         MiniPlayerLastAnchorKey,
                         defaultValue = COLLAPSED_ANCHOR
                     )
-                    val (sideSheetAccountEmail) = rememberPreference(AccountEmailKey, "")
                     val defaultOpenTab by rememberEnumPreference(DefaultOpenTabKey, NavigationTab.HOME)
                     val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
                     val tabOpenedFromShortcut =
@@ -1232,7 +1225,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
-                    var showHomeModalSideSheet by rememberSaveable { mutableStateOf(false) }
 
                     CompositionLocalProvider(
                         LocalAnimationsDisabled provides disableAnimations,
@@ -1398,7 +1390,25 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 },
                                                 actions = {
-                                                    IconButton(onClick = { showHomeModalSideSheet = true }) {
+                                                    IconButton(onClick = { navController.navigate("history") }) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.history),
+                                                            contentDescription = stringResource(R.string.history)
+                                                        )
+                                                    }
+                                                    IconButton(onClick = { navController.navigate("stats") }) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.stats),
+                                                            contentDescription = stringResource(R.string.stats)
+                                                        )
+                                                    }
+                                                    IconButton(onClick = { navController.navigate("new_release") }) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.new_release),
+                                                            contentDescription = stringResource(R.string.new_release_albums)
+                                                        )
+                                                    }
+                                                    IconButton(onClick = { navController.navigate("settings") }) {
                                                         BadgedBox(badge = {
                                                             if (!Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)) {
                                                                 Badge()
@@ -1763,7 +1773,6 @@ class MainActivity : ComponentActivity() {
                                         when (tabOpenedFromShortcut ?: defaultOpenTab) {
                                             NavigationTab.HOME -> Screens.Home.route
                                             NavigationTab.LIBRARY -> Screens.Library.route
-                                            NavigationTab.MOODANDGENRES -> Screens.MoodAndGenres.route
                                             else -> Screens.Home.route
                                         }
                                     },
@@ -1838,28 +1847,6 @@ class MainActivity : ComponentActivity() {
                         BottomSheetPage(
                             state = LocalBottomSheetPageState.current,
                             modifier = Modifier.align(Alignment.BottomCenter)
-                        )
-
-                        HomeModalSideSheet(
-                            visible = showHomeModalSideSheet,
-                            isAccountLoading = sideSheetAccountLoading,
-                            isAccountLoggedIn = sideSheetAccountLoggedIn,
-                            accountName = sideSheetAccountName,
-                            accountEmail = sideSheetAccountEmail,
-                            accountImageUrl = sideSheetAccountImageUrl,
-                            hasUpdate = !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME),
-                            onDismiss = { showHomeModalSideSheet = false },
-                            onAccountClick = {
-                                showHomeModalSideSheet = false
-                                navController.navigate("settings/account")
-                            },
-                            onNavigate = { route ->
-                                showHomeModalSideSheet = false
-                                navController.navigate(route)
-                            },
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .zIndex(20f),
                         )
 
                         sharedSong?.let { song ->
