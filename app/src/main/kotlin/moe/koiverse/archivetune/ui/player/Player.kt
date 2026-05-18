@@ -73,6 +73,7 @@ import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -138,6 +139,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_BUFFERING
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_READY
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.palette.graphics.Palette
 import androidx.navigation.NavController
 import coil3.ImageLoader
@@ -150,7 +152,10 @@ import coil3.toBitmap
 import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.canvas.models.CanvasArtwork
+import moe.koiverse.archivetune.constants.ArchiveTuneCanvasKey
 import moe.koiverse.archivetune.constants.DarkModeKey
+import moe.koiverse.archivetune.constants.MaxCanvasCacheSizeKey
 import moe.koiverse.archivetune.constants.PlayerDesignStyle
 import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
@@ -202,6 +207,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import me.saket.squiggles.SquigglySlider
 import moe.koiverse.archivetune.playback.PlayerConnection
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -302,8 +308,17 @@ fun BottomSheetPlayer(
 
     val aodModeEnabled by playerConnection.aodModeEnabled.collectAsStateWithLifecycle()
     val (thumbnailCornerRadius) = rememberPreference(ThumbnailCornerRadiusKey, defaultValue = 8f)
+    val archiveTuneCanvasEnabled by rememberPreference(ArchiveTuneCanvasKey, false)
+    val (maxCanvasCacheSize, _) = rememberPreference(
+        key = MaxCanvasCacheSizeKey,
+        defaultValue = 256,
+    )
 
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
+
+    LaunchedEffect(maxCanvasCacheSize) {
+        CanvasArtworkPlaybackCache.setMaxSize(maxCanvasCacheSize)
+    }
 
     var position by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.currentPosition)
@@ -803,6 +818,63 @@ fun BottomSheetPlayer(
             }
         }
 
+        val storefront =
+            remember {
+                val country = Locale.getDefault().country
+                if (country.length == 2) country.lowercase(Locale.ROOT) else "us"
+            }
+        val shouldUseV7Canvas =
+            archiveTuneCanvasEnabled &&
+                playerDesignStyle == PlayerDesignStyle.V7 &&
+                !aodModeEnabled
+        var v7CanvasArtwork by remember(mediaMetadata?.id) {
+            mutableStateOf<CanvasArtwork?>(null)
+        }
+        var v7CanvasFetchInFlight by remember(mediaMetadata?.id) {
+            mutableStateOf(false)
+        }
+
+        LaunchedEffect(shouldUseV7Canvas, mediaMetadata?.id) {
+            val metadata = mediaMetadata
+            if (!shouldUseV7Canvas || metadata == null) {
+                v7CanvasArtwork = null
+                v7CanvasFetchInFlight = false
+                return@LaunchedEffect
+            }
+
+            CanvasArtworkPlaybackCache.get(metadata.id)
+                ?.takeIf { !it.preferredVerticalAnimationUrl.isNullOrBlank() }
+                ?.let { cached ->
+                    v7CanvasArtwork = cached
+                    v7CanvasFetchInFlight = false
+                    return@LaunchedEffect
+                }
+
+            val artistNameRaw = metadata.artists.firstOrNull()?.name.orEmpty()
+            if (metadata.title.isBlank() || artistNameRaw.isBlank() || v7CanvasFetchInFlight) {
+                return@LaunchedEffect
+            }
+
+            v7CanvasFetchInFlight = true
+            try {
+                val fetched =
+                    withContext(Dispatchers.IO) {
+                        fetchCanvasArtworkForPlayback(
+                            songTitleRaw = metadata.title,
+                            artistNameRaw = artistNameRaw,
+                            storefront = storefront,
+                            requireVertical = true,
+                        )
+                    }
+                v7CanvasArtwork = fetched
+                if (fetched != null) {
+                    CanvasArtworkPlaybackCache.put(metadata.id, fetched)
+                }
+            } finally {
+                v7CanvasFetchInFlight = false
+            }
+        }
+
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             PlayerControlsContent(
                 mediaMetadata = mediaMetadata,
@@ -935,6 +1007,9 @@ fun BottomSheetPlayer(
                     ) {
                         V7PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            canvasPrimaryUrl = v7CanvasArtwork?.animatedVertical,
+                            canvasFallbackUrl = v7CanvasArtwork?.videoUrlVertical,
+                            isPlaying = isPlaying,
                             disableBlur = disableBlur,
                             label = "v7BackdropLandscape",
                         )
@@ -1079,6 +1154,9 @@ fun BottomSheetPlayer(
                     ) {
                         V7PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            canvasPrimaryUrl = v7CanvasArtwork?.animatedVertical,
+                            canvasFallbackUrl = v7CanvasArtwork?.videoUrlVertical,
+                            isPlaying = isPlaying,
                             disableBlur = disableBlur,
                             label = "v7BackdropPortrait",
                         )
@@ -1221,6 +1299,9 @@ fun BottomSheetPlayer(
 @Composable
 private fun V7PlayerBackdrop(
     thumbnailUrl: String?,
+    canvasPrimaryUrl: String?,
+    canvasFallbackUrl: String?,
+    isPlaying: Boolean,
     disableBlur: Boolean,
     label: String,
     modifier: Modifier = Modifier,
@@ -1251,19 +1332,44 @@ private fun V7PlayerBackdrop(
     Box(
         modifier = modifier.fillMaxSize(),
     ) {
+        val canvasPrimary = canvasPrimaryUrl?.takeIf { it.isNotBlank() }
+        val canvasFallback = canvasFallbackUrl?.takeIf { it.isNotBlank() }
+        val backdropState =
+            remember(thumbnailUrl, canvasPrimary, canvasFallback) {
+                V7PlayerBackdropState(
+                    thumbnailUrl = thumbnailUrl,
+                    canvasPrimaryUrl = canvasPrimary,
+                    canvasFallbackUrl = canvasFallback,
+                )
+            }
+
         AnimatedContent(
-            targetState = thumbnailUrl,
+            targetState = backdropState,
             transitionSpec = {
                 fadeIn(tween(900)) togetherWith fadeOut(tween(900))
             },
             label = label,
-        ) { artworkUrl ->
+        ) { backdrop ->
+            val hasCanvas =
+                !backdrop.canvasPrimaryUrl.isNullOrBlank() ||
+                    !backdrop.canvasFallbackUrl.isNullOrBlank()
+            val artworkUrl = backdrop.thumbnailUrl
             if (artworkUrl != null) {
                 val backdropArtworkModel = remember(artworkUrl, backdropArtworkSizePx) {
                     artworkUrl.resize(backdropArtworkSizePx, backdropArtworkSizePx)
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    if (hasCanvas) {
+                        CanvasArtworkPlayer(
+                            primaryUrl = backdrop.canvasPrimaryUrl,
+                            fallbackUrl = backdrop.canvasFallbackUrl,
+                            isPlaying = isPlaying,
+                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
                     AsyncImage(
                         model = backdropArtworkModel,
                         contentDescription = null,
@@ -1273,7 +1379,7 @@ private fun V7PlayerBackdrop(
                             .graphicsLayer {
                                 scaleX = baseArtworkScale
                                 scaleY = baseArtworkScale
-                                alpha = baseArtworkAlpha
+                                alpha = if (hasCanvas) baseArtworkAlpha * 0.28f else baseArtworkAlpha
                             }
                     )
 
@@ -1287,6 +1393,7 @@ private fun V7PlayerBackdrop(
                                 .cloudy(radius = cloudyRadius)
                                 .graphicsLayer {
                                     compositingStrategy = CompositingStrategy.Offscreen
+                                    alpha = if (hasCanvas) 0.5f else 1f
                                 }
                                 .drawWithCache {
                                     val blurMask = Brush.verticalGradient(
@@ -1310,6 +1417,14 @@ private fun V7PlayerBackdrop(
                         )
                     }
                 }
+            } else if (hasCanvas) {
+                CanvasArtworkPlayer(
+                    primaryUrl = backdrop.canvasPrimaryUrl,
+                    fallbackUrl = backdrop.canvasFallbackUrl,
+                    isPlaying = isPlaying,
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+                    modifier = Modifier.fillMaxSize(),
+                )
             } else {
                 Box(
                     modifier = Modifier
@@ -1356,6 +1471,13 @@ private fun V7PlayerBackdrop(
         )
     }
 }
+
+@Immutable
+private data class V7PlayerBackdropState(
+    val thumbnailUrl: String?,
+    val canvasPrimaryUrl: String?,
+    val canvasFallbackUrl: String?,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
