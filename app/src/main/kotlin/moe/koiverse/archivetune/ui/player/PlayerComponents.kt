@@ -379,6 +379,7 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                
                 ToggleButton(
                     checked = currentSongLiked,
                     onCheckedChange = { playerConnection.toggleLike() },
@@ -1172,8 +1173,9 @@ fun PlayerPlaybackControls(
                         }
                     }
 
-                    Surface(
-                        onClick = {
+                    ToggleButton(
+                        checked = isPlaying,
+                        onCheckedChange = {
                             if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
@@ -1181,37 +1183,42 @@ fun PlayerPlaybackControls(
                                 playerConnection.player.togglePlayPause()
                             }
                         },
-                        shape = RoundedCornerShape(28.dp),
-                        color = textButtonColor,
+                        shapes = ToggleButtonDefaults.shapes(
+                            checkedShape = RoundedCornerShape(28.dp),
+                            shape = CircleShape,
+                            pressedShape = if (!isPlaying) RoundedCornerShape(28.dp) else CircleShape
+                        ),
+                        colors = ToggleButtonDefaults.toggleButtonColors(
+                            contentColor = icBackgroundColor,
+                            containerColor = textButtonColor,
+                            checkedContentColor = icBackgroundColor,
+                            checkedContainerColor = textButtonColor,
+                        ),
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
-                            .size(88.dp)
+                            .size(88.dp),
+                        contentPadding = PaddingValues(0.dp)
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isLoading) {
-                                CircularWavyProgressIndicator(
-                                    modifier = Modifier.size(40.dp),
-                                    color = icBackgroundColor,
-                                )
-                            } else {
-                                Icon(
-                                    painter = painterResource(
-                                        when {
-                                            playbackState == STATE_ENDED -> R.drawable.replay
-                                            isPlaying -> R.drawable.pause
-                                            else -> R.drawable.play
-                                        }
-                                    ),
-                                    contentDescription = null,
-                                    tint = icBackgroundColor,
-                                    modifier = Modifier.size(44.dp)
-                                )
-                            }
+                        if (isLoading) {
+                            CircularWavyProgressIndicator(
+                                modifier = Modifier.size(40.dp),
+                                color = icBackgroundColor,
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(
+                                    when {
+                                        playbackState == STATE_ENDED -> R.drawable.replay
+                                        isPlaying -> R.drawable.pause
+                                        else -> R.drawable.play
+                                    }
+                                ),
+                                contentDescription = null,
+                                modifier = Modifier.size(44.dp)
+                            )
                         }
                     }
+
                     Row(
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.Start,
