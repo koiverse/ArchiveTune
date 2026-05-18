@@ -350,10 +350,10 @@ fun NavGraphBuilder.navigationBuilder(
         ThemeCreatorScreen(navController)
     }
     composable("settings/content") {
-        ContentSettings(navController, scrollBehavior)
+        ContentSettings(navController)
     }
     composable("settings/lyrics") {
-        LyricsSettings(navController, scrollBehavior)
+        LyricsSettings(navController)
     }
     composable("settings/internet") {
         InternetSettings(navController, scrollBehavior)
