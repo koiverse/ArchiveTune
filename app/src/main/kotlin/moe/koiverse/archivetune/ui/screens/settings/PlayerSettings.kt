@@ -67,6 +67,7 @@ import moe.koiverse.archivetune.constants.SeekExtraSeconds
 import moe.koiverse.archivetune.ui.component.ArtistSeparatorsDialog
 import moe.koiverse.archivetune.ui.component.TagsManagementDialog
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
+import moe.koiverse.archivetune.ui.component.EnumListDialog
 import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
@@ -248,8 +249,9 @@ fun PlayerSettings(
             }
         )
 
-        EnumListPreference(
+        EnumListDialog(
             title = { Text(stringResource(R.string.player_stream_client)) },
+            description = stringResource(R.string.player_stream_client_desc),
             icon = { Icon(painterResource(R.drawable.integration), null) },
             selectedValue = playerStreamClient,
             onValueSelected = onPlayerStreamClientChange,
@@ -257,6 +259,12 @@ fun PlayerSettings(
                 when (it) {
                     PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
                     else -> stringResource(R.string.player_stream_client_web_remix)
+                }
+            },
+            valueDescription = {
+                when (it) {
+                    PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
+                    else -> stringResource(R.string.player_stream_client_web_remix_desc)
                 }
             },
         )
