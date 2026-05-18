@@ -292,6 +292,7 @@ inline fun <reified T : Enum<T>> EnumSegmentedPreference(
 fun <T> ListPreference(
     modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
+    description: String? = null,
     icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
     values: List<T>,
@@ -327,6 +328,7 @@ fun <T> ListPreference(
     PreferenceEntry(
         modifier = modifier,
         title = title,
+        description = description,
         icon = icon,
         content = {
             Spacer(Modifier.height(10.dp))
@@ -349,6 +351,7 @@ fun <T> ListPreference(
 inline fun <reified T : Enum<T>> EnumListPreference(
     modifier: Modifier = Modifier,
     noinline title: @Composable () -> Unit,
+    description: String? = null,
     noinline icon: (@Composable () -> Unit)?,
     selectedValue: T,
     noinline valueText: @Composable (T) -> String,
@@ -360,6 +363,7 @@ inline fun <reified T : Enum<T>> EnumListPreference(
     ListPreference(
         modifier = modifier,
         title = title,
+        description = description,
         icon = icon,
         selectedValue = selectedValue,
         values = values,
