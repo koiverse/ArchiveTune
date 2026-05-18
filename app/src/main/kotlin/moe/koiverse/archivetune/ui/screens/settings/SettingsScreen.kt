@@ -17,16 +17,14 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -34,9 +32,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -62,7 +63,7 @@ import moe.koiverse.archivetune.utils.Updater
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    _scrollBehavior: TopAppBarScrollBehavior,
+    scrollBehavior: TopAppBarScrollBehavior,
     latestVersionName: String,
 ) {
     val context = LocalContext.current
@@ -111,115 +112,104 @@ fun SettingsScreen(
         settingsGroups.flatMap { it.items }
     }
 
-    LazyColumn(
-        state = listState,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.settings),
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.arrow_back),
+                            contentDescription = stringResource(R.string.back_button_desc),
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
-            ),
-        contentPadding = PaddingValues(bottom = 32.dp),
-    ) {
-        item(key = "header", contentType = "settings_header") {
-            SettingsScreenHeader(
-                onBack = navController::navigateUp,
-                onLongBack = navController::backToMain,
+                scrollBehavior = scrollBehavior,
             )
-        }
-
-        if (hasUpdate && !isUpdateDismissed) {
-            item(key = "update", contentType = "settings_banner") {
-                SettingsUpdateBanner(
-                    latestVersion = latestVersionName,
-                    onClick = { navController.navigate("settings/update") },
-                    onDismiss = { isUpdateDismissed = true },
-                    modifier = Modifier
-                        .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
-                        .padding(bottom = SettingsDimensions.SectionSpacing),
-                )
-            }
-        }
-
-        if (shouldShowPermissionHint) {
-            item(key = "permission", contentType = "settings_banner") {
-                SettingsPermissionBanner(
-                    onRequestPermission = {
-                        val toRequest = buildList {
-                            if (!isStorageGranted) add(storagePermission)
-                            if (!isNotificationGranted && notificationPermission != null) {
-                                add(notificationPermission)
-                            }
-                        }
-                        if (toRequest.isNotEmpty()) {
-                            permissionLauncher.launch(toRequest.toTypedArray())
-                        }
-                    },
-                    modifier = Modifier
-                        .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
-                        .padding(bottom = SettingsDimensions.SectionSpacing),
-                )
-            }
-        }
-
-        itemsIndexed(
-            items = settingsItems,
-            key = { _, item -> item.key },
-            contentType = { _, _ -> "settings_segment" },
-        ) { index, settingsItem ->
-            SettingsSegmentedItem(
-                item = settingsItem,
-                index = index,
-                count = settingsItems.size,
-                modifier = Modifier.padding(horizontal = 26.dp),
-            )
-        }
-
-        item(key = "bottom_spacer", contentType = "settings_spacer") {
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
-}
-
-@Composable
-private fun SettingsScreenHeader(
-    onBack: () -> Unit,
-    onLongBack: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top),
-            )
-            .padding(horizontal = 28.dp)
-            .padding(top = 16.dp, bottom = 26.dp),
-    ) {
-        IconButton(
-            onClick = onBack,
-            onLongClick = onLongBack,
-            modifier = Modifier.size(56.dp),
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface,
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(
+                    LocalPlayerAwareWindowInsets.current.only(
+                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+                    ),
+                ),
+            contentPadding = PaddingValues(
+                top = innerPadding.calculateTopPadding(),
+                bottom = 32.dp,
             ),
         ) {
-            Icon(
-                painter = painterResource(R.drawable.arrow_back),
-                contentDescription = stringResource(R.string.back_button_desc),
-                modifier = Modifier.size(28.dp),
-            )
+            if (hasUpdate && !isUpdateDismissed) {
+                item(key = "update", contentType = "settings_banner") {
+                    SettingsUpdateBanner(
+                        latestVersion = latestVersionName,
+                        onClick = { navController.navigate("settings/update") },
+                        onDismiss = { isUpdateDismissed = true },
+                        modifier = Modifier
+                            .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
+                            .padding(bottom = SettingsDimensions.SectionSpacing),
+                    )
+                }
+            }
+
+            if (shouldShowPermissionHint) {
+                item(key = "permission", contentType = "settings_banner") {
+                    SettingsPermissionBanner(
+                        onRequestPermission = {
+                            val toRequest = buildList {
+                                if (!isStorageGranted) add(storagePermission)
+                                if (!isNotificationGranted && notificationPermission != null) {
+                                    add(notificationPermission)
+                                }
+                            }
+                            if (toRequest.isNotEmpty()) {
+                                permissionLauncher.launch(toRequest.toTypedArray())
+                            }
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
+                            .padding(bottom = SettingsDimensions.SectionSpacing),
+                    )
+                }
+            }
+
+            itemsIndexed(
+                items = settingsItems,
+                key = { _, item -> item.key },
+                contentType = { _, _ -> "settings_segment" },
+            ) { index, settingsItem ->
+                SettingsSegmentedItem(
+                    item = settingsItem,
+                    index = index,
+                    count = settingsItems.size,
+                    modifier = Modifier.padding(horizontal = 26.dp),
+                )
+            }
+
+            item(key = "bottom_spacer", contentType = "settings_spacer") {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        Text(
-            text = stringResource(R.string.settings),
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
     }
 }
