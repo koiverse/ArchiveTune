@@ -112,7 +112,7 @@ private val PreferenceEntryVerticalPadding = 18.dp
 
 @Composable
 private fun rememberPreferenceIconShape(): Shape {
-    return remember { MaterialShapes.Ghostish.toShape() }
+    return MaterialShapes.Ghostish.toShape()
 }
 
 private fun segmentedPreferenceItemShape(
