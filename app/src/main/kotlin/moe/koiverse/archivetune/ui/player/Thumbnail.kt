@@ -618,67 +618,76 @@ fun Thumbnail(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(containerMaxWidth - (PlayerHorizontalPadding * 2))
-                                                .clip(RoundedCornerShape(thumbnailCornerRadius.dp))
+                                val thumbnailScale by animateFloatAsState(
+                                    targetValue = if (isPlaying) 1f else 0.9f,
+                                    animationSpec = tween(300),
+                                    label = "thumbnailScale"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(containerMaxWidth - (PlayerHorizontalPadding * 2))
+                                        .graphicsLayer {21
+                                            scaleX = thumbnailScale
+                                            scaleY = thumbnailScale
+                                        }
+                                        .clip(RoundedCornerShape(thumbnailCornerRadius.dp))
+                                    ) {
+                                        if (hidePlayerThumbnail) {
+                                            // Show app logo when thumbnail is hidden
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                contentAlignment = Alignment.Center
                                             ) {
-                                    if (hidePlayerThumbnail) {
-                                        // Show app logo when thumbnail is hidden
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.about_splash),
-                                                contentDescription = stringResource(R.string.hide_player_thumbnail),
-                                                tint = textBackgroundColor.copy(alpha = 0.7f),
-                                                modifier = Modifier.size(120.dp)
-                                            )
-                                        }
-                                    } else {
-                                        val primaryCanvasUrl = canvasArtwork?.animated
-                                        val fallbackCanvasUrl = canvasArtwork?.videoUrl
-                                        
-                                        val shouldCropArtwork =
-                                            cropThumbnailToSquare &&
-                                                playerDesignStyle != PlayerDesignStyle.V7
-
-                                        AsyncImage(
-                                            model = item.metadata?.thumbnailUrl?.highRes()
-                                                ?: item.mediaMetadata.artworkUri?.toString(),
-                                            contentDescription = null,
-                                            contentScale = ContentScale.FillBounds,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
-                                                .graphicsLayer(
-                                                    renderEffect = BlurEffect(radiusX = 60f, radiusY = 60f),
-                                                    alpha = 0.6f
+                                                Icon(
+                                                    painter = painterResource(R.drawable.about_splash),
+                                                    contentDescription = stringResource(R.string.hide_player_thumbnail),
+                                                    tint = textBackgroundColor.copy(alpha = 0.7f),
+                                                    modifier = Modifier.size(120.dp)
                                                 )
-                                        )
+                                            }
+                                        } else {
+                                            val primaryCanvasUrl = canvasArtwork?.animated
+                                            val fallbackCanvasUrl = canvasArtwork?.videoUrl
 
-                                        AsyncImage(
-                                            model = item.metadata?.thumbnailUrl?.highRes()
-                                                ?: item.mediaMetadata.artworkUri?.toString(),
-                                            contentDescription = null,
-                                            contentScale = if (shouldCropArtwork) ContentScale.Crop else ContentScale.Fit,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
-                                        )
+                                            val shouldCropArtwork =
+                                                cropThumbnailToSquare &&
+                                                    playerDesignStyle != PlayerDesignStyle.V7
 
-                                        if (shouldAnimateCanvas && (!primaryCanvasUrl.isNullOrBlank() || !fallbackCanvasUrl.isNullOrBlank())) {
-                                            CanvasArtworkPlayer(
-                                                primaryUrl = primaryCanvasUrl,
-                                                fallbackUrl = fallbackCanvasUrl,
-                                                isPlaying = isPlaying,
-                                                modifier = Modifier.fillMaxSize(),
+                                            AsyncImage(
+                                                model = item.metadata?.thumbnailUrl?.highRes()
+                                                    ?: item.mediaMetadata.artworkUri?.toString(),
+                                                contentDescription = null,
+                                                contentScale = ContentScale.FillBounds,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
+                                                    .graphicsLayer(
+                                                        renderEffect = BlurEffect(radiusX = 60f, radiusY = 60f),
+                                                        alpha = 0.6f
+                                                    )
                                             )
+
+                                            AsyncImage(
+                                                model = item.metadata?.thumbnailUrl?.highRes()
+                                                    ?: item.mediaMetadata.artworkUri?.toString(),
+                                                contentDescription = null,
+                                                contentScale = if (shouldCropArtwork) ContentScale.Crop else ContentScale.Fit,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
+                                            )
+
+                                            if (shouldAnimateCanvas && (!primaryCanvasUrl.isNullOrBlank() || !fallbackCanvasUrl.isNullOrBlank())) {
+                                                CanvasArtworkPlayer(
+                                                    primaryUrl = primaryCanvasUrl,
+                                                    fallbackUrl = fallbackCanvasUrl,
+                                                    isPlaying = isPlaying,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                )
+                                            }
                                         }
-                                    }
                                 }
                             }
                         }
