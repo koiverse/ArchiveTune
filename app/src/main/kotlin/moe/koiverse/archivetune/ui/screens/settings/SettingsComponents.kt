@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -54,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.res.painterResource
@@ -514,6 +517,161 @@ fun SettingsSectionLabel(
             vertical = SettingsDimensions.SectionHeaderBottomPadding,
         ),
     )
+}
+
+@Composable
+fun SettingsSegmentedItem(
+    item: SettingsItem,
+    index: Int,
+    count: Int,
+    modifier: Modifier = Modifier,
+) {
+    val effectiveAccent = if (item.accentColor.isSpecified) {
+        item.accentColor
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+    val iconContentCandidate = contentColorFor(effectiveAccent)
+    val iconContentColor = if (iconContentCandidate.isSpecified) {
+        iconContentCandidate
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val shape = remember(index, count) { segmentedSettingsItemShape(index, count) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) SettingsAnimations.PressScale else 1f,
+        animationSpec = SettingsAnimations.pressSpring(),
+        label = "settingsSegmentScale",
+    )
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(shape)
+            .focusable()
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = item.onClick,
+            ),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 104.dp)
+                .padding(horizontal = 26.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(effectiveAccent),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (item.showUpdateIndicator) {
+                    BadgedBox(
+                        badge = {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(9.dp),
+                            )
+                        },
+                    ) {
+                        Icon(
+                            painter = item.icon,
+                            contentDescription = null,
+                            tint = iconContentColor,
+                            modifier = Modifier.size(31.dp),
+                        )
+                    }
+                } else {
+                    Icon(
+                        painter = item.icon,
+                        contentDescription = null,
+                        tint = iconContentColor,
+                        modifier = Modifier.size(31.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(24.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                item.subtitle?.let { subtitle ->
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            item.badge?.let { badge ->
+                Spacer(modifier = Modifier.width(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                ) {
+                    Text(
+                        text = badge,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun segmentedSettingsItemShape(
+    index: Int,
+    count: Int,
+): Shape {
+    val large = 28.dp
+    val small = 6.dp
+    return when {
+        count <= 1 -> RoundedCornerShape(large)
+        index == 0 -> RoundedCornerShape(
+            topStart = large,
+            topEnd = large,
+            bottomEnd = small,
+            bottomStart = small,
+        )
+        index == count - 1 -> RoundedCornerShape(
+            topStart = small,
+            topEnd = small,
+            bottomEnd = large,
+            bottomStart = large,
+        )
+        else -> RoundedCornerShape(small)
+    }
 }
 
 @Composable

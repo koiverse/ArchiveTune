@@ -9,9 +9,11 @@
 
 package moe.koiverse.archivetune.ui.screens.settings
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 
+@Immutable
 data class SettingsProfileState(
     val isLoading: Boolean,
     val isLoggedIn: Boolean,
@@ -20,12 +22,15 @@ data class SettingsProfileState(
     val accountImageUrl: String?,
 )
 
+@Immutable
 data class SettingsGroup(
     val title: String,
     val items: List<SettingsItem>,
 )
 
+@Immutable
 data class SettingsItem(
+    val key: String,
     val icon: Painter,
     val title: String,
     val subtitle: String? = null,
