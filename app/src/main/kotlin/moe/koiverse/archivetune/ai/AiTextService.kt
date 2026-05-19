@@ -95,7 +95,7 @@ object AiTextService {
             AiProvider.CHATGPT -> completeOpenAiCompatible(
                 endpoint = OpenAiEndpoint,
                 apiKey = config.apiKey,
-                model = "gpt-4o-mini",
+                model = "gpt-5.4",
                 systemPrompt = systemPrompt,
                 userPrompt = userPrompt,
                 temperature = temperature,
@@ -105,7 +105,7 @@ object AiTextService {
             AiProvider.CUSTOM -> completeOpenAiCompatible(
                 endpoint = config.customEndpoint,
                 apiKey = config.apiKey,
-                model = "gpt-4o-mini",
+                model = "gpt-5.4",
                 systemPrompt = systemPrompt,
                 userPrompt = userPrompt,
                 temperature = temperature,

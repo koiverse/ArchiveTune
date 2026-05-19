@@ -402,7 +402,6 @@
     <string name="backup_category_account">Account Details</string>
     <string name="backup_category_account_desc">YouTube, Last.fm, Discord &amp; proxy credentials</string>
     <string name="login_success">Logged in successfully</string>
-    <string name="custom">Custom</string>
     <string name="ai_integration">AI Integration</string>
     <string name="ai_integration_desc">Configure AI translation and personalized user mixes.</string>
     <string name="ai_provider_settings">Provider</string>
