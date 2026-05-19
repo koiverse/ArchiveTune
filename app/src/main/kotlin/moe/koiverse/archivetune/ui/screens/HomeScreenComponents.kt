@@ -439,21 +439,6 @@ fun SpeedDialSection(
         }
     }
 
-    val columnCount = remember(tiles.size, rowCount) {
-        ceil(tiles.size / rowCount.toFloat()).toInt().coerceAtLeast(1)
-    }
-
-    val orderedTiles = remember(tiles, rowCount, columnCount) {
-        buildList {
-            for (column in 0 until columnCount) {
-                for (row in 0 until rowCount) {
-                    val index = row * columnCount + column
-                    if (index < tiles.size) add(tiles[index])
-                }
-            }
-        }
-    }
-
     fun playSpeedDialQueue(startIndex: Int) {
         if (speedDialSongs.isEmpty()) return
         playerConnection.playQueue(
@@ -509,7 +494,7 @@ fun SpeedDialSection(
                     .height(gridHeight),
         ) {
             items(
-                items = orderedTiles,
+                items = tiles,
                 key = { it.key },
                 contentType = { tile -> if (tile.localItem == null) "speed_dial_random" else "speed_dial_item" },
             ) { tile ->
