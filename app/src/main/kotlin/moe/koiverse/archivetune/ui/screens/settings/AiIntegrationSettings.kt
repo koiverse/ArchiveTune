@@ -82,6 +82,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
@@ -90,17 +91,14 @@ import moe.koiverse.archivetune.constants.AiApiValidationStatus
 import moe.koiverse.archivetune.constants.AiApiValidationStatusKey
 import moe.koiverse.archivetune.constants.AiCustomEndpointKey
 import moe.koiverse.archivetune.constants.AiCustomModelKey
-import moe.koiverse.archivetune.constants.AiMixCountKey
 import moe.koiverse.archivetune.constants.AiProvider
 import moe.koiverse.archivetune.constants.AiProviderKey
 import moe.koiverse.archivetune.constants.AiSelectedModelKey
-import moe.koiverse.archivetune.constants.AiUserMixJsonKey
 import moe.koiverse.archivetune.constants.TranslatorTargetLangKey
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.EditTextPreference
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.ListPreference
-import moe.koiverse.archivetune.ui.component.NumberPickerPreference
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -127,8 +125,6 @@ fun AiIntegrationSettings(
         rememberEnumPreference(AiApiValidationStatusKey, AiApiValidationStatus.UNKNOWN)
     val (selectedModel, setSelectedModel) = rememberPreference(AiSelectedModelKey, "")
     val (customModel, setCustomModel) = rememberPreference(AiCustomModelKey, "")
-    val (mixCount, setMixCount) = rememberPreference(AiMixCountKey, 5)
-    val (mixJson) = rememberPreference(AiUserMixJsonKey, "")
     val (targetLanguage, setTargetLanguage) = rememberPreference(TranslatorTargetLangKey, "ENGLISH")
     var showApiKeyDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -147,10 +143,6 @@ fun AiIntegrationSettings(
     val hasCustomEndpoint = provider != AiProvider.CUSTOM || customEndpoint.isNotBlank()
     val hasApiConfiguration = provider != AiProvider.NONE && apiKey.isNotBlank() && hasCustomEndpoint
     val canTestApi = hasApiConfiguration && !actionState.isTesting
-    val canRebuildMix = hasApiConfiguration &&
-        validationStatus != AiApiValidationStatus.FAILED &&
-        !actionState.isRebuildingMix
-    val hasMix = mixJson.isNotBlank()
 
     if (showApiKeyDialog) {
         ApiKeyDialog(
@@ -326,46 +318,6 @@ fun AiIntegrationSettings(
                     onValueSelected = setTargetLanguage,
                 )
             }
-        }
-
-        PreferenceGroup(title = stringResource(R.string.ai_user_mix)) {
-            item {
-                NumberPickerPreference(
-                    title = { Text(stringResource(R.string.ai_mix_count)) },
-                    icon = { Icon(painterResource(R.drawable.playlist_play), null) },
-                    value = mixCount,
-                    onValueChange = setMixCount,
-                    minValue = 1,
-                    maxValue = 10,
-                    valueText = { context.getString(R.string.ai_mix_count_value, it) },
-                )
-            }
-
-            item {
-                PreferenceEntry(
-                    title = { Text(stringResource(R.string.ai_rebuild_mix)) },
-                    description = stringResource(R.string.ai_rebuild_mix_desc),
-                    icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
-                    trailingContent = {
-                        if (actionState.isRebuildingMix) {
-                            CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
-                        }
-                    },
-                    onClick = { viewModel.rebuildMix(mixCount) },
-                    isEnabled = canRebuildMix,
-                )
-            }
-
-            item {
-                PreferenceEntry(
-                    title = { Text(stringResource(R.string.ai_remove_mix)) },
-                    description = stringResource(R.string.ai_remove_mix_desc),
-                    icon = { Icon(painterResource(R.drawable.delete), null) },
-                    onClick = viewModel::removeMix,
-                    isEnabled = hasMix,
-                )
-            }
-        }
     }
 
     TopAppBar(
