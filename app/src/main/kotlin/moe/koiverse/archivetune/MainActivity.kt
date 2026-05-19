@@ -384,7 +384,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
-        playerConnection?.service?.persistQueueSnapshotBlocking()
         safeUnbindMusicService()
         super.onStop()
     }
@@ -924,7 +923,7 @@ class MainActivity : ComponentActivity() {
                                 when (anchorToRestore) {
                                     EXPANDED_ANCHOR -> playerBottomSheetState.expandSoft()
                                     COLLAPSED_ANCHOR -> playerBottomSheetState.collapseSoft()
-                                    DISMISSED_ANCHOR -> playerBottomSheetState.collapseSoft()
+                                    DISMISSED_ANCHOR -> playerBottomSheetState.dismiss()
                                     else -> playerBottomSheetState.collapseSoft()
                                 }
                             }
@@ -1092,7 +1091,7 @@ class MainActivity : ComponentActivity() {
                                 when (savedMiniPlayerAnchor) {
                                     EXPANDED_ANCHOR -> playerBottomSheetState.expandSoft()
                                     COLLAPSED_ANCHOR -> playerBottomSheetState.collapseSoft()
-                                    DISMISSED_ANCHOR -> playerBottomSheetState.collapseSoft()
+                                    DISMISSED_ANCHOR -> playerBottomSheetState.dismiss()
                                     else -> playerBottomSheetState.collapseSoft()
                                 }
                             }

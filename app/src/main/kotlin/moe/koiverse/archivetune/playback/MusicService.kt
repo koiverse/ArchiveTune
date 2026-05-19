@@ -16,7 +16,6 @@ package moe.koiverse.archivetune.playback
 import android.app.PendingIntent
 import android.app.ActivityManager
 import android.content.ComponentName
-import android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -356,9 +355,6 @@ class MusicService :
     private val persistentStateLock = Any()
     @Volatile
     private var isRestoringPersistentState = false
-    private var restoredPersistentQueueWindowStart = 0
-    private var restoredPersistentQueueWindowEnd = 0
-    private var restoredPersistentQueueItemCount = 0
     @Volatile
     private var suppressAutoPlayback = false
     private var lastPresenceToken: String? = null
@@ -1035,21 +1031,6 @@ class MusicService :
                 }
             }
 
-        dataStore.data
-            .map { it[PersistentQueueKey] ?: true }
-            .distinctUntilChanged()
-            .collectLatest(scope) { enabled ->
-                if (enabled) {
-                    if (player.mediaItemCount > 0) {
-                        saveQueueToDisk()
-                    }
-                } else {
-                    withContext(Dispatchers.IO) {
-                        clearPersistedQueueFiles()
-                    }
-                }
-            }
-
         scope.launch(Dispatchers.IO) {
             runCatching {
                 if (dataStore.get(PersistentQueueKey, true)) {
@@ -1122,27 +1103,6 @@ class MusicService :
         }
     }
 
-    private fun persistQueueSnapshotAsync() {
-        if (isRestoringPersistentState) return
-        ensureScopesActive()
-        scope.launch(SilentHandler) {
-            if (withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) } && player.mediaItemCount > 0) {
-                saveQueueToDisk()
-            }
-        }
-    }
-
-    fun persistQueueSnapshotBlocking() {
-        if (isRestoringPersistentState || !::player.isInitialized || player.mediaItemCount == 0) return
-        runCatching {
-            runBlocking {
-                if (dataStore.get(PersistentQueueKey, true)) {
-                    saveQueueToDisk()
-                }
-            }
-        }.onFailure(::reportException)
-    }
-
     private suspend fun restorePersistentQueue(persistedQueue: PersistQueue) {
         val itemQueue = persistedQueue.toQueue()
         val continuationQueue = persistedQueue.toContinuationQueue()
@@ -1160,22 +1120,15 @@ class MusicService :
 
             val items = initialStatus.items
             if (items.isEmpty()) {
-                restoredPersistentQueueWindowStart = 0
-                restoredPersistentQueueWindowEnd = 0
-                restoredPersistentQueueItemCount = 0
                 return@withContext
             }
 
             val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
             val windowStart = (fullIndex - 20).coerceAtLeast(0)
             val windowEnd = (fullIndex + 50).coerceAtMost(items.size)
-            restoredPersistentQueueWindowStart = windowStart
-            restoredPersistentQueueWindowEnd = windowEnd
-            restoredPersistentQueueItemCount = items.size
 
             val initialChunk = items.subList(windowStart, windowEnd)
             val relativeIndex = (fullIndex - windowStart).coerceIn(0, initialChunk.lastIndex)
-            val restoredMediaId = initialChunk[relativeIndex].mediaId
 
             player.setMediaItems(
                 initialChunk,
@@ -1191,24 +1144,11 @@ class MusicService :
                 scope.launch(SilentHandler) {
                     delay(2000)
                     if (!isActive || player.mediaItemCount == 0) return@launch
-                    if (player.currentMediaItem?.mediaId != restoredMediaId) return@launch
-                    val wasRestoring = isRestoringPersistentState
-                    isRestoringPersistentState = true
-                    try {
-                        if (windowStart > 0) {
-                            player.addMediaItems(0, items.subList(0, windowStart))
-                        }
-                        if (windowEnd < items.size) {
-                            player.addMediaItems(items.subList(windowEnd, items.size))
-                        }
-                        restoredPersistentQueueWindowStart = 0
-                        restoredPersistentQueueWindowEnd = player.mediaItemCount
-                        restoredPersistentQueueItemCount = player.mediaItemCount
-                    } finally {
-                        isRestoringPersistentState = wasRestoring
+                    if (windowStart > 0) {
+                        player.addMediaItems(0, items.subList(0, windowStart))
                     }
-                    if (withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }) {
-                        saveQueueToDisk()
+                    if (windowEnd < items.size) {
+                        player.addMediaItems(items.subList(windowEnd, items.size))
                     }
                 }
             }
@@ -1223,12 +1163,7 @@ class MusicService :
 
             if (player.mediaItemCount > 0) {
                 val index =
-                    if (
-                        restoredPersistentQueueItemCount > 0 &&
-                            playerState.currentMediaItemIndex in restoredPersistentQueueWindowStart until restoredPersistentQueueWindowEnd
-                    ) {
-                        playerState.currentMediaItemIndex - restoredPersistentQueueWindowStart
-                    } else if (restoredPersistentQueueWindowStart == 0 && playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
+                    if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
                         playerState.currentMediaItemIndex
                     } else {
                         player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
@@ -2050,9 +1985,6 @@ class MusicService :
                     applyCurrentFirstShuffleOrder()
                 }
             }
-            if (withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }) {
-                saveQueueToDisk()
-            }
         }
     }
 
@@ -2164,7 +2096,6 @@ class MusicService :
             }
 
             currentQueue = radioQueue
-            persistQueueSnapshotAsync()
         }
     }
 
@@ -2209,7 +2140,6 @@ class MusicService :
                 }
 
                 currentQueue = radioQueue
-                persistQueueSnapshotAsync()
 
                 if (player.playbackState == Player.STATE_ENDED || player.mediaItemCount == player.currentMediaItemIndex + 1) {
                     player.seekToNext()
@@ -2223,7 +2153,7 @@ class MusicService :
         }
     }
 
-    fun stopAndClearPlayback(clearPersistedQueue: Boolean = true) {
+    fun stopAndClearPlayback() {
         suppressAutoPlayback = true
         clearAutomix()
         currentQueue = EmptyQueue
@@ -2236,14 +2166,6 @@ class MusicService :
         abandonAudioFocus()
         closeAudioEffectSession()
         consecutivePlaybackErr = 0
-        restoredPersistentQueueWindowStart = 0
-        restoredPersistentQueueWindowEnd = 0
-        restoredPersistentQueueItemCount = 0
-        if (clearPersistedQueue) {
-            ioScope.launch(SilentHandler) {
-                clearPersistedQueueFiles()
-            }
-        }
     }
 
     fun playNext(items: List<MediaItem>) {
@@ -2283,7 +2205,6 @@ class MusicService :
         player.addMediaItems(insertionIndex, items)
         playNextShuffleOrder?.let(player::setShuffleOrder)
         player.prepare()
-        persistQueueSnapshotAsync()
     }
 
     fun addToQueue(items: List<MediaItem>) {
@@ -2310,7 +2231,6 @@ class MusicService :
         suppressAutoPlayback = false
         player.addMediaItems(items)
         player.prepare()
-        persistQueueSnapshotAsync()
     }
 
     fun startTogetherHost(
@@ -5231,7 +5151,11 @@ class MusicService :
             releaseAudioEffects()
         } catch (_: Exception) {}
         try {
-            persistQueueSnapshotBlocking()
+            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                runBlocking {
+                    saveQueueToDisk()
+                }
+            }
         } catch (_: Exception) {}
         try {
             mediaSession.release()
@@ -5263,16 +5187,8 @@ class MusicService :
 
     override fun onUnbind(intent: Intent?): Boolean {
         hasBoundClients = false
-        persistQueueSnapshotAsync()
         scheduleStopIfIdle()
         return super.onUnbind(intent)
-    }
-
-    override fun onTrimMemory(level: Int) {
-        super.onTrimMemory(level)
-        if (level >= TRIM_MEMORY_UI_HIDDEN) {
-            persistQueueSnapshotBlocking()
-        }
     }
 
     override fun onRebind(intent: Intent?) {
@@ -5302,7 +5218,9 @@ class MusicService :
         val stopMusicOnTaskClearEnabled = dataStore.get(StopMusicOnTaskClearKey, false)
 
         try {
-            persistQueueSnapshotBlocking()
+            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                runBlocking { saveQueueToDisk() }
+            }
 
             val state = togetherSessionState.value
             val isHostSessionActive =
@@ -5322,7 +5240,7 @@ class MusicService :
                 }
 
                 if (stopMusicOnTaskClearEnabled) {
-                    runCatching { stopAndClearPlayback(clearPersistedQueue = false) }
+                    runCatching { stopAndClearPlayback() }
                     runCatching {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                             stopForeground(STOP_FOREGROUND_REMOVE)
