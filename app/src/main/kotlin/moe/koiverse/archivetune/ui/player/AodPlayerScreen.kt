@@ -43,6 +43,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.media3.common.C
 import coil3.compose.AsyncImage
 import moe.koiverse.archivetune.R
@@ -73,6 +75,7 @@ fun AodPlayerScreen(
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
     val thumbnailShape = remember(thumbnailCornerRadius) {
         RoundedCornerShape(thumbnailCornerRadius.dp)
     }
@@ -149,9 +152,18 @@ fun AodPlayerScreen(
                 isPlaying = isPlaying,
                 canSkipPrevious = canSkipPrevious,
                 canSkipNext = canSkipNext,
-                onPlayPause = onPlayPause,
-                onSkipPrevious = onSkipPrevious,
-                onSkipNext = onSkipNext,
+                onPlayPause = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onPlayPause()
+                },
+                onSkipPrevious = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onSkipPrevious()
+                },
+                onSkipNext = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onSkipNext()
+                },
             )
         }
     }
