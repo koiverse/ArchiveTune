@@ -99,7 +99,7 @@ fun buildSettingsGroups(
                         accentColor = MaterialTheme.colorScheme.secondary,
                         keywords = listOf("ai", "translation", "mix", "gpt", "openai", "azure", "custom endpoint"),
                         onClick = { navController.navigate("settings/ai_integration") },
-                    )
+                    ),
                     SettingsItem(
                         key = "backup_restore",
                         icon = painterResource(R.drawable.backup),
