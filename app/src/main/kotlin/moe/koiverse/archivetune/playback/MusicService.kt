@@ -16,6 +16,7 @@ package moe.koiverse.archivetune.playback
 import android.app.PendingIntent
 import android.app.ActivityManager
 import android.content.ComponentName
+import android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -1129,6 +1130,17 @@ class MusicService :
                 saveQueueToDisk()
             }
         }
+    }
+
+    fun persistQueueSnapshotBlocking() {
+        if (isRestoringPersistentState || !::player.isInitialized || player.mediaItemCount == 0) return
+        runCatching {
+            runBlocking {
+                if (dataStore.get(PersistentQueueKey, true)) {
+                    saveQueueToDisk()
+                }
+            }
+        }.onFailure(::reportException)
     }
 
     private suspend fun restorePersistentQueue(persistedQueue: PersistQueue) {
@@ -5219,11 +5231,7 @@ class MusicService :
             releaseAudioEffects()
         } catch (_: Exception) {}
         try {
-            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
-                runBlocking {
-                    saveQueueToDisk()
-                }
-            }
+            persistQueueSnapshotBlocking()
         } catch (_: Exception) {}
         try {
             mediaSession.release()
@@ -5260,6 +5268,13 @@ class MusicService :
         return super.onUnbind(intent)
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_UI_HIDDEN) {
+            persistQueueSnapshotBlocking()
+        }
+    }
+
     override fun onRebind(intent: Intent?) {
         hasBoundClients = true
         cancelIdleStop()
@@ -5287,9 +5302,7 @@ class MusicService :
         val stopMusicOnTaskClearEnabled = dataStore.get(StopMusicOnTaskClearKey, false)
 
         try {
-            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
-                runBlocking { saveQueueToDisk() }
-            }
+            persistQueueSnapshotBlocking()
 
             val state = togetherSessionState.value
             val isHostSessionActive =
