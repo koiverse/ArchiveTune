@@ -88,9 +88,18 @@ fun buildSettingsGroups(
                         title = stringResource(R.string.integration),
                         subtitle = stringResource(R.string.settings_integration_subtitle),
                         accentColor = MaterialTheme.colorScheme.secondary,
-                        keywords = listOf("integration", "discord", "lastfm", "listenbrainz", "scrobbling"),
+                        keywords = listOf("integration", "discord", "lastfm", "listenbrainz", "scrobbling", "ai", "translation", "mix"),
                         onClick = { navController.navigate("settings/integration") },
                     ),
+                    SettingsItem(
+                        key = "ai_integration",
+                        icon = painterResource(R.drawable.auto_awesome),
+                        title = stringResource(R.string.ai_integration),
+                        subtitle = stringResource(R.string.ai_integration_desc),
+                        accentColor = MaterialTheme.colorScheme.secondary,
+                        keywords = listOf("ai", "translation", "mix", "gpt", "openai", "azure", "custom endpoint"),
+                        onClick = { navController.navigate("settings/ai_integration") },
+                    )
                     SettingsItem(
                         key = "backup_restore",
                         icon = painterResource(R.drawable.backup),

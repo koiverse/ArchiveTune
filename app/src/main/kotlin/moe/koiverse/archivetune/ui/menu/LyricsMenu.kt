@@ -52,6 +52,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -85,6 +86,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.AiApiKeyKey
+import moe.koiverse.archivetune.constants.AiCustomEndpointKey
+import moe.koiverse.archivetune.constants.AiProvider
+import moe.koiverse.archivetune.constants.AiProviderKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
@@ -96,6 +101,8 @@ import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
+import moe.koiverse.archivetune.utils.rememberEnumPreference
+import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LyricsMenuViewModel
 import java.util.UUID
 import kotlin.math.roundToInt
@@ -165,9 +172,41 @@ fun LyricsMenu(
 
     val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
     val results by viewModel.results.collectAsState()
+    val isAiTranslating by viewModel.isAiTranslating.collectAsState()
+    val (aiProvider) = rememberEnumPreference(AiProviderKey, AiProvider.NONE)
+    val (aiApiKey) = rememberPreference(AiApiKeyKey, "")
+    val (aiCustomEndpoint) = rememberPreference(AiCustomEndpointKey, "")
     var expandedItemIndex by rememberSaveable { mutableStateOf(-1) }
     val isTranslateEnabled = !isTtml(lyricsProvider()?.lyrics.orEmpty()) &&
         (results.getOrNull(expandedItemIndex)?.let { !isTtml(it.lyrics) } ?: true)
+    val currentLyrics = lyricsProvider()?.lyrics.orEmpty()
+    val isAiTranslationEnabled = currentLyrics.isNotBlank() &&
+        aiProvider != AiProvider.NONE &&
+        aiApiKey.isNotBlank() &&
+        (aiProvider != AiProvider.CUSTOM || aiCustomEndpoint.isNotBlank())
+
+    LaunchedEffect(Unit) {
+        viewModel.aiTranslationEvents.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    if (isAiTranslating) {
+        DefaultDialog(onDismiss = {}) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(12.dp),
+            ) {
+                LoadingIndicator(modifier = Modifier.size(40.dp))
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.ai_translating_lyrics),
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
 
     if (showSearchDialog) {
         SearchLyricsInputDialog(
@@ -795,6 +834,24 @@ fun LyricsMenu(
                             text = stringResource(R.string.translate),
                             onClick = { showTranslateDialog = true },
                             enabled = isTranslateEnabled
+                        ),
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.auto_awesome),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.ai_translation_menu),
+                            onClick = {
+                                viewModel.translateLyricsWithAi(
+                                    mediaMetadata = mediaMetadataProvider(),
+                                    lyrics = lyricsProvider()?.lyrics.orEmpty(),
+                                )
+                            },
+                            enabled = isAiTranslationEnabled && !isAiTranslating
                         ),
                         NewAction(
                             icon = {

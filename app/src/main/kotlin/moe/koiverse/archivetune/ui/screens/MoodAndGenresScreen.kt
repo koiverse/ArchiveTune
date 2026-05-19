@@ -11,6 +11,7 @@
 
 package moe.koiverse.archivetune.ui.screens
 
+import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -83,6 +84,7 @@ fun MoodAndGenresScreen(
     viewModel: MoodAndGenresViewModel = hiltViewModel(),
 ) {
     val moodAndGenres by viewModel.moodAndGenres.collectAsState()
+    val aiUserMixes by viewModel.aiUserMixes.collectAsState()
     val gridState = rememberLazyGridState()
     val density = LocalDensity.current
     val windowInsets = LocalPlayerAwareWindowInsets.current
@@ -116,8 +118,39 @@ fun MoodAndGenresScreen(
             )
         }
 
+        if (aiUserMixes.isNotEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                NavigationTitle(
+                    title = stringResource(R.string.ai_user_mix),
+                    modifier = Modifier.animateItem(),
+                )
+            }
+
+            items(
+                items = aiUserMixes,
+                key = { item -> item.id },
+                contentType = { "ai_user_mix" },
+            ) { item ->
+                MoodAndGenresButton(
+                    title = item.title,
+                    stripeColor = item.stripeColor,
+                    onClick = {
+                        navController.navigate("search/${Uri.encode(item.query)}")
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(6.dp)
+                        .animateItem(),
+                )
+            }
+        }
+
         if (moodAndGenres == null) {
-            items(12) {
+            items(
+                count = 12,
+                key = { index -> "mood_genres_shimmer_$index" },
+                contentType = { "mood_genres_shimmer" },
+            ) {
                 ShimmerHost {
                     TextPlaceholder(
                         height = MoodAndGenresButtonHeight,
@@ -130,6 +163,7 @@ fun MoodAndGenresScreen(
             items(
                 items = moodAndGenres.orEmpty(),
                 key = { item -> "${item.title}:${item.endpoint.browseId}:${item.endpoint.params}" },
+                contentType = { "mood_genres_item" },
             ) { item ->
                 MoodAndGenresButton(
                     title = item.title,

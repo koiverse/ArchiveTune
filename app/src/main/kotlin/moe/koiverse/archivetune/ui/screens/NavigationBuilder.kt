@@ -70,6 +70,7 @@ import moe.koiverse.archivetune.ui.screens.playlist.CachePlaylistScreen
 import moe.koiverse.archivetune.ui.screens.search.OnlineSearchResult
 import moe.koiverse.archivetune.ui.screens.settings.AboutScreen
 import moe.koiverse.archivetune.ui.screens.settings.AccountSettings
+import moe.koiverse.archivetune.ui.screens.settings.AiIntegrationSettings
 import moe.koiverse.archivetune.ui.screens.settings.AppearanceSettings
 import moe.koiverse.archivetune.ui.screens.settings.CustomizeBackground
 import moe.koiverse.archivetune.ui.screens.settings.BackupAndRestore
@@ -375,6 +376,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/integration") {
         IntegrationScreen(navController, scrollBehavior)
+    }
+    composable("settings/ai_integration") {
+        AiIntegrationSettings(navController)
     }
     composable("settings/music_together") {
         MusicTogetherScreen(navController, scrollBehavior)
