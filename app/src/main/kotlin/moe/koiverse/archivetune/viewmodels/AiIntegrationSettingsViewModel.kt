@@ -26,8 +26,6 @@ import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ai.AiServiceConfig
 import moe.koiverse.archivetune.ai.AiTextService
-import moe.koiverse.archivetune.ai.AiUserMixGenerator
-import moe.koiverse.archivetune.ai.AiUserMixJson
 import moe.koiverse.archivetune.constants.AiApiKeyKey
 import moe.koiverse.archivetune.constants.AiApiValidationStatus
 import moe.koiverse.archivetune.constants.AiApiValidationStatusKey
@@ -36,15 +34,11 @@ import moe.koiverse.archivetune.constants.AiCustomModelKey
 import moe.koiverse.archivetune.constants.AiProvider
 import moe.koiverse.archivetune.constants.AiProviderKey
 import moe.koiverse.archivetune.constants.AiSelectedModelKey
-import moe.koiverse.archivetune.constants.AiUserMixJsonKey
-import moe.koiverse.archivetune.constants.AiUserMixUpdatedAtKey
-import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.extensions.toEnum
 import moe.koiverse.archivetune.utils.dataStore
 
 data class AiIntegrationActionState(
     val isTesting: Boolean = false,
-    val isRebuildingMix: Boolean = false,
     val isFetchingModels: Boolean = false,
 )
 
@@ -53,7 +47,6 @@ class AiIntegrationSettingsViewModel
 @Inject
 constructor(
     @ApplicationContext private val context: Context,
-    private val database: MusicDatabase,
 ) : ViewModel() {
     private val _actionState = MutableStateFlow(AiIntegrationActionState())
     val actionState: StateFlow<AiIntegrationActionState> = _actionState.asStateFlow()
@@ -103,42 +96,6 @@ constructor(
             } finally {
                 _actionState.value = _actionState.value.copy(isTesting = false)
             }
-        }
-    }
-
-    fun rebuildMix(count: Int) {
-        if (_actionState.value.isRebuildingMix) return
-        viewModelScope.launch(Dispatchers.IO) {
-            _actionState.value = _actionState.value.copy(isRebuildingMix = true)
-            try {
-                val mixes = AiUserMixGenerator(database).generate(
-                    config = readConfig(),
-                    count = count,
-                )
-                context.dataStore.edit { prefs ->
-                    prefs[AiUserMixJsonKey] = AiUserMixJson.encode(mixes)
-                    prefs[AiUserMixUpdatedAtKey] = System.currentTimeMillis()
-                    prefs[AiApiValidationStatusKey] = AiApiValidationStatus.SUCCESS.name
-                }
-                _events.emit(context.getString(R.string.ai_mix_rebuilt))
-            } catch (e: Exception) {
-                context.dataStore.edit { prefs ->
-                    prefs[AiApiValidationStatusKey] = AiApiValidationStatus.FAILED.name
-                }
-                _events.emit(e.localizedMessage ?: context.getString(R.string.ai_mix_rebuild_failed))
-            } finally {
-                _actionState.value = _actionState.value.copy(isRebuildingMix = false)
-            }
-        }
-    }
-
-    fun removeMix() {
-        viewModelScope.launch(Dispatchers.IO) {
-            context.dataStore.edit { prefs ->
-                prefs.remove(AiUserMixJsonKey)
-                prefs.remove(AiUserMixUpdatedAtKey)
-            }
-            _events.emit(context.getString(R.string.ai_mix_removed))
         }
     }
 
