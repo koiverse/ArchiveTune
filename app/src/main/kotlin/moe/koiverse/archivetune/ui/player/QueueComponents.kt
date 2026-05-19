@@ -269,7 +269,9 @@ fun CurrentSongHeader(
             ToggleButton(
                 checked = shuffleModeEnabled,
                 onCheckedChange = { onShuffleClick() },
-                modifier = Modifier.weight(1f).size(48.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .size(48.dp),
                 shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
                 colors = if (shuffleModeEnabled) checkedColors else uncheckedColors,
             ) {
@@ -283,7 +285,9 @@ fun CurrentSongHeader(
             ToggleButton(
                 checked = repeatMode != Player.REPEAT_MODE_OFF,
                 onCheckedChange = { onRepeatClick() },
-                modifier = Modifier.weight(1f).size(48.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .size(48.dp),
                 shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
                 colors = if (repeatMode != Player.REPEAT_MODE_OFF) checkedColors else uncheckedColors,
             ) {
@@ -303,7 +307,9 @@ fun CurrentSongHeader(
             ToggleButton(
                 checked = infiniteQueueEnabled,
                 onCheckedChange = { onInfiniteQueueClick() },
-                modifier = Modifier.weight(1f).size(48.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .size(48.dp),
                 shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                 colors = infiniteCheckedColors,
                 enabled = !infiniteQueueLoading,
@@ -1031,50 +1037,32 @@ fun QueueCollapsedContentV4(
             val buttonSize = 48.dp
             val iconSize = 22.dp
 
-            // Queue button (pill)
-            Box(
-                modifier = Modifier
-                    .height(buttonSize)
-                    .weight(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(textBackgroundColor.copy(alpha = 0.1f))
-                    .clickable { onExpandQueue() },
-                contentAlignment = Alignment.Center
+            // Queue button
+            IconButton(
+                onClick = onExpandQueue,
+                shapes = IconButtonDefaults.shapes(),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = textBackgroundColor
+                ),
+                modifier = Modifier.size(buttonSize)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.queue_music),
-                        contentDescription = null,
-                        modifier = Modifier.size(iconSize),
-                        tint = textBackgroundColor
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(id = R.string.queue),
-                        color = textBackgroundColor,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1
-                    )
-                }
+                Icon(
+                    painter = painterResource(id = R.drawable.queue_music),
+                    contentDescription = null,
+                    modifier = Modifier.size(iconSize),
+                    tint = textBackgroundColor
+                )
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
-
-            // Sleep timer button (circle)
-            Box(
-                modifier = Modifier
-                    .size(buttonSize)
-                    .clip(CircleShape)
-                    .background(
-                        if (sleepTimerEnabled) textBackgroundColor.copy(alpha = 0.2f)
-                        else textBackgroundColor.copy(alpha = 0.1f)
-                    )
-                    .clickable { onSleepTimerClick() },
-                contentAlignment = Alignment.Center
+            // Sleep timer button
+            IconButton(
+                onClick = onSleepTimerClick,
+                shapes = IconButtonDefaults.shapes(),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = textBackgroundColor
+                )
             ) {
                 AnimatedContent(
                     label = "sleepTimer",
@@ -1103,37 +1091,20 @@ fun QueueCollapsedContentV4(
                 }
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
-
-            // Lyrics button (pill)
-            Box(
-                modifier = Modifier
-                    .height(buttonSize)
-                    .weight(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(textBackgroundColor.copy(alpha = 0.1f))
-                    .clickable { onShowLyrics() },
-                contentAlignment = Alignment.Center
+            // Lyrics button
+            IconButton(
+                onClick = onShowLyrics,
+                shapes = IconButtonDefaults.shapes(),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = textBackgroundColor
+                )
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.lyrics),
-                        contentDescription = null,
-                        modifier = Modifier.size(iconSize),
-                        tint = textBackgroundColor
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(id = R.string.lyrics),
-                        color = textBackgroundColor,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1
-                    )
-                }
+                Icon(
+                    painter = painterResource(id = R.drawable.lyrics),
+                    contentDescription = null,
+                    modifier = Modifier.size(iconSize)
+                )
             }
         }
     }

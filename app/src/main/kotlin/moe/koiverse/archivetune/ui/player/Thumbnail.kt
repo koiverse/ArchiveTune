@@ -109,6 +109,8 @@ import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
 import android.content.Context
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 
 object CanvasArtworkPlaybackCache {
     private const val defaultMaxSize = 256
