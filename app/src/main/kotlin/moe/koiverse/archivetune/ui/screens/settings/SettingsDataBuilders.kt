@@ -38,6 +38,15 @@ fun buildSettingsGroups(
                 title = stringResource(R.string.settings),
                 items = listOf(
                     SettingsItem(
+                        key = "account",
+                        icon = painterResource(R.drawable.account),
+                        title = stringResource(R.string.account),
+                        subtitle = stringResource(R.string.settings_account_subtitle),
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        keywords = listOf("account", "profile", "login", "authentication"),
+                        onClick = { navController.navigate("settings/account") },
+                    ),
+                    SettingsItem(
                         key = "music_management",
                         icon = painterResource(R.drawable.library_music),
                         title = stringResource(R.string.local_history),

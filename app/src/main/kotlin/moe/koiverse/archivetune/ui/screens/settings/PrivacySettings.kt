@@ -47,7 +47,7 @@ import moe.koiverse.archivetune.constants.PauseSearchHistoryKey
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
-import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
+import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -159,49 +159,55 @@ fun PrivacySettings(
             )
         )
 
-        PreferenceGroupTitle(
-            title = stringResource(R.string.listen_history)
-        )
+        PreferenceGroup(title = stringResource(R.string.listen_history)) {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.pause_listen_history)) },
+                    icon = { Icon(painterResource(R.drawable.history), null) },
+                    checked = pauseListenHistory,
+                    onCheckedChange = onPauseListenHistoryChange,
+                )
+            }
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.pause_listen_history)) },
-            icon = { Icon(painterResource(R.drawable.history), null) },
-            checked = pauseListenHistory,
-            onCheckedChange = onPauseListenHistoryChange,
-        )
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.clear_listen_history)) },
-            icon = { Icon(painterResource(R.drawable.delete_history), null) },
-            onClick = { showClearListenHistoryDialog = true },
-        )
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.clear_listen_history)) },
+                    icon = { Icon(painterResource(R.drawable.delete_history), null) },
+                    onClick = { showClearListenHistoryDialog = true },
+                )
+            }
+        }
 
-        PreferenceGroupTitle(
-            title = stringResource(R.string.search_history)
-        )
+        PreferenceGroup(title = stringResource(R.string.search_history)) {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.pause_search_history)) },
+                    icon = { Icon(painterResource(R.drawable.search_off), null) },
+                    checked = pauseSearchHistory,
+                    onCheckedChange = onPauseSearchHistoryChange,
+                )
+            }
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.pause_search_history)) },
-            icon = { Icon(painterResource(R.drawable.search_off), null) },
-            checked = pauseSearchHistory,
-            onCheckedChange = onPauseSearchHistoryChange,
-        )
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.clear_search_history)) },
-            icon = { Icon(painterResource(R.drawable.clear_all), null) },
-            onClick = { showClearSearchHistoryDialog = true },
-        )
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.clear_search_history)) },
+                    icon = { Icon(painterResource(R.drawable.clear_all), null) },
+                    onClick = { showClearSearchHistoryDialog = true },
+                )
+            }
+        }
 
-        PreferenceGroupTitle(
-            title = stringResource(R.string.misc),
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.disable_screenshot)) },
-            description = stringResource(R.string.disable_screenshot_desc),
-            icon = { Icon(painterResource(R.drawable.screenshot), null) },
-            checked = disableScreenshot,
-            onCheckedChange = onDisableScreenshotChange,
-        )
+        PreferenceGroup(title = stringResource(R.string.misc)) {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.disable_screenshot)) },
+                    description = stringResource(R.string.disable_screenshot_desc),
+                    icon = { Icon(painterResource(R.drawable.screenshot), null) },
+                    checked = disableScreenshot,
+                    onCheckedChange = onDisableScreenshotChange,
+                )
+            }
+        }
     }
 
     TopAppBar(

@@ -87,6 +87,7 @@ import moe.koiverse.archivetune.constants.UseVisitorDataKey
 import moe.koiverse.archivetune.constants.VisitorDataKey
 import moe.koiverse.archivetune.constants.WebClientPoTokenEnabledKey
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -279,13 +280,17 @@ fun PoTokenScreen(
             )
         )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.web_client_po_token)) },
-            description = stringResource(R.string.web_client_po_token_desc),
-            icon = { Icon(painterResource(R.drawable.token), null) },
-            checked = webClientPoTokenEnabled,
-            onCheckedChange = onWebClientPoTokenEnabledChange,
-        )
+        PreferenceGroup {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.web_client_po_token)) },
+                    description = stringResource(R.string.web_client_po_token_desc),
+                    icon = { Icon(painterResource(R.drawable.token), null) },
+                    checked = webClientPoTokenEnabled,
+                    onCheckedChange = onWebClientPoTokenEnabledChange,
+                )
+            }
+        }
 
         AnimatedVisibility(
             visible = webClientPoTokenEnabled,
@@ -359,27 +364,27 @@ fun PoTokenScreen(
                     }
                 }
 
-                PreferenceGroupTitle(
-                    title = stringResource(R.string.token_settings)
-                )
-
-                SwitchPreference(
-                    title = { Text(stringResource(R.string.use_visitor_data)) },
-                    description = stringResource(R.string.use_visitor_data_desc),
-                    icon = { Icon(painterResource(R.drawable.person), null) },
-                    checked = useVisitorData,
-                    onCheckedChange = { enabled ->
-                        if (enabled && hasCookie) {
-                            Toast.makeText(
-                                context,
-                                R.string.cookies_must_be_disabled,
-                                Toast.LENGTH_LONG
-                            ).show()
-                        } else {
-                            onUseVisitorDataChange(enabled)
-                        }
-                    },
-                )
+                PreferenceGroup(title = stringResource(R.string.token_settings)) {
+                    item {
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.use_visitor_data)) },
+                            description = stringResource(R.string.use_visitor_data_desc),
+                            icon = { Icon(painterResource(R.drawable.person), null) },
+                            checked = useVisitorData,
+                            onCheckedChange = { enabled ->
+                                if (enabled && hasCookie) {
+                                    Toast.makeText(
+                                        context,
+                                        R.string.cookies_must_be_disabled,
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    onUseVisitorDataChange(enabled)
+                                }
+                            },
+                        )
+                    }
+                }
 
                 Spacer(Modifier.height(12.dp))
 

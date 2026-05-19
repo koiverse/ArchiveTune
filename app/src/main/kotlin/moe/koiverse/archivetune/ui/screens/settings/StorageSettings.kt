@@ -65,8 +65,8 @@ import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.ListPreference
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
+import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.SwitchPreference
-import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.player.CanvasArtworkPlaybackCache
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.formatFileSize
@@ -234,11 +234,15 @@ fun StorageSettings(
             description = stringResource(R.string.size_used, formatFileSize(downloadCacheSize)),
             progress = null,
             actions = {
+        PreferenceGroup {
+            item {
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.clear_all_downloads)) },
                     onClick = { clearDownloads = true },
                 )
+              }
             }
+          }
         )
 
         if (clearDownloads) {
@@ -271,6 +275,8 @@ fun StorageSettings(
             },
             progress = if (maxSongCacheSize > 0) playerCacheProgress else null,
             actions = {
+        PreferenceGroup {
+            item {
                 ListPreference(
                     title = { Text(stringResource(R.string.max_cache_size)) },
                     selectedValue = maxSongCacheSize,
@@ -284,12 +290,16 @@ fun StorageSettings(
                     },
                     onValueSelected = onMaxSongCacheSizeChange,
                 )
+            }
+            item {
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.clear_song_cache)) },
                     onClick = { clearCacheDialog = true },
                 )
             }
-        )
+          }
+        }
+    )
 
         if (clearCacheDialog) {
             ActionPromptDialog(
@@ -321,6 +331,8 @@ fun StorageSettings(
             },
             progress = if (maxImageCacheSize > 0) imageCacheProgress else null,
             actions = {
+        PreferenceGroup{
+            item {
                 ListPreference(
                     title = { Text(stringResource(R.string.max_cache_size)) },
                     selectedValue = maxImageCacheSize,
@@ -333,11 +345,15 @@ fun StorageSettings(
                     },
                     onValueSelected = onMaxImageCacheSizeChange,
                 )
+            }
+            item {
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.clear_image_cache)) },
                     onClick = { clearImageCacheDialog = true },
                 )
+              }
             }
+          }
         )
 
         if (clearImageCacheDialog) {
@@ -373,6 +389,8 @@ fun StorageSettings(
             },
             progress = if (maxCanvasCacheSize > 0) canvasCacheProgress else null,
             actions = {
+        PreferenceGroup {
+            item {
                 ListPreference(
                     title = { Text(stringResource(R.string.max_cache_size)) },
                     selectedValue = maxCanvasCacheSize,
@@ -385,10 +403,13 @@ fun StorageSettings(
                     },
                     onValueSelected = onMaxCanvasCacheSizeChange,
                 )
+            }
+            item {
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.clear_canvas_cache)) },
                     onClick = { clearCanvasCacheDialog = true },
                 )
+              }
             }
         )
 

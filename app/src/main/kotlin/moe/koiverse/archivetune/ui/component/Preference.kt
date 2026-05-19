@@ -106,6 +106,7 @@ val LocalPreferenceGroupPosition = compositionLocalOf<PreferenceGroupPosition?> 
 
 private val PreferenceGroupLargeCorner = 28.dp
 private val PreferenceGroupSmallCorner = 6.dp
+private val PreferenceGroupHorizontalPadding = 26.dp
 private val PreferenceEntryMinHeight = 88.dp
 private val PreferenceEntryHorizontalPadding = 22.dp
 private val PreferenceEntryVerticalPadding = 18.dp
@@ -1026,7 +1027,15 @@ fun NumberPickerPreference(
 
 class PreferenceGroupScope internal constructor() {
     internal val items = mutableListOf<@Composable () -> Unit>()
-    fun item(content: @Composable () -> Unit) { items.add(content) }
+
+    fun item(
+        visible: Boolean = true,
+        content: @Composable () -> Unit,
+    ) {
+        if (visible) {
+            items.add(content)
+        }
+    }
 }
 
 @Composable
@@ -1038,18 +1047,20 @@ fun PreferenceGroup(
     val scope = PreferenceGroupScope().apply(content)
     val itemCount = scope.items.size
 
-    Column(modifier = modifier.padding(horizontal = 16.dp)) {
+    if (itemCount == 0) return
+
+    Column(modifier = modifier) {
         if (title != null) {
-            Text(
-                text = title.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+            PreferenceGroupTitle(
+                title = title,
+                modifier = Modifier.padding(horizontal = PreferenceGroupHorizontalPadding),
             )
         }
+
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PreferenceGroupHorizontalPadding),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             scope.items.forEachIndexed { index, itemContent ->
@@ -1085,8 +1096,9 @@ fun PreferenceGroupTitle(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelLarge,
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier.padding(horizontal = 20.dp, vertical = 10.dp),
     )

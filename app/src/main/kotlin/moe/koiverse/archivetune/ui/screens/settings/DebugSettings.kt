@@ -114,7 +114,7 @@ import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.component.IconButton
-import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
+import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.GlobalLog
@@ -180,33 +180,37 @@ fun DebugSettings(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            PreferenceGroupTitle(
-                title = stringResource(R.string.experimental_features)
-            )
+            PreferenceGroup(title = stringResource(R.string.experimental_features)) {
+                item {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.show_discord_debug_ui)) },
+                        description = stringResource(R.string.enable_discord_debug_lines),
+                        icon = { Icon(painterResource(R.drawable.discord), null) },
+                        checked = showDevDebug,
+                        onCheckedChange = onShowDevDebugChange
+                    )
+                }
 
-            SwitchPreference(
-                title = { Text(stringResource(R.string.show_discord_debug_ui)) },
-                description = stringResource(R.string.enable_discord_debug_lines),
-                icon = { Icon(painterResource(R.drawable.discord), null) },
-                checked = showDevDebug,
-                onCheckedChange = onShowDevDebugChange
-            )
+                item {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.show_nerd_stats)) },
+                        description = stringResource(R.string.description_show_nerd_stats),
+                        icon = { Icon(painterResource(R.drawable.stats), null) },
+                        checked = showNerdStats,
+                        onCheckedChange = onShowNerdStatsChange
+                    )
+                }
 
-            SwitchPreference(
-                title = { Text(stringResource(R.string.show_nerd_stats)) },
-                description = stringResource(R.string.description_show_nerd_stats),
-                icon = { Icon(painterResource(R.drawable.stats), null) },
-                checked = showNerdStats,
-                onCheckedChange = onShowNerdStatsChange
-            )
-
-            SwitchPreference(
-                title = { Text(stringResource(R.string.display_codec_on_player)) },
-                description = stringResource(R.string.description_display_codec_on_player),
-                icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
-                checked = showCodecOnPlayer,
-                onCheckedChange = onShowCodecOnPlayerChange
-            )
+                item {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.display_codec_on_player)) },
+                        description = stringResource(R.string.description_display_codec_on_player),
+                        icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
+                        checked = showCodecOnPlayer,
+                        onCheckedChange = onShowCodecOnPlayerChange
+                    )
+                }
+            }
 
             AnimatedVisibility(
                 visible = showDevDebug,

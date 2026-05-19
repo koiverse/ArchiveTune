@@ -316,7 +316,7 @@
     <string name="settings_storage_subtitle">Cache, downloads, and offline storage</string>
     <string name="settings_updates_subtitle">Version, release notes, and update channel</string>
     <string name="settings_about_subtitle">App info, licenses, and contributors</string>
-    <string name="side_sheet_account_signed_out_subtitle">Sign in and manage account sync</string>
+    <string name="settings_account_subtitle">Sign in and manage account sync</string>
     <string name="similar_content">Similar content</string>
     <string name="error_no_song_playing">No song is currently playing</string>
     <string name="error_no_similar_songs">No similar songs found</string>

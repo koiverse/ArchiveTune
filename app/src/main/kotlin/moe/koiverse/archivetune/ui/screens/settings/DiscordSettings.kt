@@ -49,7 +49,6 @@ import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
-import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.component.ListItem
 import moe.koiverse.archivetune.ui.utils.backToMain
