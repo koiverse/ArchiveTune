@@ -25,7 +25,6 @@ import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -57,9 +56,11 @@ import moe.koiverse.archivetune.constants.AiApiKeyKey
 import moe.koiverse.archivetune.constants.AiApiValidationStatus
 import moe.koiverse.archivetune.constants.AiApiValidationStatusKey
 import moe.koiverse.archivetune.constants.AiCustomEndpointKey
+import moe.koiverse.archivetune.constants.AiCustomModelKey
 import moe.koiverse.archivetune.constants.AiMixCountKey
 import moe.koiverse.archivetune.constants.AiProvider
 import moe.koiverse.archivetune.constants.AiProviderKey
+import moe.koiverse.archivetune.constants.AiSelectedModelKey
 import moe.koiverse.archivetune.constants.AiUserMixJsonKey
 import moe.koiverse.archivetune.constants.TranslatorTargetLangKey
 import moe.koiverse.archivetune.ui.component.DefaultDialog
@@ -83,11 +84,14 @@ fun AiIntegrationSettings(
 ) {
     val context = LocalContext.current
     val actionState by viewModel.actionState.collectAsStateWithLifecycle()
+    val availableModels by viewModel.availableModels.collectAsStateWithLifecycle()
     val (provider, setProvider) = rememberEnumPreference(AiProviderKey, AiProvider.NONE)
     val (apiKey, setApiKey) = rememberPreference(AiApiKeyKey, "")
     val (customEndpoint, setCustomEndpoint) = rememberPreference(AiCustomEndpointKey, "")
     val (validationStatus, setValidationStatus) =
         rememberEnumPreference(AiApiValidationStatusKey, AiApiValidationStatus.UNKNOWN)
+    val (selectedModel, setSelectedModel) = rememberPreference(AiSelectedModelKey, "")
+    val (customModel, setCustomModel) = rememberPreference(AiCustomModelKey, "")
     val (mixCount, setMixCount) = rememberPreference(AiMixCountKey, 5)
     val (mixJson) = rememberPreference(AiUserMixJsonKey, "")
     val (targetLanguage, setTargetLanguage) = rememberPreference(TranslatorTargetLangKey, "ENGLISH")
@@ -102,6 +106,18 @@ fun AiIntegrationSettings(
     LaunchedEffect(Unit) {
         viewModel.events.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(provider, apiKey) {
+        if (provider != AiProvider.NONE && provider != AiProvider.CUSTOM && apiKey.isNotBlank()) {
+            viewModel.fetchModels(provider, apiKey, customEndpoint)
+        }
+    }
+
+    LaunchedEffect(availableModels) {
+        if (availableModels.isNotEmpty() && (selectedModel.isBlank() || availableModels.none { it.first == selectedModel })) {
+            setSelectedModel(availableModels.first().first)
         }
     }
 
@@ -181,6 +197,40 @@ fun AiIntegrationSettings(
                     icon = { Icon(painterResource(R.drawable.token), null) },
                     onClick = { showApiKeyDialog = true },
                     isEnabled = provider != AiProvider.NONE,
+                )
+            }
+
+            item(visible = provider != AiProvider.NONE && provider != AiProvider.CUSTOM && availableModels.isNotEmpty()) {
+                ListPreference(
+                    title = { Text(stringResource(R.string.ai_model)) },
+                    description = stringResource(R.string.ai_model_desc),
+                    icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
+                    selectedValue = selectedModel,
+                    values = availableModels.map { it.first },
+                    valueText = { id -> availableModels.firstOrNull { it.first == id }?.second ?: id },
+                    onValueSelected = setSelectedModel,
+                )
+            }
+
+            item(visible = provider != AiProvider.NONE && provider != AiProvider.CUSTOM && availableModels.isEmpty() && actionState.isFetchingModels) {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.ai_model)) },
+                    description = stringResource(R.string.ai_model_loading),
+                    icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
+                    trailingContent = {
+                        CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+                    },
+                    onClick = {},
+                    isEnabled = false,
+                )
+            }
+
+            item(visible = provider == AiProvider.CUSTOM) {
+                EditTextPreference(
+                    title = { Text(stringResource(R.string.ai_model)) },
+                    icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
+                    value = customModel,
+                    onValueChange = setCustomModel,
                 )
             }
 

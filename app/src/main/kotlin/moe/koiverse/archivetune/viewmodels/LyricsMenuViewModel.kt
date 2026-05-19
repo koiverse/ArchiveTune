@@ -24,8 +24,10 @@ import moe.koiverse.archivetune.constants.AiApiKeyKey
 import moe.koiverse.archivetune.constants.AiApiValidationStatus
 import moe.koiverse.archivetune.constants.AiApiValidationStatusKey
 import moe.koiverse.archivetune.constants.AiCustomEndpointKey
+import moe.koiverse.archivetune.constants.AiCustomModelKey
 import moe.koiverse.archivetune.constants.AiProvider
 import moe.koiverse.archivetune.constants.AiProviderKey
+import moe.koiverse.archivetune.constants.AiSelectedModelKey
 import moe.koiverse.archivetune.constants.TranslatorTargetLangKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.LyricsEntity
@@ -151,6 +153,11 @@ constructor(
                         provider = prefs[AiProviderKey].toEnum(AiProvider.NONE),
                         apiKey = prefs[AiApiKeyKey].orEmpty(),
                         customEndpoint = prefs[AiCustomEndpointKey].orEmpty(),
+                        model = if (prefs[AiProviderKey].toEnum(AiProvider.NONE) == AiProvider.CUSTOM) {
+                            prefs[AiCustomModelKey].orEmpty()
+                        } else {
+                            prefs[AiSelectedModelKey].orEmpty()
+                        },
                     ),
                     lyrics = lyrics,
                     targetLanguage = prefs[TranslatorTargetLangKey].orEmpty().ifBlank { "ENGLISH" },

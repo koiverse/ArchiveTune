@@ -18,6 +18,7 @@ data class AiServiceConfig(
     val provider: AiProvider,
     val apiKey: String,
     val customEndpoint: String,
+    val model: String,
 ) {
     val canCallApi: Boolean
         get() = provider != AiProvider.NONE &&

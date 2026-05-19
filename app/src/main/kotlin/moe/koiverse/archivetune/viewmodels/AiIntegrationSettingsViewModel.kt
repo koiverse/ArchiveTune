@@ -32,8 +32,10 @@ import moe.koiverse.archivetune.constants.AiApiKeyKey
 import moe.koiverse.archivetune.constants.AiApiValidationStatus
 import moe.koiverse.archivetune.constants.AiApiValidationStatusKey
 import moe.koiverse.archivetune.constants.AiCustomEndpointKey
+import moe.koiverse.archivetune.constants.AiCustomModelKey
 import moe.koiverse.archivetune.constants.AiProvider
 import moe.koiverse.archivetune.constants.AiProviderKey
+import moe.koiverse.archivetune.constants.AiSelectedModelKey
 import moe.koiverse.archivetune.constants.AiUserMixJsonKey
 import moe.koiverse.archivetune.constants.AiUserMixUpdatedAtKey
 import moe.koiverse.archivetune.db.MusicDatabase
@@ -43,6 +45,7 @@ import moe.koiverse.archivetune.utils.dataStore
 data class AiIntegrationActionState(
     val isTesting: Boolean = false,
     val isRebuildingMix: Boolean = false,
+    val isFetchingModels: Boolean = false,
 )
 
 @HiltViewModel
@@ -57,6 +60,30 @@ constructor(
 
     private val _events = MutableSharedFlow<String>()
     val events: SharedFlow<String> = _events.asSharedFlow()
+
+    private val _availableModels = MutableStateFlow<List<Pair<String, String>>>(emptyList())
+    val availableModels: StateFlow<List<Pair<String, String>>> = _availableModels.asStateFlow()
+
+    fun fetchModels(provider: AiProvider, apiKey: String, customEndpoint: String) {
+        if (_actionState.value.isFetchingModels) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _actionState.value = _actionState.value.copy(isFetchingModels = true)
+            _availableModels.value = emptyList()
+            try {
+                val config = AiServiceConfig(
+                    provider = provider,
+                    apiKey = apiKey,
+                    customEndpoint = customEndpoint,
+                    model = "",
+                )
+                _availableModels.value = AiTextService.fetchModels(config)
+            } catch (e: Exception) {
+                _events.emit(e.localizedMessage ?: context.getString(R.string.ai_model_fetch_failed))
+            } finally {
+                _actionState.value = _actionState.value.copy(isFetchingModels = false)
+            }
+        }
+    }
 
     fun testApi() {
         if (_actionState.value.isTesting) return
@@ -117,10 +144,17 @@ constructor(
 
     private suspend fun readConfig(): AiServiceConfig {
         val prefs = context.dataStore.data.first()
+        val provider = prefs[AiProviderKey].toEnum(AiProvider.NONE)
+        val model = if (provider == AiProvider.CUSTOM) {
+            prefs[AiCustomModelKey].orEmpty()
+        } else {
+            prefs[AiSelectedModelKey].orEmpty()
+        }
         return AiServiceConfig(
-            provider = prefs[AiProviderKey].toEnum(AiProvider.NONE),
+            provider = provider,
             apiKey = prefs[AiApiKeyKey].orEmpty(),
             customEndpoint = prefs[AiCustomEndpointKey].orEmpty(),
+            model = model,
         )
     }
 }

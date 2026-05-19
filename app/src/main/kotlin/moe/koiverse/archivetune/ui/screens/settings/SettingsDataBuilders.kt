@@ -93,7 +93,7 @@ fun buildSettingsGroups(
                     ),
                     SettingsItem(
                         key = "ai_integration",
-                        icon = painterResource(R.drawable.auto_awesome),
+                        icon = painterResource(R.drawable.ai),
                         title = stringResource(R.string.ai_integration),
                         subtitle = stringResource(R.string.ai_integration_desc),
                         accentColor = MaterialTheme.colorScheme.secondary,

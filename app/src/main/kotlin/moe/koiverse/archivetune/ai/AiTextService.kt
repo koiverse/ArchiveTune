@@ -9,6 +9,7 @@ package moe.koiverse.archivetune.ai
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -27,8 +28,10 @@ class AiServiceException(
 
 object AiTextService {
     private const val OpenAiEndpoint = "https://api.openai.com/v1/chat/completions"
-    private const val GeminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    private const val OpenAiModelsEndpoint = "https://api.openai.com/v1/models"
+    private const val GeminiBaseEndpoint = "https://generativelanguage.googleapis.com/v1beta"
     private const val ClaudeEndpoint = "https://api.anthropic.com/v1/messages"
+    private const val ClaudeModelsEndpoint = "https://api.anthropic.com/v1/models"
 
     private val client =
         HttpClient(OkHttp) {
@@ -44,7 +47,7 @@ object AiTextService {
 
     suspend fun test(config: AiServiceConfig) {
         val response = complete(
-            config = config,
+            config = config.copy(model = config.model.ifBlank { defaultModelFor(config.provider) }),
             systemPrompt = "You are a health check endpoint. Reply with OK only.",
             userPrompt = "Reply exactly OK.",
             temperature = 0.0,
@@ -91,11 +94,12 @@ object AiTextService {
         maxTokens: Int = 4096,
     ): String {
         if (!config.canCallApi) throw AiServiceException("AI provider is not configured")
+        val model = config.model.ifBlank { defaultModelFor(config.provider) }
         return when (config.provider) {
             AiProvider.CHATGPT -> completeOpenAiCompatible(
                 endpoint = OpenAiEndpoint,
                 apiKey = config.apiKey,
-                model = "gpt-5.4",
+                model = model,
                 systemPrompt = systemPrompt,
                 userPrompt = userPrompt,
                 temperature = temperature,
@@ -105,7 +109,7 @@ object AiTextService {
             AiProvider.CUSTOM -> completeOpenAiCompatible(
                 endpoint = config.customEndpoint,
                 apiKey = config.apiKey,
-                model = "gpt-5.4",
+                model = model,
                 systemPrompt = systemPrompt,
                 userPrompt = userPrompt,
                 temperature = temperature,
@@ -114,6 +118,7 @@ object AiTextService {
 
             AiProvider.GEMINI -> completeGemini(
                 apiKey = config.apiKey,
+                model = model,
                 systemPrompt = systemPrompt,
                 userPrompt = userPrompt,
                 temperature = temperature,
@@ -122,6 +127,7 @@ object AiTextService {
 
             AiProvider.CLAUDE -> completeClaude(
                 apiKey = config.apiKey,
+                model = model,
                 systemPrompt = systemPrompt,
                 userPrompt = userPrompt,
                 temperature = temperature,
@@ -129,6 +135,16 @@ object AiTextService {
             )
 
             AiProvider.NONE -> throw AiServiceException("AI provider is disabled")
+        }
+    }
+
+    suspend fun fetchModels(config: AiServiceConfig): List<Pair<String, String>> {
+        if (!config.canCallApi) throw AiServiceException("AI provider is not configured")
+        return when (config.provider) {
+            AiProvider.CHATGPT -> fetchOpenAiModels(config.apiKey)
+            AiProvider.GEMINI -> fetchGeminiModels(config.apiKey)
+            AiProvider.CLAUDE -> fetchClaudeModels(config.apiKey)
+            AiProvider.CUSTOM, AiProvider.NONE -> emptyList()
         }
     }
 
@@ -169,12 +185,13 @@ object AiTextService {
 
     private suspend fun completeGemini(
         apiKey: String,
+        model: String,
         systemPrompt: String,
         userPrompt: String,
         temperature: Double,
         maxTokens: Int,
     ): String {
-        val endpoint = "$GeminiEndpoint?key=${apiKey.trim()}"
+        val endpoint = "$GeminiBaseEndpoint/models/${model.trim()}:generateContent?key=${apiKey.trim()}"
         val body = JSONObject()
             .put(
                 "contents",
@@ -213,13 +230,14 @@ object AiTextService {
 
     private suspend fun completeClaude(
         apiKey: String,
+        model: String,
         systemPrompt: String,
         userPrompt: String,
         temperature: Double,
         maxTokens: Int,
     ): String {
         val body = JSONObject()
-            .put("model", "claude-3-haiku-20240307")
+            .put("model", model)
             .put("max_tokens", maxTokens)
             .put("temperature", temperature)
             .put("system", systemPrompt)
@@ -252,6 +270,68 @@ object AiTextService {
             }
             ?.takeIf { it.isNotBlank() }
         return content ?: throw AiServiceException("AI API returned an empty response")
+    }
+
+    private fun defaultModelFor(provider: AiProvider): String = when (provider) {
+        AiProvider.CHATGPT -> "gpt-4o"
+        AiProvider.GEMINI -> "gemini-3.5-flash"
+        AiProvider.CLAUDE -> "claude-3-haiku-20240307"
+        AiProvider.CUSTOM -> throw AiServiceException("No AI model configured")
+        AiProvider.NONE -> throw AiServiceException("AI provider is disabled")
+    }
+
+    private suspend fun fetchOpenAiModels(apiKey: String): List<Pair<String, String>> {
+        val response = client.get(OpenAiModelsEndpoint) {
+            header("Authorization", "Bearer ${apiKey.trim()}")
+        }
+        val raw = response.bodyAsText()
+        if (response.status.value !in 200..299) throw apiException(response.status.value, raw)
+        val data = JSONObject(raw).optJSONArray("data") ?: return emptyList()
+        return buildList {
+            for (i in 0 until data.length()) {
+                val obj = data.optJSONObject(i) ?: continue
+                val id = obj.optString("id").takeIf { it.isNotBlank() } ?: continue
+                add(id to id)
+            }
+        }.sortedBy { it.first }
+    }
+
+    private suspend fun fetchGeminiModels(apiKey: String): List<Pair<String, String>> {
+        val response = client.get("$GeminiBaseEndpoint/models?key=${apiKey.trim()}")
+        val raw = response.bodyAsText()
+        if (response.status.value !in 200..299) throw apiException(response.status.value, raw)
+        val models = JSONObject(raw).optJSONArray("models") ?: return emptyList()
+        return buildList {
+            for (i in 0 until models.length()) {
+                val obj = models.optJSONObject(i) ?: continue
+                val methods = obj.optJSONArray("supportedGenerationMethods")
+                val supportsGenerate = (0 until (methods?.length() ?: 0)).any {
+                    methods?.optString(it) == "generateContent"
+                }
+                if (!supportsGenerate) continue
+                val id = obj.optString("name").removePrefix("models/").takeIf { it.isNotBlank() } ?: continue
+                val displayName = obj.optString("displayName").ifBlank { id }
+                add(id to displayName)
+            }
+        }
+    }
+
+    private suspend fun fetchClaudeModels(apiKey: String): List<Pair<String, String>> {
+        val response = client.get(ClaudeModelsEndpoint) {
+            header("x-api-key", apiKey.trim())
+            header("anthropic-version", "2023-06-01")
+        }
+        val raw = response.bodyAsText()
+        if (response.status.value !in 200..299) throw apiException(response.status.value, raw)
+        val data = JSONObject(raw).optJSONArray("data") ?: return emptyList()
+        return buildList {
+            for (i in 0 until data.length()) {
+                val obj = data.optJSONObject(i) ?: continue
+                val id = obj.optString("id").takeIf { it.isNotBlank() } ?: continue
+                val displayName = obj.optString("display_name").ifBlank { id }
+                add(id to displayName)
+            }
+        }
     }
 
     private fun apiException(
