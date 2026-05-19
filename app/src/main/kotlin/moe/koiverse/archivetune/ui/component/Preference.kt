@@ -419,34 +419,6 @@ inline fun <reified T : Enum<T>> EnumListPreference(
     )
 }
 
-@Composable
-inline fun <reified T : Enum<T>> EnumListDialog(
-    modifier: Modifier = Modifier,
-    noinline title: @Composable () -> Unit,
-    description: String? = null,
-    noinline icon: (@Composable () -> Unit)?,
-    selectedValue: T,
-    noinline valueText: @Composable (T) -> String,
-    noinline valueDescription: @Composable (T) -> String,
-    noinline onValueSelected: (T) -> Unit,
-    isEnabled: Boolean = true,
-) {
-    val values = remember { enumValues<T>().toList() }
-
-    ListPreference(
-        modifier = modifier,
-        title = title,
-        description = description,
-        icon = icon,
-        selectedValue = selectedValue,
-        values = values,
-        valueText = valueText,
-        valueDescription = valueDescription,
-        onValueSelected = onValueSelected,
-        isEnabled = isEnabled,
-    )
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun <T> PreferenceSelectionBottomSheet(
