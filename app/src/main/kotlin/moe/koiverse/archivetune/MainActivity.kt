@@ -384,6 +384,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        playerConnection?.service?.persistQueueSnapshotBlocking()
         safeUnbindMusicService()
         super.onStop()
     }
