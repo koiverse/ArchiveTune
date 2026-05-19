@@ -491,7 +491,7 @@ private fun ModelPickerPreference(
                     .padding(top = 18.dp, bottom = 22.dp),
             )
             LazyColumn(
-                contentPadding = PaddingValues(horizontal = 26.dp, bottom = 32.dp),
+                contentPadding = PaddingValues(start = 26.dp, end = 26.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
