@@ -16,6 +16,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -42,24 +44,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
-import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.Updater
-import moe.koiverse.archivetune.utils.rememberPreference
-import moe.koiverse.archivetune.viewmodels.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,12 +69,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val listState = rememberLazyListState()
-    val viewModel: HomeViewModel = hiltViewModel()
-    val isAccountLoading by viewModel.isAccountLoading.collectAsStateWithLifecycle()
-    val isAccountLoggedIn by viewModel.isAccountLoggedIn.collectAsStateWithLifecycle()
-    val accountName by viewModel.accountName.collectAsStateWithLifecycle()
-    val accountImageUrl by viewModel.accountImageUrl.collectAsStateWithLifecycle()
-    val (accountEmail, _) = rememberPreference(AccountEmailKey, "")
 
     val storagePermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
@@ -116,8 +108,16 @@ fun SettingsScreen(
     val hasUpdate = !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
     var isUpdateDismissed by remember { mutableStateOf(false) }
     val settingsGroups = buildSettingsGroups(navController, isAndroid12OrLater, hasUpdate, context)
+    val settingsItems = remember(settingsGroups) {
+        settingsGroups.flatMap { it.items }
+    }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             LargeFlexibleTopAppBar(
                 title = {
@@ -132,24 +132,22 @@ fun SettingsScreen(
                         onLongClick = navController::backToMain,
                     ) {
                         Icon(
-                            painterResource(R.drawable.arrow_back),
-                            contentDescription = null,
+                            painter = painterResource(R.drawable.arrow_back),
+                            contentDescription = stringResource(R.string.back_button_desc),
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
+                scrollBehavior = scrollBehavior,
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        modifier = Modifier.fillMaxSize(),
     ) { innerPadding ->
         LazyColumn(
             state = listState,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(
@@ -163,39 +161,20 @@ fun SettingsScreen(
             ),
         ) {
             if (hasUpdate && !isUpdateDismissed) {
-                item(key = "update") {
+                item(key = "update", contentType = "settings_banner") {
                     SettingsUpdateBanner(
                         latestVersion = latestVersionName,
                         onClick = { navController.navigate("settings/update") },
                         onDismiss = { isUpdateDismissed = true },
                         modifier = Modifier
                             .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
-                            .padding(top = 8.dp, bottom = SettingsDimensions.SectionSpacing),
+                            .padding(bottom = SettingsDimensions.SectionSpacing),
                     )
                 }
-            }
-
-            item(key = "profile") {
-                SettingsProfileHeader(
-                    state = SettingsProfileState(
-                        isLoading = isAccountLoading,
-                        isLoggedIn = isAccountLoggedIn,
-                        accountName = accountName,
-                        accountEmail = accountEmail,
-                        accountImageUrl = if (isAccountLoggedIn) accountImageUrl else null,
-                    ),
-                    onClick = { navController.navigate("settings/account") },
-                )
             }
 
             if (shouldShowPermissionHint) {
-                item(key = "permission_header") {
-                    SettingsSectionLabel(
-                        text = stringResource(R.string.permissions_title),
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                }
-                item(key = "permission") {
+                item(key = "permission", contentType = "settings_banner") {
                     SettingsPermissionBanner(
                         onRequestPermission = {
                             val toRequest = buildList {
@@ -210,23 +189,27 @@ fun SettingsScreen(
                         },
                         modifier = Modifier
                             .padding(horizontal = SettingsDimensions.ScreenHorizontalPadding)
-                            .padding(bottom = 4.dp),
+                            .padding(bottom = SettingsDimensions.SectionSpacing),
                     )
                 }
             }
 
-            settingsGroups.forEach { group ->
-                group.items.forEach { settingsItem ->
-                    item(key = settingsItem.title) {
-                        SettingsFlatItem(item = settingsItem)
-                    }
-                }
+            itemsIndexed(
+                items = settingsItems,
+                key = { _, item -> item.key },
+                contentType = { _, _ -> "settings_segment" },
+            ) { index, settingsItem ->
+                SettingsSegmentedItem(
+                    item = settingsItem,
+                    index = index,
+                    count = settingsItems.size,
+                    modifier = Modifier.padding(horizontal = 26.dp),
+                )
             }
 
-            item(key = "bottom_spacer") {
+            item(key = "bottom_spacer", contentType = "settings_spacer") {
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
 }
-

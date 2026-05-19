@@ -1360,16 +1360,6 @@ private fun V7PlayerBackdrop(
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                    if (hasCanvas) {
-                        CanvasArtworkPlayer(
-                            primaryUrl = backdrop.canvasPrimaryUrl,
-                            fallbackUrl = backdrop.canvasFallbackUrl,
-                            isPlaying = isPlaying,
-                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-
                     AsyncImage(
                         model = backdropArtworkModel,
                         contentDescription = null,
@@ -1379,7 +1369,7 @@ private fun V7PlayerBackdrop(
                             .graphicsLayer {
                                 scaleX = baseArtworkScale
                                 scaleY = baseArtworkScale
-                                alpha = if (hasCanvas) baseArtworkAlpha * 0.28f else baseArtworkAlpha
+                                alpha = baseArtworkAlpha
                             }
                     )
 
@@ -1393,7 +1383,7 @@ private fun V7PlayerBackdrop(
                                 .cloudy(radius = cloudyRadius)
                                 .graphicsLayer {
                                     compositingStrategy = CompositingStrategy.Offscreen
-                                    alpha = if (hasCanvas) 0.5f else 1f
+                                    alpha = 1f
                                 }
                                 .drawWithCache {
                                     val blurMask = Brush.verticalGradient(
@@ -1414,6 +1404,16 @@ private fun V7PlayerBackdrop(
                                         )
                                     }
                                 }
+                        )
+                    }
+
+                    if (hasCanvas) {
+                        CanvasArtworkPlayer(
+                            primaryUrl = backdrop.canvasPrimaryUrl,
+                            fallbackUrl = backdrop.canvasFallbackUrl,
+                            isPlaying = isPlaying,
+                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }

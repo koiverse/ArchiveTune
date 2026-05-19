@@ -159,26 +159,29 @@ fun InternetSettings(
     ) {
         InternetWarningBox()
 
-        PreferenceGroupTitle(title = stringResource(R.string.dns_over_https))
-        SwitchPreference(
-            title = { Text(stringResource(R.string.dns_over_https)) },
-            description = stringResource(R.string.dns_over_https_desc),
-            icon = { Icon(painterResource(R.drawable.security), null) },
-            checked = dnsOverHttpsEnabled,
-            onCheckedChange = onDnsOverHttpsEnabledChange,
-        )
+        PreferenceGroup(title = stringResource(R.string.dns_over_https)) {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.dns_over_https)) },
+                    description = stringResource(R.string.dns_over_https_desc),
+                    icon = { Icon(painterResource(R.drawable.security), null) },
+                    checked = dnsOverHttpsEnabled,
+                    onCheckedChange = onDnsOverHttpsEnabledChange,
+                )
+            }
 
-        if (dnsOverHttpsEnabled) {
-            ListPreference(
-                title = { Text(stringResource(R.string.dns_provider)) },
-                icon = { Icon(painterResource(R.drawable.website), null) },
-                selectedValue = dnsProvider,
-                values = dnsProviders,
-                valueText = { it },
-                onValueSelected = onDnsProviderChange,
-            )
+            item(visible = dnsOverHttpsEnabled) {
+                ListPreference(
+                    title = { Text(stringResource(R.string.dns_provider)) },
+                    icon = { Icon(painterResource(R.drawable.website), null) },
+                    selectedValue = dnsProvider,
+                    values = dnsProviders,
+                    valueText = { it },
+                    onValueSelected = onDnsProviderChange,
+                )
+            }
 
-            if (dnsProvider == "Custom") {
+            item(visible = dnsOverHttpsEnabled && dnsProvider == "Custom") {
                 EditTextPreference(
                     title = { Text(stringResource(R.string.dns_custom_url)) },
                     value = customDnsUrl,
@@ -187,26 +190,28 @@ fun InternetSettings(
             }
         }
 
-        PreferenceGroupTitle(title = stringResource(R.string.proxy))
-        SwitchPreference(
-            title = { Text(stringResource(R.string.enable_proxy)) },
-            icon = { Icon(painterResource(R.drawable.wifi_proxy), null) },
-            checked = proxyEnabled,
-            onCheckedChange = {
-                onProxyEnabledChange(it)
-                if (it) {
-                    YouTube.proxy = Proxy(proxyType, java.net.InetSocketAddress.createUnresolved(proxyHost, proxyPort))
-                    YouTube.proxyUsername = proxyUsername
-                    YouTube.proxyPassword = proxyPassword
-                } else {
-                    YouTube.proxy = null
-                    YouTube.proxyUsername = null
-                    YouTube.proxyPassword = null
-                }
-            },
-        )
-        if (proxyEnabled) {
-            Column {
+        PreferenceGroup(title = stringResource(R.string.proxy)) {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.enable_proxy)) },
+                    icon = { Icon(painterResource(R.drawable.wifi_proxy), null) },
+                    checked = proxyEnabled,
+                    onCheckedChange = {
+                        onProxyEnabledChange(it)
+                        if (it) {
+                            YouTube.proxy = Proxy(proxyType, java.net.InetSocketAddress.createUnresolved(proxyHost, proxyPort))
+                            YouTube.proxyUsername = proxyUsername
+                            YouTube.proxyPassword = proxyPassword
+                        } else {
+                            YouTube.proxy = null
+                            YouTube.proxyUsername = null
+                            YouTube.proxyPassword = null
+                        }
+                    },
+                )
+            }
+
+            item(visible = proxyEnabled) {
                 ListPreference(
                     title = { Text(stringResource(R.string.proxy_type)) },
                     selectedValue = proxyType,
@@ -217,6 +222,9 @@ fun InternetSettings(
                         YouTube.proxy = Proxy(it, java.net.InetSocketAddress.createUnresolved(proxyHost, proxyPort))
                     },
                 )
+            }
+
+            item(visible = proxyEnabled) {
                 EditTextPreference(
                     title = { Text(stringResource(R.string.proxy_host)) },
                     value = proxyHost,
@@ -225,6 +233,9 @@ fun InternetSettings(
                         YouTube.proxy = Proxy(proxyType, java.net.InetSocketAddress.createUnresolved(it, proxyPort))
                     },
                 )
+            }
+
+            item(visible = proxyEnabled) {
                 NumberEditTextPreference(
                     title = { Text(stringResource(R.string.proxy_port)) },
                     value = proxyPort,
@@ -234,79 +245,91 @@ fun InternetSettings(
                     },
                     isInputValid = { it.toIntOrNull() in 1..65535 },
                 )
+            }
+        }
 
-                PreferenceGroupTitle(title = stringResource(R.string.proxy_auth))
-                EditTextPreference(
-                    title = { Text(stringResource(R.string.proxy_username)) },
-                    value = proxyUsername,
-                    onValueChange = {
-                        onProxyUsernameChange(it)
-                        YouTube.proxyUsername = it
-                    },
-                )
-                EditTextPreference(
-                    title = { Text(stringResource(R.string.proxy_password)) },
-                    value = proxyPassword,
-                    onValueChange = {
-                        onProxyPasswordChange(it)
-                        YouTube.proxyPassword = it
-                    },
-                )
+        if (proxyEnabled) {
+            PreferenceGroup(title = stringResource(R.string.proxy_auth)) {
+                item {
+                    EditTextPreference(
+                        title = { Text(stringResource(R.string.proxy_username)) },
+                        value = proxyUsername,
+                        onValueChange = {
+                            onProxyUsernameChange(it)
+                            YouTube.proxyUsername = it
+                        },
+                    )
+                }
 
-                SwitchPreference(
-                    title = { Text(stringResource(R.string.stream_bypass_proxy)) },
-                    description = stringResource(R.string.stream_bypass_proxy_desc),
-                    icon = { Icon(painterResource(R.drawable.wifi_proxy), null) },
-                    checked = streamBypassProxy,
-                    onCheckedChange = {
-                        onStreamBypassProxyChange(it)
-                        YouTube.streamBypassProxy = it
-                    },
-                )
+                item {
+                    EditTextPreference(
+                        title = { Text(stringResource(R.string.proxy_password)) },
+                        value = proxyPassword,
+                        onValueChange = {
+                            onProxyPasswordChange(it)
+                            YouTube.proxyPassword = it
+                        },
+                    )
+                }
 
-                PreferenceEntry(
-                    title = { Text(stringResource(R.string.test_proxy_connection)) },
-                    icon = { Icon(painterResource(R.drawable.check), null) },
-                    onClick = {
-                        if (testingProxy) return@PreferenceEntry
-                        scope.launch(Dispatchers.IO) {
-                            testingProxy = true
-                            try {
-                                val proxyAddr = java.net.InetSocketAddress.createUnresolved(proxyHost, proxyPort)
-                                val proxy = Proxy(proxyType, proxyAddr)
-                                val clientBuilder = OkHttpClient.Builder()
-                                    .proxy(proxy)
-                                    .connectTimeout(10, TimeUnit.SECONDS)
-                                    .readTimeout(10, TimeUnit.SECONDS)
-                                
-                                if (proxyUsername.isNotBlank() && proxyPassword.isNotBlank()) {
-                                    clientBuilder.proxyAuthenticator { _, response ->
-                                        val credential = okhttp3.Credentials.basic(proxyUsername, proxyPassword)
-                                        response.request.newBuilder()
-                                            .header("Proxy-Authorization", credential)
-                                            .build()
+                item {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.stream_bypass_proxy)) },
+                        description = stringResource(R.string.stream_bypass_proxy_desc),
+                        icon = { Icon(painterResource(R.drawable.wifi_proxy), null) },
+                        checked = streamBypassProxy,
+                        onCheckedChange = {
+                            onStreamBypassProxyChange(it)
+                            YouTube.streamBypassProxy = it
+                        },
+                    )
+                }
+
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.test_proxy_connection)) },
+                        icon = { Icon(painterResource(R.drawable.check), null) },
+                        onClick = {
+                            if (testingProxy) return@PreferenceEntry
+                            scope.launch(Dispatchers.IO) {
+                                testingProxy = true
+                                try {
+                                    val proxyAddr = java.net.InetSocketAddress.createUnresolved(proxyHost, proxyPort)
+                                    val proxy = Proxy(proxyType, proxyAddr)
+                                    val clientBuilder = OkHttpClient.Builder()
+                                        .proxy(proxy)
+                                        .connectTimeout(10, TimeUnit.SECONDS)
+                                        .readTimeout(10, TimeUnit.SECONDS)
+
+                                    if (proxyUsername.isNotBlank() && proxyPassword.isNotBlank()) {
+                                        clientBuilder.proxyAuthenticator { _, response ->
+                                            val credential = okhttp3.Credentials.basic(proxyUsername, proxyPassword)
+                                            response.request.newBuilder()
+                                                .header("Proxy-Authorization", credential)
+                                                .build()
+                                        }
                                     }
-                                }
 
-                                val client = clientBuilder.build()
-                                val request = Request.Builder()
-                                    .url("https://music.youtube.com/generate_204")
-                                    .build()
-                                client.newCall(request).execute().use { response ->
-                                    testResult = if (response.isSuccessful || response.code == 204) {
-                                        context.getString(R.string.proxy_connection_success)
-                                    } else {
-                                        context.getString(R.string.proxy_connection_failed, "HTTP ${response.code}")
+                                    val client = clientBuilder.build()
+                                    val request = Request.Builder()
+                                        .url("https://music.youtube.com/generate_204")
+                                        .build()
+                                    client.newCall(request).execute().use { response ->
+                                        testResult = if (response.isSuccessful || response.code == 204) {
+                                            context.getString(R.string.proxy_connection_success)
+                                        } else {
+                                            context.getString(R.string.proxy_connection_failed, "HTTP ${response.code}")
+                                        }
                                     }
+                                } catch (e: Exception) {
+                                    testResult = context.getString(R.string.proxy_connection_failed, e.message ?: "Unknown error")
+                                } finally {
+                                    testingProxy = false
                                 }
-                            } catch (e: Exception) {
-                                testResult = context.getString(R.string.proxy_connection_failed, e.message ?: "Unknown error")
-                            } finally {
-                                testingProxy = false
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }

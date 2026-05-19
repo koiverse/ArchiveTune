@@ -37,7 +37,7 @@ import moe.koiverse.archivetune.constants.LyricsV2FillTransitionWidthKey
 import moe.koiverse.archivetune.constants.LyricsV2GlowFactorKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
-import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
+import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
 
@@ -83,48 +83,52 @@ fun LyricsAnimationSettings(
                 )
                 .padding(bottom = 16.dp)
         ) {
-            PreferenceGroupTitle(
-                title = "Animation Tuning",
-            )
-
-            PreferenceEntry(
-                title = { Text("Bounce Amplitude") },
-                description = "Adjust the bounce effect when a word is sung (${(bounceFactor * 100).toInt()}%)",
-                icon = { Icon(painterResource(R.drawable.animation), null) },
-                content = {
-                    Slider(
-                        value = bounceFactor,
-                        onValueChange = onBounceFactorChange,
-                        valueRange = 0f..2f,
+            PreferenceGroup(title = "Animation Tuning") {
+                item {
+                    PreferenceEntry(
+                        title = { Text("Bounce Amplitude") },
+                        description = "Adjust the bounce effect when a word is sung (${(bounceFactor * 100).toInt()}%)",
+                        icon = { Icon(painterResource(R.drawable.animation), null) },
+                        content = {
+                            Slider(
+                                value = bounceFactor,
+                                onValueChange = onBounceFactorChange,
+                                valueRange = 0f..2f,
+                            )
+                        }
                     )
                 }
-            )
 
-            PreferenceEntry(
-                title = { Text("Glow Intensity") },
-                description = "Adjust the glow brightness of the sung word (${(glowFactor * 100).toInt()}%)",
-                icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                content = {
-                    Slider(
-                        value = glowFactor,
-                        onValueChange = onGlowFactorChange,
-                        valueRange = 0f..2f,
+                item {
+                    PreferenceEntry(
+                        title = { Text("Glow Intensity") },
+                        description = "Adjust the glow brightness of the sung word (${(glowFactor * 100).toInt()}%)",
+                        icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                        content = {
+                            Slider(
+                                value = glowFactor,
+                                onValueChange = onGlowFactorChange,
+                                valueRange = 0f..2f,
+                            )
+                        }
                     )
                 }
-            )
 
-            PreferenceEntry(
-                title = { Text("Fill Transition Smoothness") },
-                description = "Adjust the gradient edge width of the liquid fill effect (${fillTransitionWidth.toInt()} dp)",
-                icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                content = {
-                    Slider(
-                        value = fillTransitionWidth,
-                        onValueChange = onFillTransitionWidthChange,
-                        valueRange = 2f..24f,
+                item {
+                    PreferenceEntry(
+                        title = { Text("Fill Transition Smoothness") },
+                        description = "Adjust the gradient edge width of the liquid fill effect (${fillTransitionWidth.toInt()} dp)",
+                        icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                        content = {
+                            Slider(
+                                value = fillTransitionWidth,
+                                onValueChange = onFillTransitionWidthChange,
+                                valueRange = 2f..24f,
+                            )
+                        }
                     )
                 }
-            )
+            }
         }
     }
 }

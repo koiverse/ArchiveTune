@@ -30,37 +30,42 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
@@ -70,6 +75,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,16 +94,60 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.R
 import kotlin.math.roundToInt
 
 val LocalPreferenceInGroup = compositionLocalOf { false }
 
+enum class PreferenceGroupPosition { Single, First, Middle, Last }
+
+val LocalPreferenceGroupPosition = compositionLocalOf<PreferenceGroupPosition?> { null }
+
+private val PreferenceGroupLargeCorner = 28.dp
+private val PreferenceGroupSmallCorner = 6.dp
+private val PreferenceGroupHorizontalPadding = 26.dp
+private val PreferenceEntryMinHeight = 88.dp
+private val PreferenceEntryHorizontalPadding = 22.dp
+private val PreferenceEntryVerticalPadding = 18.dp
+
 @Composable
 private fun rememberPreferenceIconShape(): Shape {
     return MaterialShapes.Ghostish.toShape()
+}
+
+private fun segmentedPreferenceItemShape(
+    index: Int,
+    count: Int,
+): Shape {
+    val large = PreferenceGroupLargeCorner
+    val small = PreferenceGroupSmallCorner
+    return when {
+        count <= 1 -> RoundedCornerShape(large)
+        index == 0 -> RoundedCornerShape(
+            topStart = large,
+            topEnd = large,
+            bottomEnd = small,
+            bottomStart = small,
+        )
+        index == count - 1 -> RoundedCornerShape(
+            topStart = small,
+            topEnd = small,
+            bottomEnd = large,
+            bottomStart = large,
+        )
+        else -> RoundedCornerShape(small)
+    }
+}
+
+private fun preferenceItemShapeForPosition(position: PreferenceGroupPosition?): Shape {
+    return when (position) {
+        null,
+        PreferenceGroupPosition.Single -> segmentedPreferenceItemShape(index = 0, count = 1)
+        PreferenceGroupPosition.First -> segmentedPreferenceItemShape(index = 0, count = 2)
+        PreferenceGroupPosition.Middle -> segmentedPreferenceItemShape(index = 1, count = 3)
+        PreferenceGroupPosition.Last -> segmentedPreferenceItemShape(index = 1, count = 2)
+    }
 }
 
 @Composable
@@ -110,13 +160,19 @@ fun PreferenceEntry(
     trailingContent: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     isEnabled: Boolean = true,
+    shape: Shape? = null,
 ) {
     val inGroup = LocalPreferenceInGroup.current
+    val groupPosition = LocalPreferenceGroupPosition.current
     val preferenceIconShape = rememberPreferenceIconShape()
+    val preferenceItemShape = remember(groupPosition) {
+        preferenceItemShapeForPosition(groupPosition)
+    }
+    val resolvedShape = shape ?: preferenceItemShape
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && !inGroup) 0.98f else 1f,
+        targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessHigh),
         label = "prefScale",
     )
@@ -126,42 +182,47 @@ fun PreferenceEntry(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = PreferenceEntryMinHeight)
                 .then(if (isEnabled && onClick != null) Modifier.focusable() else Modifier)
                 .clickable(
                     interactionSource = interactionSource,
-                    indication = if (inGroup) LocalIndication.current else null,
+                    indication = LocalIndication.current,
                     enabled = isEnabled && onClick != null,
                     onClick = onClick ?: {},
                 )
                 .alpha(if (isEnabled) 1f else 0.5f)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(
+                    horizontal = PreferenceEntryHorizontalPadding,
+                    vertical = PreferenceEntryVerticalPadding,
+                ),
         ) {
             if (icon != null) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
-                        .size(40.dp)
-                        .clip(preferenceIconShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                        .size(44.dp)
+                        .clip(preferenceIconShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    icon()
+                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
+                        icon()
+                    }
                 }
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(16.dp))
             }
 
             Column(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.weight(1f),
             ) {
-                ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)) {
+                ProvideTextStyle(MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) {
                     title()
                 }
                 if (description != null) {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = description,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -169,7 +230,7 @@ fun PreferenceEntry(
             }
 
             if (trailingContent != null) {
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(16.dp))
                 Box(modifier = Modifier.align(Alignment.CenterVertically)) {
                     trailingContent()
                 }
@@ -177,24 +238,21 @@ fun PreferenceEntry(
         }
     }
 
-    if (inGroup) {
-        Box(modifier = modifier.fillMaxWidth()) {
-            rowContent()
-        }
-    } else {
-        Card(
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 3.dp)
-                .graphicsLayer { scaleX = scale; scaleY = scale },
-        ) {
-            rowContent()
-        }
+    Card(
+        shape = resolvedShape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = if (inGroup) 0.dp else 16.dp,
+                vertical = if (inGroup) 0.dp else 3.dp,
+            )
+            .graphicsLayer { scaleX = scale; scaleY = scale },
+    ) {
+        rowContent()
     }
 }
 
@@ -259,92 +317,79 @@ inline fun <reified T : Enum<T>> EnumSegmentedPreference(
     noinline onValueSelected: (T) -> Unit,
     isEnabled: Boolean = true,
 ) {
+    val values = remember { enumValues<T>().toList() }
+
     SegmentedPreference(
         modifier = modifier,
         title = title,
         description = description,
         icon = icon,
         selectedValue = selectedValue,
-        values = enumValues<T>().toList(),
+        values = values,
         valueText = valueText,
         onValueSelected = onValueSelected,
         isEnabled = isEnabled,
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> ListPreference(
     modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
+    description: String? = null,
     icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
     values: List<T>,
     valueText: @Composable (T) -> String,
+    valueDescription: (@Composable (T) -> String)? = null,
     onValueSelected: (T) -> Unit,
     isEnabled: Boolean = true,
 ) {
-    var showDialog by remember {
+    var showBottomSheet by remember {
         mutableStateOf(false)
     }
-    if (showDialog) {
-        var pendingValue by remember { mutableStateOf(selectedValue) }
-        DefaultDialog(
-            onDismiss = { showDialog = false },
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+
+    if (showBottomSheet) {
+        PreferenceSelectionBottomSheet(
             title = title,
-            contentScrollable = true,
-            buttons = {
-                TextButton(
-                    onClick = { showDialog = false },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-                TextButton(
-                    onClick = {
-                        onValueSelected(pendingValue)
-                        showDialog = false
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(android.R.string.ok))
+            values = values,
+            selectedValue = selectedValue,
+            valueText = valueText,
+            valueDescription = valueDescription,
+            sheetState = sheetState,
+            onDismiss = { showBottomSheet = false },
+            onValueSelected = { value ->
+                onValueSelected(value)
+                coroutineScope.launch {
+                    sheetState.hide()
+                }.invokeOnCompletion {
+                    showBottomSheet = false
                 }
             },
-        ) {
-            Column {
-                values.forEach { value ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .selectable(
-                                selected = value == pendingValue,
-                                onClick = { pendingValue = value },
-                                role = Role.RadioButton,
-                            )
-                            .padding(horizontal = 16.dp),
-                    ) {
-                        RadioButton(
-                            selected = value == pendingValue,
-                            onClick = null,
-                        )
-                        Text(
-                            text = valueText(value),
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 16.dp),
-                        )
-                    }
-                }
-            }
-        }
+        )
     }
 
     PreferenceEntry(
         modifier = modifier,
         title = title,
-        description = valueText(selectedValue),
+        description = description,
         icon = icon,
-        onClick = { showDialog = true },
+        content = {
+            Spacer(Modifier.height(10.dp))
+            PreferenceValueChip(valueText(selectedValue))
+        },
+        trailingContent = {
+            Icon(
+                painter = painterResource(R.drawable.arrow_forward),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
+            )
+        },
+        onClick = { showBottomSheet = true },
         isEnabled = isEnabled,
     )
 }
@@ -353,22 +398,187 @@ fun <T> ListPreference(
 inline fun <reified T : Enum<T>> EnumListPreference(
     modifier: Modifier = Modifier,
     noinline title: @Composable () -> Unit,
+    description: String? = null,
     noinline icon: (@Composable () -> Unit)?,
     selectedValue: T,
     noinline valueText: @Composable (T) -> String,
     noinline onValueSelected: (T) -> Unit,
     isEnabled: Boolean = true,
 ) {
+    val values = remember { enumValues<T>().toList() }
+
     ListPreference(
         modifier = modifier,
         title = title,
+        description = description,
         icon = icon,
         selectedValue = selectedValue,
-        values = enumValues<T>().toList(),
+        values = values,
         valueText = valueText,
         onValueSelected = onValueSelected,
         isEnabled = isEnabled,
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> PreferenceSelectionBottomSheet(
+    title: @Composable () -> Unit,
+    values: List<T>,
+    selectedValue: T,
+    valueText: @Composable (T) -> String,
+    valueDescription: (@Composable (T) -> String)? = null,
+    sheetState: SheetState,
+    onDismiss: () -> Unit,
+    onValueSelected: (T) -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(
+                width = 48.dp,
+                height = 5.dp,
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+            )
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 26.dp)
+                .padding(bottom = 12.dp),
+        ) {
+            ProvideTextStyle(
+                MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 18.dp, bottom = 22.dp),
+                ) {
+                    title()
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
+            ) {
+                itemsIndexed(
+                    items = values,
+                    key = { index, value -> preferenceOptionKey(index, value) },
+                    contentType = { _, _ -> "preference_option" },
+                ) { _, value ->
+                    PreferenceSelectionOption(
+                        text = valueText(value),
+                        description = valueDescription?.invoke(value),
+                        selected = value == selectedValue,
+                        onClick = { onValueSelected(value) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreferenceSelectionOption(
+    text: String,
+    description: String? = null,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val containerColor =
+        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
+    val contentColor =
+        if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    val descriptionColor =
+        if (selected) contentColor.copy(alpha = 0.78f) else MaterialTheme.colorScheme.onSurfaceVariant
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = if (description == null) 72.dp else 96.dp)
+            .clip(MaterialTheme.shapes.extraLarge)
+            .background(containerColor)
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton,
+            )
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                color = contentColor,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (description != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = descriptionColor,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        if (selected) {
+            Spacer(Modifier.width(16.dp))
+            Icon(
+                painter = painterResource(R.drawable.check),
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PreferenceValueChip(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+            .padding(horizontal = 16.dp, vertical = 7.dp),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private fun preferenceOptionKey(index: Int, value: Any?): String {
+    val valueKey = when (value) {
+        is Enum<*> -> value.name
+        null -> "null"
+        else -> value.hashCode().toString()
+    }
+    return "${value?.javaClass?.name.orEmpty()}:$valueKey:$index"
 }
 
 @Composable
@@ -815,35 +1025,57 @@ fun NumberPickerPreference(
     )
 }
 
+class PreferenceGroupScope internal constructor() {
+    internal val items = mutableListOf<@Composable () -> Unit>()
+
+    fun item(
+        visible: Boolean = true,
+        content: @Composable () -> Unit,
+    ) {
+        if (visible) {
+            items.add(content)
+        }
+    }
+}
+
 @Composable
 fun PreferenceGroup(
     modifier: Modifier = Modifier,
     title: String? = null,
-    content: @Composable ColumnScope.() -> Unit,
+    content: PreferenceGroupScope.() -> Unit,
 ) {
-    Column(modifier = modifier.padding(horizontal = 16.dp)) {
+    val scope = PreferenceGroupScope().apply(content)
+    val itemCount = scope.items.size
+
+    if (itemCount == 0) return
+
+    Column(modifier = modifier) {
         if (title != null) {
-            Text(
-                text = title.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+            PreferenceGroupTitle(
+                title = title,
+                modifier = Modifier.padding(horizontal = PreferenceGroupHorizontalPadding),
             )
         }
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            modifier = Modifier.fillMaxWidth(),
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PreferenceGroupHorizontalPadding),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            CompositionLocalProvider(LocalPreferenceInGroup provides true) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    content = content,
-                )
+            scope.items.forEachIndexed { index, itemContent ->
+                val position = when {
+                    itemCount == 1 -> PreferenceGroupPosition.Single
+                    index == 0 -> PreferenceGroupPosition.First
+                    index == itemCount - 1 -> PreferenceGroupPosition.Last
+                    else -> PreferenceGroupPosition.Middle
+                }
+                CompositionLocalProvider(
+                    LocalPreferenceInGroup provides true,
+                    LocalPreferenceGroupPosition provides position,
+                ) {
+                    itemContent()
+                }
             }
         }
     }
@@ -864,8 +1096,9 @@ fun PreferenceGroupTitle(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelLarge,
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier.padding(horizontal = 20.dp, vertical = 10.dp),
     )

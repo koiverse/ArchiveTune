@@ -70,7 +70,7 @@ import moe.koiverse.archivetune.constants.ScrobbleMinSongDurationKey
 import moe.koiverse.archivetune.constants.ScrobbleDelaySecondsKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
-import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
+import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -289,61 +289,6 @@ fun LastFMSettings(
             )
         )
 
-        PreferenceGroupTitle(
-            title = stringResource(R.string.account),
-        )
-
-        PreferenceEntry(
-            title = {
-                Text(
-                    text = if (isLoggedIn) lastfmUsername else stringResource(R.string.not_logged_in),
-                    modifier = Modifier.alpha(if (isLoggedIn) 1f else 0.5f),
-                )
-            },
-            description = null,
-            icon = { Icon(painterResource(R.drawable.token), null) },
-            trailingContent = {
-                if (isLoggedIn) {
-                    OutlinedButton(onClick = {
-                        lastfmSession = ""
-                        lastfmUsername = ""
-                        LastFM.sessionKey = null
-                        Timber.d("Last.fm session cleared")
-                    }, shapes = ButtonDefaults.shapes()) {
-                        Text(stringResource(R.string.action_logout))
-                    }
-                } else {
-                    OutlinedButton(onClick = {
-                        showLoginDialog = true
-                    }, shapes = ButtonDefaults.shapes()) {
-                        Text(stringResource(R.string.action_login))
-                    }
-                }
-            },
-        )
-
-        PreferenceGroupTitle(
-            title = stringResource(R.string.options),
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.enable_scrobbling)) },
-            checked = lastfmScrobbling,
-            onCheckedChange = onlastfmScrobblingChange,
-            isEnabled = isLoggedIn,
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.lastfm_now_playing)) },
-            checked = useNowPlaying,
-            onCheckedChange = onUseNowPlayingChange,
-            isEnabled = isLoggedIn && lastfmScrobbling,
-        )
-
-        PreferenceGroupTitle(
-            title = stringResource(R.string.scrobbling_configuration)
-        )
-
         var showMinTrackDurationDialog by rememberSaveable { mutableStateOf(false) }
 
         if (showMinTrackDurationDialog) {
@@ -398,12 +343,6 @@ fun LastFMSettings(
                 }
             )
         }
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.scrobble_min_track_duration)) },
-            description = "${minTrackDuration}s",
-            onClick = { showMinTrackDurationDialog = true }
-        )
 
         var showScrobbleDelayPercentDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -460,12 +399,6 @@ fun LastFMSettings(
             )
         }
 
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.scrobble_delay_percent)) },
-            description = "${(scrobbleDelayPercent * 100).roundToInt()}%",
-            onClick = { showScrobbleDelayPercentDialog = true }
-        )
-
         var showScrobbleDelaySecondsDialog by rememberSaveable { mutableStateOf(false) }
 
         if (showScrobbleDelaySecondsDialog) {
@@ -521,11 +454,84 @@ fun LastFMSettings(
             )
         }
 
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.scrobble_delay_minutes)) },
-            description = "${scrobbleDelaySeconds}s",
-            onClick = { showScrobbleDelaySecondsDialog = true }
-        )
+        PreferenceGroup(title = stringResource(R.string.account)) {
+            item {
+                PreferenceEntry(
+                    title = {
+                        Text(
+                            text = if (isLoggedIn) lastfmUsername else stringResource(R.string.not_logged_in),
+                            modifier = Modifier.alpha(if (isLoggedIn) 1f else 0.5f),
+                        )
+                    },
+                    description = null,
+                    icon = { Icon(painterResource(R.drawable.token), null) },
+                    trailingContent = {
+                        if (isLoggedIn) {
+                            OutlinedButton(onClick = {
+                                lastfmSession = ""
+                                lastfmUsername = ""
+                                LastFM.sessionKey = null
+                                Timber.d("Last.fm session cleared")
+                            }, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.action_logout))
+                            }
+                        } else {
+                            OutlinedButton(onClick = {
+                                showLoginDialog = true
+                            }, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.action_login))
+                            }
+                        }
+                    },
+                )
+            }
+        }
+
+        PreferenceGroup(title = stringResource(R.string.options)) {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.enable_scrobbling)) },
+                    checked = lastfmScrobbling,
+                    onCheckedChange = onlastfmScrobblingChange,
+                    isEnabled = isLoggedIn,
+                )
+            }
+
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.lastfm_now_playing)) },
+                    checked = useNowPlaying,
+                    onCheckedChange = onUseNowPlayingChange,
+                    isEnabled = isLoggedIn && lastfmScrobbling,
+                )
+            }
+        }
+
+        PreferenceGroup(title = stringResource(R.string.scrobbling_configuration)) {
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.scrobble_min_track_duration)) },
+                    description = "${minTrackDuration}s",
+                    onClick = { showMinTrackDurationDialog = true }
+                )
+            }
+
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.scrobble_delay_percent)) },
+                    description = "${(scrobbleDelayPercent * 100).roundToInt()}%",
+                    onClick = { showScrobbleDelayPercentDialog = true }
+                )
+            }
+
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.scrobble_delay_minutes)) },
+                    description = "${scrobbleDelaySeconds}s",
+                    onClick = { showScrobbleDelaySecondsDialog = true }
+                )
+            }
+        }
     }
 
     TopAppBar(

@@ -33,12 +33,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
-import moe.koiverse.archivetune.ui.component.PreferenceGroupTitle
 import moe.koiverse.archivetune.constants.ListenBrainzEnabledKey
 import moe.koiverse.archivetune.constants.ListenBrainzTokenKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.InfoLabel
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
+import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.utils.backToMain
@@ -70,41 +70,47 @@ fun IntegrationScreen(
             )
         )
 
-        PreferenceGroupTitle(
-                title = stringResource(R.string.general),
-            )
+        PreferenceGroup(title = stringResource(R.string.general)) {
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.discord_integration)) },
+                    icon = { Icon(painterResource(R.drawable.discord), null) },
+                    onClick = {
+                        navController.navigate("settings/discord")
+                    },
+                )
+            }
+        }
 
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.discord_integration)) },
-            icon = { Icon(painterResource(R.drawable.discord), null) },
-            onClick = {
-                navController.navigate("settings/discord")
-            },
-        )
+        PreferenceGroup(title = stringResource(R.string.scrobbling)) {
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.lastfm_integration)) },
+                    icon = { Icon(painterResource(R.drawable.token), null) },
+                    onClick = {
+                        navController.navigate("settings/lastfm")
+                    },
+                )
+            }
 
-        PreferenceGroupTitle(
-            title = stringResource(R.string.scrobbling),
-        )
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.listenbrainz_scrobbling)) },
+                    description = stringResource(R.string.listenbrainz_scrobbling_description),
+                    icon = { Icon(painterResource(R.drawable.token), null) },
+                    checked = listenBrainzEnabled,
+                    onCheckedChange = onListenBrainzEnabledChange,
+                )
+            }
 
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.lastfm_integration)) },
-            icon = { Icon(painterResource(R.drawable.token), null) },
-            onClick = {
-                navController.navigate("settings/lastfm")
-            },
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.listenbrainz_scrobbling)) },
-            description = stringResource(R.string.listenbrainz_scrobbling_description),
-            icon = { Icon(painterResource(R.drawable.token), null) },
-            checked = listenBrainzEnabled,
-            onCheckedChange = onListenBrainzEnabledChange,
-        )
-        PreferenceEntry(
-            title = { Text(if (listenBrainzToken.isBlank()) stringResource(R.string.set_listenbrainz_token) else stringResource(R.string.edit_listenbrainz_token)) },
-            icon = { Icon(painterResource(R.drawable.token), null) },
-            onClick = { showListenBrainzTokenEditor.value = true },
-        )
+            item {
+                PreferenceEntry(
+                    title = { Text(if (listenBrainzToken.isBlank()) stringResource(R.string.set_listenbrainz_token) else stringResource(R.string.edit_listenbrainz_token)) },
+                    icon = { Icon(painterResource(R.drawable.token), null) },
+                    onClick = { showListenBrainzTokenEditor.value = true },
+                )
+            }
+        }
     }
 
     TopAppBar(
