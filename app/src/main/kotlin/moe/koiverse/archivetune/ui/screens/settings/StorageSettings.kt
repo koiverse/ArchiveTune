@@ -411,6 +411,7 @@ fun StorageSettings(
                 )
               }
             }
+          }
         )
 
         if (clearCanvasCacheDialog) {
