@@ -189,8 +189,9 @@ fun LyricsMenu(
     val isTranslateEnabled = !isTtml(lyricsProvider()?.lyrics.orEmpty()) &&
         (results.getOrNull(expandedItemIndex)?.let { !isTtml(it.lyrics) } ?: true)
     val currentLyrics = lyricsProvider()?.lyrics.orEmpty()
+    val isAiProviderConfigured = aiProvider != AiProvider.NONE
     val isAiTranslationEnabled = currentLyrics.isNotBlank() &&
-        aiProvider != AiProvider.NONE &&
+        isAiProviderConfigured &&
         aiApiKey.isNotBlank() &&
         (aiProvider != AiProvider.CUSTOM || aiCustomEndpoint.isNotBlank())
 
@@ -871,12 +872,14 @@ fun LyricsMenu(
                             },
                             text = stringResource(R.string.ai_translation_menu),
                             onClick = {
-                                viewModel.translateLyricsWithAi(
-                                    mediaMetadata = mediaMetadataProvider(),
-                                    lyrics = lyricsProvider()?.lyrics.orEmpty(),
-                                )
+                                if (isAiProviderConfigured) {
+                                    viewModel.translateLyricsWithAi(
+                                        mediaMetadata = mediaMetadataProvider(),
+                                        lyrics = lyricsProvider()?.lyrics.orEmpty(),
+                                    )
+                                }
                             },
-                            enabled = isAiTranslationEnabled && !isAiTranslating
+                            enabled = isAiProviderConfigured && isAiTranslationEnabled && !isAiTranslating
                         ),
                         NewAction(
                             icon = {
