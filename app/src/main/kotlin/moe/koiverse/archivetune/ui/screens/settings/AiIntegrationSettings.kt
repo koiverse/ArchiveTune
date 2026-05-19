@@ -318,6 +318,7 @@ fun AiIntegrationSettings(
                     onValueSelected = setTargetLanguage,
                 )
             }
+        }
     }
 
     TopAppBar(
