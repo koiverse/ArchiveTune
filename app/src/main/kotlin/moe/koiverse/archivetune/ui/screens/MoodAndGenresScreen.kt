@@ -84,7 +84,6 @@ fun MoodAndGenresScreen(
     viewModel: MoodAndGenresViewModel = hiltViewModel(),
 ) {
     val moodAndGenres by viewModel.moodAndGenres.collectAsState()
-    val aiUserMixes by viewModel.aiUserMixes.collectAsState()
     val gridState = rememberLazyGridState()
     val density = LocalDensity.current
     val windowInsets = LocalPlayerAwareWindowInsets.current
@@ -116,33 +115,6 @@ fun MoodAndGenresScreen(
                 title = stringResource(R.string.mood_and_genres),
                 modifier = Modifier.animateItem(),
             )
-        }
-
-        if (aiUserMixes.isNotEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                NavigationTitle(
-                    title = stringResource(R.string.ai_user_mix),
-                    modifier = Modifier.animateItem(),
-                )
-            }
-
-            items(
-                items = aiUserMixes,
-                key = { item -> item.id },
-                contentType = { "ai_user_mix" },
-            ) { item ->
-                MoodAndGenresButton(
-                    title = item.title,
-                    stripeColor = item.stripeColor,
-                    onClick = {
-                        navController.navigate("search/${Uri.encode(item.query)}")
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(6.dp)
-                        .animateItem(),
-                )
-            }
         }
 
         if (moodAndGenres == null) {
