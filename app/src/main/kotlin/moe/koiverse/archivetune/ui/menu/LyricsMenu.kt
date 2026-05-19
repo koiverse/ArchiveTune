@@ -127,7 +127,16 @@ fun LyricsMenu(
 
     var showTranslateDialog by rememberSaveable { mutableStateOf(false) }
     var showLyricsSyncOffsetDialog by rememberSaveable { mutableStateOf(false) }
+    var showRefetchLoadingDialog by rememberSaveable { mutableStateOf(false) }
+    val isRefetching by viewModel.isRefetching.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(isRefetching) {
+        if (!isRefetching && showRefetchLoadingDialog) {
+            showRefetchLoadingDialog = false
+            onDismiss()
+        }
+    }
 
     if (showEditDialog) {
         TextFieldDialog(
@@ -781,6 +790,22 @@ fun LyricsMenu(
             }
         }
 
+    if (showRefetchLoadingDialog) {
+        DefaultDialog(
+            onDismiss = {},
+            icon = {
+                CircularWavyProgressIndicator(modifier = Modifier.size(28.dp))
+            },
+            title = { Text(stringResource(R.string.refetch)) },
+        ) {
+            Text(
+                text = stringResource(R.string.loading) + "…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
 
     LazyColumn(
         userScrollEnabled = true,
@@ -818,8 +843,8 @@ fun LyricsMenu(
                             },
                             text = stringResource(R.string.refetch),
                             onClick = {
+                                showRefetchLoadingDialog = true
                                 viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
-                                onDismiss()
                             }
                         ),
                         NewAction(

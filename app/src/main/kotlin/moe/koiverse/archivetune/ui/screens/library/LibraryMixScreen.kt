@@ -333,12 +333,6 @@ fun LibraryMixScreen(
         }
     }
 
-    LaunchedEffect(ytmSync) {
-        if (ytmSync) {
-            viewModel.syncAllLibrary()
-        }
-    }
-
     ExpressivePullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = { if (ytmSync) viewModel.syncAllLibrary() },

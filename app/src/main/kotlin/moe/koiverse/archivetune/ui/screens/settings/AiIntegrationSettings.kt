@@ -10,34 +10,56 @@
 package moe.koiverse.archivetune.ui.screens.settings
 
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -45,6 +67,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -77,6 +110,8 @@ import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.AiIntegrationSettingsViewModel
 
+private enum class TestApiVisualState { Idle, Testing, Success, Failed }
+
 @Composable
 fun AiIntegrationSettings(
     navController: NavController,
@@ -106,18 +141,6 @@ fun AiIntegrationSettings(
     LaunchedEffect(Unit) {
         viewModel.events.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    LaunchedEffect(provider, apiKey) {
-        if (provider != AiProvider.NONE && provider != AiProvider.CUSTOM && apiKey.isNotBlank()) {
-            viewModel.fetchModels(provider, apiKey, customEndpoint)
-        }
-    }
-
-    LaunchedEffect(availableModels) {
-        if (availableModels.isNotEmpty() && (selectedModel.isBlank() || availableModels.none { it.first == selectedModel })) {
-            setSelectedModel(availableModels.first().first)
         }
     }
 
@@ -200,28 +223,14 @@ fun AiIntegrationSettings(
                 )
             }
 
-            item(visible = provider != AiProvider.NONE && provider != AiProvider.CUSTOM && availableModels.isNotEmpty()) {
-                ListPreference(
-                    title = { Text(stringResource(R.string.ai_model)) },
-                    description = stringResource(R.string.ai_model_desc),
-                    icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
-                    selectedValue = selectedModel,
-                    values = availableModels.map { it.first },
-                    valueText = { id -> availableModels.firstOrNull { it.first == id }?.second ?: id },
-                    onValueSelected = setSelectedModel,
-                )
-            }
-
-            item(visible = provider != AiProvider.NONE && provider != AiProvider.CUSTOM && availableModels.isEmpty() && actionState.isFetchingModels) {
-                PreferenceEntry(
-                    title = { Text(stringResource(R.string.ai_model)) },
-                    description = stringResource(R.string.ai_model_loading),
-                    icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
-                    trailingContent = {
-                        CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
-                    },
-                    onClick = {},
-                    isEnabled = false,
+            item(visible = provider != AiProvider.NONE && provider != AiProvider.CUSTOM) {
+                ModelPickerPreference(
+                    selectedModel = selectedModel,
+                    availableModels = availableModels,
+                    isFetching = actionState.isFetchingModels,
+                    canFetch = apiKey.isNotBlank() && !actionState.isFetchingModels,
+                    onModelSelected = setSelectedModel,
+                    onFetch = { viewModel.fetchModels(provider, apiKey, customEndpoint) },
                 )
             }
 
@@ -235,13 +244,69 @@ fun AiIntegrationSettings(
             }
 
             item {
+                val testVisualState = when {
+                    actionState.isTesting -> TestApiVisualState.Testing
+                    validationStatus == AiApiValidationStatus.SUCCESS -> TestApiVisualState.Success
+                    validationStatus == AiApiValidationStatus.FAILED -> TestApiVisualState.Failed
+                    else -> TestApiVisualState.Idle
+                }
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.ai_test_api)) },
-                    description = validationStatus.label(),
-                    icon = { Icon(painterResource(R.drawable.sync), null) },
+                    icon = {
+                        AnimatedContent(
+                            targetState = testVisualState,
+                            transitionSpec = {
+                                (scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn(tween(200))) togetherWith
+                                    (scaleOut(tween(100)) + fadeOut(tween(100)))
+                            },
+                            label = "testApiIcon",
+                        ) { state ->
+                            when (state) {
+                                TestApiVisualState.Success ->
+                                    Icon(painterResource(R.drawable.done), null)
+                                TestApiVisualState.Failed ->
+                                    Icon(painterResource(R.drawable.error), null, tint = MaterialTheme.colorScheme.error)
+                                else ->
+                                    Icon(painterResource(R.drawable.sync), null)
+                            }
+                        }
+                    },
+                    content = {
+                        Spacer(Modifier.height(2.dp))
+                        AnimatedContent(
+                            targetState = testVisualState,
+                            transitionSpec = {
+                                (slideInVertically { -it } + fadeIn(tween(250))) togetherWith
+                                    (slideOutVertically { it } + fadeOut(tween(150)))
+                            },
+                            label = "testApiDesc",
+                        ) { state ->
+                            Text(
+                                text = when (state) {
+                                    TestApiVisualState.Testing -> stringResource(R.string.ai_api_testing)
+                                    else -> validationStatus.label()
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = when (state) {
+                                    TestApiVisualState.Success -> MaterialTheme.colorScheme.primary
+                                    TestApiVisualState.Failed -> MaterialTheme.colorScheme.error
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
+                    },
                     trailingContent = {
-                        if (actionState.isTesting) {
-                            CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+                        AnimatedContent(
+                            targetState = actionState.isTesting,
+                            transitionSpec = {
+                                (scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(tween(200))) togetherWith
+                                    (scaleOut(tween(150)) + fadeOut(tween(150)))
+                            },
+                            label = "testApiTrailing",
+                        ) { isTesting ->
+                            if (isTesting) {
+                                CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
                         }
                     },
                     onClick = viewModel::testApi,
@@ -388,3 +453,109 @@ private fun AiApiValidationStatus.label(): String =
         AiApiValidationStatus.SUCCESS -> stringResource(R.string.ai_api_status_success)
         AiApiValidationStatus.FAILED -> stringResource(R.string.ai_api_status_failed)
     }
+
+@Composable
+private fun ModelPickerPreference(
+    selectedModel: String,
+    availableModels: List<Pair<String, String>>,
+    isFetching: Boolean,
+    canFetch: Boolean,
+    onModelSelected: (String) -> Unit,
+    onFetch: () -> Unit,
+) {
+    var showSheet by rememberSaveable { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+
+    val description = when {
+        isFetching && availableModels.isEmpty() -> stringResource(R.string.ai_model_loading)
+        availableModels.isEmpty() && !canFetch -> stringResource(R.string.ai_model_api_key_required)
+        availableModels.isEmpty() -> stringResource(R.string.ai_model_fetch_hint)
+        selectedModel.isBlank() -> stringResource(R.string.ai_model_not_selected)
+        else -> availableModels.firstOrNull { it.first == selectedModel }?.second ?: selectedModel
+    }
+
+    if (showSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSheet = false },
+            sheetState = sheetState,
+            shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            Text(
+                text = stringResource(R.string.ai_model),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .padding(horizontal = 26.dp)
+                    .padding(top = 18.dp, bottom = 22.dp),
+            )
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = 26.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp),
+            ) {
+                items(availableModels, key = { it.first }) { (id, displayName) ->
+                    val selected = id == selectedModel
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.extraLarge)
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            )
+                            .selectable(
+                                selected = selected,
+                                role = Role.RadioButton,
+                                onClick = {
+                                    onModelSelected(id)
+                                    coroutineScope.launch {
+                                        sheetState.hide()
+                                    }.invokeOnCompletion {
+                                        showSheet = false
+                                    }
+                                },
+                            )
+                            .padding(horizontal = 24.dp, vertical = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = displayName,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selected) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    PreferenceEntry(
+        title = { Text(stringResource(R.string.ai_model)) },
+        description = description,
+        icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
+        trailingContent = {
+            if (isFetching) {
+                CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+            } else {
+                FilledTonalIconButton(
+                    onClick = onFetch,
+                    enabled = canFetch,
+                ) {
+                    Icon(
+                        painterResource(R.drawable.sync),
+                        contentDescription = stringResource(R.string.ai_fetch_models),
+                    )
+                }
+            }
+        },
+        onClick = if (availableModels.isNotEmpty()) ({ showSheet = true }) else null,
+    )
+}

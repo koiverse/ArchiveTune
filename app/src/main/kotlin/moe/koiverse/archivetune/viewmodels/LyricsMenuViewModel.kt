@@ -63,6 +63,7 @@ constructor(
     private var job: Job? = null
     val results = MutableStateFlow(emptyList<LyricsResult>())
     val isLoading = MutableStateFlow(false)
+    val isRefetching = MutableStateFlow(false)
     val isAiTranslating = MutableStateFlow(false)
 
     private val _aiTranslationEvents = MutableSharedFlow<String>()
@@ -117,6 +118,7 @@ constructor(
         lyricsEntity: LyricsEntity?,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
+            isRefetching.value = true
             try {
                 val lyrics = lyricsHelper.getLyrics(mediaMetadata)
                 database.query {
@@ -124,6 +126,8 @@ constructor(
                     upsert(LyricsEntity(mediaMetadata.id, lyrics))
                 }
             } catch (_: Exception) {
+            } finally {
+                isRefetching.value = false
             }
         }
     }

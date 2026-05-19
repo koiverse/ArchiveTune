@@ -249,7 +249,7 @@ fun buildSettingsGroups(
                             icon = painterResource(R.drawable.info),
                             title = stringResource(R.string.about),
                             subtitle = stringResource(R.string.settings_about_subtitle),
-                            accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            accentColor = MaterialTheme.colorScheme.secondary,
                             keywords = listOf("about", "app info", "license", "contributors"),
                             onClick = { navController.navigate("settings/about") },
                         ),
