@@ -81,6 +81,10 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
@@ -248,6 +252,9 @@ fun PlayerTopActions(
     context: Context,
     currentSongLiked: Boolean
 ) {
+    val haptic = LocalHapticFeedback.current
+    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
+
     when (playerDesignStyle) {
         PlayerDesignStyle.V2 -> {
             val shareShape = RoundedCornerShape(
@@ -877,6 +884,7 @@ fun PlayerPlaybackControls(
     playerConnection: PlayerConnection,
     currentSongLiked: Boolean
 ) {
+    val haptic = LocalHapticFeedback.current
     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
 
     when (playerDesignStyle) {
@@ -897,7 +905,7 @@ fun PlayerPlaybackControls(
                 ) {
 
                     FilledTonalIconButton(
-                        onClick = playerConnection::seekToPrevious,
+                        onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToPrevious() },
                         enabled = canSkipPrevious,
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = textButtonColor,
@@ -918,7 +926,8 @@ fun PlayerPlaybackControls(
 
                     FilledIconButton(
                         onClick = {
-                            if (playbackState == STATE_ENDED) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
                             } else {
@@ -956,7 +965,7 @@ fun PlayerPlaybackControls(
                     Spacer(modifier = Modifier.width(16.dp))
 
                     FilledTonalIconButton(
-                        onClick = playerConnection::seekToNext,
+                        onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToNext() },
                         enabled = canSkipNext,
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = textButtonColor,
@@ -1013,6 +1022,7 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(14.dp))
                             .background(textBackgroundColor.copy(alpha = 0.08f))
                             .clickable(enabled = canSkipPrevious) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 playerConnection.seekToPrevious()
                             },
                         contentAlignment = Alignment.Center
@@ -1031,6 +1041,7 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(50))
                             .background(textBackgroundColor)
                             .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (playbackState == STATE_ENDED) {
                                     playerConnection.player.seekTo(0, 0)
                                     playerConnection.player.playWhenReady = true
@@ -1067,6 +1078,7 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(14.dp))
                             .background(textBackgroundColor.copy(alpha = 0.08f))
                             .clickable(enabled = canSkipNext) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 playerConnection.seekToNext()
                             },
                         contentAlignment = Alignment.Center
@@ -1168,7 +1180,7 @@ fun PlayerPlaybackControls(
                         Spacer(modifier = Modifier.width(gap))
 
                         Surface(
-                            onClick = { playerConnection.seekToPrevious() },
+                            onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToPrevious() },
                             enabled = canSkipPrevious,
                             shape = RoundedCornerShape(largeRadius),
                             color = textBackgroundColor.copy(alpha = 0.15f),
@@ -1192,7 +1204,8 @@ fun PlayerPlaybackControls(
 
                     Surface(
                         onClick = {
-                            if (playbackState == STATE_ENDED) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
                             } else {
@@ -1236,7 +1249,7 @@ fun PlayerPlaybackControls(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            onClick = { playerConnection.seekToNext() },
+                            onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToNext() },
                             enabled = canSkipNext,
                             shape = RoundedCornerShape(largeRadius),
                             color = textBackgroundColor.copy(alpha = 0.15f),
@@ -1327,7 +1340,7 @@ fun PlayerPlaybackControls(
                         Modifier
                             .size(32.dp)
                             .align(Alignment.Center),
-                        onClick = playerConnection::seekToPrevious,
+                        onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToPrevious() },
                     )
                 }
 
@@ -1340,7 +1353,8 @@ fun PlayerPlaybackControls(
                         .clip(RoundedCornerShape(playPauseRoundness))
                         .background(textButtonColor)
                         .clickable {
-                            if (playbackState == STATE_ENDED) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
                             } else {
@@ -1390,7 +1404,7 @@ fun PlayerPlaybackControls(
                         Modifier
                             .size(32.dp)
                             .align(Alignment.Center),
-                        onClick = playerConnection::seekToNext,
+                        onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToNext() },
                     )
                 }
 
@@ -1429,7 +1443,7 @@ fun PlayerPlaybackControls(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            onClick = { playerConnection.seekToPrevious() },
+                            onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToPrevious() },
                             enabled = canSkipPrevious,
                             shape = RoundedCornerShape(
                                 topStart = 22.dp, bottomStart = 22.dp,
@@ -1459,6 +1473,7 @@ fun PlayerPlaybackControls(
 
                         Surface(
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (playbackState == STATE_ENDED) {
                                     playerConnection.player.seekTo(0, 0)
                                     playerConnection.player.playWhenReady = true
@@ -1500,7 +1515,7 @@ fun PlayerPlaybackControls(
                         Spacer(modifier = Modifier.width(6.dp))
 
                         Surface(
-                            onClick = { playerConnection.seekToNext() },
+                            onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToNext() },
                             enabled = canSkipNext,
                             shape = RoundedCornerShape(
                                 topStart = 8.dp, bottomStart = 8.dp,
@@ -1602,7 +1617,7 @@ fun PlayerPlaybackControls(
                     .padding(horizontal = PlayerHorizontalPadding)
             ) {
                 Surface(
-                    onClick = playerConnection::seekToPrevious,
+                    onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToPrevious() },
                     enabled = canSkipPrevious,
                     shape = CircleShape,
                     color = Color.Transparent,
@@ -1625,7 +1640,8 @@ fun PlayerPlaybackControls(
 
                 Surface(
                     onClick = {
-                        if (playbackState == STATE_ENDED) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (playbackState == STATE_ENDED) {
                             playerConnection.player.seekTo(0, 0)
                             playerConnection.player.playWhenReady = true
                         } else {
@@ -1663,7 +1679,7 @@ fun PlayerPlaybackControls(
                 }
 
                 Surface(
-                    onClick = { playerConnection.seekToNext() },
+                    onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToNext() },
                     enabled = canSkipNext,
                     shape = CircleShape,
                     color = Color.Transparent,

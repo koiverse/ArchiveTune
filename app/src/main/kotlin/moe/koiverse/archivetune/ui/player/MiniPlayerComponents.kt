@@ -65,6 +65,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -375,6 +378,8 @@ private fun MiniPlayerTransportControls(
     canSkipNext: Boolean,
     playerConnection: PlayerConnection
 ) {
+    val haptic = LocalHapticFeedback.current
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -382,7 +387,10 @@ private fun MiniPlayerTransportControls(
         MiniPlayerTransportButton(
             iconResId = R.drawable.skip_previous,
             contentDescription = null,
-            onClick = playerConnection::seekToPrevious,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                playerConnection.seekToPrevious()
+            },
             enabled = canSkipPrevious
         )
 
@@ -402,6 +410,7 @@ private fun MiniPlayerTransportControls(
                     if (isPlaying && playbackState != Player.STATE_ENDED) "Pause" else it
                 },
                 onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     if (playbackState == Player.STATE_ENDED) {
                         playerConnection.player.seekTo(0, 0)
                         playerConnection.player.playWhenReady = true
@@ -416,7 +425,10 @@ private fun MiniPlayerTransportControls(
         MiniPlayerTransportButton(
             iconResId = R.drawable.skip_next,
             contentDescription = null,
-            onClick = playerConnection::seekToNext,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                playerConnection.seekToNext()
+            },
             enabled = canSkipNext
         )
     }
