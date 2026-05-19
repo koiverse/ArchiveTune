@@ -222,7 +222,7 @@ fun AiIntegrationSettings(
                     onValueChange = setMixCount,
                     minValue = 1,
                     maxValue = 10,
-                    valueText = { stringResource(R.string.ai_mix_count_value, it) },
+                    valueText = { context.getString(R.string.ai_mix_count_value, it) },
                 )
             }
 
