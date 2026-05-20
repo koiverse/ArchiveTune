@@ -31,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalView
 import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -159,10 +158,6 @@ private fun HideOnScrollFabButton(
     val view = LocalView.current
     val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
     
-    LaunchedEffect(enableHapticFeedback) {
-        view.isHapticFeedbackEnabled = enableHapticFeedback
-    }
-
     ExtendedFloatingActionButton(
         modifier = Modifier.padding(16.dp),
         onClick = {
