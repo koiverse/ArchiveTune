@@ -152,6 +152,9 @@ private suspend fun fetchRepoContributorsNetwork(
             headers {
                 append("Accept", "application/vnd.github+json")
                 append("User-Agent", "ArchiveTune")
+                if (BuildConfig.APP_UPDATE_PAT.isNotBlank()) {
+                    append("Authorization", "Bearer ${BuildConfig.APP_UPDATE_PAT}")
+                }
                 if (!cachedEtag.isNullOrBlank()) {
                     append("If-None-Match", cachedEtag)
                 }
