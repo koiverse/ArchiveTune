@@ -640,6 +640,14 @@ object YouTube {
         val headerMenuItems =
             header.buttons.firstOrNull { it.menuRenderer != null }?.menuRenderer?.items.orEmpty()
 
+        val allFirstColumnContents = response.contents?.twoColumnBrowseResultsRenderer?.tabs
+            ?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents.orEmpty()
+        val description = base?.musicEditablePlaylistDetailHeaderRenderer?.header
+            ?.musicDetailHeaderRenderer?.description?.runs?.joinToString("") { it.text }
+            ?: allFirstColumnContents.firstNotNullOfOrNull {
+                it.musicDescriptionShelfRenderer?.description?.runs?.joinToString("") { run -> run.text }
+            }
+
         PlaylistPage(
             playlist = PlaylistItem(
                 id = playlistId,
@@ -652,6 +660,7 @@ object YouTube {
                 },
                 songCountText = header.secondSubtitle?.runs?.firstOrNull()?.text,
                 thumbnail = thumbnail,
+                description = description,
                 playEndpoint = header.buttons.firstOrNull()?.musicPlayButtonRenderer?.playNavigationEndpoint?.anyWatchEndpoint,
                 shuffleEndpoint = headerMenuItems.firstOrNull()?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint,
                 radioEndpoint = headerMenuItems.find {
