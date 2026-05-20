@@ -17,7 +17,6 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -176,12 +175,6 @@ private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 /** Seconds to wait before auto-scroll resumes after manual scroll. */
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 
-/** Apple-Music-style easing for smooth deceleration. */
-private val V2Easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
-
-/** Liquid fill easing: fast attack, very smooth deceleration (Apple Music-like). */
-private val LiquidFillEasing = CubicBezierEasing(0.0f, 0.0f, 0.15f, 1.0f)
-
 /** Sentinel entry prepended so auto-scroll has headroom above the first line. */
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
@@ -287,7 +280,10 @@ fun LyricsV2(
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) return@remember emptyList()
         val parsed = when {
             isTtml(lyrics!!) -> parseTtml(lyrics!!)
-            lyrics!!.startsWith("[") -> insertInstrumentalBreaks(parseLyrics(lyrics!!))
+            lyrics!!.startsWith("[") -> {
+                val dur = player.duration.takeIf { it > 0L } ?: 0L
+                insertInstrumentalBreaks(parseLyrics(lyrics!!), dur)
+            }
             else -> lyrics!!.lines()
                 .filter { it.isNotBlank() }
                 .mapIndexed { index, line ->
@@ -336,25 +332,13 @@ fun LyricsV2(
 
     // ── Playback position tracking ──
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
-    val instrumentalActivationCompensationMs = remember(leadMs) {
-        leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS
-    }
-    val entriesForActivationIndex = remember(entriesWithWords, instrumentalActivationCompensationMs) {
-        entriesWithWords.map { entry ->
-            if (entry.isInstrumental) {
-                entry.copy(time = entry.time + instrumentalActivationCompensationMs)
-            } else {
-                entry
-            }
-        }
-    }
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var playbackPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
     // Frame-accurate position loop
-    LaunchedEffect(entriesForActivationIndex, isSynced, leadMs, lyricsSyncOffset) {
-        if (!isSynced || entriesForActivationIndex.isEmpty()) return@LaunchedEffect
+    LaunchedEffect(entriesWithWords, isSynced, leadMs, lyricsSyncOffset) {
+        if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         while (isActive) {
             val sliderPos = sliderPositionProvider()
             val pos = sliderPos ?: player.currentPosition
@@ -362,7 +346,7 @@ fun LyricsV2(
             playbackPositionMs = (pos + lyricsSyncOffset.toLong()).coerceAtLeast(0L)
             currentPositionMs = (playbackPositionMs + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
 
-            currentLineIndex = findCurrentLineIndex(entriesForActivationIndex, currentPositionMs, 0L)
+            currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
             delay(16L) // ~60fps polling
         }
     }
@@ -1479,7 +1463,7 @@ private fun InstrumentalBreakItem(
             .toPath()
     }
 
-    val fillFraction = when {
+    val targetFillFraction = when {
         durationMs <= 0L -> 0f
         currentPositionMs <= startTimeMs -> 0f
         currentPositionMs >= startTimeMs + durationMs -> 1f
@@ -1488,6 +1472,14 @@ private fun InstrumentalBreakItem(
                 .toFloat()
                 .coerceIn(0f, 1f)
     }
+    val fillFraction by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = targetFillFraction,
+        animationSpec = spring(
+            stiffness = Spring.StiffnessVeryHigh,
+            dampingRatio = Spring.DampingRatioNoBouncy,
+        ),
+        label = "instrumentalFill",
+    )
 
     androidx.compose.foundation.Canvas(modifier = Modifier.size(48.dp)) {
         val scaleX = size.width / 24f
