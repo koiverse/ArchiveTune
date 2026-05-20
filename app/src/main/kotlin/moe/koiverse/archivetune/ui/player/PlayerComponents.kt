@@ -1008,7 +1008,7 @@ fun PlayerPlaybackControls(
                             .size(40.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .clickable {
-                                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
                             },
                         contentAlignment = Alignment.Center
