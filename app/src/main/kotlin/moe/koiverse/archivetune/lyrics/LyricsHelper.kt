@@ -16,9 +16,8 @@ import android.util.Log
 import android.util.LruCache
 import moe.koiverse.archivetune.utils.GlobalLog
 import moe.koiverse.archivetune.constants.PreferredLyricsProvider
-import moe.koiverse.archivetune.constants.PreferredLyricsProviderKey
+import moe.koiverse.archivetune.constants.LyricsProviderOrderKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
-import moe.koiverse.archivetune.extensions.toEnum
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.reportException
@@ -168,26 +167,32 @@ constructor(
     }
 
     private suspend fun orderedProviders(): List<LyricsProvider> {
-        val preferred =
-            context.dataStore.data
-                .first()[PreferredLyricsProviderKey]
-                .toEnum(PreferredLyricsProvider.LRCLIB)
+        val orderStr = context.dataStore.data.first()[LyricsProviderOrderKey]
+        val orderedEnums = deserializeProviderOrder(orderStr)
+        val providerMap: Map<PreferredLyricsProvider, LyricsProvider> = mapOf(
+            PreferredLyricsProvider.LRCLIB to LrcLibLyricsProvider,
+            PreferredLyricsProvider.KUGOU to KuGouLyricsProvider,
+            PreferredLyricsProvider.BETTER_LYRICS to BetterLyricsProvider,
+            PreferredLyricsProvider.SIMPMUSIC to SimpMusicLyricsProvider,
+            PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC to PaxsenixAppleMusicLyricsProvider,
+            PreferredLyricsProvider.PAXSENIX_NETEASE to PaxsenixNeteaseLyricsProvider,
+            PreferredLyricsProvider.PAXSENIX_SPOTIFY to PaxsenixSpotifyLyricsProvider,
+            PreferredLyricsProvider.PAXSENIX_MUSIXMATCH to PaxsenixMusixmatchLyricsProvider,
+            PreferredLyricsProvider.PAXSENIX_KUGOU to PaxsenixKuGouLyricsProvider,
+            PreferredLyricsProvider.UNISON to UnisonLyricsProvider,
+        )
+        val userOrdered = orderedEnums.mapNotNull { providerMap[it] }
+        val rest = baseProviders.filterNot { it in userOrdered }
+        return userOrdered + rest
+    }
 
-        val first =
-            when (preferred) {
-                PreferredLyricsProvider.LRCLIB -> LrcLibLyricsProvider
-                PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
-                PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
-                PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
-                PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC -> PaxsenixAppleMusicLyricsProvider
-                PreferredLyricsProvider.PAXSENIX_NETEASE -> PaxsenixNeteaseLyricsProvider
-                PreferredLyricsProvider.PAXSENIX_SPOTIFY -> PaxsenixSpotifyLyricsProvider
-                PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> PaxsenixMusixmatchLyricsProvider
-                PreferredLyricsProvider.PAXSENIX_KUGOU -> PaxsenixKuGouLyricsProvider
-                PreferredLyricsProvider.UNISON -> UnisonLyricsProvider
-            }
-
-        return listOf(first) + baseProviders.filterNot { provider -> provider == first }
+    private fun deserializeProviderOrder(orderStr: String?): List<PreferredLyricsProvider> {
+        if (orderStr.isNullOrBlank()) return PreferredLyricsProvider.entries
+        val parsed = orderStr.split(",").mapNotNull { name ->
+            PreferredLyricsProvider.entries.find { it.name == name.trim() }
+        }
+        val missing = PreferredLyricsProvider.entries.filterNot { it in parsed }
+        return parsed + missing
     }
 
     private fun isMeaningfulLyrics(lyrics: String): Boolean {
