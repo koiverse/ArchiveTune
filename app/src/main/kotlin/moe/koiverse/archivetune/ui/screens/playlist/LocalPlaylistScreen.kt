@@ -70,7 +70,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -197,19 +197,19 @@ fun LocalPlaylistScreen(
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val syncUtils = LocalSyncUtils.current
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsStateWithLifecycle()
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
 
-    val playlist by viewModel.playlist.collectAsState()
-    val songs by viewModel.playlistSongs.collectAsState()
-    val viewCounts by viewModel.viewCounts.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val playlist by viewModel.playlist.collectAsStateWithLifecycle()
+    val songs by viewModel.playlistSongs.collectAsStateWithLifecycle()
+    val viewCounts by viewModel.viewCounts.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val mutableSongs = remember { mutableStateListOf<PlaylistSong>() }
     val playlistLength = remember(songs) {
         songs.fastSumBy { it.song.song.duration }
     }
-    val sortType by viewModel.sortType.collectAsState()
-    val sortDescending by viewModel.sortDescending.collectAsState()
+    val sortType by viewModel.sortType.collectAsStateWithLifecycle()
+    val sortDescending by viewModel.sortDescending.collectAsStateWithLifecycle()
     val onSortTypeChange: (PlaylistSongSortType) -> Unit = { viewModel.updateSortPreference(it, sortDescending) }
     val onSortDescendingChange: (Boolean) -> Unit = { viewModel.updateSortPreference(sortType, it) }
     var locked by rememberPreference(PlaylistEditLockKey, defaultValue = true)
