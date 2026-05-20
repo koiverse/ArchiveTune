@@ -104,6 +104,27 @@ val TogetherWelcomeShownKey = booleanPreferencesKey("together_welcome_shown")
 val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
 val ListenBrainzTokenKey = stringPreferencesKey("listenbrainz_token")
 
+val AiProviderKey = stringPreferencesKey("ai_provider")
+val AiCustomEndpointKey = stringPreferencesKey("ai_custom_endpoint")
+val AiApiKeyKey = stringPreferencesKey("ai_api_key")
+val AiApiValidationStatusKey = stringPreferencesKey("ai_api_validation_status")
+val AiSelectedModelKey = stringPreferencesKey("ai_selected_model")
+val AiCustomModelKey = stringPreferencesKey("ai_custom_model")
+
+enum class AiProvider {
+    CHATGPT,
+    GEMINI,
+    CLAUDE,
+    CUSTOM,
+    NONE,
+}
+
+enum class AiApiValidationStatus {
+    UNKNOWN,
+    SUCCESS,
+    FAILED,
+}
+
 // Last.fm scrobbling
 val LastFMSessionKey = stringPreferencesKey("lastfmSession")
 val LastFMUsernameKey = stringPreferencesKey("lastfmUsername")
@@ -251,6 +272,7 @@ val PlaylistEditLockKey = booleanPreferencesKey("playlistEditLock")
 val QuickPicksKey = stringPreferencesKey("discover")
 val SpeedDialSongIdsKey = stringPreferencesKey("speedDialSongIds")
 val PreferredLyricsProviderKey = stringPreferencesKey("lyricsProvider")
+val LyricsProviderOrderKey = stringPreferencesKey("lyricsProviderOrder")
 val QueueEditLockKey = booleanPreferencesKey("queueEditLock")
 
 val ShowLikedPlaylistKey = booleanPreferencesKey("show_liked_playlist")

@@ -123,6 +123,7 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          APP_UPDATE_PAT: ${{ secrets.APP_UPDATE_PAT }}
           TOGETHER_BEARER_TOKEN: ${{ secrets.TOGETHER_BEARER_TOKEN }}
           CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
           NIGHTLY_BUILD_HASH: ${{ steps.build_hash.outputs.value }}
@@ -281,6 +282,7 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          APP_UPDATE_PAT: ${{ secrets.APP_UPDATE_PAT }}
           TOGETHER_BEARER_TOKEN: ${{ secrets.TOGETHER_BEARER_TOKEN }}
           CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
           NIGHTLY_BUILD_HASH: ${{ steps.build_hash.outputs.value }}

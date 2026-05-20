@@ -108,16 +108,6 @@ fun LibrarySongsScreen(
 
     var filter by rememberEnumPreference(SongFilterKey, SongFilter.LIKED)
 
-    LaunchedEffect(Unit) {
-        if (ytmSync) {
-            when (filter) {
-                SongFilter.LIKED -> viewModel.syncLikedSongs()
-                SongFilter.LIBRARY -> viewModel.syncLibrarySongs()
-                else -> return@LaunchedEffect
-            }
-        }
-    }
-
     val wrappedSongs = remember(songs) { songs.map { item -> ItemWrapper(item) }.toMutableList() }
     var selection by remember {
         mutableStateOf(false)

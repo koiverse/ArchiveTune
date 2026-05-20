@@ -16,11 +16,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -39,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.key
@@ -73,6 +80,7 @@ import moe.koiverse.archivetune.constants.EnableUnisonLyricsKey
 import moe.koiverse.archivetune.constants.LyricsClickKey
 import moe.koiverse.archivetune.constants.LyricsLineBlurKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
+import moe.koiverse.archivetune.constants.LyricsProviderOrderKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeChineseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeHindiKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
@@ -81,7 +89,6 @@ import moe.koiverse.archivetune.constants.LyricsRomanizeOtherLanguagesKey
 import moe.koiverse.archivetune.constants.LyricsScrollKey
 import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.PreferredLyricsProvider
-import moe.koiverse.archivetune.constants.PreferredLyricsProviderKey
 import moe.koiverse.archivetune.constants.PreloadQueueLyricsEnabledKey
 import moe.koiverse.archivetune.constants.QueueLyricsPreloadCountKey
 import moe.koiverse.archivetune.paxsenix.models.PaxsenixStats
@@ -89,16 +96,16 @@ import moe.koiverse.archivetune.paxsenix.models.ProviderStats
 import moe.koiverse.archivetune.ui.component.ActionPromptDialog
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.IconButton
-import moe.koiverse.archivetune.ui.component.ListPreference
 import moe.koiverse.archivetune.ui.component.NumberPickerPreference
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
-import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.ContentSettingsViewModel
 import moe.koiverse.archivetune.viewmodels.PaxsenixStatsState
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.roundToInt
 
 @Composable
@@ -152,10 +159,21 @@ fun LyricsSettings(
     val (enablePaxsenixMusixmatchLyrics, onEnablePaxsenixMusixmatchLyricsChange) = rememberPreference(key = EnablePaxsenixMusixmatchLyricsKey, defaultValue = true)
     val (enablePaxsenixKuGouLyrics, onEnablePaxsenixKuGouLyricsChange) = rememberPreference(key = EnablePaxsenixKuGouLyricsKey, defaultValue = true)
     val (enableUnisonLyrics, onEnableUnisonLyricsChange) = rememberPreference(key = EnableUnisonLyricsKey, defaultValue = true)
-    val (preferredProvider, onPreferredProviderChange) = rememberEnumPreference(
-        key = PreferredLyricsProviderKey,
-        defaultValue = PreferredLyricsProvider.LRCLIB,
+    val (providerOrderStr, onProviderOrderStrChange) = rememberPreference(
+        key = LyricsProviderOrderKey,
+        defaultValue = "",
     )
+    val providerOrder = remember(providerOrderStr) {
+        if (providerOrderStr.isBlank()) {
+            PreferredLyricsProvider.entries.toList()
+        } else {
+            val parsed = providerOrderStr.split(",").mapNotNull { name ->
+                PreferredLyricsProvider.entries.find { it.name == name.trim() }
+            }
+            val missing = PreferredLyricsProvider.entries.filterNot { it in parsed }
+            parsed + missing
+        }
+    }
     val (lyricsLineBlur, onLyricsLineBlurChange) = rememberPreference(LyricsLineBlurKey, defaultValue = true)
     val (lyricsRomanizeJapanese, onLyricsRomanizeJapaneseChange) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
     val (lyricsRomanizeKorean, onLyricsRomanizeKoreanChange) = rememberPreference(LyricsRomanizeKoreanKey, defaultValue = true)
@@ -164,6 +182,19 @@ fun LyricsSettings(
     val (lyricsRomanizeOtherLanguages, onLyricsRomanizeOtherLanguagesChange) = rememberPreference(LyricsRomanizeOtherLanguagesKey, defaultValue = true)
     val (preloadQueueLyricsEnabled, onPreloadQueueLyricsEnabledChange) = rememberPreference(PreloadQueueLyricsEnabledKey, defaultValue = true)
     val (queueLyricsPreloadCount, onQueueLyricsPreloadCountChange) = rememberPreference(QueueLyricsPreloadCountKey, defaultValue = 1)
+
+    var showProviderOrderDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showProviderOrderDialog) {
+        LyricsProviderOrderDialog(
+            initialOrder = providerOrder,
+            onDismiss = { showProviderOrderDialog = false },
+            onConfirm = { newOrder ->
+                onProviderOrderStrChange(newOrder.joinToString(",") { it.name })
+                showProviderOrderDialog = false
+            },
+        )
+    }
 
     Column(
         Modifier
@@ -468,37 +499,11 @@ fun LyricsSettings(
             }
 
             item {
-                ListPreference(
+                PreferenceEntry(
                     title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
+                    description = providerOrder.firstOrNull()?.displayName(),
                     icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                    selectedValue = preferredProvider,
-                    values = listOf(
-                        PreferredLyricsProvider.LRCLIB,
-                        PreferredLyricsProvider.KUGOU,
-                        PreferredLyricsProvider.BETTER_LYRICS,
-                        PreferredLyricsProvider.SIMPMUSIC,
-                        PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC,
-                        PreferredLyricsProvider.PAXSENIX_NETEASE,
-                        PreferredLyricsProvider.PAXSENIX_SPOTIFY,
-                        PreferredLyricsProvider.PAXSENIX_MUSIXMATCH,
-                        PreferredLyricsProvider.PAXSENIX_KUGOU,
-                        PreferredLyricsProvider.UNISON,
-                    ),
-                    valueText = {
-                        when (it) {
-                            PreferredLyricsProvider.LRCLIB -> "LrcLib"
-                            PreferredLyricsProvider.KUGOU -> "KuGou"
-                            PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
-                            PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
-                            PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC -> "Paxsenix: Apple Music"
-                            PreferredLyricsProvider.PAXSENIX_NETEASE -> "Paxsenix: NetEase"
-                            PreferredLyricsProvider.PAXSENIX_SPOTIFY -> "Paxsenix: Spotify"
-                            PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> "Paxsenix: Musixmatch"
-                            PreferredLyricsProvider.PAXSENIX_KUGOU -> "Paxsenix: KuGou"
-                            PreferredLyricsProvider.UNISON -> "Unison"
-                        }
-                    },
-                    onValueSelected = onPreferredProviderChange,
+                    onClick = { showProviderOrderDialog = true },
                 )
             }
         }
@@ -602,6 +607,111 @@ fun LyricsSettings(
 
 private enum class PaxsenixServerStatus { Operational, Degraded, Down }
 
+private fun PreferredLyricsProvider.displayName(): String = when (this) {
+    PreferredLyricsProvider.LRCLIB -> "LrcLib"
+    PreferredLyricsProvider.KUGOU -> "KuGou"
+    PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
+    PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
+    PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC -> "Paxsenix: Apple Music"
+    PreferredLyricsProvider.PAXSENIX_NETEASE -> "Paxsenix: NetEase"
+    PreferredLyricsProvider.PAXSENIX_SPOTIFY -> "Paxsenix: Spotify"
+    PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> "Paxsenix: Musixmatch"
+    PreferredLyricsProvider.PAXSENIX_KUGOU -> "Paxsenix: KuGou"
+    PreferredLyricsProvider.UNISON -> "Unison"
+}
+
+@Composable
+private fun LyricsProviderOrderDialog(
+    initialOrder: List<PreferredLyricsProvider>,
+    onDismiss: () -> Unit,
+    onConfirm: (List<PreferredLyricsProvider>) -> Unit,
+) {
+    val providers = remember { mutableStateListOf(*initialOrder.toTypedArray()) }
+    val lazyListState = rememberLazyListState()
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        val item = providers.removeAt(from.index)
+        providers.add(to.index, item)
+    }
+
+    DefaultDialog(
+        onDismiss = onDismiss,
+        buttons = {
+            TextButton(
+                onClick = onDismiss,
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(stringResource(android.R.string.cancel))
+            }
+            Spacer(Modifier.weight(1f))
+            TextButton(
+                onClick = { onConfirm(providers.toList()) },
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(stringResource(android.R.string.ok))
+            }
+        },
+    ) {
+        Column(modifier = Modifier.padding(top = 4.dp)) {
+            Text(
+                text = stringResource(R.string.set_first_lyrics_provider),
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+            LazyColumn(
+                state = lazyListState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 440.dp),
+            ) {
+                itemsIndexed(providers, key = { _, item -> item.name }) { index, provider ->
+                    ReorderableItem(reorderableState, key = provider.name) {
+                        val isFirst = index == 0
+                        val containerColor = if (isFirst)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        val contentColor = if (isFirst)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurface
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = if (index < providers.size - 1) 4.dp else 0.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(containerColor)
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = "${index + 1}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = contentColor.copy(alpha = 0.7f),
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Text(
+                                text = provider.displayName(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = contentColor,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Icon(
+                                painter = painterResource(R.drawable.drag_handle),
+                                contentDescription = null,
+                                tint = contentColor.copy(alpha = 0.6f),
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .draggableHandle(),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 private fun successRateToStatus(rate: Float): PaxsenixServerStatus = when {
     rate >= 90f -> PaxsenixServerStatus.Operational
     rate >= 70f -> PaxsenixServerStatus.Degraded

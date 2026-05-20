@@ -287,12 +287,6 @@ fun LibraryPlaylistsScreen(
         }
     }
 
-    LaunchedEffect(ytmSync, allowSyncing) {
-        if (ytmSync && allowSyncing) {
-            viewModel.sync()
-        }
-    }
-
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val summary = pluralStringResource(R.plurals.n_playlist, visiblePlaylists.size, visiblePlaylists.size)
 

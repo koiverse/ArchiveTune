@@ -40,6 +40,12 @@ android {
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastfmApiKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastfmSecret\"")
 
+        val appUpdatePat =
+            localProperties.getProperty("APP_UPDATE_PAT")
+                ?: System.getenv("APP_UPDATE_PAT")
+                ?: ""
+        buildConfigField("String", "APP_UPDATE_PAT", "\"$appUpdatePat\"")
+
         val togetherBearerToken =
             localProperties.getProperty("TOGETHER_BEARER_TOKEN")
                 ?: System.getenv("TOGETHER_BEARER_TOKEN")
@@ -263,7 +269,7 @@ dependencies {
     // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
-    implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-beta01")
+    implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-beta02")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

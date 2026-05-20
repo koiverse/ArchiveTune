@@ -645,6 +645,20 @@ fun OnlinePlaylistScreen(
                                     }
                                 }
 
+                                // Description (when available)
+                                playlist.description?.let { desc ->
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = desc,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 3,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(horizontal = 32.dp)
+                                    )
+                                }
+
                                 Spacer(modifier = Modifier.height(24.dp))
 
                                 // Action Buttons Row

@@ -11,6 +11,7 @@
 
 package moe.koiverse.archivetune.ui.screens
 
+import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -117,7 +118,11 @@ fun MoodAndGenresScreen(
         }
 
         if (moodAndGenres == null) {
-            items(12) {
+            items(
+                count = 12,
+                key = { index -> "mood_genres_shimmer_$index" },
+                contentType = { "mood_genres_shimmer" },
+            ) {
                 ShimmerHost {
                     TextPlaceholder(
                         height = MoodAndGenresButtonHeight,
@@ -130,6 +135,7 @@ fun MoodAndGenresScreen(
             items(
                 items = moodAndGenres.orEmpty(),
                 key = { item -> "${item.title}:${item.endpoint.browseId}:${item.endpoint.params}" },
+                contentType = { "mood_genres_item" },
             ) { item ->
                 MoodAndGenresButton(
                     title = item.title,
