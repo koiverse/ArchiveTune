@@ -82,7 +82,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.drawscope.scale as drawTransformScale
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -1449,7 +1448,7 @@ private fun InstrumentalBreakItem(
         val pivot = androidx.compose.ui.geometry.Offset.Zero
 
         withTransform(
-            transformBlock = { drawTransformScale(scaleX, scaleY, pivot) },
+            transformBlock = { scale(scaleX, scaleY, pivot) },
         ) {
             drawPath(path = musicNotePath, color = textColor.copy(alpha = inactiveAlpha))
         }
@@ -1463,7 +1462,7 @@ private fun InstrumentalBreakItem(
                 bottom = size.height,
             ) {
                 withTransform(
-                    transformBlock = { drawTransformScale(scaleX, scaleY, pivot) },
+                    transformBlock = { scale(scaleX, scaleY, pivot) },
                 ) {
                     drawPath(path = musicNotePath, color = textColor)
                 }
