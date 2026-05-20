@@ -64,12 +64,15 @@ object TTMLParser {
         try {
             val factory = DocumentBuilderFactory.newInstance().apply {
                 isNamespaceAware = true
-                setFeature("http://xml.org/sax/features/external-general-entities", false)
-                setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-                setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
-                isExpandEntityReferences = false
+                runCatching { setFeature("http://xml.org/sax/features/external-general-entities", false) }
+                runCatching { setFeature("http://xml.org/sax/features/external-parameter-entities", false) }
+                runCatching { setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false) }
+                runCatching { isExpandEntityReferences = false }
             }
-            val doc = factory.newDocumentBuilder().parse(InputSource(StringReader(ttml)))
+            val builder = factory.newDocumentBuilder().apply {
+                setEntityResolver { _, _ -> InputSource(StringReader("")) }
+            }
+            val doc = builder.parse(InputSource(StringReader(ttml)))
             val timingContext = readTimingContext(doc.documentElement)
             val allElements = doc.getElementsByTagName("*")
 
