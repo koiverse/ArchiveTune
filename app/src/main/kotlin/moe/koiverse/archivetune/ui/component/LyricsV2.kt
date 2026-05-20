@@ -1445,19 +1445,23 @@ private fun InstrumentalBreakItem(
         val scaleY = size.height / 24f
         val pivot = androidx.compose.ui.geometry.Offset.Zero
 
-        androidx.compose.ui.graphics.drawscope.scale(scaleX, scaleY, pivot) {
+        androidx.compose.ui.graphics.drawscope.withTransform(
+            transformBlock = { scale(scaleX, scaleY, pivot) },
+        ) {
             drawPath(path = musicNotePath, color = textColor.copy(alpha = inactiveAlpha))
         }
 
         if (fillFraction > 0f) {
             val clipTop = size.height * (1f - fillFraction)
-            androidx.compose.ui.graphics.drawscope.clipRect(
+            clipRect(
                 left = 0f,
                 top = clipTop,
                 right = size.width,
                 bottom = size.height,
             ) {
-                androidx.compose.ui.graphics.drawscope.scale(scaleX, scaleY, pivot) {
+                withTransform(
+                    transformBlock = { scale(scaleX, scaleY, pivot) },
+                ) {
                     drawPath(path = musicNotePath, color = textColor)
                 }
             }
