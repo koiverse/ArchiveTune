@@ -403,10 +403,10 @@
     <string name="backup_category_account_desc">YouTube, Last.fm, Discord &amp; proxy credentials</string>
     <string name="login_success">Logged in successfully</string>
     <string name="ai_integration">AI Integration</string>
-    <string name="ai_integration_desc">Configure AI translation and personalized user mixes.</string>
+    <string name="ai_integration_desc">Configure AI translation and personalized user automates.</string>
     <string name="ai_provider_settings">Provider</string>
     <string name="ai_provider">AI provider</string>
-    <string name="ai_provider_desc">Choose the AI service used for lyrics translation and mix generation.</string>
+    <string name="ai_provider_desc">Choose the AI service.</string>
     <string name="ai_provider_none">None (Disabled)</string>
     <string name="ai_custom_endpoint">Custom endpoint</string>
     <string name="ai_api_key">API key</string>
