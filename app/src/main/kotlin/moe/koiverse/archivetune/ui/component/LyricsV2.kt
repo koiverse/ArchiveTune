@@ -129,6 +129,7 @@ import moe.koiverse.archivetune.constants.LyricsLineBlurKey
 import moe.koiverse.archivetune.constants.LyricsV2BounceFactorKey
 import moe.koiverse.archivetune.constants.LyricsV2FillTransitionWidthKey
 import moe.koiverse.archivetune.constants.LyricsV2GlowFactorKey
+import moe.koiverse.archivetune.constants.LyricsV2LrcBounceEnabledKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeChineseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeHindiKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
@@ -226,6 +227,7 @@ fun LyricsV2(
     val (bounceFactor) = rememberPreference(LyricsV2BounceFactorKey, defaultValue = 1f)
     val (glowFactor) = rememberPreference(LyricsV2GlowFactorKey, defaultValue = 1f)
     val (fillTransitionWidth) = rememberPreference(LyricsV2FillTransitionWidthKey, defaultValue = 8f)
+    val (lrcBounceEnabled) = rememberPreference(LyricsV2LrcBounceEnabledKey, defaultValue = true)
     val (romanizeChinese) = rememberPreference(LyricsRomanizeChineseKey, defaultValue = true)
     val (romanizeHindi) = rememberPreference(LyricsRomanizeHindiKey, defaultValue = true)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
@@ -736,7 +738,7 @@ fun LyricsV2(
                                 isAllBackground = isAllBackground,
                                 lyricsFontFamily = lyricsFontFamily,
                                 textAlign = textAlign,
-                                bounceFactor = bounceFactor,
+                                bounceFactor = if (lrcBounceEnabled) bounceFactor else 0f,
                             )
                         } else {
                             Text(
