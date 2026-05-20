@@ -189,49 +189,18 @@ object LyricsUtils {
         return result.sorted()
     }
 
-    fun insertInstrumentalBreaks(entries: List<LyricsEntry>): List<LyricsEntry> {
+    fun insertInstrumentalBreaks(entries: List<LyricsEntry>, songDurationMs: Long = 0L): List<LyricsEntry> {
         if (entries.isEmpty()) return entries
         val result = mutableListOf<LyricsEntry>()
         insertIntroInstrumentalIfNeeded(entries, result)
-
-        for (i in entries.indices) {
-            val current = entries[i]
-            result.add(current)
-            if (current.isInstrumental || current.text.isBlank()) continue
-            val next = entries.getOrNull(i + 1) ?: continue
-            if (next.time <= 0L) continue
-            val gap = next.time - current.time
-            if (gap <= INSTRUMENTAL_GAP_THRESHOLD_MS) continue
-
-            val previous = entries.getOrNull(i - 1)
-            val previousGapMs = previous?.let { current.time - it.time }?.takeIf { it > 0L }
-            val vocalTailMs = estimateVocalTailMs(current.text, previousGapMs)
-            val maxStartOffsetMs = gap - INSTRUMENTAL_MIN_DURATION_MS
-            if (maxStartOffsetMs <= 0L) continue
-            val startOffsetMs = vocalTailMs.coerceAtMost(maxStartOffsetMs)
-            val instrumentalDurationMs = gap - startOffsetMs
-            if (instrumentalDurationMs < INSTRUMENTAL_MIN_DURATION_MS) continue
-
-            result.add(
-                LyricsEntry(
-                    time = current.time + startOffsetMs,
-                    text = "",
-                    isInstrumental = true,
-                    durationMs = instrumentalDurationMs,
-                )
-            )
-        }
+        result.addAll(entries)
+        insertOutroInstrumentalIfNeeded(entries, songDurationMs, result)
         return result
     }
 
     private const val INSTRUMENTAL_GAP_THRESHOLD_MS = 5000L
     private const val INSTRUMENTAL_INTRO_START_MS = 1000L
-    private const val INSTRUMENTAL_MIN_DURATION_MS = 1500L
-    private const val INSTRUMENTAL_CHAR_DURATION_MS = 95L
-    private const val INSTRUMENTAL_VOCAL_FLOOR_MS = 2200L
-    private const val INSTRUMENTAL_VOCAL_CEILING_MS = 4800L
-    private const val INSTRUMENTAL_PREVIOUS_GAP_FLOOR_MS = 1600L
-    private const val INSTRUMENTAL_PREVIOUS_GAP_CEILING_MS = 4200L
+    private const val INSTRUMENTAL_OUTRO_VOCAL_TAIL_MS = 2500L
 
     private fun insertIntroInstrumentalIfNeeded(
         entries: List<LyricsEntry>,
@@ -251,20 +220,25 @@ object LyricsUtils {
         )
     }
 
-    private fun estimateVocalTailMs(
-        text: String,
-        previousGapMs: Long?,
-    ): Long {
-        val charCount = text.count { !it.isWhitespace() }
-        val charEstimateMs =
-            (charCount * INSTRUMENTAL_CHAR_DURATION_MS)
-                .coerceIn(INSTRUMENTAL_VOCAL_FLOOR_MS, INSTRUMENTAL_VOCAL_CEILING_MS)
-        val cadenceEstimateMs =
-            previousGapMs
-                ?.coerceIn(INSTRUMENTAL_PREVIOUS_GAP_FLOOR_MS, INSTRUMENTAL_PREVIOUS_GAP_CEILING_MS)
-                ?: 0L
+    private fun insertOutroInstrumentalIfNeeded(
+        entries: List<LyricsEntry>,
+        songDurationMs: Long,
+        result: MutableList<LyricsEntry>,
+    ) {
+        if (songDurationMs <= 0L) return
+        val lastVocalEntry = entries.lastOrNull { it.text.isNotBlank() } ?: return
+        val outroStartMs = lastVocalEntry.time + INSTRUMENTAL_OUTRO_VOCAL_TAIL_MS
+        val outroDurationMs = songDurationMs - outroStartMs
+        if (outroDurationMs < INSTRUMENTAL_GAP_THRESHOLD_MS) return
 
-        return maxOf(INSTRUMENTAL_VOCAL_FLOOR_MS, charEstimateMs, cadenceEstimateMs)
+        result.add(
+            LyricsEntry(
+                time = outroStartMs,
+                text = "",
+                isInstrumental = true,
+                durationMs = outroDurationMs,
+            )
+        )
     }
 
     private fun parseLine(line: String): List<LyricsEntry>? {
