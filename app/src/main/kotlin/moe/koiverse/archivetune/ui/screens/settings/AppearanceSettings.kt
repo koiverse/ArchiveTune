@@ -67,6 +67,7 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ChipSortTypeKey
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.DisableAnimationsKey
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 import moe.koiverse.archivetune.constants.DefaultOpenTabKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.constants.GridItemSize
@@ -165,6 +166,10 @@ fun AppearanceSettings(
     val (disableAnimations, onDisableAnimationsChange) = rememberPreference(
         DisableAnimationsKey,
         defaultValue = defaultDisableAnimations,
+    )
+    val (enableHapticFeedback, onEnableHapticFeedbackChange) = rememberPreference(
+        EnableHapticFeedbackKey,
+        defaultValue = true,
     )
     val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 36f)
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
@@ -606,6 +611,16 @@ fun AppearanceSettings(
         }
 
         PreferenceGroup(title = stringResource(R.string.misc)) {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.haptics)) },
+                    description = stringResource(R.string.haptics_desc),
+                    icon = { Icon(painterResource(R.drawable.vibration), null) },
+                    checked = enableHapticFeedback,
+                    onCheckedChange = onEnableHapticFeedbackChange,
+                )
+            }
+
             item {
                 EnumListPreference(
                     title = { Text(stringResource(R.string.quick_picks_display_mode)) },

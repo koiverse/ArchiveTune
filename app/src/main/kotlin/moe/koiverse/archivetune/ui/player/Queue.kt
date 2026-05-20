@@ -69,6 +69,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalView
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
+import moe.koiverse.archivetune.utils.rememberPreference
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -145,6 +148,8 @@ fun Queue(
     onShowLyrics: () -> Unit = {},
     pureBlack: Boolean,
 ) {
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val clipboardManager = LocalClipboard.current
@@ -894,7 +899,7 @@ fun Queue(
                                                 }
                                             },
                                             onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                if (enableHapticFeedback) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 if (!selection) {
                                                     selection = true
                                                 }
@@ -1032,6 +1037,7 @@ fun Queue(
             IconButton(
                 modifier = Modifier.align(Alignment.CenterStart),
                 onClick = {
+                    if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
                     coroutineScope
                         .launch {
                             lazyListState.animateScrollToItem(
@@ -1058,7 +1064,10 @@ fun Queue(
 
             IconButton(
                 modifier = Modifier.align(Alignment.CenterEnd),
-                onClick = playerConnection.player::toggleRepeatMode,
+                onClick = {
+                    if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                    playerConnection.player.toggleRepeatMode()
+                },
             ) {
                 Icon(
                     painter =

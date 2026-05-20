@@ -108,6 +108,8 @@ import java.io.File
 import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
+import androidx.compose.ui.platform.LocalView
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 import android.content.Context
 
 object CanvasArtworkPlaybackCache {
@@ -260,6 +262,10 @@ fun Thumbnail(
     val queueTitle by playerConnection.queueTitle.collectAsState()
 
     val swipeThumbnail by rememberPreference(SwipeThumbnailKey, true)
+    
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
     val archiveTuneCanvasEnabled by rememberPreference(ArchiveTuneCanvasKey, false)
     val playerDesignStyle by rememberEnumPreference(
@@ -580,6 +586,7 @@ fun Thumbnail(
                                     .pointerInput(Unit) {
                                         detectTapGestures(
                                             onDoubleTap = { offset ->
+                                                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
                                                 val currentPosition = playerConnection.player.currentPosition
                                                 val duration = playerConnection.player.duration
 
