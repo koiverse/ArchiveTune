@@ -223,6 +223,17 @@ fun LyricsMenu(
         }
     }
 
+    if (showRefetchLoadingDialog) {
+        DefaultDialog(onDismiss = {}) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(12.dp),
+            ) {
+                LoadingIndicator(modifier = Modifier.size(40.dp))
+            }
+        }
+    }
+
     if (showSearchDialog) {
         SearchLyricsInputDialog(
             titleField = titleField,
@@ -795,23 +806,6 @@ fun LyricsMenu(
                 }
             }
         }
-
-    if (showRefetchLoadingDialog) {
-        DefaultDialog(
-            onDismiss = {},
-            icon = {
-                CircularWavyProgressIndicator(modifier = Modifier.size(28.dp))
-            },
-            title = { Text(stringResource(R.string.refetch)) },
-        ) {
-            Text(
-                text = stringResource(R.string.loading) + "…",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
 
     LazyColumn(
         userScrollEnabled = true,
