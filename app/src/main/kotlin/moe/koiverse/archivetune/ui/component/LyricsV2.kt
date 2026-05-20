@@ -1475,7 +1475,7 @@ private fun InstrumentalBreakItem(
     val fillFraction by androidx.compose.animation.core.animateFloatAsState(
         targetValue = targetFillFraction,
         animationSpec = spring(
-            stiffness = Spring.StiffnessVeryHigh,
+            stiffness = Spring.StiffnessHigh,
             dampingRatio = Spring.DampingRatioNoBouncy,
         ),
         label = "instrumentalFill",
