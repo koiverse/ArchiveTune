@@ -189,6 +189,38 @@ object LyricsUtils {
         return result.sorted()
     }
 
+    /**
+     * Inserts instrumental-break sentinel entries between LRC lines whose gap exceeds
+     * [INSTRUMENTAL_GAP_THRESHOLD_MS].  The break starts [INSTRUMENTAL_VOCAL_DISPLAY_MS] after
+     * the preceding vocal line so the lyric text is readable before the icon fills up.
+     */
+    fun insertInstrumentalBreaks(entries: List<LyricsEntry>): List<LyricsEntry> {
+        if (entries.isEmpty()) return entries
+        val result = mutableListOf<LyricsEntry>()
+        for (i in entries.indices) {
+            result.add(entries[i])
+            val current = entries[i]
+            if (current.isInstrumental || current.text.isBlank()) continue
+            val next = entries.getOrNull(i + 1) ?: continue
+            if (next.time <= 0L) continue
+            val gap = next.time - current.time
+            if (gap > INSTRUMENTAL_GAP_THRESHOLD_MS) {
+                result.add(
+                    LyricsEntry(
+                        time = current.time + INSTRUMENTAL_VOCAL_DISPLAY_MS,
+                        text = "",
+                        isInstrumental = true,
+                        durationMs = gap - INSTRUMENTAL_VOCAL_DISPLAY_MS,
+                    )
+                )
+            }
+        }
+        return result
+    }
+
+    private const val INSTRUMENTAL_GAP_THRESHOLD_MS = 5000L
+    private const val INSTRUMENTAL_VOCAL_DISPLAY_MS = 2000L
+
     private fun parseLine(line: String): List<LyricsEntry>? {
         if (line.isEmpty()) {
             return null
