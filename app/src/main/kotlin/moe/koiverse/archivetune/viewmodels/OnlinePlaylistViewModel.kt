@@ -50,7 +50,7 @@ class OnlinePlaylistViewModel @Inject constructor(
     private val _playlistSongs = MutableStateFlow<List<SongItem>>(emptyList())
     val playlistSongs = _playlistSongs.asStateFlow()
     
-    private val _isLoading = MutableStateFlow(true)
+    private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
     
     private val _isRefreshing = MutableStateFlow(false)
