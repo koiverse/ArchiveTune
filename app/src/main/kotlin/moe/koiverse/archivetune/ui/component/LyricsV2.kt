@@ -171,6 +171,8 @@ private const val LRC_LEAD_MS = 300L
 /** Lead time offset for TTML word-synced lyrics (ms). */
 private const val TTML_LEAD_MS = 0L
 
+private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
+
 /** Seconds to wait before auto-scroll resumes after manual scroll. */
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 
@@ -334,21 +336,33 @@ fun LyricsV2(
 
     // ── Playback position tracking ──
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
+    val instrumentalActivationCompensationMs = remember(leadMs) {
+        leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS
+    }
+    val entriesForActivationIndex = remember(entriesWithWords, instrumentalActivationCompensationMs) {
+        entriesWithWords.map { entry ->
+            if (entry.isInstrumental) {
+                entry.copy(time = entry.time + instrumentalActivationCompensationMs)
+            } else {
+                entry
+            }
+        }
+    }
     var currentPositionMs by remember { mutableLongStateOf(0L) }
+    var playbackPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
     // Frame-accurate position loop
-    LaunchedEffect(entriesWithWords, isSynced) {
-        if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
+    LaunchedEffect(entriesForActivationIndex, isSynced, leadMs, lyricsSyncOffset) {
+        if (!isSynced || entriesForActivationIndex.isEmpty()) return@LaunchedEffect
         while (isActive) {
             val sliderPos = sliderPositionProvider()
             val pos = sliderPos ?: player.currentPosition
-            
-            // Add a visual tuning offset so animations feel instantly responsive and perfectly land on beat
-            val visualTuningOffsetMs = 150L 
-            currentPositionMs = (pos + leadMs + visualTuningOffsetMs + lyricsSyncOffset.toLong()).coerceAtLeast(0L)
-            
-            currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
+
+            playbackPositionMs = (pos + lyricsSyncOffset.toLong()).coerceAtLeast(0L)
+            currentPositionMs = (playbackPositionMs + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
+
+            currentLineIndex = findCurrentLineIndex(entriesForActivationIndex, currentPositionMs, 0L)
             delay(16L) // ~60fps polling
         }
     }
@@ -484,7 +498,15 @@ fun LyricsV2(
         ) {
             itemsIndexed(
                 items = entriesWithWords,
-                key = { index, entry -> "${index}_${entry.time}" }
+                key = { index, entry -> "${index}_${entry.time}" },
+                contentType = { _, entry ->
+                    when {
+                        entry == HEAD_LYRICS_ENTRY -> "head"
+                        entry.isInstrumental -> "instrumental"
+                        entry.words != null && isSynced -> "wordSynced"
+                        else -> "lineSynced"
+                    }
+                },
             ) { index, item ->
                 if (item == HEAD_LYRICS_ENTRY) {
                     Spacer(modifier = Modifier.height(120.dp))
@@ -493,8 +515,9 @@ fun LyricsV2(
 
                 // ── Instrumental break icon ──
                 if (item.isInstrumental && isSynced) {
-                    val isActive = index == currentLineIndex
-                    val isPast = index < currentLineIndex
+                    val startTimeMs = item.time
+                    val endTimeMs = item.time + item.durationMs
+                    val isActive = playbackPositionMs in startTimeMs until endTimeMs
                     val distanceFromActive = abs(index - currentLineIndex)
                     val instrAlpha = when {
                         isActive -> 1f
@@ -525,6 +548,20 @@ fun LyricsV2(
                         ),
                         label = "v2InstrumentalScale",
                     )
+                    val targetInstrBlur = when {
+                        !isSynced || isActive || isManualScrolling -> 0f
+                        distanceFromActive == 1 -> 2f
+                        distanceFromActive == 2 -> 5f
+                        else -> 12f
+                    }
+                    val animatedInstrBlur by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = targetInstrBlur,
+                        animationSpec = androidx.compose.animation.core.tween(
+                            durationMillis = 300,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                        ),
+                        label = "v2InstrumentalBlur",
+                    )
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -534,6 +571,17 @@ fun LyricsV2(
                                 top = if (index == 0 || (index == 1 && entriesWithWords[0] == HEAD_LYRICS_ENTRY)) 0.dp
                                       else (lyricsLineSpacing * 8).dp,
                                 bottom = (lyricsLineSpacing * 8).dp,
+                            )
+                            .then(
+                                if (lyricsLineBlur) {
+                                    Modifier.blur(
+                                        radiusX = animatedInstrBlur.dp,
+                                        radiusY = animatedInstrBlur.dp,
+                                        edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                                    )
+                                } else {
+                                    Modifier
+                                }
                             )
                             .graphicsLayer {
                                 scaleX = animatedInstrScale
@@ -547,11 +595,9 @@ fun LyricsV2(
                             ),
                     ) {
                         InstrumentalBreakItem(
-                            isActive = isActive,
-                            isPast = isPast,
                             durationMs = item.durationMs,
-                            currentPositionMs = currentPositionMs,
-                            startTimeMs = item.time,
+                            currentPositionMs = playbackPositionMs,
+                            startTimeMs = startTimeMs,
                             textColor = textColor,
                             inactiveAlpha = inactiveAlpha,
                         )
@@ -1417,8 +1463,6 @@ private fun LrcBouncingWord(
 
 @Composable
 private fun InstrumentalBreakItem(
-    isActive: Boolean,
-    isPast: Boolean,
     durationMs: Long,
     currentPositionMs: Long,
     startTimeMs: Long,
@@ -1436,10 +1480,13 @@ private fun InstrumentalBreakItem(
     }
 
     val fillFraction = when {
-        isPast -> 1f
-        !isActive -> 0f
         durationMs <= 0L -> 0f
-        else -> ((currentPositionMs - startTimeMs).toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+        currentPositionMs <= startTimeMs -> 0f
+        currentPositionMs >= startTimeMs + durationMs -> 1f
+        else ->
+            ((currentPositionMs - startTimeMs).toDouble() / durationMs.toDouble())
+                .toFloat()
+                .coerceIn(0f, 1f)
     }
 
     androidx.compose.foundation.Canvas(modifier = Modifier.size(48.dp)) {
