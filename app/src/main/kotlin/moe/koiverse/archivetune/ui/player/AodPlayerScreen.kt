@@ -49,6 +49,10 @@ import androidx.media3.common.C
 import coil3.compose.AsyncImage
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.models.MediaMetadata
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalView
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
+import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.makeTimeString
 
 private val White70 = Color.White.copy(alpha = 0.70f)
@@ -234,6 +238,9 @@ private fun AodControls(
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
 ) {
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+    
     val playButtonColors = IconButtonDefaults.filledIconButtonColors(
         containerColor = Color.White,
         contentColor = Color.Black,
@@ -245,7 +252,10 @@ private fun AodControls(
         modifier = Modifier.fillMaxWidth(),
     ) {
         IconButton(
-            onClick = onSkipPrevious,
+            onClick = {
+                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                onSkipPrevious()
+            },
             enabled = canSkipPrevious,
             modifier = Modifier.size(48.dp),
         ) {
@@ -258,7 +268,10 @@ private fun AodControls(
         }
 
         FilledIconButton(
-            onClick = onPlayPause,
+            onClick = {
+                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                onPlayPause()
+            },
             modifier = Modifier.size(64.dp),
             colors = playButtonColors,
         ) {
@@ -270,7 +283,10 @@ private fun AodControls(
         }
 
         IconButton(
-            onClick = onSkipNext,
+            onClick = {
+                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                onSkipNext()
+            },
             enabled = canSkipNext,
             modifier = Modifier.size(48.dp),
         ) {

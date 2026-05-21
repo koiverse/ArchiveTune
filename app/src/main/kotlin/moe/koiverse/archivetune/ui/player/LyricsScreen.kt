@@ -136,6 +136,9 @@ import kotlinx.coroutines.withContext
 import kotlin.runCatching
 import moe.koiverse.archivetune.utils.makeTimeString
 import androidx.compose.ui.text.style.TextAlign
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.platform.LocalView
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -158,6 +161,9 @@ fun LyricsScreen(
     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
     val playerVolume = playerConnection.service.playerVolume.collectAsState()
     
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+
     // slider style preference
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
@@ -489,7 +495,10 @@ fun LyricsScreen(
                             ) {
                                 // Repeat button
                                 IconButton(
-                                    onClick = { playerConnection.player.toggleRepeatMode() },
+                                    onClick = {
+                                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                        playerConnection.player.toggleRepeatMode()
+                                    },
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Icon(
@@ -518,8 +527,11 @@ fun LyricsScreen(
 
                                 // Previous button
                                 IconButton(
-                                    onClick = { player.seekToPrevious() },
-                                    modifier = Modifier.size(40.dp)
+                                    onClick = {
+                                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                        player.seekToPrevious()
+                                    },
+                                    modifier = Modifier.size(40.dp) // Slightly smaller
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.skip_previous),
@@ -529,10 +541,13 @@ fun LyricsScreen(
                                     )
                                 }
 
-                                // Play/Pause button
+                                // Play/Pause button (largest)
                                 IconButton(
-                                    onClick = { player.togglePlayPause() },
-                                    modifier = Modifier.size(56.dp)
+                                    onClick = {
+                                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                        player.togglePlayPause()
+                                    },
+                                    modifier = Modifier.size(56.dp) // Slightly smaller but still prominent
                                 ) {
                                     if (isLoading) {
                                         CircularWavyProgressIndicator(
@@ -553,8 +568,11 @@ fun LyricsScreen(
 
                                 // Next button
                                 IconButton(
-                                    onClick = { player.seekToNext() },
-                                    modifier = Modifier.size(40.dp)
+                                    onClick = {
+                                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                        player.seekToNext()
+                                    },
+                                    modifier = Modifier.size(40.dp) // Slightly smaller
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.skip_next),
@@ -566,15 +584,20 @@ fun LyricsScreen(
 
                                 // Shuffle button
                                 IconButton(
-                                    onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled },
+                                    onClick = {
+                                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                        playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
+                                    },
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.shuffle),
                                         contentDescription = if (shuffleModeEnabled) stringResource(R.string.shuffle) else stringResource(R.string.shuffle),
                                         tint = if (shuffleModeEnabled) {
+                                            // Active state - full brightness
                                             textBackgroundColor
                                         } else {
+                                            // Inactive state - low opacity
                                             textBackgroundColor.copy(alpha = 0.4f)
                                         },
                                         modifier = Modifier.size(20.dp)
@@ -582,7 +605,7 @@ fun LyricsScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(24.dp)) // Proper spacing
 
                             // Volume Control
                             Row(
@@ -605,7 +628,7 @@ fun LyricsScreen(
                                     color = textBackgroundColor,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(24.dp)
+                                        .height(20.dp)
                                         .padding(horizontal = 16.dp)
                                 )
 
@@ -616,6 +639,8 @@ fun LyricsScreen(
                                     tint = textBackgroundColor
                                 )
                             }
+
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
                 }
@@ -775,7 +800,10 @@ fun LyricsScreen(
                         ) {
                             // Repeat button with clear state indication
                             IconButton(
-                                onClick = { playerConnection.player.toggleRepeatMode() },
+                                onClick = {
+                                    if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                    playerConnection.player.toggleRepeatMode()
+                                },
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
@@ -806,7 +834,10 @@ fun LyricsScreen(
 
                             // Previous button
                             IconButton(
-                                onClick = { player.seekToPrevious() },
+                                onClick = {
+                                    if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                    player.seekToPrevious()
+                                },
                                 modifier = Modifier.size(40.dp) // Slightly smaller
                             ) {
                                 Icon(
@@ -819,7 +850,10 @@ fun LyricsScreen(
 
                             // Play/Pause button (largest)
                             IconButton(
-                                onClick = { player.togglePlayPause() },
+                                onClick = {
+                                    if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                    player.togglePlayPause()
+                                },
                                 modifier = Modifier.size(56.dp) // Slightly smaller but still prominent
                             ) {
                                 if (isLoading) {
@@ -841,7 +875,10 @@ fun LyricsScreen(
 
                             // Next button
                             IconButton(
-                                onClick = { player.seekToNext() },
+                                onClick = {
+                                    if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                    player.seekToNext()
+                                },
                                 modifier = Modifier.size(40.dp) // Slightly smaller
                             ) {
                                 Icon(
@@ -852,9 +889,12 @@ fun LyricsScreen(
                                 )
                             }
 
-                            // Shuffle button with clear state indication
+                                // Shuffle button with clear state indication
                             IconButton(
-                                onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled },
+                                onClick = {
+                                    if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                    playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
+                                },
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
