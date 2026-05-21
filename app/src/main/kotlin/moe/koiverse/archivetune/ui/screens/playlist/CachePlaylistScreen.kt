@@ -172,6 +172,16 @@ fun CachePlaylistScreen(
     val focusRequester = remember { FocusRequester() }
     val lazyListState = rememberLazyListState()
 
+    val selectedCount by remember(wrappedSongs) {
+        derivedStateOf { wrappedSongs.count { it.isSelected } }
+    }
+
+    LaunchedEffect(selectedCount) {
+        if (selection && selectedCount == 0) {
+            selection = false
+        }
+    }
+
     LaunchedEffect(isSearching) {
         if (isSearching) {
             focusRequester.requestFocus()
@@ -745,8 +755,21 @@ fun CachePlaylistScreen(
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
                     androidx.compose.material3.IconButton(onClick = {
+                        wrappedSongs.filter { it.isSelected }.forEach {
+                            viewModel.removeSongFromCache(it.item.id)
+                        }
+                        selection = false
+                    }) {
+                        Icon(
+                            painter = painterResource(R.drawable.delete),
+                            contentDescription = stringResource(R.string.remove_from_cache)
+                        )
+                    }
+
+                    androidx.compose.material3.IconButton(onClick = {
                         if (count == wrappedSongs.size) {
                             wrappedSongs.forEach { it.isSelected = false }
+                            selection = false
                         } else {
                             wrappedSongs.forEach { it.isSelected = true }
                         }
@@ -764,7 +787,11 @@ fun CachePlaylistScreen(
                             SelectionSongMenu(
                                 songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
                                 onDismiss = menuState::dismiss,
-                                clearAction = { selection = false }
+                                clearAction = { selection = false },
+                                isFromCache = true,
+                                onRemoveFromCache = { songs ->
+                                    songs.forEach { viewModel.removeSongFromCache(it.id) }
+                                }
                             )
                         }
                     }) {
