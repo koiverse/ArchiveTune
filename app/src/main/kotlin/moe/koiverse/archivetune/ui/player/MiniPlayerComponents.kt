@@ -87,6 +87,10 @@ import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.playback.PlayerConnection
 import moe.koiverse.archivetune.together.TogetherSessionState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalView
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
+import moe.koiverse.archivetune.utils.rememberPreference
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Arrangement
@@ -107,6 +111,9 @@ fun SwipeableMiniPlayerBox(
     val offsetXAnimatable = remember { Animatable(0f) }
     var dragStartTime by remember { mutableStateOf(0L) }
     var totalDragDistance by remember { mutableFloatStateOf(0f) }
+
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
 
     val animationSpec = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
@@ -182,11 +189,13 @@ fun SwipeableMiniPlayerBox(
                                     val canSkipNext = playerConnection.player.nextMediaItemIndex != -1
 
                                     if (isRightSwipe && canSkipPrevious) {
+                                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
                                         playerConnection.player.seekToPreviousMediaItem()
                                         if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
                                             try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
                                         }
                                     } else if (!isRightSwipe && canSkipNext) {
+                                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
                                         playerConnection.player.seekToNext()
                                         if (moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.isRunning()) {
                                             try { moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
@@ -341,6 +350,13 @@ private fun MiniPlayerTransportButton(
     enabled: Boolean = true,
     isPrimary: Boolean = false
 ) {
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+
+    LaunchedEffect(enableHapticFeedback) {
+        view.isHapticFeedbackEnabled = enableHapticFeedback
+    }
+    
     val containerColor =
         if (isPrimary) MaterialTheme.colorScheme.surface else Color.Transparent
     val borderColor =
@@ -358,7 +374,10 @@ private fun MiniPlayerTransportButton(
             .clip(CircleShape)
             .background(containerColor)
             .border(width = 1.dp, color = borderColor, shape = CircleShape)
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, onClick = {
+                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                onClick()
+            })
     ) {
         Icon(
             painter = painterResource(iconResId),

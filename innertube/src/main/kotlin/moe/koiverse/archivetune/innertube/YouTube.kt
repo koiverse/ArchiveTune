@@ -673,7 +673,9 @@ object YouTube {
                     PlaylistPage.fromMusicResponsiveListItemRenderer(it)
                 } ?: emptyList(),
             songsContinuation = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
-                ?.contents?.firstOrNull()?.musicPlaylistShelfRenderer?.contents?.getContinuation(),
+                ?.contents?.firstOrNull()?.musicPlaylistShelfRenderer?.let { shelf ->
+                    shelf.contents.getContinuation() ?: shelf.continuations?.getContinuation()
+                },
             continuation = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
                 ?.continuations?.getContinuation()
         )

@@ -17,7 +17,6 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -80,6 +79,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -129,6 +130,7 @@ import moe.koiverse.archivetune.constants.LyricsLineBlurKey
 import moe.koiverse.archivetune.constants.LyricsV2BounceFactorKey
 import moe.koiverse.archivetune.constants.LyricsV2FillTransitionWidthKey
 import moe.koiverse.archivetune.constants.LyricsV2GlowFactorKey
+import moe.koiverse.archivetune.constants.LyricsV2LrcBounceEnabledKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeChineseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeHindiKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeJapaneseKey
@@ -144,6 +146,7 @@ import moe.koiverse.archivetune.lyrics.LyricsUtils.findCurrentLineIndex
 import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeLyricsLine
 import moe.koiverse.archivetune.lyrics.LyricsUtils.shouldRomanizeLyricsLine
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
+import moe.koiverse.archivetune.lyrics.LyricsUtils.insertInstrumentalBreaks
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
 import moe.koiverse.archivetune.lyrics.WordTimestamp
@@ -167,14 +170,10 @@ private const val LRC_LEAD_MS = 300L
 /** Lead time offset for TTML word-synced lyrics (ms). */
 private const val TTML_LEAD_MS = 0L
 
+private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
+
 /** Seconds to wait before auto-scroll resumes after manual scroll. */
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
-
-/** Apple-Music-style easing for smooth deceleration. */
-private val V2Easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
-
-/** Liquid fill easing: fast attack, very smooth deceleration (Apple Music-like). */
-private val LiquidFillEasing = CubicBezierEasing(0.0f, 0.0f, 0.15f, 1.0f)
 
 /** Sentinel entry prepended so auto-scroll has headroom above the first line. */
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
@@ -225,6 +224,7 @@ fun LyricsV2(
     val (bounceFactor) = rememberPreference(LyricsV2BounceFactorKey, defaultValue = 1f)
     val (glowFactor) = rememberPreference(LyricsV2GlowFactorKey, defaultValue = 1f)
     val (fillTransitionWidth) = rememberPreference(LyricsV2FillTransitionWidthKey, defaultValue = 8f)
+    val (lrcBounceEnabled) = rememberPreference(LyricsV2LrcBounceEnabledKey, defaultValue = true)
     val (romanizeChinese) = rememberPreference(LyricsRomanizeChineseKey, defaultValue = true)
     val (romanizeHindi) = rememberPreference(LyricsRomanizeHindiKey, defaultValue = true)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
@@ -280,7 +280,10 @@ fun LyricsV2(
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) return@remember emptyList()
         val parsed = when {
             isTtml(lyrics!!) -> parseTtml(lyrics!!)
-            lyrics!!.startsWith("[") -> parseLyrics(lyrics!!)
+            lyrics!!.startsWith("[") -> {
+                val dur = player.duration.takeIf { it > 0L } ?: 0L
+                insertInstrumentalBreaks(parseLyrics(lyrics!!), dur)
+            }
             else -> lyrics!!.lines()
                 .filter { it.isNotBlank() }
                 .mapIndexed { index, line ->
@@ -330,19 +333,19 @@ fun LyricsV2(
     // ── Playback position tracking ──
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
     var currentPositionMs by remember { mutableLongStateOf(0L) }
+    var playbackPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
     // Frame-accurate position loop
-    LaunchedEffect(entriesWithWords, isSynced) {
+    LaunchedEffect(entriesWithWords, isSynced, leadMs, lyricsSyncOffset) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         while (isActive) {
             val sliderPos = sliderPositionProvider()
             val pos = sliderPos ?: player.currentPosition
-            
-            // Add a visual tuning offset so animations feel instantly responsive and perfectly land on beat
-            val visualTuningOffsetMs = 150L 
-            currentPositionMs = (pos + leadMs + visualTuningOffsetMs + lyricsSyncOffset.toLong()).coerceAtLeast(0L)
-            
+
+            playbackPositionMs = (pos + lyricsSyncOffset.toLong()).coerceAtLeast(0L)
+            currentPositionMs = (playbackPositionMs + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
+
             currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
             delay(16L) // ~60fps polling
         }
@@ -479,10 +482,110 @@ fun LyricsV2(
         ) {
             itemsIndexed(
                 items = entriesWithWords,
-                key = { index, entry -> "${index}_${entry.time}" }
+                key = { index, entry -> "${index}_${entry.time}" },
+                contentType = { _, entry ->
+                    when {
+                        entry == HEAD_LYRICS_ENTRY -> "head"
+                        entry.isInstrumental -> "instrumental"
+                        entry.words != null && isSynced -> "wordSynced"
+                        else -> "lineSynced"
+                    }
+                },
             ) { index, item ->
                 if (item == HEAD_LYRICS_ENTRY) {
                     Spacer(modifier = Modifier.height(120.dp))
+                    return@itemsIndexed
+                }
+
+                // ── Instrumental break icon ──
+                if (item.isInstrumental && isSynced) {
+                    val startTimeMs = item.time
+                    val endTimeMs = item.time + item.durationMs
+                    val isActive = playbackPositionMs in startTimeMs until endTimeMs
+                    val distanceFromActive = abs(index - currentLineIndex)
+                    val instrAlpha = when {
+                        isActive -> 1f
+                        isManualScrolling -> when {
+                            distanceFromActive == 1 -> 0.72f
+                            distanceFromActive == 2 -> 0.56f
+                            distanceFromActive == 3 -> 0.40f
+                            else -> 0.28f
+                        }
+                        distanceFromActive == 1 -> 0.52f
+                        distanceFromActive == 2 -> 0.30f
+                        distanceFromActive == 3 -> 0.18f
+                        else -> inactiveAlpha
+                    }
+                    val animatedInstrAlpha by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = instrAlpha,
+                        animationSpec = androidx.compose.animation.core.tween(
+                            durationMillis = if (isActive) 330 else 500,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                        ),
+                        label = "v2InstrumentalAlpha",
+                    )
+                    val animatedInstrScale by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (isActive) 1f else 0.95f,
+                        animationSpec = androidx.compose.animation.core.tween(
+                            durationMillis = 166,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                        ),
+                        label = "v2InstrumentalScale",
+                    )
+                    val targetInstrBlur = when {
+                        !isSynced || isActive || isManualScrolling -> 0f
+                        distanceFromActive == 1 -> 2f
+                        distanceFromActive == 2 -> 5f
+                        else -> 12f
+                    }
+                    val animatedInstrBlur by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = targetInstrBlur,
+                        animationSpec = androidx.compose.animation.core.tween(
+                            durationMillis = 300,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                        ),
+                        label = "v2InstrumentalBlur",
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = 12.dp,
+                                end = 12.dp,
+                                top = if (index == 0 || (index == 1 && entriesWithWords[0] == HEAD_LYRICS_ENTRY)) 0.dp
+                                      else (lyricsLineSpacing * 8).dp,
+                                bottom = (lyricsLineSpacing * 8).dp,
+                            )
+                            .then(
+                                if (lyricsLineBlur) {
+                                    Modifier.blur(
+                                        radiusX = animatedInstrBlur.dp,
+                                        radiusY = animatedInstrBlur.dp,
+                                        edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .graphicsLayer {
+                                scaleX = animatedInstrScale
+                                scaleY = animatedInstrScale
+                                alpha = animatedInstrAlpha
+                            }
+                            .then(
+                                if (lyricsClick && item.time > 0) {
+                                    Modifier.clickable { player.seekTo(item.time) }
+                                } else Modifier
+                            ),
+                    ) {
+                        InstrumentalBreakItem(
+                            durationMs = item.durationMs,
+                            currentPositionMs = playbackPositionMs,
+                            startTimeMs = startTimeMs,
+                            textColor = textColor,
+                            inactiveAlpha = inactiveAlpha,
+                        )
+                    }
                     return@itemsIndexed
                 }
 
@@ -667,7 +770,7 @@ fun LyricsV2(
                                 isAllBackground = isAllBackground,
                                 lyricsFontFamily = lyricsFontFamily,
                                 textAlign = textAlign,
-                                bounceFactor = bounceFactor,
+                                bounceFactor = if (lrcBounceEnabled) bounceFactor else 0f,
                             )
                         } else {
                             Text(
@@ -1335,4 +1438,74 @@ private fun LrcBouncingWord(
             translationY = floatAnim.value
         },
     )
+}
+
+
+// ──────────────────────────────────────────────────────────────────────
+// Instrumental break icon: music-note filled bottom-to-top over the gap
+// ──────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun InstrumentalBreakItem(
+    durationMs: Long,
+    currentPositionMs: Long,
+    startTimeMs: Long,
+    textColor: Color,
+    inactiveAlpha: Float,
+) {
+    val musicNotePath = remember {
+        androidx.compose.ui.graphics.vector.PathParser()
+            .parsePathString(
+                "M10 21q-1.65 0-2.825-1.175T6 17t1.175-2.825T10 13q.575 0 1.063.138t.937.412V4" +
+                "q0-.425.288-.712T13 3h4q.425 0 .713.288T18 4v2q0 .425-.288.713T17 7h-3v10" +
+                "q0 1.65-1.175 2.825T10 21"
+            )
+            .toPath()
+    }
+
+    val targetFillFraction = when {
+        durationMs <= 0L -> 0f
+        currentPositionMs <= startTimeMs -> 0f
+        currentPositionMs >= startTimeMs + durationMs -> 1f
+        else ->
+            ((currentPositionMs - startTimeMs).toDouble() / durationMs.toDouble())
+                .toFloat()
+                .coerceIn(0f, 1f)
+    }
+    val fillFraction by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = targetFillFraction,
+        animationSpec = spring(
+            stiffness = Spring.StiffnessHigh,
+            dampingRatio = Spring.DampingRatioNoBouncy,
+        ),
+        label = "instrumentalFill",
+    )
+
+    androidx.compose.foundation.Canvas(modifier = Modifier.size(48.dp)) {
+        val scaleX = size.width / 24f
+        val scaleY = size.height / 24f
+        val pivot = androidx.compose.ui.geometry.Offset.Zero
+
+        withTransform(
+            transformBlock = { scale(scaleX, scaleY, pivot) },
+        ) {
+            drawPath(path = musicNotePath, color = textColor.copy(alpha = inactiveAlpha))
+        }
+
+        if (fillFraction > 0f) {
+            val clipTop = size.height * (1f - fillFraction)
+            clipRect(
+                left = 0f,
+                top = clipTop,
+                right = size.width,
+                bottom = size.height,
+            ) {
+                withTransform(
+                    transformBlock = { scale(scaleX, scaleY, pivot) },
+                ) {
+                    drawPath(path = musicNotePath, color = textColor)
+                }
+            }
+        }
+    }
 }

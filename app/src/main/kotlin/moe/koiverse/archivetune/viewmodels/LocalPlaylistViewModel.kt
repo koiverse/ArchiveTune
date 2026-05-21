@@ -246,8 +246,8 @@ constructor(
 
     fun refresh() {
         if (_isRefreshing.value) return
+        _isRefreshing.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            _isRefreshing.value = true
             try {
                 val p = playlist.first() ?: return@launch
                 val browseId = p.playlist.browseId ?: return@launch

@@ -349,6 +349,7 @@ jobs:
           configurationJson: |
             {
               "template": "# Changelog\n\n#{{CHANGELOG}}\n\n<details>\n<summary>Other changes</summary>\n\n#{{UNCATEGORIZED}}\n</details>\n",
+              "pr_template": "- #{{TITLE}} — by @#{{AUTHOR}}",
               "categories": [
                 { "title": "## Features", "labels": ["feat", "feature"] },
                 { "title": "## Fixes", "labels": ["fix", "bug"] },

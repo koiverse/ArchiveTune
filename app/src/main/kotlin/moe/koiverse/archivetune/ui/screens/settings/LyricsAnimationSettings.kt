@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -35,6 +36,7 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.LyricsV2BounceFactorKey
 import moe.koiverse.archivetune.constants.LyricsV2FillTransitionWidthKey
 import moe.koiverse.archivetune.constants.LyricsV2GlowFactorKey
+import moe.koiverse.archivetune.constants.LyricsV2LrcBounceEnabledKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroup
@@ -50,6 +52,7 @@ fun LyricsAnimationSettings(
     val (bounceFactor, onBounceFactorChange) = rememberPreference(LyricsV2BounceFactorKey, defaultValue = 1f)
     val (glowFactor, onGlowFactorChange) = rememberPreference(LyricsV2GlowFactorKey, defaultValue = 1f)
     val (fillTransitionWidth, onFillTransitionWidthChange) = rememberPreference(LyricsV2FillTransitionWidthKey, defaultValue = 8f)
+    val (lrcBounceEnabled, onLrcBounceEnabledChange) = rememberPreference(LyricsV2LrcBounceEnabledKey, defaultValue = true)
 
     Column(
         modifier = Modifier
@@ -84,6 +87,20 @@ fun LyricsAnimationSettings(
                 .padding(bottom = 16.dp)
         ) {
             PreferenceGroup(title = "Animation Tuning") {
+                item {
+                    PreferenceEntry(
+                        title = { Text("Line Bounce Effect") },
+                        description = "Enable bounce animation for line-synced (LRC) lyrics",
+                        icon = { Icon(painterResource(R.drawable.animation), null) },
+                        trailingContent = {
+                            Switch(
+                                checked = lrcBounceEnabled,
+                                onCheckedChange = onLrcBounceEnabledChange,
+                            )
+                        }
+                    )
+                }
+
                 item {
                     PreferenceEntry(
                         title = { Text("Bounce Amplitude") },
