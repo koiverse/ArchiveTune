@@ -932,7 +932,7 @@ fun PlayerPlaybackControls(
 
                     FilledIconButton(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
@@ -1048,7 +1048,7 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(50))
                             .background(textBackgroundColor)
                             .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                     playerConnection.player.seekTo(0, 0)
                                     playerConnection.player.playWhenReady = true
@@ -1215,7 +1215,7 @@ fun PlayerPlaybackControls(
 
                     Surface(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
@@ -1368,7 +1368,7 @@ fun PlayerPlaybackControls(
                         .clip(RoundedCornerShape(playPauseRoundness))
                         .background(textButtonColor)
                         .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
@@ -1488,7 +1488,7 @@ fun PlayerPlaybackControls(
 
                         Surface(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                     playerConnection.player.seekTo(0, 0)
                                     playerConnection.player.playWhenReady = true
@@ -1659,7 +1659,7 @@ fun PlayerPlaybackControls(
 
                 Surface(
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                             playerConnection.player.seekTo(0, 0)
                             playerConnection.player.playWhenReady = true
