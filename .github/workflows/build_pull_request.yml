@@ -49,7 +49,6 @@ jobs:
           PULL_REQUEST: "true"
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
-          APP_UPDATE_PAT: ${{ secrets.APP_UPDATE_PAT }}
           CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
 
       - name: Upload APK

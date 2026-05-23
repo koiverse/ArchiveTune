@@ -40,12 +40,6 @@ android {
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastfmApiKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastfmSecret\"")
 
-        val appUpdatePat =
-            localProperties.getProperty("APP_UPDATE_PAT")
-                ?: System.getenv("APP_UPDATE_PAT")
-                ?: ""
-        buildConfigField("String", "APP_UPDATE_PAT", "\"$appUpdatePat\"")
-
         val togetherBearerToken =
             localProperties.getProperty("TOGETHER_BEARER_TOKEN")
                 ?: System.getenv("TOGETHER_BEARER_TOKEN")

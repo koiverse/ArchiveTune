@@ -217,9 +217,6 @@ object Updater {
                 headers {
                     append("Accept", "application/vnd.github+json")
                     append("User-Agent", "ArchiveTune")
-                    if (BuildConfig.APP_UPDATE_PAT.isNotBlank()) {
-                        append("Authorization", "Bearer ${BuildConfig.APP_UPDATE_PAT}")
-                    }
                     if (!cachedEtag.isNullOrBlank()) {
                         append("If-None-Match", cachedEtag)
                     }
@@ -271,15 +268,8 @@ object Updater {
     suspend fun getCommitHistory(count: Int = 20, branch: String = "dev"): Result<List<GitCommit>> =
         runCatching {
             val response =
-                client.get("https://api.github.com/repos/koiverse/ArchiveTune/commits?sha=$branch&per_page=$count") {
-                    headers {
-                        append("Accept", "application/vnd.github+json")
-                        append("User-Agent", "ArchiveTune")
-                        if (BuildConfig.APP_UPDATE_PAT.isNotBlank()) {
-                            append("Authorization", "Bearer ${BuildConfig.APP_UPDATE_PAT}")
-                        }
-                    }
-                }.bodyAsText()
+                client.get("https://api.github.com/repos/koiverse/ArchiveTune/commits?sha=$branch&per_page=$count")
+                    .bodyAsText()
             val jsonArray = JSONArray(response)
             val commits = mutableListOf<GitCommit>()
             for (i in 0 until jsonArray.length()) {
