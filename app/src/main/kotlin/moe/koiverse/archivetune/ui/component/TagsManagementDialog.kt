@@ -154,7 +154,7 @@ fun TagsManagementDialog(
                             },
                             onRemove = {
                                 database.transaction {
-                                    delete(tag)
+                                    deleteTag(tag)
                                 }
                             }
                         )

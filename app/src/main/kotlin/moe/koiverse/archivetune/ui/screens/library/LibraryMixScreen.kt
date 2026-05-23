@@ -75,7 +75,6 @@ import moe.koiverse.archivetune.constants.MixSortType
 import moe.koiverse.archivetune.constants.MixSortTypeKey
 import moe.koiverse.archivetune.constants.PlaylistSortType
 import moe.koiverse.archivetune.constants.PlaylistSortTypeKey
-import moe.koiverse.archivetune.constants.PlaylistTagsFilterKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
@@ -113,6 +112,7 @@ private data class LibraryShortcutEntry(
 fun LibraryMixScreen(
     navController: NavController,
     filterContent: @Composable () -> Unit,
+    selectedTagIds: Set<String>,
     viewModel: LibraryMixViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -130,10 +130,6 @@ fun LibraryMixScreen(
     val (sortDescending, onSortDescendingChange) = rememberPreference(MixSortDescendingKey, true)
     val (playlistSortType) = rememberEnumPreference(PlaylistSortTypeKey, PlaylistSortType.CUSTOM)
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
-    val (selectedTagsFilter) = rememberPreference(PlaylistTagsFilterKey, "")
-    val selectedTagIds = remember(selectedTagsFilter) {
-        selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet()
-    }
     val filteredPlaylistIds by database.playlistIdsByTags(
         if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList(),
     ).collectAsState(initial = emptyList())

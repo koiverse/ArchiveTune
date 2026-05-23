@@ -1726,6 +1726,12 @@ interface DatabaseDao {
     @Delete
     fun delete(tag: TagEntity)
 
+    @Transaction
+    fun deleteTag(tag: TagEntity) {
+        removeAllTagPlaylists(tag.id)
+        delete(tag)
+    }
+
     @Delete
     fun delete(playlistTagMap: PlaylistTagMap)
 
