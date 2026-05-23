@@ -5352,8 +5352,9 @@ private fun onMediaItemTransitionInternal() {
         } else 0f
 
         // updateAppWidgetState writes to the Glance DataStore keyed by GlanceId
-        val glanceIds = GlanceAppWidgetManager(this).getGlanceIds(moe.koiverse.archivetune.widget.MusicWidget::class.java)
-        glanceIds.forEach { glanceId ->
+        // Update MusicWidget (horizontal widget with track info)
+        val musicWidgetIds = GlanceAppWidgetManager(this).getGlanceIds(moe.koiverse.archivetune.widget.MusicWidget::class.java)
+        musicWidgetIds.forEach { glanceId ->
             updateAppWidgetState(this, PreferencesGlanceStateDefinition, glanceId) { prefs ->
                 prefs.toMutablePreferences().apply {
                     this[moe.koiverse.archivetune.widget.MusicWidgetKeys.TRACK_TITLE] = meta?.title?.toString() ?: "Nothing playing"
@@ -5366,6 +5367,20 @@ private fun onMediaItemTransitionInternal() {
                 }
             }
             moe.koiverse.archivetune.widget.MusicWidget().update(this, glanceId)
+        }
+        
+        // Update AlbumArtWidget (square widget with album art focus)
+        val albumArtWidgetIds = GlanceAppWidgetManager(this).getGlanceIds(moe.koiverse.archivetune.widget.AlbumArtWidget::class.java)
+        albumArtWidgetIds.forEach { glanceId ->
+            updateAppWidgetState(this, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                prefs.toMutablePreferences().apply {
+                    this[moe.koiverse.archivetune.widget.MusicWidgetKeys.IS_PLAYING] = player.isPlaying
+                    this[moe.koiverse.archivetune.widget.MusicWidgetKeys.IS_AVAILABLE] = mediaItem != null
+                    if (artFile != null) this[moe.koiverse.archivetune.widget.MusicWidgetKeys.ART_PATH] = artFile.absolutePath
+                    if (dominantColor != null) this[moe.koiverse.archivetune.widget.MusicWidgetKeys.DOMINANT_COLOR] = dominantColor
+                }
+            }
+            moe.koiverse.archivetune.widget.AlbumArtWidget().update(this, glanceId)
         }
     }
 
