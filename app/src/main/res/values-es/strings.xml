@@ -230,8 +230,8 @@
     <string name="customize_theme_colors">Elige los colores del tema de tu aplicación</string>
     <string name="selected_theme_color">Color del tema seleccionado</string>
     <string name="theme_preview">Vista previa del tema</string>
-    <string name="pitch_mode_semitones_short">Semitono</string>
-    <string name="pitch_mode_multiplier_short">Multiplicador</string>
+    <string name="pitch_mode_semitones_short">st</string>
+    <string name="pitch_mode_multiplier_short">x</string>
     <string name="select_palette">Selecciona una paleta de colores</string>
     <string name="palette_applied">Paleta aplicada</string>
     <string name="palette_default">Por defecto</string>
