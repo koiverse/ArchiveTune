@@ -54,7 +54,7 @@
     <string name="remote_history">Remote</string>
     <string name="charts">Charts</string>
     <string name="back_button_desc">Back</string>
-    <string name="news">News</string>
+    <string name="news">News From Developers</string>
     <string name="news_loading">Loading news…</string>
     <string name="news_empty_title">Nothing here yet</string>
     <string name="news_empty_desc">No announcements at the moment. Check back soon.</string>
@@ -65,6 +65,8 @@
     <string name="news_no_results_title">No matching articles</string>
     <string name="news_no_results_desc">Try a different search term.</string>
     <string name="news_important_badge">Important</string>
+    <string name="news_tooltip_title">New Announcements</string>
+    <string name="news_tooltip_body">You have unread announcements from developers.</string>
     <string name="news_author_on_date">%1$s · %2$s</string>
     <string name="no_title">No title</string>
     <string name="unknown_artist">Unknown artist</string>

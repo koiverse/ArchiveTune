@@ -1,8 +1,10 @@
-{
-    "Title": "Crossfade Issue",
-    "Description": "If you're wondering why crossfade is disabled, the answer is that to ensure crossfade runs smoothly, I have to check the audio engine and several hundred, even millions of lines of code, and this takes a long time.\n\nHowever, there is no estimate of when the crossfade feature will be enabled again.",
-    "ImageURL": null,
-    "Important": true,
-    "Author": "Chartreux Westia",
-    "Date": "2026-05-25 12:00"
-}
+[
+   {
+      "Title": "Crossfade Issue",
+      "Description": "If you're wondering why crossfade is disabled, the answer is that to ensure crossfade runs smoothly, I have to check the audio engine and several hundred, even millions of lines of code, and this takes a long time.\n\nHowever, there is no estimate of when the crossfade feature will be enabled again.",
+      "ImageURL": "https://c.tenor.com/Ax-QQpA7FKsAAAAC/tenor.gif",
+      "Important": true,
+      "Author": "Chartreux Westia",
+      "Date": "2026-05-25 12:00"
+   }
+]

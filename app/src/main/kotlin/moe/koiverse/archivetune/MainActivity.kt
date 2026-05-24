@@ -74,6 +74,11 @@ import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.RichTooltip
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -1417,16 +1422,37 @@ class MainActivity : ComponentActivity() {
                                                             contentDescription = stringResource(R.string.history)
                                                         )
                                                     }
-                                                    IconButton(onClick = { navController.navigate("news") }) {
-                                                        BadgedBox(badge = {
+                                                    TooltipBox(
+                                                        positionProvider = if (hasUnreadNews)
+                                                            TooltipDefaults.rememberRichTooltipPositionProvider()
+                                                        else
+                                                            TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                                                        tooltip = {
                                                             if (hasUnreadNews) {
-                                                                Badge()
+                                                                RichTooltip(
+                                                                    title = { Text(stringResource(R.string.news_tooltip_title)) },
+                                                                ) {
+                                                                    Text(stringResource(R.string.news_tooltip_body))
+                                                                }
+                                                            } else {
+                                                                PlainTooltip {
+                                                                    Text(stringResource(R.string.news))
+                                                                }
                                                             }
-                                                        }) {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.newspaper),
-                                                                contentDescription = stringResource(R.string.news)
-                                                            )
+                                                        },
+                                                        state = rememberTooltipState(),
+                                                    ) {
+                                                        IconButton(onClick = { navController.navigate("news") }) {
+                                                            BadgedBox(badge = {
+                                                                if (hasUnreadNews) {
+                                                                    Badge()
+                                                                }
+                                                            }) {
+                                                                Icon(
+                                                                    painter = painterResource(R.drawable.newspaper),
+                                                                    contentDescription = stringResource(R.string.news)
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                     IconButton(onClick = { navController.navigate("new_release") }) {
