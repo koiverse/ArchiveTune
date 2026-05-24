@@ -420,6 +420,10 @@
     <string name="big">Big</string>
     <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">Lyrics animation style</string>
+    <string name="lyrics_mode">Lyrics mode</string>
+    <string name="lyrics_mode_v2">V2 Legacy</string>
+    <string name="lyrics_mode_enhanced">Enhanced</string>
+    <string name="lyrics_animation_style_v2_only">Available only in V2 lyrics mode</string>
     <!-- Animation options -->
     <string name="none">None</string>
     <string name="fade">Fade</string>

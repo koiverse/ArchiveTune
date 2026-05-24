@@ -80,6 +80,8 @@ import moe.koiverse.archivetune.constants.EnableUnisonLyricsKey
 import moe.koiverse.archivetune.constants.LyricsClickKey
 import moe.koiverse.archivetune.constants.LyricsLineBlurKey
 import moe.koiverse.archivetune.constants.LyricsLineSpacingKey
+import moe.koiverse.archivetune.constants.LyricsMode
+import moe.koiverse.archivetune.constants.LyricsModeKey
 import moe.koiverse.archivetune.constants.LyricsProviderOrderKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeChineseKey
 import moe.koiverse.archivetune.constants.LyricsRomanizeHindiKey
@@ -96,11 +98,13 @@ import moe.koiverse.archivetune.paxsenix.models.ProviderStats
 import moe.koiverse.archivetune.ui.component.ActionPromptDialog
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.ui.component.EnumListPreference
 import moe.koiverse.archivetune.ui.component.NumberPickerPreference
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.ContentSettingsViewModel
 import moe.koiverse.archivetune.viewmodels.PaxsenixStatsState
@@ -148,6 +152,7 @@ fun LyricsSettings(
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (lyricsMode, onLyricsModeChange) = rememberEnumPreference(LyricsModeKey, defaultValue = LyricsMode.ENHANCED)
     val (enableLrclib, onEnableLrclibChange) = rememberPreference(key = EnableLrcLibKey, defaultValue = true)
     val (enableKugou, onEnableKugouChange) = rememberPreference(key = EnableKugouKey, defaultValue = true)
     val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(key = EnableBetterLyricsKey, defaultValue = true)
@@ -337,10 +342,29 @@ fun LyricsSettings(
 
         PreferenceGroup(title = stringResource(R.string.display)) {
             item {
+                EnumListPreference(
+                    title = { Text(stringResource(R.string.lyrics_mode)) },
+                    icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                    selectedValue = lyricsMode,
+                    onValueSelected = onLyricsModeChange,
+                    valueText = {
+                        when (it) {
+                            LyricsMode.V2 -> stringResource(R.string.lyrics_mode_v2)
+                            LyricsMode.ENHANCED -> stringResource(R.string.lyrics_mode_enhanced)
+                        }
+                    },
+                )
+            }
+
+            item {
+                val animationSettingsEnabled = lyricsMode == LyricsMode.V2
+
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.lyrics_animation_style)) },
+                    description = if (animationSettingsEnabled) null else stringResource(R.string.lyrics_animation_style_v2_only),
                     icon = { Icon(painterResource(R.drawable.animation), null) },
-                    onClick = { navController.navigate("settings/appearance/lyrics_animations") }
+                    onClick = { navController.navigate("settings/appearance/lyrics_animations") },
+                    isEnabled = animationSettingsEnabled,
                 )
             }
 

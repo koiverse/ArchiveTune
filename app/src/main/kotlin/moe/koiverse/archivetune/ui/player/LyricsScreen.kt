@@ -103,6 +103,8 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.LyricsMode
+import moe.koiverse.archivetune.constants.LyricsModeKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.SliderStyle
@@ -114,6 +116,7 @@ import moe.koiverse.archivetune.extensions.toggleRepeatMode
 import moe.koiverse.archivetune.lyrics.LyricsHelper
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.LyricsEnhanced
+import moe.koiverse.archivetune.ui.component.LyricsV2
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.BigSeekBar
 import androidx.navigation.NavController
@@ -166,6 +169,7 @@ fun LyricsScreen(
 
     // slider style preference
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
+    val lyricsMode by rememberEnumPreference(LyricsModeKey, LyricsMode.ENHANCED)
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
 
     // Auto-fetch lyrics when no lyrics found (same logic as refetch)
@@ -428,7 +432,8 @@ fun LyricsScreen(
                                     .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.Center  // Center lyrics in landscape
                             ) {
-                                LyricsEnhanced(
+                                LyricsContent(
+                                    lyricsMode = lyricsMode,
                                     sliderPositionProvider = { sliderPosition },
                                     lyricsSyncOffset = lyricsSyncOffset
                                 )
@@ -739,7 +744,8 @@ fun LyricsScreen(
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.TopCenter
                     ) {
-                        LyricsEnhanced(
+                        LyricsContent(
+                            lyricsMode = lyricsMode,
                             sliderPositionProvider = { sliderPosition },
                             lyricsSyncOffset = lyricsSyncOffset
                         )
@@ -952,5 +958,26 @@ fun LyricsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LyricsContent(
+    lyricsMode: LyricsMode,
+    sliderPositionProvider: () -> Long?,
+    lyricsSyncOffset: Int,
+    modifier: Modifier = Modifier,
+) {
+    when (lyricsMode) {
+        LyricsMode.V2 -> LyricsV2(
+            sliderPositionProvider = sliderPositionProvider,
+            lyricsSyncOffset = lyricsSyncOffset,
+            modifier = modifier,
+        )
+        LyricsMode.ENHANCED -> LyricsEnhanced(
+            sliderPositionProvider = sliderPositionProvider,
+            lyricsSyncOffset = lyricsSyncOffset,
+            modifier = modifier,
+        )
     }
 }
