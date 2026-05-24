@@ -102,7 +102,7 @@ class InnerTube {
             httpClient = createClient()
         }
 
-    var proxySelector: RotatingProxySelector? = null
+    internal var proxySelector: RotatingProxySelector? = null
         set(value) {
             field = value
             httpClient.close()
