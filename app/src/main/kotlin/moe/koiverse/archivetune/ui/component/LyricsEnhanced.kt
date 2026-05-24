@@ -610,10 +610,9 @@ private fun buildSyncedLyrics(
             if (lineEnd <= lineStart) return@forEachIndexed
 
             lines.add(
-                KaraokeLine(
+                KaraokeLine.MainKaraokeLine(
                     syllables = mainSyllables,
                     translation = null,
-                    isAccompaniment = false,
                     alignment = alignment,
                     start = lineStart,
                     end = lineEnd,
@@ -631,10 +630,9 @@ private fun buildSyncedLyrics(
                 val bgEnd = bgSyllables.last().end
                 if (bgEnd > bgStart) {
                     lines.add(
-                        KaraokeLine(
+                        KaraokeLine.AccompanimentKaraokeLine(
                             syllables = bgSyllables,
                             translation = null,
-                            isAccompaniment = true,
                             alignment = alignment,
                             start = bgStart,
                             end = bgEnd,
