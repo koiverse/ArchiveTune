@@ -40,6 +40,8 @@ rhino = "1.9.1"
 markwon = "4.6.2"
 okhttp = "5.3.2"
 accompanist = "1.0.19"
+accompanist-core = "0.4.5"
+androidsvg = "1.4"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -135,6 +137,8 @@ markwon-html = { module = "io.noties.markwon:html", version.ref = "markwon" }
 markwon-linkify = { module = "io.noties.markwon:linkify", version.ref = "markwon" }
 
 accompanist-lyrics-ui = { module = "com.mocharealm.accompanist:lyrics-ui", version.ref = "accompanist" }
+accompanist-lyrics-core = { module = "com.mocharealm.accompanist:lyrics-core", version.ref = "accompanist-core" }
+androidsvg = { module = "com.caverock:androidsvg-aar", version.ref = "androidsvg" }
 
 
 [plugins]

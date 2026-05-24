@@ -609,39 +609,40 @@ private fun buildSyncedLyrics(
             val lineEnd = mainSyllables.last().end
             if (lineEnd <= lineStart) return@forEachIndexed
 
-            val accompanimentLines: List<KaraokeLine.AccompanimentKaraokeLine>? =
-                if (mainWords.isNotEmpty() && bgWords.isNotEmpty()) {
-                    val bgSyllables = bgWords.map { word ->
-                        val start = (word.startTime * 1000).toInt()
-                        val end = (word.endTime * 1000).toInt().coerceAtLeast(start + 1)
-                        KaraokeSyllable(content = word.text, start = start, end = end)
-                    }
-                    val bgStart = bgSyllables.first().start
-                    val bgEnd = bgSyllables.last().end
-                    if (bgEnd > bgStart) {
-                        listOf(
-                            KaraokeLine.AccompanimentKaraokeLine(
-                                syllables = bgSyllables,
-                                translation = null,
-                                alignment = alignment,
-                                start = bgStart,
-                                end = bgEnd,
-                            )
-                        )
-                    } else null
-                } else null
-
             lines.add(
-                KaraokeLine.MainKaraokeLine(
+                KaraokeLine(
                     syllables = mainSyllables,
                     translation = null,
+                    isAccompaniment = false,
                     alignment = alignment,
                     start = lineStart,
                     end = lineEnd,
                     phonetic = romanized,
-                    accompanimentLines = accompanimentLines,
                 )
             )
+
+            if (mainWords.isNotEmpty() && bgWords.isNotEmpty()) {
+                val bgSyllables = bgWords.map { word ->
+                    val start = (word.startTime * 1000).toInt()
+                    val end = (word.endTime * 1000).toInt().coerceAtLeast(start + 1)
+                    KaraokeSyllable(content = word.text, start = start, end = end)
+                }
+                val bgStart = bgSyllables.first().start
+                val bgEnd = bgSyllables.last().end
+                if (bgEnd > bgStart) {
+                    lines.add(
+                        KaraokeLine(
+                            syllables = bgSyllables,
+                            translation = null,
+                            isAccompaniment = true,
+                            alignment = alignment,
+                            start = bgStart,
+                            end = bgEnd,
+                            phonetic = null,
+                        )
+                    )
+                }
+            }
         } else {
             val nextEntry = entries.getOrNull(index + 1)
             val lineEnd = if (nextEntry != null && nextEntry.time > entry.time) {

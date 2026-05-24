@@ -202,6 +202,7 @@ dependencies {
 
     implementation(libs.material3)
     implementation(libs.palette)
+    implementation(libs.androidsvg)
     implementation(libs.markwon.core)
     implementation(libs.markwon.ext.strikethrough)
     implementation(libs.markwon.ext.tables)
@@ -270,6 +271,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
     implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-beta02")
     implementation(libs.accompanist.lyrics.ui)
+    implementation(libs.accompanist.lyrics.core)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

@@ -24,6 +24,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -108,9 +109,12 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.CustomThemeColorKey
 import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.ui.component.IconButton
+import moe.koiverse.archivetune.ui.svg.DynamicSVGImage
+import moe.koiverse.archivetune.ui.svg.PALETTE
 import moe.koiverse.archivetune.ui.theme.ColorSaver
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
+import moe.koiverse.archivetune.ui.theme.palette.TonalPalettes
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.rememberPreference
 
@@ -1189,28 +1193,28 @@ private fun SimpleThemePreview(
     palette: ThemeSeedPalette,
     modifier: Modifier = Modifier,
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val tonalPalettes = remember(palette) {
+        TonalPalettes.fromSeedColors(
+            primarySeed = palette.primary,
+            secondarySeed = palette.secondary,
+            tertiarySeed = palette.tertiary,
+            neutralSeed = palette.neutral,
+        )
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1.38f)
             .clip(RoundedCornerShape(24.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerLow),
-        contentAlignment = Alignment.Center,
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            listOf(palette.primary, palette.secondary, palette.tertiary, palette.neutral).forEach { color ->
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .shadow(8.dp, CircleShape)
-                        .clip(CircleShape)
-                        .background(color),
-                )
-            }
-        }
+        DynamicSVGImage(
+            svgImageString = SVGString.PALETTE,
+            tonalPalettes = tonalPalettes,
+            isDarkTheme = isDarkTheme,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 
