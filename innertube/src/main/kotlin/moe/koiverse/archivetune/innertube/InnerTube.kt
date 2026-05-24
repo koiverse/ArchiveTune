@@ -12,6 +12,7 @@
 package moe.koiverse.archivetune.innertube
 
 import moe.koiverse.archivetune.innertube.models.Context
+import moe.koiverse.archivetune.innertube.proxy.RotatingProxySelector
 import moe.koiverse.archivetune.innertube.models.MediaInfo
 import moe.koiverse.archivetune.innertube.models.ReturnYouTubeDislikeResponse
 import moe.koiverse.archivetune.innertube.models.YouTubeClient
@@ -101,6 +102,13 @@ class InnerTube {
             httpClient = createClient()
         }
 
+    var proxySelector: RotatingProxySelector? = null
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
     var dns: Dns = Dns.SYSTEM
         set(value) {
             field = value
@@ -142,7 +150,10 @@ class InnerTube {
         engine {
             config {
                 dns(this@InnerTube.dns)
-                if (this@InnerTube.proxy != null && !proxyUsername.isNullOrBlank() && !proxyPassword.isNullOrBlank()) {
+                val sel = this@InnerTube.proxySelector
+                if (sel != null) {
+                    proxySelector(sel)
+                } else if (this@InnerTube.proxy != null && !proxyUsername.isNullOrBlank() && !proxyPassword.isNullOrBlank()) {
                     proxyAuthenticator { _, response ->
                         val credential = okhttp3.Credentials.basic(proxyUsername!!, proxyPassword!!)
                         response.request.newBuilder()
@@ -151,7 +162,7 @@ class InnerTube {
                     }
                 }
             }
-            if (this@InnerTube.proxy != null) {
+            if (this@InnerTube.proxySelector == null && this@InnerTube.proxy != null) {
                 proxy = this@InnerTube.proxy
             }
         }
