@@ -111,6 +111,7 @@ import moe.koiverse.archivetune.constants.DynamicThemeKey
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.svg.DynamicSVGImage
 import moe.koiverse.archivetune.ui.svg.PALETTE
+import moe.koiverse.archivetune.ui.svg.SVGString
 import moe.koiverse.archivetune.ui.theme.ColorSaver
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPalette
 import moe.koiverse.archivetune.ui.theme.ThemeSeedPaletteCodec
