@@ -264,6 +264,11 @@ fun LyricsEnhanced(
                 .toInt()
         }
     }
+    val focusedPosition: () -> Int = remember(syncedLyrics) {
+        {
+            syncedLyrics.positionForStableLineFocus(currentPosition())
+        }
+    }
 
     val listState = rememberLazyListState()
     var isManualScrolling by remember { mutableStateOf(false) }
@@ -308,7 +313,7 @@ fun LyricsEnhanced(
     LaunchedEffect(syncedLyrics, isSynced) {
         if (!isSynced || syncedLyrics.lines.isEmpty()) return@LaunchedEffect
         snapshotFlow {
-            syncedLyrics.getCurrentFirstHighlightLineIndexByTime(currentPosition())
+            syncedLyrics.getCurrentFirstHighlightLineIndexByTime(focusedPosition())
         }
             .distinctUntilChanged()
             .collectLatest { index ->
@@ -402,7 +407,7 @@ fun LyricsEnhanced(
                     KaraokeLyricsView(
                         listState = listState,
                         lyrics = syncedLyrics,
-                        currentPosition = currentPosition,
+                        currentPosition = focusedPosition,
                         onLineClicked = { line ->
                             if (isSelectionModeActive) {
                                 val start = line.start
@@ -452,7 +457,7 @@ fun LyricsEnhanced(
                             isManualScrolling = false
                             scope.launch {
                                 val firstIndex = syncedLyrics.getCurrentFirstHighlightLineIndexByTime(
-                                    currentPosition()
+                                    focusedPosition()
                                 )
                                 if (firstIndex in syncedLyrics.lines.indices) {
                                     listState.keepLyricLineVisible(firstIndex)
@@ -694,6 +699,35 @@ private suspend fun LazyListState.keepLyricLineVisible(index: Int) {
             stiffness = Spring.StiffnessMediumLow,
         ),
     )
+}
+
+private fun SyncedLyrics.positionForStableLineFocus(time: Int): Int {
+    if (lines.isEmpty()) return time
+    val index = findLastStartedLineIndex(time)
+    if (index < 0) return time
+
+    val line = lines[index]
+    if (time < line.end) return time
+
+    return (line.end - 1).coerceAtLeast(line.start)
+}
+
+private fun SyncedLyrics.findLastStartedLineIndex(time: Int): Int {
+    var low = 0
+    var high = lines.lastIndex
+    var result = -1
+
+    while (low <= high) {
+        val mid = low + (high - low) / 2
+        if (lines[mid].start <= time) {
+            result = mid
+            low = mid + 1
+        } else {
+            high = mid - 1
+        }
+    }
+
+    return result
 }
 
 private fun buildSyncedLyrics(
