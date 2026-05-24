@@ -10,11 +10,19 @@
 
 package moe.koiverse.archivetune.ui.component
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -76,26 +84,23 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val toolbarContainerColor = floatingToolbarContainerColor(pureBlack)
-
+    val toolbarContainerColor = floatingToolbarContainerColor(pureBlack = pureBlack)
     val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-        toolbarContainerColor = toolbarContainerColor
+        toolbarContainerColor = toolbarContainerColor,
     )
-
     val hasOverflowAction = onShuffleClick != null && shuffleIconRes != null
     val hasFabAction = onFabClick != null && fabIconRes != null
 
-    var expanded by remember { mutableStateOf(false) }
-
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         val showSelectedLabels = maxWidth >= 360.dp
 
-        val fab: @Composable () -> Unit = {
-            when {
-                hasOverflowAction -> {
+        if (hasOverflowAction) {
+            HorizontalFloatingToolbar(
+                expanded = true,
+                floatingActionButton = {
                     FloatingToolbarOverflowAction(
                         pureBlack = pureBlack,
                         onShuffleClick = onShuffleClick,
@@ -104,48 +109,65 @@ fun FloatingNavigationToolbar(
                         onMusicRecognitionClick = onMusicRecognitionClick,
                         musicRecognitionContentDescription = musicRecognitionContentDescription,
                     )
-                }
+                },
+                modifier = Modifier.widthIn(max = 480.dp),
+                colors = toolbarColors,
+            ) {
+                items.forEach { screen ->
+                    val selected = isSelected(screen)
 
-                hasFabAction -> {
-                    FloatingToolbarFabAction(
+                    FloatingNavigationToolbarItem(
+                        screen = screen,
+                        selected = selected,
+                        showSelectedLabel = showSelectedLabels,
                         pureBlack = pureBlack,
-                        onClick = {
-                            onFabClick?.invoke()
-                            expanded = !expanded
-                        },
-                        iconRes = fabIconRes,
-                        contentDescription = fabContentDescription,
-                    )
-                }
-
-                else -> {
-                    FloatingToolbarFabAction(
-                        pureBlack = pureBlack,
-                        onClick = { expanded = !expanded },
-                        iconRes = fabIconRes,
-                        contentDescription = fabContentDescription,
+                        onClick = { onItemClick(screen, selected) },
                     )
                 }
             }
-        }
+        } else if (hasFabAction) {
+            HorizontalFloatingToolbar(
+                expanded = true,
+                floatingActionButton = {
+                    FloatingToolbarFabAction(
+                        pureBlack = pureBlack,
+                        onClick = onFabClick,
+                        iconRes = fabIconRes,
+                        contentDescription = fabContentDescription,
+                    )
+                },
+                modifier = Modifier.widthIn(max = 480.dp),
+                colors = toolbarColors,
+            ) {
+                items.forEach { screen ->
+                    val selected = isSelected(screen)
 
-        HorizontalFloatingToolbar(
-            expanded = expanded,
-            floatingActionButton = fab,
-            modifier = Modifier.widthIn(max = 480.dp),
-            colors = toolbarColors,
-            animationSpec = FloatingToolbarDefaults.animationSpec(),
-        ) {
-            items.forEach { screen ->
-                val selected = isSelected(screen)
+                    FloatingNavigationToolbarItem(
+                        screen = screen,
+                        selected = selected,
+                        showSelectedLabel = showSelectedLabels,
+                        pureBlack = pureBlack,
+                        onClick = { onItemClick(screen, selected) },
+                    )
+                }
+            }
+        } else {
+            HorizontalFloatingToolbar(
+                expanded = true,
+                modifier = Modifier.widthIn(max = 420.dp),
+                colors = toolbarColors,
+            ) {
+                items.forEach { screen ->
+                    val selected = isSelected(screen)
 
-                FloatingNavigationToolbarItem(
-                    screen = screen,
-                    selected = selected,
-                    showSelectedLabel = showSelectedLabels,
-                    pureBlack = pureBlack,
-                    onClick = { onItemClick(screen, selected) }
-                )
+                    FloatingNavigationToolbarItem(
+                        screen = screen,
+                        selected = selected,
+                        showSelectedLabel = showSelectedLabels,
+                        pureBlack = pureBlack,
+                        onClick = { onItemClick(screen, selected) },
+                    )
+                }
             }
         }
     }
@@ -287,71 +309,123 @@ private fun FloatingNavigationToolbarItem(
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(24.dp)
-    val containerColor by animateColorAsState(
-        targetValue =
-            when {
-                selected -> floatingToolbarSelectedItemContainerColor(pureBlack = pureBlack)
-                else -> Color.Transparent
-            },
-        label = "",
-    )
-    val contentColor by animateColorAsState(
-        targetValue =
-            when {
-                selected -> floatingToolbarSelectedItemContentColor(pureBlack = pureBlack)
-                else -> floatingToolbarItemContentColor(pureBlack = pureBlack)
-            },
-        label = "",
-    )
+    val showLabel = selected && showSelectedLabel && screen.route != Screens.Search.route
+    val transition = updateTransition(targetState = selected, label = "navItem_${screen.route}")
+
+    val containerColor by transition.animateColor(
+        transitionSpec = { spring(stiffness = Spring.StiffnessMedium) },
+        label = "containerColor",
+    ) { isSelected ->
+        if (isSelected) floatingToolbarSelectedItemContainerColor(pureBlack) else Color.Transparent
+    }
+
+    val contentColor by transition.animateColor(
+        transitionSpec = { spring(stiffness = Spring.StiffnessMedium) },
+        label = "contentColor",
+    ) { isSelected ->
+        if (isSelected) floatingToolbarSelectedItemContentColor(pureBlack)
+        else floatingToolbarItemContentColor(pureBlack)
+    }
+
+    val iconScale by transition.animateFloat(
+        transitionSpec = {
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            )
+        },
+        label = "iconScale",
+    ) { isSelected -> if (isSelected) 1.12f else 1.0f }
+
+    val horizontalPadding by transition.animateDp(
+        transitionSpec = {
+            spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessMedium,
+            )
+        },
+        label = "horizontalPadding",
+    ) { isSelected ->
+        if (isSelected && showSelectedLabel && screen.route != Screens.Search.route) 16.dp else 12.dp
+    }
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
+    val pressScale by animateFloatAsState(
         targetValue = if (isPressed) 0.91f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium,
         ),
-        label = "",
+        label = "pressScale",
     )
-    val showLabel = selected && showSelectedLabel && screen.route != Screens.Search.route
 
     Row(
-        modifier =
-            Modifier
-                .scale(scale)
-                .animateContentSize()
-                .clip(shape)
-                .background(color = containerColor, shape = shape)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = LocalIndication.current,
-                    role = Role.Tab,
-                    onClick = onClick,
-                )
-                .widthIn(min = 48.dp)
-                .padding(
-                    horizontal = if (showLabel) 16.dp else 12.dp,
-                    vertical = 12.dp,
-                ),
+        modifier = Modifier
+            .scale(pressScale)
+            .clip(shape)
+            .background(color = containerColor, shape = shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Tab,
+                onClick = onClick,
+            )
+            .widthIn(min = 48.dp)
+            .padding(horizontal = horizontalPadding, vertical = 12.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
-            contentDescription = stringResource(screen.titleId),
-            tint = contentColor,
-        )
-
-        if (showLabel) {
-            Spacer(modifier = Modifier.size(8.dp))
-
-            Text(
-                text = stringResource(screen.titleId),
-                color = contentColor,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        Crossfade(
+            targetState = selected,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
+            label = "iconCrossfade",
+            modifier = Modifier.scale(iconScale),
+        ) { isSelected ->
+            Icon(
+                painter = painterResource(if (isSelected) screen.iconIdActive else screen.iconIdInactive),
+                contentDescription = stringResource(screen.titleId),
+                tint = contentColor,
             )
+        }
+
+        AnimatedVisibility(
+            visible = showLabel,
+            enter = fadeIn(
+                spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+            ) + expandHorizontally(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+                expandFrom = Alignment.Start,
+            ),
+            exit = fadeOut(
+                spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+            ) + shrinkHorizontally(
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                shrinkTowards = Alignment.Start,
+            ),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    text = stringResource(screen.titleId),
+                    color = contentColor,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
