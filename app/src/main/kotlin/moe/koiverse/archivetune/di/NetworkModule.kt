@@ -8,16 +8,19 @@
 
 
 
-
 package moe.koiverse.archivetune.di
 
-import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
+import android.content.Context
+import com.google.net.cronet.okhttptransport.CronetInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import android.content.Context
+import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
+import okhttp3.OkHttpClient
+import org.chromium.net.CronetEngine
+import org.chromium.net.CronetProvider
 import javax.inject.Singleton
 
 @Module
@@ -26,7 +29,27 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideNetworkConnectivityObserver(@ApplicationContext context: Context): NetworkConnectivityObserver {
-        return NetworkConnectivityObserver(context)
+    fun provideNetworkConnectivityObserver(
+        @ApplicationContext context: Context,
+    ): NetworkConnectivityObserver = NetworkConnectivityObserver(context)
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
+        val builder = OkHttpClient.Builder()
+        buildCronetEngine(context)?.let { engine ->
+            builder.addInterceptor(CronetInterceptor.newBuilder(engine).build())
+        }
+        return builder.build()
     }
+
+    private fun buildCronetEngine(context: Context): CronetEngine? = runCatching {
+        CronetProvider.getAllProviders(context)
+            .firstOrNull { it.isEnabled && it.name != CronetProvider.PROVIDER_NAME_FALLBACK }
+            ?.createBuilder()
+            ?.enableHttp2(true)
+            ?.enableQuic(true)
+            ?.enableBrotli(true)
+            ?.build()
+    }.getOrNull()
 }
