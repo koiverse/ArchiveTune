@@ -137,4 +137,10 @@
 }
 # Keep GlanceAppWidget and its receiver
 -keep class * extends androidx.glance.appwidget.GlanceAppWidget { *; }
--keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver { *; }
+-keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver { *; }
+
+# Remove logs
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+}
