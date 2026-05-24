@@ -87,6 +87,8 @@ fun SelectionSongMenu(
     onDismiss: () -> Unit,
     clearAction: () -> Unit,
     songPosition: List<PlaylistSongMap>? = emptyList(),
+    isFromCache: Boolean = false,
+    onRemoveFromCache: ((List<Song>) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
@@ -576,6 +578,38 @@ fun SelectionSongMenu(
                                     }
                                 }
                             }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+                }
+            }
+        }
+
+        if (isFromCache && onRemoveFromCache != null) {
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            item {
+                MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.remove_from_cache),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.delete),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            onDismiss()
+                            onRemoveFromCache(songSelection)
+                            clearAction()
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )

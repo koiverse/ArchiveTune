@@ -70,7 +70,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalView
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
+import moe.koiverse.archivetune.utils.rememberPreference
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
 import moe.koiverse.archivetune.R
@@ -112,6 +116,9 @@ fun CurrentSongHeader(
     onInfiniteQueueClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -268,7 +275,10 @@ fun CurrentSongHeader(
 
             ToggleButton(
                 checked = shuffleModeEnabled,
-                onCheckedChange = { onShuffleClick() },
+                onCheckedChange = {
+                    if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                    onShuffleClick()
+                },
                 modifier = Modifier.weight(1f).size(48.dp),
                 shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
                 colors = if (shuffleModeEnabled) checkedColors else uncheckedColors,
@@ -282,7 +292,10 @@ fun CurrentSongHeader(
 
             ToggleButton(
                 checked = repeatMode != Player.REPEAT_MODE_OFF,
-                onCheckedChange = { onRepeatClick() },
+                onCheckedChange = {
+                    if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                    onRepeatClick()
+                },
                 modifier = Modifier.weight(1f).size(48.dp),
                 shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
                 colors = if (repeatMode != Player.REPEAT_MODE_OFF) checkedColors else uncheckedColors,
@@ -479,6 +492,13 @@ fun QueueCollapsedContentV2(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+    
+    LaunchedEffect(enableHapticFeedback) {
+        view.isHapticFeedbackEnabled = enableHapticFeedback
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         if (showCodecOnPlayer && currentFormat != null) {
             val codec =
@@ -652,7 +672,10 @@ fun QueueCollapsedContentV2(
                             bottomEnd = 50.dp
                         )
                     )
-                    .clickable { onRepeatModeClick() },
+                    .clickable {
+                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                        onRepeatModeClick()
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -709,6 +732,9 @@ fun QueueCollapsedContentV3(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+
     Column(modifier = modifier.fillMaxWidth()) {
         if (showCodecOnPlayer && currentFormat != null) {
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()

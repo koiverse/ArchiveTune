@@ -44,10 +44,13 @@ class OnlinePlaylistViewModel @Inject constructor(
 ) : ViewModel() {
     private val playlistId = savedStateHandle.get<String>("playlistId")!!
 
-    val playlist = MutableStateFlow<PlaylistItem?>(null)
-    val playlistSongs = MutableStateFlow<List<SongItem>>(emptyList())
+    private val _playlist = MutableStateFlow<PlaylistItem?>(null)
+    val playlist = _playlist.asStateFlow()
+
+    private val _playlistSongs = MutableStateFlow<List<SongItem>>(emptyList())
+    val playlistSongs = _playlistSongs.asStateFlow()
     
-    private val _isLoading = MutableStateFlow(true)
+    private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
     
     private val _isRefreshing = MutableStateFlow(false)
@@ -88,9 +91,9 @@ class OnlinePlaylistViewModel @Inject constructor(
                 _isLoadingMore.value = true
                 YouTube.playlistContinuation(it)
                     .onSuccess { playlistContinuationPage ->
-                        val currentSongs = playlistSongs.value.toMutableList()
+                        val currentSongs = _playlistSongs.value.toMutableList()
                         currentSongs.addAll(playlistContinuationPage.songs)
-                        playlistSongs.value = currentSongs.distinctBy { it.id }
+                        _playlistSongs.value = currentSongs.distinctBy { it.id }
                         continuation = playlistContinuationPage.continuation
                         prefetchViewCounts(playlistContinuationPage.songs.map { song -> song.id })
                         _isLoadingMore.value = false
@@ -108,26 +111,22 @@ class OnlinePlaylistViewModel @Inject constructor(
 
     private fun load(initial: Boolean) {
         if (initial) {
-            if (_isLoading.value && playlist.value != null) return
+            if (_isLoading.value) return
+            _isLoading.value = true
         } else {
-            if (_isRefreshing.value || _isLoading.value) return
+            if (_isRefreshing.value || _isLoading.value || _isLoadingMore.value) return
+            _isRefreshing.value = true
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            if (initial) {
-                _isLoading.value = true
-            } else {
-                _isRefreshing.value = true
-            }
-
             _error.value = null
 
             YouTube
                 .playlist(playlistId)
                 .completed()
                 .onSuccess { playlistPage ->
-                    playlist.value = playlistPage.playlist
-                    playlistSongs.value = playlistPage.songs.distinctBy { it.id }
+                    _playlist.value = playlistPage.playlist
+                    _playlistSongs.value = playlistPage.songs.distinctBy { it.id }
                     continuation = null
                     prefetchViewCounts(playlistPage.songs.map { song -> song.id })
                 }.onFailure { throwable ->

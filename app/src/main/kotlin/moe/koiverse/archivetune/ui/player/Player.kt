@@ -131,6 +131,10 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.composed
+import androidx.compose.ui.platform.LocalView
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
+import moe.koiverse.archivetune.utils.rememberPreference
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
@@ -1729,8 +1733,12 @@ private fun Modifier.littlePlayerOverlayGestures(
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
 ): Modifier {
-    return pointerInput(seekEnabled, durationMs, canSkipPrevious, canSkipNext) {
-        var lastTapUptimeMs = 0L
+    return composed {
+        val view = LocalView.current
+        val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+        
+        pointerInput(seekEnabled, durationMs, canSkipPrevious, canSkipNext) {
+            var lastTapUptimeMs = 0L
         var lastTapPosition: Offset? = null
         val doubleTapTimeoutMs = viewConfiguration.doubleTapTimeoutMillis.toLong()
         val touchSlop = viewConfiguration.touchSlop
@@ -1790,9 +1798,15 @@ private fun Modifier.littlePlayerOverlayGestures(
                 if (isDoubleTap) {
                     val isTopSide = upPosition.y < size.height / 2f
                     if (isTopSide) {
-                        if (canSkipPrevious) onSkipPrevious()
+                        if (canSkipPrevious) {
+                            if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                            onSkipPrevious()
+                        }
                     } else {
-                        if (canSkipNext) onSkipNext()
+                        if (canSkipNext) {
+                            if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                            onSkipNext()
+                        }
                     }
                     lastTapUptimeMs = 0L
                     lastTapPosition = null
@@ -1803,4 +1817,5 @@ private fun Modifier.littlePlayerOverlayGestures(
             }
         }
     }
+}
 }

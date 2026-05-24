@@ -71,7 +71,6 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.PlaylistSortDescendingKey
 import moe.koiverse.archivetune.constants.PlaylistSortType
 import moe.koiverse.archivetune.constants.PlaylistSortTypeKey
-import moe.koiverse.archivetune.constants.PlaylistTagsFilterKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
@@ -102,6 +101,7 @@ private data class PlaylistShortcutEntry(
 fun LibraryPlaylistsScreen(
     navController: NavController,
     filterContent: @Composable () -> Unit,
+    selectedTagIds: Set<String>,
     viewModel: LibraryPlaylistsViewModel = hiltViewModel(),
     initialTextFieldValue: String? = null,
     allowSyncing: Boolean = true,
@@ -118,10 +118,6 @@ fun LibraryPlaylistsScreen(
         PlaylistSortDescendingKey,
         true,
     )
-    val (selectedTagsFilter) = rememberPreference(PlaylistTagsFilterKey, "")
-    val selectedTagIds = remember(selectedTagsFilter) {
-        selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet()
-    }
     val filteredPlaylistIds by database.playlistIdsByTags(
         if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList(),
     ).collectAsState(initial = emptyList())

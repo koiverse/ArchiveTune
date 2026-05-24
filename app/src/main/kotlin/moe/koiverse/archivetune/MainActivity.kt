@@ -215,6 +215,11 @@ import moe.koiverse.archivetune.musicrecognition.openMusicRecognition
 import moe.koiverse.archivetune.playback.DownloadUtil
 import moe.koiverse.archivetune.playback.MusicService
 import moe.koiverse.archivetune.playback.MusicService.MusicBinder
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
+import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.playback.PlayerConnection
 import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
 import moe.koiverse.archivetune.playback.queues.ListQueue
@@ -1226,7 +1231,20 @@ class MainActivity : ComponentActivity() {
                     }
                     var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
 
+                    val haptic = LocalHapticFeedback.current
+                    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+                    val customHaptic = remember(haptic, enableHapticFeedback) {
+                        object : HapticFeedback {
+                            override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
+                                if (enableHapticFeedback) {
+                                    haptic.performHapticFeedback(hapticFeedbackType)
+                                }
+                            }
+                        }
+                    }
+
                     CompositionLocalProvider(
+                        LocalHapticFeedback provides customHaptic,
                         LocalAnimationsDisabled provides disableAnimations,
                         LocalDatabase provides database,
                         LocalContentColor provides if (pureBlack) Color.White else contentColorFor(MaterialTheme.colorScheme.surface),

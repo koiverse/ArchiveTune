@@ -123,6 +123,10 @@ import moe.koiverse.archivetune.ui.theme.PlayerSliderColors
 import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.ui.utils.highRes
 import moe.koiverse.archivetune.utils.makeTimeString
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalView
+import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
+import moe.koiverse.archivetune.utils.rememberPreference
 
 @Composable
 fun PlayerTitleSection(
@@ -886,6 +890,8 @@ fun PlayerPlaybackControls(
 ) {
     val haptic = LocalHapticFeedback.current
     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
+    val view = LocalView.current
+    val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
 
     when (playerDesignStyle) {
         PlayerDesignStyle.V2 -> {
@@ -926,7 +932,7 @@ fun PlayerPlaybackControls(
 
                     FilledIconButton(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
@@ -1002,6 +1008,7 @@ fun PlayerPlaybackControls(
                             .size(40.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
                             },
                         contentAlignment = Alignment.Center
@@ -1041,7 +1048,7 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(50))
                             .background(textBackgroundColor)
                             .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                     playerConnection.player.seekTo(0, 0)
                                     playerConnection.player.playWhenReady = true
@@ -1095,7 +1102,10 @@ fun PlayerPlaybackControls(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .clickable { playerConnection.player.toggleRepeatMode() },
+                            .clickable {
+                                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                playerConnection.player.toggleRepeatMode()
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -1154,6 +1164,7 @@ fun PlayerPlaybackControls(
                     ) {
                         Surface(
                             onClick = {
+                                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
                                 playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
                             },
                             shape = RoundedCornerShape(smallRadius),
@@ -1204,7 +1215,7 @@ fun PlayerPlaybackControls(
 
                     Surface(
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
@@ -1273,7 +1284,10 @@ fun PlayerPlaybackControls(
                         Spacer(modifier = Modifier.width(gap))
 
                         Surface(
-                            onClick = { playerConnection.player.toggleRepeatMode() },
+                            onClick = {
+                                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                                playerConnection.player.toggleRepeatMode()
+                            },
                             shape = RoundedCornerShape(smallRadius),
                             color = textBackgroundColor.copy(
                                 alpha = if (repeatMode != Player.REPEAT_MODE_OFF) 0.2f else 0.08f
@@ -1326,6 +1340,7 @@ fun PlayerPlaybackControls(
                             .align(Alignment.Center)
                             .alpha(if (repeatMode == Player.REPEAT_MODE_OFF) 0.5f else 1f),
                         onClick = {
+                            if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
                             playerConnection.player.toggleRepeatMode()
                         },
                     )
@@ -1353,7 +1368,7 @@ fun PlayerPlaybackControls(
                         .clip(RoundedCornerShape(playPauseRoundness))
                         .background(textButtonColor)
                         .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
@@ -1473,7 +1488,7 @@ fun PlayerPlaybackControls(
 
                         Surface(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                                     playerConnection.player.seekTo(0, 0)
                                     playerConnection.player.playWhenReady = true
@@ -1552,6 +1567,7 @@ fun PlayerPlaybackControls(
                 ) {
                     Surface(
                         onClick = {
+                            if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
                             playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
                         },
                         shape = RoundedCornerShape(50),
@@ -1578,7 +1594,10 @@ fun PlayerPlaybackControls(
                     Spacer(modifier = Modifier.width(16.dp))
 
                     Surface(
-                        onClick = { playerConnection.player.toggleRepeatMode() },
+                        onClick = {
+                            if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                            playerConnection.player.toggleRepeatMode()
+                        },
                         shape = RoundedCornerShape(50),
                         color = if (repeatMode != Player.REPEAT_MODE_OFF)
                             MaterialTheme.colorScheme.tertiaryContainer
@@ -1640,7 +1659,7 @@ fun PlayerPlaybackControls(
 
                 Surface(
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (playbackState == STATE_ENDED) {
                             playerConnection.player.seekTo(0, 0)
                             playerConnection.player.playWhenReady = true

@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +36,6 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ChipSortTypeKey
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.LibraryFilter
-import moe.koiverse.archivetune.constants.PlaylistTagsFilterKey
 import moe.koiverse.archivetune.constants.ShowTagsInLibraryKey
 import moe.koiverse.archivetune.ui.component.ChipsRow
 import moe.koiverse.archivetune.ui.component.TagsFilterChips
@@ -51,10 +49,7 @@ fun LibraryScreen(navController: NavController) {
 
     val database = LocalDatabase.current
     val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, true)
-    val (selectedTagsFilter, onSelectedTagsFilterChange) = rememberPreference(PlaylistTagsFilterKey, "")
-    val selectedTagIds = remember(selectedTagsFilter) {
-        selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet()
-    }
+    val (selectedTagIds, onSelectedTagIdsChange) = rememberPlaylistTagFilterState(database)
 
     val filterContent = @Composable {
         Column {
@@ -96,7 +91,7 @@ fun LibraryScreen(navController: NavController) {
                         } else {
                             selectedTagIds + tag.id
                         }
-                        onSelectedTagsFilterChange(newTags.joinToString(","))
+                        onSelectedTagIdsChange(newTags)
                     },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
@@ -222,8 +217,8 @@ fun LibraryScreen(navController: NavController) {
         }
 
         when (filterType) {
-            LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent)
-            LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent)
+            LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent, selectedTagIds = selectedTagIds)
+            LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent, selectedTagIds = selectedTagIds)
             LibraryFilter.SONGS -> LibrarySongsScreen(
                 navController,
                 { filterType = LibraryFilter.LIBRARY })

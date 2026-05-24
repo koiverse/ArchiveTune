@@ -37,6 +37,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +56,8 @@ import androidx.compose.ui.window.DialogProperties
 import kotlin.math.floor
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.MusicDatabase
+import moe.koiverse.archivetune.db.entities.TagEntity
+import moe.koiverse.archivetune.ui.screens.library.sanitize
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -63,13 +66,18 @@ fun AssignTagsDialog(
     playlistId: String,
     onDismiss: () -> Unit
 ) {
-    val allTags by database.allTags().collectAsState(initial = emptyList())
+    val allTags: List<TagEntity>? by database.allTags().collectAsState(initial = null)
     val currentTags by database.playlistTags(playlistId).collectAsState(initial = emptyList())
     
     val currentTagIds = remember(currentTags) { currentTags.map { it.id }.toSet() }
     var selectedTagIds by remember(currentTagIds) { mutableStateOf(currentTagIds) }
     var showManageTagsDialog by remember { mutableStateOf(false) }
     var showAssignToPlaylistsDialog by remember { mutableStateOf(false) }
+    val validTagIds = remember(allTags) { allTags?.map(TagEntity::id)?.toSet() }
+
+    LaunchedEffect(validTagIds) {
+        validTagIds?.let { selectedTagIds = selectedTagIds.sanitize(validTagIds = it) }
+    }
 
     if (showManageTagsDialog) {
         TagsManagementDialog(
@@ -110,7 +118,7 @@ fun AssignTagsDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (allTags.isEmpty()) {
+                if (allTags.isNullOrEmpty()) {
                     Text(
                         text = stringResource(R.string.no_tags_available),
                         style = MaterialTheme.typography.bodyMedium,
@@ -126,7 +134,7 @@ fun AssignTagsDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        allTags.forEach { tag ->
+                        allTags.orEmpty().forEach { tag ->
                             TagChip(
                                 tag = tag,
                                 selected = tag.id in selectedTagIds,
@@ -158,7 +166,7 @@ fun AssignTagsDialog(
                         }
 
                         TextButton(
-                            enabled = allTags.isNotEmpty(),
+                            enabled = !allTags.isNullOrEmpty(),
                             onClick = { showAssignToPlaylistsDialog = true },
                             shapes = ButtonDefaults.shapes(),
                         ) {
@@ -204,11 +212,16 @@ private fun AssignTagsToPlaylistsDialog(
     initialSelectedPlaylistIds: Set<String>,
     onDismiss: () -> Unit,
 ) {
-    val allTags by database.allTags().collectAsState(initial = emptyList())
+    val allTags: List<TagEntity>? by database.allTags().collectAsState(initial = null)
     val playlists by database.editablePlaylistsByCreateDateAsc().collectAsState(initial = emptyList())
 
     var selectedTagIds by remember(initialSelectedTagIds) { mutableStateOf(initialSelectedTagIds) }
     var selectedPlaylistIds by remember(initialSelectedPlaylistIds) { mutableStateOf(initialSelectedPlaylistIds) }
+    val validTagIds = remember(allTags) { allTags?.map(TagEntity::id)?.toSet() }
+
+    LaunchedEffect(validTagIds) {
+        validTagIds?.let { selectedTagIds = selectedTagIds.sanitize(validTagIds = it) }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -233,7 +246,7 @@ private fun AssignTagsToPlaylistsDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (allTags.isEmpty()) {
+                if (allTags.isNullOrEmpty()) {
                     Text(
                         text = stringResource(R.string.no_tags_available),
                         style = MaterialTheme.typography.bodyMedium,
@@ -249,7 +262,7 @@ private fun AssignTagsToPlaylistsDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        allTags.forEach { tag ->
+                        allTags.orEmpty().forEach { tag ->
                             TagChip(
                                 tag = tag,
                                 selected = tag.id in selectedTagIds,

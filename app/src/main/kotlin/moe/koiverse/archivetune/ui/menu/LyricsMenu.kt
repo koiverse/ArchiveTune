@@ -87,6 +87,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AiApiKeyKey
+import moe.koiverse.archivetune.constants.AiApiValidationStatus
+import moe.koiverse.archivetune.constants.AiApiValidationStatusKey
 import moe.koiverse.archivetune.constants.AiCustomEndpointKey
 import moe.koiverse.archivetune.constants.AiProvider
 import moe.koiverse.archivetune.constants.AiProviderKey
@@ -185,15 +187,18 @@ fun LyricsMenu(
     val (aiProvider) = rememberEnumPreference(AiProviderKey, AiProvider.NONE)
     val (aiApiKey) = rememberPreference(AiApiKeyKey, "")
     val (aiCustomEndpoint) = rememberPreference(AiCustomEndpointKey, "")
+    val (aiValidationStatus) = rememberEnumPreference(AiApiValidationStatusKey, AiApiValidationStatus.UNKNOWN)
     var expandedItemIndex by rememberSaveable { mutableStateOf(-1) }
     val isTranslateEnabled = !isTtml(lyricsProvider()?.lyrics.orEmpty()) &&
         (results.getOrNull(expandedItemIndex)?.let { !isTtml(it.lyrics) } ?: true)
     val currentLyrics = lyricsProvider()?.lyrics.orEmpty()
     val isAiProviderConfigured = aiProvider != AiProvider.NONE
     val isAiTranslationEnabled = currentLyrics.isNotBlank() &&
+        currentLyrics != LyricsEntity.LYRICS_NOT_FOUND &&
         isAiProviderConfigured &&
         aiApiKey.isNotBlank() &&
-        (aiProvider != AiProvider.CUSTOM || aiCustomEndpoint.isNotBlank())
+        (aiProvider != AiProvider.CUSTOM || aiCustomEndpoint.isNotBlank()) &&
+        aiValidationStatus != AiApiValidationStatus.FAILED
 
     LaunchedEffect(Unit) {
         viewModel.aiTranslationEvents.collect { message ->
@@ -214,6 +219,17 @@ fun LyricsMenu(
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                 )
+            }
+        }
+    }
+
+    if (showRefetchLoadingDialog) {
+        DefaultDialog(onDismiss = {}) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(12.dp),
+            ) {
+                LoadingIndicator(modifier = Modifier.size(40.dp))
             }
         }
     }
@@ -790,23 +806,6 @@ fun LyricsMenu(
                 }
             }
         }
-
-    if (showRefetchLoadingDialog) {
-        DefaultDialog(
-            onDismiss = {},
-            icon = {
-                CircularWavyProgressIndicator(modifier = Modifier.size(28.dp))
-            },
-            title = { Text(stringResource(R.string.refetch)) },
-        ) {
-            Text(
-                text = stringResource(R.string.loading) + "…",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
 
     LazyColumn(
         userScrollEnabled = true,

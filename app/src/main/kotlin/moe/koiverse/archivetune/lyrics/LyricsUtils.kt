@@ -189,6 +189,58 @@ object LyricsUtils {
         return result.sorted()
     }
 
+    fun insertInstrumentalBreaks(entries: List<LyricsEntry>, songDurationMs: Long = 0L): List<LyricsEntry> {
+        if (entries.isEmpty()) return entries
+        val result = mutableListOf<LyricsEntry>()
+        insertIntroInstrumentalIfNeeded(entries, result)
+        result.addAll(entries)
+        insertOutroInstrumentalIfNeeded(entries, songDurationMs, result)
+        return result
+    }
+
+    private const val INSTRUMENTAL_GAP_THRESHOLD_MS = 5000L
+    private const val INSTRUMENTAL_INTRO_START_MS = 1000L
+    private const val INSTRUMENTAL_OUTRO_VOCAL_TAIL_MS = 2500L
+
+    private fun insertIntroInstrumentalIfNeeded(
+        entries: List<LyricsEntry>,
+        result: MutableList<LyricsEntry>,
+    ) {
+        val firstTimedVocalEntry = entries.firstOrNull { it.time >= 0L && it.text.isNotBlank() } ?: return
+        val introGapMs = firstTimedVocalEntry.time - INSTRUMENTAL_INTRO_START_MS
+        if (introGapMs < INSTRUMENTAL_GAP_THRESHOLD_MS) return
+
+        result.add(
+            LyricsEntry(
+                time = INSTRUMENTAL_INTRO_START_MS,
+                text = "",
+                isInstrumental = true,
+                durationMs = introGapMs,
+            )
+        )
+    }
+
+    private fun insertOutroInstrumentalIfNeeded(
+        entries: List<LyricsEntry>,
+        songDurationMs: Long,
+        result: MutableList<LyricsEntry>,
+    ) {
+        if (songDurationMs <= 0L) return
+        val lastVocalEntry = entries.lastOrNull { it.text.isNotBlank() } ?: return
+        val outroStartMs = lastVocalEntry.time + INSTRUMENTAL_OUTRO_VOCAL_TAIL_MS
+        val outroDurationMs = songDurationMs - outroStartMs
+        if (outroDurationMs < INSTRUMENTAL_GAP_THRESHOLD_MS) return
+
+        result.add(
+            LyricsEntry(
+                time = outroStartMs,
+                text = "",
+                isInstrumental = true,
+                durationMs = outroDurationMs,
+            )
+        )
+    }
+
     private fun parseLine(line: String): List<LyricsEntry>? {
         if (line.isEmpty()) {
             return null
