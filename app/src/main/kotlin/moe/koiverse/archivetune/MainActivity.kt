@@ -272,6 +272,7 @@ import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.setAppLocale
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
 import moe.koiverse.archivetune.viewmodels.NetworkBannerViewModel
+import moe.koiverse.archivetune.viewmodels.NewsViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.util.Locale
@@ -702,9 +703,11 @@ class MainActivity : ComponentActivity() {
                     val coroutineScope = rememberCoroutineScope()
                     val homeViewModel: HomeViewModel = hiltViewModel()
                     val networkBannerViewModel: NetworkBannerViewModel = hiltViewModel()
+                    val newsViewModel: NewsViewModel = hiltViewModel()
                     val allLocalItems by homeViewModel.allLocalItems.collectAsState()
                     val allYtItems by homeViewModel.allYtItems.collectAsState()
                     val networkBannerState by networkBannerViewModel.bannerState.collectAsStateWithLifecycle()
+                    val hasUnreadNews by newsViewModel.hasUnreadNews.collectAsStateWithLifecycle()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val (previousTab) = rememberSaveable { mutableStateOf("home") }
                     val currentRoute = navBackStackEntry?.destination?.route
@@ -1414,11 +1417,17 @@ class MainActivity : ComponentActivity() {
                                                             contentDescription = stringResource(R.string.history)
                                                         )
                                                     }
-                                                    IconButton(onClick = { navController.navigate("stats") }) {
-                                                        Icon(
-                                                            painter = painterResource(R.drawable.stats),
-                                                            contentDescription = stringResource(R.string.stats)
-                                                        )
+                                                    IconButton(onClick = { navController.navigate("news") }) {
+                                                        BadgedBox(badge = {
+                                                            if (hasUnreadNews) {
+                                                                Badge()
+                                                            }
+                                                        }) {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.newspaper),
+                                                                contentDescription = stringResource(R.string.news)
+                                                            )
+                                                        }
                                                     }
                                                     IconButton(onClick = { navController.navigate("new_release") }) {
                                                         Icon(

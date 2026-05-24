@@ -54,6 +54,18 @@
     <string name="remote_history">Remote</string>
     <string name="charts">Charts</string>
     <string name="back_button_desc">Back</string>
+    <string name="news">News</string>
+    <string name="news_loading">Loading news…</string>
+    <string name="news_empty_title">Nothing here yet</string>
+    <string name="news_empty_desc">No announcements at the moment. Check back soon.</string>
+    <string name="news_error_title">Couldn\'t load news</string>
+    <string name="news_error_desc">Check your internet connection and try again.</string>
+    <string name="news_retry">Retry</string>
+    <string name="news_search_placeholder">Search news…</string>
+    <string name="news_no_results_title">No matching articles</string>
+    <string name="news_no_results_desc">Try a different search term.</string>
+    <string name="news_important_badge">Important</string>
+    <string name="news_author_on_date">%1$s · %2$s</string>
     <string name="no_title">No title</string>
     <string name="unknown_artist">Unknown artist</string>
     <string name="unknown_item_type">Unknown item type</string>
@@ -317,6 +329,8 @@
     <string name="settings_updates_subtitle">Version, release notes, and update channel</string>
     <string name="settings_about_subtitle">App info, licenses, and contributors</string>
     <string name="settings_account_subtitle">Sign in and manage account sync</string>
+    <string name="settings_stats_title">Listening Stats</string>
+    <string name="settings_stats_subtitle">Your top songs, artists, and playback history</string>
     <string name="similar_content">Similar content</string>
     <string name="error_no_song_playing">No song is currently playing</string>
     <string name="error_no_similar_songs">No similar songs found</string>
