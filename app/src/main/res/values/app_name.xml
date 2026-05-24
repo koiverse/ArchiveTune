@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">ArchiveTune</string>
+    <string name="widget_description">Shows currently playing track with playback controls</string>
+    <string name="widget_album_art_description">Album art widget with floating playback controls</string>
 </resources>
