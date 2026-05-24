@@ -251,6 +251,9 @@ dependencies {
     implementation("com.materialkolor:material-kolor:5.0.0-alpha07")
     implementation(libs.compose.cloudy)
 
+    implementation(libs.cronet.play.services)
+    implementation(libs.cronet.okhttp)
+
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.serialization.json)
