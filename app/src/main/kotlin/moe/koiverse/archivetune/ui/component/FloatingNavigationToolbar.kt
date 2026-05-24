@@ -77,8 +77,9 @@ fun FloatingNavigationToolbar(
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
     val toolbarContainerColor = floatingToolbarContainerColor(pureBlack)
+
     val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-        toolbarContainerColor = toolbarContainerColor,
+        toolbarContainerColor = toolbarContainerColor
     )
 
     val hasOverflowAction = onShuffleClick != null && shuffleIconRes != null
@@ -88,23 +89,9 @@ fun FloatingNavigationToolbar(
 
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         val showSelectedLabels = maxWidth >= 360.dp
-
-        val toolbarContent: @Composable RowScope.() -> Unit = {
-            items.forEach { screen ->
-                val selected = isSelected(screen)
-
-                FloatingNavigationToolbarItem(
-                    screen = screen,
-                    selected = selected,
-                    showSelectedLabel = showSelectedLabels,
-                    pureBlack = pureBlack,
-                    onClick = { onItemClick(screen, selected) },
-                )
-            }
-        }
 
         val fab: @Composable () -> Unit = {
             when {
@@ -149,7 +136,17 @@ fun FloatingNavigationToolbar(
             colors = toolbarColors,
             animationSpec = FloatingToolbarDefaults.animationSpec(),
         ) {
-            toolbarContent()
+            items.forEach { screen ->
+                val selected = isSelected(screen)
+
+                FloatingNavigationToolbarItem(
+                    screen = screen,
+                    selected = selected,
+                    showSelectedLabel = showSelectedLabels,
+                    pureBlack = pureBlack,
+                    onClick = { onItemClick(screen, selected) }
+                )
+            }
         }
     }
 }
