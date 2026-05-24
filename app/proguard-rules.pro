@@ -126,3 +126,15 @@
 -dontwarn javax.imageio.**
 -dontwarn javax.swing.**
 -keep class org.jaudiotagger.** { *; }
+
+## Jetpack Glance
+# Keep ActionCallback implementations and their no-arg constructors
+-keep class * implements androidx.glance.appwidget.action.ActionCallback {
+    public <init>();
+}
+-keep class * implements androidx.glance.action.ActionCallback {
+    public <init>();
+}
+# Keep GlanceAppWidget and its receiver
+-keep class * extends androidx.glance.appwidget.GlanceAppWidget { *; }
+-keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver { *; }
