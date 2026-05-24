@@ -76,10 +76,11 @@ import moe.koiverse.archivetune.innertube.utils.PoTokenGenerator
 import moe.koiverse.archivetune.innertube.proxy.RotatingProxyClient
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
-
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -185,9 +186,23 @@ object YouTube {
     val ipRotationActiveCount: StateFlow<Int> = _ipRotationActiveCount.asStateFlow()
 
     suspend fun enableIpRotation() {
-        rotatingProxyClient.fetchAndLoad()
-        innerTube.proxySelector = rotatingProxyClient.selector()
-        _ipRotationActiveCount.value = rotatingProxyClient.activeCount()
+        withContext(Dispatchers.IO) {
+            rotatingProxyClient.fetchAndLoad()
+            innerTube.proxySelector = rotatingProxyClient.selector()
+            _ipRotationActiveCount.value = rotatingProxyClient.activeCount()
+        }
+    }
+
+    suspend fun refreshIpRotation() {
+        withContext(Dispatchers.IO) {
+            if (rotatingProxyClient.activeCount() <= 1) {
+                rotatingProxyClient.fetchAndLoad()
+            } else {
+                rotatingProxyClient.rotate()
+            }
+            innerTube.proxySelector = rotatingProxyClient.selector()
+            _ipRotationActiveCount.value = rotatingProxyClient.activeCount()
+        }
     }
 
     fun disableIpRotation() {

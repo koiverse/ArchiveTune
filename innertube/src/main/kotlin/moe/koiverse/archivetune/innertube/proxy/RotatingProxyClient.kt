@@ -28,6 +28,8 @@ class RotatingProxyClient {
 
     fun activeCount(): Int = selector.activeCount()
 
+    fun rotate() = selector.rotate()
+
     fun loadProxies(configs: List<ProxyConfig>) = selector.loadProxies(configs)
 
     fun get(url: String): String {

@@ -45,6 +45,12 @@ internal class RotatingProxySelector : ProxySelector() {
         return (0 until pool.proxies.size).count { pool.deadUntil.get(it) <= now }
     }
 
+    fun rotate() {
+        if (poolRef.get().proxies.isNotEmpty()) {
+            index.incrementAndGet()
+        }
+    }
+
     override fun select(uri: URI?): List<Proxy> {
         val pool = poolRef.get()
         if (pool.proxies.isEmpty()) return listOf(Proxy.NO_PROXY)
