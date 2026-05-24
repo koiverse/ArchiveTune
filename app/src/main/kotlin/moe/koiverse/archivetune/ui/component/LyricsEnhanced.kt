@@ -13,10 +13,14 @@ import android.app.Activity
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +30,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,14 +49,16 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -67,6 +74,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mocharealm.accompanist.lyrics.core.model.ISyncedLine
@@ -79,6 +87,8 @@ import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerConnection
@@ -107,11 +117,16 @@ import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
 private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
+private const val MANUAL_SCROLL_DEBOUNCE_MS = 50L
+private const val ACTIVE_LINE_REVEAL_DELAY_MS = 90L
+private const val ACTIVE_LINE_FAR_SCROLL_THRESHOLD = 10
 
 @Composable
 fun LyricsEnhanced(
@@ -216,18 +231,38 @@ fun LyricsEnhanced(
 
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
 
-    var lyricsPositionMs by remember { mutableIntStateOf(player.currentPosition.toInt()) }
-    LaunchedEffect(Unit) {
+    val latestSliderPositionProvider = rememberUpdatedState(sliderPositionProvider)
+    val latestLyricsSyncOffset = rememberUpdatedState(lyricsSyncOffset)
+    val latestLeadMs = rememberUpdatedState(leadMs)
+    val playbackPositionMs = remember(player) {
+        mutableLongStateOf(player.currentPosition.coerceAtLeast(0L))
+    }
+    LaunchedEffect(player) {
         while (isActive) {
-            lyricsPositionMs = player.currentPosition.toInt()
-            delay(50L)
+            val sliderPosition = latestSliderPositionProvider.value()
+            val nextPosition = (sliderPosition ?: player.currentPosition).coerceAtLeast(0L)
+            if (playbackPositionMs.longValue != nextPosition) {
+                playbackPositionMs.longValue = nextPosition
+            }
+            if (sliderPosition == null && !player.isPlaying) {
+                delay(100L)
+            } else {
+                withFrameNanos { }
+            }
         }
     }
 
-    val currentPosition: () -> Int = {
-        val sliderPos = sliderPositionProvider()
-        val base = sliderPos ?: lyricsPositionMs.toLong()
-        (base + lyricsSyncOffset.toLong() + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L).toInt()
+    val currentPosition: () -> Int = remember {
+        {
+            (
+                playbackPositionMs.longValue +
+                    latestLyricsSyncOffset.value.toLong() +
+                    latestLeadMs.value +
+                    LYRIC_VISUAL_TUNING_OFFSET_MS
+                )
+                .coerceIn(0L, Int.MAX_VALUE.toLong())
+                .toInt()
+        }
     }
 
     val listState = rememberLazyListState()
@@ -235,13 +270,30 @@ fun LyricsEnhanced(
     var lastManualScrollTime by remember { mutableLongStateOf(0L) }
 
     val nestedScrollConnection = remember {
+        var lastUserScrollEventMs = 0L
         object : NestedScrollConnection {
+            private fun markManualScroll() {
+                val now = System.currentTimeMillis()
+                if (now - lastUserScrollEventMs >= MANUAL_SCROLL_DEBOUNCE_MS) {
+                    isManualScrolling = true
+                    lastManualScrollTime = now
+                    lastUserScrollEventMs = now
+                }
+            }
+
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (!isSelectionModeActive && source == NestedScrollSource.UserInput) {
+                    markManualScroll()
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (!isSelectionModeActive) {
                     isManualScrolling = true
                     lastManualScrollTime = System.currentTimeMillis()
                 }
-                return Offset.Zero
+                return Velocity.Zero
             }
         }
     }
@@ -251,6 +303,22 @@ fun LyricsEnhanced(
             delay(MANUAL_SCROLL_TIMEOUT_MS)
             isManualScrolling = false
         }
+    }
+
+    LaunchedEffect(syncedLyrics, isSynced) {
+        if (!isSynced || syncedLyrics.lines.isEmpty()) return@LaunchedEffect
+        snapshotFlow {
+            syncedLyrics.getCurrentFirstHighlightLineIndexByTime(currentPosition())
+        }
+            .distinctUntilChanged()
+            .collectLatest { index ->
+                if (index !in syncedLyrics.lines.indices) return@collectLatest
+                if (isSelectionModeActive || isManualScrolling) return@collectLatest
+                delay(ACTIVE_LINE_REVEAL_DELAY_MS)
+                if (!isSelectionModeActive && !isManualScrolling) {
+                    listState.keepLyricLineVisible(index)
+                }
+            }
     }
 
     BackHandler(enabled = isSelectionModeActive) {
@@ -324,11 +392,13 @@ fun LyricsEnhanced(
                 }
             }
             else -> {
-                Box(
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
                         .nestedScroll(nestedScrollConnection),
                 ) {
+                    val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
+
                     KaraokeLyricsView(
                         listState = listState,
                         lyrics = syncedLyrics,
@@ -370,6 +440,8 @@ fun LyricsEnhanced(
                         useBlurEffect = lyricsLineBlur,
                         showTranslation = true,
                         showPhonetic = romanizationPreferences.isEnabled,
+                        offset = lyricsViewportOffset,
+                        keepAliveZone = 72.dp,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -382,7 +454,9 @@ fun LyricsEnhanced(
                                 val firstIndex = syncedLyrics.getCurrentFirstHighlightLineIndexByTime(
                                     currentPosition()
                                 )
-                                listState.animateScrollToItem(firstIndex.coerceAtLeast(0))
+                                if (firstIndex in syncedLyrics.lines.indices) {
+                                    listState.keepLyricLineVisible(firstIndex)
+                                }
                             }
                         },
                         modifier = Modifier
@@ -391,7 +465,7 @@ fun LyricsEnhanced(
                         shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(
-                            text = "Resume",
+                            text = stringResource(R.string.resume_autoscroll),
                             style = MaterialTheme.typography.labelLarge,
                         )
                     }
@@ -587,6 +661,41 @@ private fun ISyncedLine.lineText(): String = when (this) {
     else -> ""
 }
 
+private suspend fun LazyListState.keepLyricLineVisible(index: Int) {
+    val info = layoutInfo
+    val viewportHeight = info.viewportEndOffset - info.viewportStartOffset
+    if (viewportHeight <= 0) return
+
+    val preferredCenter = info.viewportStartOffset + (viewportHeight * 0.46f).roundToInt()
+    val safeStart = info.viewportStartOffset + (viewportHeight * 0.16f).roundToInt()
+    val safeEnd = info.viewportEndOffset - (viewportHeight * 0.24f).roundToInt()
+    val targetItem = info.visibleItemsInfo.firstOrNull { it.index == index }
+
+    if (targetItem == null) {
+        val firstVisibleIndex = info.visibleItemsInfo.firstOrNull()?.index ?: firstVisibleItemIndex
+        val scrollOffset = -(viewportHeight * 0.42f).roundToInt()
+        if (abs(index - firstVisibleIndex) > ACTIVE_LINE_FAR_SCROLL_THRESHOLD) {
+            scrollToItem(index, scrollOffset)
+        } else {
+            animateScrollToItem(index, scrollOffset)
+        }
+        return
+    }
+
+    val itemStart = targetItem.offset
+    val itemEnd = targetItem.offset + targetItem.size
+    if (itemStart >= safeStart && itemEnd <= safeEnd) return
+
+    val itemCenter = itemStart + targetItem.size / 2
+    animateScrollBy(
+        value = (itemCenter - preferredCenter).toFloat(),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+    )
+}
+
 private fun buildSyncedLyrics(
     entries: List<LyricsEntry>,
     isTtml: Boolean,
@@ -621,18 +730,7 @@ private fun buildSyncedLyrics(
             val lineEnd = mainSyllables.last().end
             if (lineEnd <= lineStart) return@forEachIndexed
 
-            lines.add(
-                KaraokeLine.MainKaraokeLine(
-                    syllables = mainSyllables,
-                    translation = null,
-                    alignment = alignment,
-                    start = lineStart,
-                    end = lineEnd,
-                    phonetic = romanized,
-                )
-            )
-
-            if (mainWords.isNotEmpty() && bgWords.isNotEmpty()) {
+            val accompanimentLines = if (mainWords.isNotEmpty() && bgWords.isNotEmpty()) {
                 val bgSyllables = bgWords.map { word ->
                     val start = (word.startTime * 1000).toInt()
                     val end = (word.endTime * 1000).toInt().coerceAtLeast(start + 1)
@@ -641,7 +739,7 @@ private fun buildSyncedLyrics(
                 val bgStart = bgSyllables.first().start
                 val bgEnd = bgSyllables.last().end
                 if (bgEnd > bgStart) {
-                    lines.add(
+                    listOf(
                         KaraokeLine.AccompanimentKaraokeLine(
                             syllables = bgSyllables,
                             translation = null,
@@ -651,8 +749,24 @@ private fun buildSyncedLyrics(
                             phonetic = null,
                         )
                     )
+                } else {
+                    null
                 }
+            } else {
+                null
             }
+
+            lines.add(
+                KaraokeLine.MainKaraokeLine(
+                    syllables = mainSyllables,
+                    translation = null,
+                    alignment = alignment,
+                    start = lineStart,
+                    end = lineEnd,
+                    phonetic = romanized,
+                    accompanimentLines = accompanimentLines,
+                )
+            )
         } else {
             val nextEntry = entries.getOrNull(index + 1)
             val lineEnd = if (nextEntry != null && nextEntry.time > entry.time) {
