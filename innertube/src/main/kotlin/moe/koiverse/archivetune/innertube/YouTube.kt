@@ -73,6 +73,7 @@ import moe.koiverse.archivetune.innertube.pages.SearchSuggestionPage
 import moe.koiverse.archivetune.innertube.pages.SearchSummary
 import moe.koiverse.archivetune.innertube.pages.SearchSummaryPage
 import moe.koiverse.archivetune.innertube.utils.PoTokenGenerator
+import moe.koiverse.archivetune.innertube.proxy.RotatingProxyClient
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 
@@ -178,6 +179,21 @@ object YouTube {
         set(value) {
             innerTube.useLoginForBrowse = value
         }
+
+    val rotatingProxyClient = RotatingProxyClient()
+    private val _ipRotationActiveCount = MutableStateFlow(0)
+    val ipRotationActiveCount: StateFlow<Int> = _ipRotationActiveCount.asStateFlow()
+
+    suspend fun enableIpRotation() {
+        rotatingProxyClient.fetchAndLoad()
+        innerTube.proxySelector = rotatingProxyClient.selector()
+        _ipRotationActiveCount.value = rotatingProxyClient.activeCount()
+    }
+
+    fun disableIpRotation() {
+        innerTube.proxySelector = null
+        _ipRotationActiveCount.value = 0
+    }
 
     fun currentPlaybackAuthState(): PlaybackAuthState = authState
 
