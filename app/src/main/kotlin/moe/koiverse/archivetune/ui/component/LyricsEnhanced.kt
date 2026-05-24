@@ -44,6 +44,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +79,7 @@ import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
@@ -213,9 +215,19 @@ fun LyricsEnhanced(
     }
 
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
+
+    var lyricsPositionMs by remember { mutableIntStateOf(player.currentPosition.toInt()) }
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            lyricsPositionMs = player.currentPosition.toInt()
+            delay(50L)
+        }
+    }
+
     val currentPosition: () -> Int = {
-        val pos = sliderPositionProvider() ?: player.currentPosition
-        (pos + lyricsSyncOffset.toLong() + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L).toInt()
+        val sliderPos = sliderPositionProvider()
+        val base = sliderPos ?: lyricsPositionMs.toLong()
+        (base + lyricsSyncOffset.toLong() + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L).toInt()
     }
 
     val listState = rememberLazyListState()
