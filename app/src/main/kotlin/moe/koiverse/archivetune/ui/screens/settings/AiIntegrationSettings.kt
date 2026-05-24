@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +38,8 @@ import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -478,14 +481,12 @@ private fun ModelPickerPreference(
     onFetch: () -> Unit,
 ) {
     var showSheet by rememberSaveable { mutableStateOf(false) }
-    var searchQuery by rememberSaveable(stateSaver = TextFieldValue.Saver) {
-        mutableStateOf(TextFieldValue())
-    }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
     val filteredModels by remember(availableModels) {
         derivedStateOf {
-            val query = searchQuery.text.trim()
+            val query = searchQuery.trim()
             if (query.isBlank()) {
                 availableModels
             } else {
@@ -507,7 +508,7 @@ private fun ModelPickerPreference(
 
     LaunchedEffect(showSheet) {
         if (!showSheet) {
-            searchQuery = TextFieldValue()
+            searchQuery = ""
         }
     }
 
@@ -532,37 +533,45 @@ private fun ModelPickerPreference(
                     .padding(horizontal = 26.dp)
                     .padding(top = 18.dp, bottom = 22.dp),
             )
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                singleLine = true,
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(R.drawable.search),
-                        contentDescription = null,
+            SearchBar(
+                inputField = {
+                    SearchBarDefaults.InputField(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        onSearch = {},
+                        expanded = false,
+                        onExpandedChange = {},
+                        placeholder = { Text(stringResource(R.string.ai_model_search)) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.search),
+                                contentDescription = null,
+                            )
+                        },
+                        trailingIcon = if (searchQuery.isNotBlank()) {
+                            {
+                                androidx.compose.material3.IconButton(
+                                    onClick = { searchQuery = "" },
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.close),
+                                        contentDescription = stringResource(R.string.clear),
+                                    )
+                                }
+                            }
+                        } else {
+                            null
+                        },
                     )
                 },
-                trailingIcon = if (searchQuery.text.isNotBlank()) {
-                    {
-                        androidx.compose.material3.IconButton(
-                            onClick = { searchQuery = TextFieldValue() },
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.close),
-                                contentDescription = stringResource(R.string.clear),
-                            )
-                        }
-                    }
-                } else {
-                    null
-                },
-                placeholder = { Text(stringResource(R.string.ai_model_search)) },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                expanded = false,
+                onExpandedChange = {},
+                windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 26.dp)
                     .padding(bottom = 18.dp),
-            )
+            ) {}
             LazyColumn(
                 contentPadding = PaddingValues(start = 26.dp, end = 26.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
