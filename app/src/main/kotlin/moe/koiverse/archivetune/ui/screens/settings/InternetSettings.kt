@@ -40,6 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -146,6 +147,10 @@ fun InternetSettings(
     val (proxyUsername, onProxyUsernameChange) = rememberPreference(key = ProxyUsernameKey, defaultValue = "")
     val (proxyPassword, onProxyPasswordChange) = rememberPreference(key = ProxyPasswordKey, defaultValue = "")
     val (streamBypassProxy, onStreamBypassProxyChange) = rememberPreference(key = StreamBypassProxyKey, defaultValue = false)
+
+    val (ipRotationEnabled, onIpRotationEnabledChange) = rememberPreference(key = IpRotationEnabledKey, defaultValue = false)
+    var loadingProxies by remember { mutableStateOf(false) }
+    val activeProxyCount by YouTube.ipRotationActiveCount.collectAsStateWithLifecycle()
 
     var testingProxy by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<String?>(null) }
@@ -330,6 +335,56 @@ fun InternetSettings(
                         }
                     )
                 }
+            }
+        }
+
+        PreferenceGroup(title = stringResource(R.string.ip_rotation)) {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.ip_rotation)) },
+                    description = when {
+                        loadingProxies -> stringResource(R.string.ip_rotation_loading)
+                        ipRotationEnabled -> stringResource(R.string.ip_rotation_active_proxies, activeProxyCount)
+                        else -> stringResource(R.string.ip_rotation_desc)
+                    },
+                    icon = { Icon(painterResource(R.drawable.wifi_proxy), null) },
+                    checked = ipRotationEnabled,
+                    onCheckedChange = { enabled ->
+                        onIpRotationEnabledChange(enabled)
+                        if (enabled) {
+                            scope.launch {
+                                loadingProxies = true
+                                try {
+                                    YouTube.enableIpRotation()
+                                } catch (_: Exception) {
+                                    onIpRotationEnabledChange(false)
+                                } finally {
+                                    loadingProxies = false
+                                }
+                            }
+                        } else {
+                            YouTube.disableIpRotation()
+                        }
+                    },
+                )
+            }
+
+            item(visible = ipRotationEnabled) {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.ip_rotation_refresh)) },
+                    icon = { Icon(painterResource(R.drawable.sync), null) },
+                    onClick = {
+                        if (loadingProxies) return@PreferenceEntry
+                        scope.launch {
+                            loadingProxies = true
+                            try {
+                                YouTube.enableIpRotation()
+                            } finally {
+                                loadingProxies = false
+                            }
+                        }
+                    },
+                )
             }
         }
     }
