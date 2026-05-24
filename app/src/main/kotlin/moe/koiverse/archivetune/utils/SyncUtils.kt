@@ -456,11 +456,12 @@ class SyncUtils @Inject constructor(
         val gen = syncGeneration.get()
         YouTube.library("FEmusic_library_corpus_artists").completed().onSuccess { page ->
             if (!isSyncStillEnabled(gen)) return@onSuccess
-            val remoteArtists = page.items.filterIsInstance<ArtistItem>()
+            val remoteArtists = page.items.filterIsInstance<ArtistItem>().distinctBy { it.id }
             if (remoteArtists.isEmpty() && !authoritative) {
                 Timber.w("syncArtistsSubscriptions: No artist subscriptions found")
                 return@onSuccess
             }
+            val now = LocalDateTime.now()
             val remoteIds = remoteArtists.map { it.id }.toSet()
             val localArtists = database.artistsBookmarkedByNameAsc().first()
 
@@ -469,7 +470,7 @@ class SyncUtils @Inject constructor(
                 .asSequence()
                 .filter { !authoritative || !it.artist.isLocal }
                 .filterNot { it.id in remoteIds }
-                .map { it.artist.localToggleLike() }
+                .map { it.artist.copy(bookmarkedAt = null, lastUpdateTime = now) }
                 .toList()
             if (staleArtists.isNotEmpty()) {
                 database.withTransaction {
@@ -477,12 +478,13 @@ class SyncUtils @Inject constructor(
                 }
             }
 
-            remoteArtists.forEach { artist ->
+            remoteArtists.forEachIndexed { index, artist ->
                 launch {
                     if (!isSyncStillEnabled(gen)) return@launch
                     dbWriteSemaphore.withPermit {
                         if (!isSyncStillEnabled(gen)) return@withPermit
                         val dbArtist = database.artist(artist.id).firstOrNull()
+                        val bookmarkedAt = now.minusSeconds(index.toLong())
                         database.withTransaction {
                             if (!isSyncStillEnabled(gen)) return@withTransaction
                             if (dbArtist == null) {
@@ -492,17 +494,27 @@ class SyncUtils @Inject constructor(
                                         name = artist.title,
                                         thumbnailUrl = artist.thumbnail,
                                         channelId = artist.channelId,
+                                        bookmarkedAt = bookmarkedAt,
                                     )
                                 )
                             } else {
                                 val existing = dbArtist.artist
-                                if (existing.name != artist.title || existing.thumbnailUrl != artist.thumbnail || existing.channelId != artist.channelId) {
+                                val syncedThumbnail = artist.thumbnail ?: existing.thumbnailUrl
+                                val syncedChannelId = artist.channelId ?: existing.channelId
+                                val metadataChanged =
+                                    existing.name != artist.title ||
+                                        existing.thumbnailUrl != syncedThumbnail ||
+                                        existing.channelId != syncedChannelId
+                                val needsBookmark = existing.bookmarkedAt == null
+
+                                if (metadataChanged || needsBookmark) {
                                     update(
                                         existing.copy(
                                             name = artist.title,
-                                            thumbnailUrl = artist.thumbnail,
-                                            channelId = artist.channelId,
-                                            lastUpdateTime = java.time.LocalDateTime.now()
+                                            thumbnailUrl = syncedThumbnail,
+                                            channelId = syncedChannelId,
+                                            lastUpdateTime = now,
+                                            bookmarkedAt = existing.bookmarkedAt ?: bookmarkedAt,
                                         )
                                     )
                                 }
