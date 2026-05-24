@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-sdk tools:overrideLibrary="com.mocharealm.accompanist.lyrics.ui" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -38,8 +40,7 @@
         android:usesCleartextTraffic="true"
         android:supportsRtl="false"
         android:theme="@style/Theme.ArchiveTune"
-        tools:targetApi="tiramisu"
-        tools:overrideLibrary="com.mocharealm.accompanist.lyrics.ui">
+        tools:targetApi="tiramisu">
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
