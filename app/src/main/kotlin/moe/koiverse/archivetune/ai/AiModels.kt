@@ -11,6 +11,12 @@ import androidx.compose.runtime.Immutable
 import moe.koiverse.archivetune.constants.AiProvider
 
 @Immutable
+data class AiModelOption(
+    val id: String,
+    val displayName: String,
+)
+
+@Immutable
 data class AiServiceConfig(
     val provider: AiProvider,
     val apiKey: String,

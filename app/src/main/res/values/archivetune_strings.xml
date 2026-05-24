@@ -424,6 +424,8 @@
     <string name="ai_model_loading">Fetching available models…</string>
     <string name="ai_model_fetch_failed">Failed to fetch available models</string>
     <string name="ai_fetch_models">Fetch models</string>
+    <string name="ai_model_search">Search models</string>
+    <string name="ai_model_no_results">No models match your search</string>
     <string name="ai_translation">AI Translation</string>
     <string name="ai_translation_target">Translation target</string>
     <string name="ai_api_connected">API connected</string>

@@ -47,6 +47,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -59,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -86,6 +88,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.ai.AiModelOption
 import moe.koiverse.archivetune.constants.AiApiKeyKey
 import moe.koiverse.archivetune.constants.AiApiValidationStatus
 import moe.koiverse.archivetune.constants.AiApiValidationStatusKey
@@ -142,7 +145,15 @@ fun AiIntegrationSettings(
 
     val hasCustomEndpoint = provider != AiProvider.CUSTOM || customEndpoint.isNotBlank()
     val hasApiConfiguration = provider != AiProvider.NONE && apiKey.isNotBlank() && hasCustomEndpoint
-    val canTestApi = hasApiConfiguration && !actionState.isTesting
+    val hasModelConfiguration = when (provider) {
+        AiProvider.CUSTOM -> customModel.isNotBlank()
+        AiProvider.NONE -> false
+        else -> selectedModel.isNotBlank()
+    }
+    val canUseModelPicker = provider != AiProvider.NONE &&
+        provider != AiProvider.CUSTOM &&
+        apiKey.isNotBlank()
+    val canTestApi = hasApiConfiguration && hasModelConfiguration && !actionState.isTesting
 
     if (showApiKeyDialog) {
         ApiKeyDialog(
@@ -151,6 +162,7 @@ fun AiIntegrationSettings(
             onSave = { value ->
                 setApiKey(value.trim())
                 setValidationStatus(AiApiValidationStatus.UNKNOWN)
+                viewModel.clearAvailableModels()
             },
         )
     }
@@ -177,12 +189,17 @@ fun AiIntegrationSettings(
                         AiProvider.CHATGPT,
                         AiProvider.GEMINI,
                         AiProvider.CLAUDE,
+                        AiProvider.OPENROUTER,
                         AiProvider.CUSTOM,
                         AiProvider.NONE,
                     ),
                     valueText = { it.label() },
-                    onValueSelected = {
-                        setProvider(it)
+                    onValueSelected = { selectedProvider ->
+                        if (provider != selectedProvider) {
+                            setSelectedModel("")
+                            viewModel.clearAvailableModels()
+                        }
+                        setProvider(selectedProvider)
                         setValidationStatus(AiApiValidationStatus.UNKNOWN)
                     },
                 )
@@ -196,6 +213,7 @@ fun AiIntegrationSettings(
                     onValueChange = {
                         setCustomEndpoint(it.trim())
                         setValidationStatus(AiApiValidationStatus.UNKNOWN)
+                        viewModel.clearError()
                     },
                     isInputValid = { it.startsWith("https://") || it.startsWith("http://") },
                 )
@@ -220,8 +238,13 @@ fun AiIntegrationSettings(
                     selectedModel = selectedModel,
                     availableModels = availableModels,
                     isFetching = actionState.isFetchingModels,
+                    isEnabled = canUseModelPicker,
                     canFetch = apiKey.isNotBlank() && !actionState.isFetchingModels,
-                    onModelSelected = setSelectedModel,
+                    onModelSelected = {
+                        setSelectedModel(it)
+                        setValidationStatus(AiApiValidationStatus.UNKNOWN)
+                        viewModel.clearError()
+                    },
                     onFetch = { viewModel.fetchModels(provider, apiKey, customEndpoint) },
                 )
             }
@@ -231,7 +254,11 @@ fun AiIntegrationSettings(
                     title = { Text(stringResource(R.string.ai_model)) },
                     icon = { Icon(painterResource(R.drawable.auto_awesome), null) },
                     value = customModel,
-                    onValueChange = setCustomModel,
+                    onValueChange = {
+                        setCustomModel(it)
+                        setValidationStatus(AiApiValidationStatus.UNKNOWN)
+                        viewModel.clearError()
+                    },
                 )
             }
 
@@ -285,6 +312,10 @@ fun AiIntegrationSettings(
                                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                                 },
                             )
+                        }
+                        actionState.errorMessage?.let { message ->
+                            Spacer(Modifier.height(10.dp))
+                            AiErrorHintRow(message = message)
                         }
                     },
                     trailingContent = {
@@ -395,6 +426,7 @@ private fun AiProvider.label(): String =
         AiProvider.CHATGPT -> "ChatGPT"
         AiProvider.GEMINI -> "Gemini"
         AiProvider.CLAUDE -> "Claude"
+        AiProvider.OPENROUTER -> "OpenRouter"
         AiProvider.CUSTOM -> stringResource(R.string.custom)
         AiProvider.NONE -> stringResource(R.string.ai_provider_none)
     }
@@ -408,24 +440,81 @@ private fun AiApiValidationStatus.label(): String =
     }
 
 @Composable
+private fun AiErrorHintRow(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large)
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.error),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
 private fun ModelPickerPreference(
     selectedModel: String,
-    availableModels: List<Pair<String, String>>,
+    availableModels: List<AiModelOption>,
     isFetching: Boolean,
+    isEnabled: Boolean,
     canFetch: Boolean,
     onModelSelected: (String) -> Unit,
     onFetch: () -> Unit,
 ) {
     var showSheet by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue())
+    }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
+    val filteredModels by remember(availableModels) {
+        derivedStateOf {
+            val query = searchQuery.text.trim()
+            if (query.isBlank()) {
+                availableModels
+            } else {
+                availableModels.filter { model ->
+                    model.displayName.contains(query, ignoreCase = true) ||
+                        model.id.contains(query, ignoreCase = true)
+                }
+            }
+        }
+    }
 
     val description = when {
         isFetching && availableModels.isEmpty() -> stringResource(R.string.ai_model_loading)
         availableModels.isEmpty() && !canFetch -> stringResource(R.string.ai_model_api_key_required)
         availableModels.isEmpty() -> stringResource(R.string.ai_model_fetch_hint)
         selectedModel.isBlank() -> stringResource(R.string.ai_model_not_selected)
-        else -> availableModels.firstOrNull { it.first == selectedModel }?.second ?: selectedModel
+        else -> availableModels.firstOrNull { it.id == selectedModel }?.displayName ?: selectedModel
+    }
+
+    LaunchedEffect(showSheet) {
+        if (!showSheet) {
+            searchQuery = TextFieldValue()
+        }
+    }
+
+    LaunchedEffect(isEnabled) {
+        if (!isEnabled) {
+            showSheet = false
+        }
     }
 
     if (showSheet) {
@@ -443,6 +532,37 @@ private fun ModelPickerPreference(
                     .padding(horizontal = 26.dp)
                     .padding(top = 18.dp, bottom = 22.dp),
             )
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.search),
+                        contentDescription = null,
+                    )
+                },
+                trailingIcon = if (searchQuery.text.isNotBlank()) {
+                    {
+                        androidx.compose.material3.IconButton(
+                            onClick = { searchQuery = TextFieldValue() },
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.close),
+                                contentDescription = stringResource(R.string.clear),
+                            )
+                        }
+                    }
+                } else {
+                    null
+                },
+                placeholder = { Text(stringResource(R.string.ai_model_search)) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 26.dp)
+                    .padding(bottom = 18.dp),
+            )
             LazyColumn(
                 contentPadding = PaddingValues(start = 26.dp, end = 26.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -450,7 +570,26 @@ private fun ModelPickerPreference(
                     .fillMaxWidth()
                     .heightIn(max = 520.dp),
             ) {
-                items(availableModels, key = { it.first }) { (id, displayName) ->
+                if (filteredModels.isEmpty()) {
+                    item(key = "empty", contentType = "empty") {
+                        Text(
+                            text = stringResource(R.string.ai_model_no_results),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 28.dp),
+                        )
+                    }
+                }
+                items(
+                    items = filteredModels,
+                    key = { it.id },
+                    contentType = { "model" },
+                ) { model ->
+                    val id = model.id
+                    val displayName = model.displayName
                     val selected = id == selectedModel
                     Row(
                         modifier = Modifier
@@ -475,15 +614,29 @@ private fun ModelPickerPreference(
                             .padding(horizontal = 24.dp, vertical = 20.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = displayName,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (selected) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                text = displayName,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selected) MaterialTheme.colorScheme.onPrimary
+                                        else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (displayName != id) {
+                                Text(
+                                    text = id,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f)
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -509,6 +662,7 @@ private fun ModelPickerPreference(
                 }
             }
         },
-        onClick = if (availableModels.isNotEmpty()) ({ showSheet = true }) else null,
+        onClick = if (isEnabled && availableModels.isNotEmpty()) ({ showSheet = true }) else null,
+        isEnabled = isEnabled,
     )
 }

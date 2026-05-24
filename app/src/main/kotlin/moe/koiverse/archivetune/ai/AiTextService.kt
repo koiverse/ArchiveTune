@@ -17,6 +17,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import java.util.concurrent.TimeUnit
+import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.constants.AiProvider
 import org.json.JSONArray
 import org.json.JSONObject
@@ -32,6 +33,10 @@ object AiTextService {
     private const val GeminiBaseEndpoint = "https://generativelanguage.googleapis.com/v1beta"
     private const val ClaudeEndpoint = "https://api.anthropic.com/v1/messages"
     private const val ClaudeModelsEndpoint = "https://api.anthropic.com/v1/models"
+    private const val OpenRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions"
+    private const val OpenRouterModelsEndpoint = "https://openrouter.ai/api/v1/models?output_modalities=text"
+    private const val OpenRouterReferer = "https://github.com/koiverse/ArchiveTune"
+    private const val OpenRouterTitle = "ArchiveTune"
 
     private val client =
         HttpClient(OkHttp) {
@@ -134,16 +139,28 @@ object AiTextService {
                 maxTokens = maxTokens,
             )
 
+            AiProvider.OPENROUTER -> completeOpenAiCompatible(
+                endpoint = OpenRouterEndpoint,
+                apiKey = config.apiKey,
+                model = model,
+                systemPrompt = systemPrompt,
+                userPrompt = userPrompt,
+                temperature = temperature,
+                maxTokens = maxTokens,
+                extraHeaders = openRouterHeaders(),
+            )
+
             AiProvider.NONE -> throw AiServiceException("AI provider is disabled")
         }
     }
 
-    suspend fun fetchModels(config: AiServiceConfig): List<Pair<String, String>> {
+    suspend fun fetchModels(config: AiServiceConfig): List<AiModelOption> {
         if (!config.canCallApi) throw AiServiceException("AI provider is not configured")
         return when (config.provider) {
             AiProvider.CHATGPT -> fetchOpenAiModels(config.apiKey)
             AiProvider.GEMINI -> fetchGeminiModels(config.apiKey)
             AiProvider.CLAUDE -> fetchClaudeModels(config.apiKey)
+            AiProvider.OPENROUTER -> fetchOpenRouterModels(config.apiKey)
             AiProvider.CUSTOM, AiProvider.NONE -> emptyList()
         }
     }
@@ -156,6 +173,7 @@ object AiTextService {
         userPrompt: String,
         temperature: Double,
         maxTokens: Int,
+        extraHeaders: Map<String, String> = emptyMap(),
     ): String {
         val messages = JSONArray()
             .put(JSONObject().put("role", "system").put("content", systemPrompt))
@@ -168,6 +186,7 @@ object AiTextService {
             .toString()
         val response = client.post(endpoint.trim()) {
             header("Authorization", "Bearer ${apiKey.trim()}")
+            extraHeaders.forEach { (key, value) -> header(key, value) }
             contentType(ContentType.Application.Json)
             setBody(body)
         }
@@ -276,11 +295,12 @@ object AiTextService {
         AiProvider.CHATGPT -> "gpt-4o"
         AiProvider.GEMINI -> "gemini-3.5-flash"
         AiProvider.CLAUDE -> "claude-3-haiku-20240307"
+        AiProvider.OPENROUTER -> "openrouter/auto"
         AiProvider.CUSTOM -> throw AiServiceException("No AI model configured")
         AiProvider.NONE -> throw AiServiceException("AI provider is disabled")
     }
 
-    private suspend fun fetchOpenAiModels(apiKey: String): List<Pair<String, String>> {
+    private suspend fun fetchOpenAiModels(apiKey: String): List<AiModelOption> {
         val response = client.get(OpenAiModelsEndpoint) {
             header("Authorization", "Bearer ${apiKey.trim()}")
         }
@@ -291,12 +311,12 @@ object AiTextService {
             for (i in 0 until data.length()) {
                 val obj = data.optJSONObject(i) ?: continue
                 val id = obj.optString("id").takeIf { it.isNotBlank() } ?: continue
-                add(id to id)
+                add(AiModelOption(id = id, displayName = id))
             }
-        }.sortedBy { it.first }
+        }.sortedBy { it.id }
     }
 
-    private suspend fun fetchGeminiModels(apiKey: String): List<Pair<String, String>> {
+    private suspend fun fetchGeminiModels(apiKey: String): List<AiModelOption> {
         val response = client.get("$GeminiBaseEndpoint/models?key=${apiKey.trim()}")
         val raw = response.bodyAsText()
         if (response.status.value !in 200..299) throw apiException(response.status.value, raw)
@@ -311,12 +331,12 @@ object AiTextService {
                 if (!supportsGenerate) continue
                 val id = obj.optString("name").removePrefix("models/").takeIf { it.isNotBlank() } ?: continue
                 val displayName = obj.optString("displayName").ifBlank { id }
-                add(id to displayName)
+                add(AiModelOption(id = id, displayName = displayName))
             }
         }
     }
 
-    private suspend fun fetchClaudeModels(apiKey: String): List<Pair<String, String>> {
+    private suspend fun fetchClaudeModels(apiKey: String): List<AiModelOption> {
         val response = client.get(ClaudeModelsEndpoint) {
             header("x-api-key", apiKey.trim())
             header("anthropic-version", "2023-06-01")
@@ -329,10 +349,36 @@ object AiTextService {
                 val obj = data.optJSONObject(i) ?: continue
                 val id = obj.optString("id").takeIf { it.isNotBlank() } ?: continue
                 val displayName = obj.optString("display_name").ifBlank { id }
-                add(id to displayName)
+                add(AiModelOption(id = id, displayName = displayName))
             }
         }
     }
+
+    private suspend fun fetchOpenRouterModels(apiKey: String): List<AiModelOption> {
+        val response = client.get(OpenRouterModelsEndpoint) {
+            header("Authorization", "Bearer ${apiKey.trim()}")
+            openRouterHeaders().forEach { (key, value) -> header(key, value) }
+        }
+        val raw = response.bodyAsText()
+        if (response.status.value !in 200..299) throw apiException(response.status.value, raw)
+        val data = JSONObject(raw).optJSONArray("data") ?: return emptyList()
+        return buildList {
+            for (i in 0 until data.length()) {
+                val obj = data.optJSONObject(i) ?: continue
+                val id = obj.optString("id").takeIf { it.isNotBlank() } ?: continue
+                val displayName = obj.optString("name").ifBlank { id }
+                add(AiModelOption(id = id, displayName = displayName))
+            }
+        }.sortedWith(
+            compareBy<AiModelOption, String>(String.CASE_INSENSITIVE_ORDER) { it.displayName },
+        )
+    }
+
+    private fun openRouterHeaders(): Map<String, String> =
+        mapOf(
+            "HTTP-Referer" to OpenRouterReferer,
+            "X-OpenRouter-Title" to "$OpenRouterTitle ${BuildConfig.VERSION_NAME}",
+        )
 
     private fun apiException(
         status: Int,
