@@ -158,6 +158,14 @@ class App : Application(), SingletonImageLoader.Factory {
                     YouTube.streamBypassProxy = prefs[StreamBypassProxyKey] == true
                 }
 
+                if (prefs[IpRotationEnabledKey] == true) {
+                    try {
+                        YouTube.enableIpRotation()
+                    } catch (e: Exception) {
+                        reportException(e)
+                    }
+                }
+
                 if (prefs[UseLoginForBrowse] != false) {
                     YouTube.useLoginForBrowse = true
                 }
