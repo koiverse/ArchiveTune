@@ -17,7 +17,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <tools:overrideLibrary="com.mocharealm.accompanist.lyrics.ui" />
 
     <queries>
         <intent>
@@ -39,7 +38,8 @@
         android:usesCleartextTraffic="true"
         android:supportsRtl="false"
         android:theme="@style/Theme.ArchiveTune"
-        tools:targetApi="tiramisu">
+        tools:targetApi="tiramisu"
+        tools:overrideLibrary="com.mocharealm.accompanist.lyrics.ui">
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
