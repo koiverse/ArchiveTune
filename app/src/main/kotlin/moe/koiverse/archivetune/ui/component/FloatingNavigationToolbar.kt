@@ -76,12 +76,15 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val toolbarContainerColor = floatingToolbarContainerColor(pureBlack = pureBlack)
+    val toolbarContainerColor = floatingToolbarContainerColor(pureBlack)
     val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
         toolbarContainerColor = toolbarContainerColor,
     )
+
     val hasOverflowAction = onShuffleClick != null && shuffleIconRes != null
     val hasFabAction = onFabClick != null && fabIconRes != null
+
+    var expanded by remember { mutableStateOf(false) }
 
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
@@ -89,10 +92,23 @@ fun FloatingNavigationToolbar(
     ) {
         val showSelectedLabels = maxWidth >= 360.dp
 
-        if (hasOverflowAction) {
-            HorizontalFloatingToolbar(
-                expanded = true,
-                floatingActionButton = {
+        val toolbarContent: @Composable RowScope.() -> Unit = {
+            items.forEach { screen ->
+                val selected = isSelected(screen)
+
+                FloatingNavigationToolbarItem(
+                    screen = screen,
+                    selected = selected,
+                    showSelectedLabel = showSelectedLabels,
+                    pureBlack = pureBlack,
+                    onClick = { onItemClick(screen, selected) },
+                )
+            }
+        }
+
+        val fab: @Composable () -> Unit = {
+            when {
+                hasOverflowAction -> {
                     FloatingToolbarOverflowAction(
                         pureBlack = pureBlack,
                         onShuffleClick = onShuffleClick,
@@ -101,66 +117,39 @@ fun FloatingNavigationToolbar(
                         onMusicRecognitionClick = onMusicRecognitionClick,
                         musicRecognitionContentDescription = musicRecognitionContentDescription,
                     )
-                },
-                modifier = Modifier.widthIn(max = 480.dp),
-                colors = toolbarColors,
-            ) {
-                items.forEach { screen ->
-                    val selected = isSelected(screen)
-
-                    FloatingNavigationToolbarItem(
-                        screen = screen,
-                        selected = selected,
-                        showSelectedLabel = showSelectedLabels,
-                        pureBlack = pureBlack,
-                        onClick = { onItemClick(screen, selected) },
-                    )
                 }
-            }
-        } else if (hasFabAction) {
-            HorizontalFloatingToolbar(
-                expanded = true,
-                floatingActionButton = {
+
+                hasFabAction -> {
                     FloatingToolbarFabAction(
                         pureBlack = pureBlack,
-                        onClick = onFabClick,
+                        onClick = {
+                            onFabClick?.invoke()
+                            expanded = !expanded
+                        },
                         iconRes = fabIconRes,
                         contentDescription = fabContentDescription,
                     )
-                },
-                modifier = Modifier.widthIn(max = 480.dp),
-                colors = toolbarColors,
-            ) {
-                items.forEach { screen ->
-                    val selected = isSelected(screen)
+                }
 
-                    FloatingNavigationToolbarItem(
-                        screen = screen,
-                        selected = selected,
-                        showSelectedLabel = showSelectedLabels,
+                else -> {
+                    FloatingToolbarFabAction(
                         pureBlack = pureBlack,
-                        onClick = { onItemClick(screen, selected) },
+                        onClick = { expanded = !expanded },
+                        iconRes = fabIconRes,
+                        contentDescription = fabContentDescription,
                     )
                 }
             }
-        } else {
-            HorizontalFloatingToolbar(
-                expanded = true,
-                modifier = Modifier.widthIn(max = 420.dp),
-                colors = toolbarColors,
-            ) {
-                items.forEach { screen ->
-                    val selected = isSelected(screen)
+        }
 
-                    FloatingNavigationToolbarItem(
-                        screen = screen,
-                        selected = selected,
-                        showSelectedLabel = showSelectedLabels,
-                        pureBlack = pureBlack,
-                        onClick = { onItemClick(screen, selected) },
-                    )
-                }
-            }
+        HorizontalFloatingToolbar(
+            expanded = expanded,
+            floatingActionButton = fab,
+            modifier = Modifier.widthIn(max = 480.dp),
+            colors = toolbarColors,
+            animationSpec = FloatingToolbarDefaults.animationSpec(),
+        ) {
+            toolbarContent()
         }
     }
 }
