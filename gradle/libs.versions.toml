@@ -40,7 +40,7 @@ rhino = "1.9.1"
 markwon = "4.6.2"
 okhttp = "5.3.2"
 cronetPlayServices = "18.1.0"
-cronetOkhttp = "0.1.0"
+cronetOkhttp = "0.1.1"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
