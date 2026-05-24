@@ -39,6 +39,7 @@ extractor = "c46af33"
 rhino = "1.9.1"
 markwon = "4.6.2"
 okhttp = "5.3.2"
+accompanist = "1.0.19"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -132,6 +133,8 @@ markwon-ext-tables = { module = "io.noties.markwon:ext-tables", version.ref = "m
 markwon-ext-tasklist = { module = "io.noties.markwon:ext-tasklist", version.ref = "markwon" }
 markwon-html = { module = "io.noties.markwon:html", version.ref = "markwon" }
 markwon-linkify = { module = "io.noties.markwon:linkify", version.ref = "markwon" }
+
+accompanist-lyrics-ui = { module = "com.mocharealm.accompanist:lyrics-ui", version.ref = "accompanist" }
 
 
 [plugins]

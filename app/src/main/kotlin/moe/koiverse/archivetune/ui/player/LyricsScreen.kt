@@ -113,7 +113,7 @@ import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.extensions.toggleRepeatMode
 import moe.koiverse.archivetune.lyrics.LyricsHelper
 import moe.koiverse.archivetune.models.MediaMetadata
-import moe.koiverse.archivetune.ui.component.LyricsV2
+import moe.koiverse.archivetune.ui.component.LyricsEnhanced
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.BigSeekBar
 import androidx.navigation.NavController
@@ -428,7 +428,7 @@ fun LyricsScreen(
                                     .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.Center  // Center lyrics in landscape
                             ) {
-                                LyricsV2(
+                                LyricsEnhanced(
                                     sliderPositionProvider = { sliderPosition },
                                     lyricsSyncOffset = lyricsSyncOffset
                                 )
@@ -739,7 +739,7 @@ fun LyricsScreen(
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.TopCenter
                     ) {
-                        LyricsV2(
+                        LyricsEnhanced(
                             sliderPositionProvider = { sliderPosition },
                             lyricsSyncOffset = lyricsSyncOffset
                         )
