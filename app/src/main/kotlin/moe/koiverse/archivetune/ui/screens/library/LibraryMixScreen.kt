@@ -26,9 +26,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -99,6 +101,30 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.text.Collator
 import java.util.Locale
+
+private val LibraryGroupLargeCorner: Dp = 28.dp
+private val LibraryGroupSmallCorner: Dp = 6.dp
+
+private fun librarySegmentedShape(index: Int, count: Int): Shape {
+    val large = LibraryGroupLargeCorner
+    val small = LibraryGroupSmallCorner
+    return when {
+        count <= 1 -> RoundedCornerShape(large)
+        index == 0 -> RoundedCornerShape(
+            topStart = large,
+            topEnd = large,
+            bottomStart = small,
+            bottomEnd = small,
+        )
+        index == count - 1 -> RoundedCornerShape(
+            topStart = small,
+            topEnd = small,
+            bottomStart = large,
+            bottomEnd = large,
+        )
+        else -> RoundedCornerShape(small)
+    }
+}
 
 private data class LibraryShortcutEntry(
     val title: String,
@@ -406,19 +432,22 @@ fun LibraryMixScreen(
                     }
                 }
             } else {
-                items(
-                    items = visiblePlaylists,
-                    key = { it.id },
-                ) { item ->
-                    LibraryPlaylistListItem(
-                        navController = navController,
-                        menuState = menuState,
-                        coroutineScope = coroutineScope,
-                        playlist = item,
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .animateItem(),
-                    )
+                item(key = "playlists_group") {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    ) {
+                        visiblePlaylists.forEachIndexed { index, item ->
+                            LibraryPlaylistListItem(
+                                navController = navController,
+                                menuState = menuState,
+                                coroutineScope = coroutineScope,
+                                playlist = item,
+                                shape = librarySegmentedShape(index, visiblePlaylists.size),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -431,56 +460,60 @@ fun LibraryMixScreen(
                     )
                 }
 
-                items(
-                    items = sortedAlbums,
-                    key = { it.id },
-                ) { album ->
-                    LibraryAlbumSpotlightCard(
-                        album = album,
-                        isActive = album.id == mediaMetadata?.album?.id,
-                        isPlaying = isPlaying,
-                        onPlay = {
-                            coroutineScope.launch {
-                                database.albumWithSongs(album.id).firstOrNull()?.let { albumWithSongs ->
-                                    playerConnection.playQueue(LocalAlbumRadio(albumWithSongs))
-                                }
-                            }
-                        },
-                        trailingContent = {
-                            IconButton(
-                                onClick = {
-                                    menuState.show {
-                                        AlbumMenu(
-                                            originalAlbum = album,
-                                            navController = navController,
-                                            onDismiss = menuState::dismiss,
+                item(key = "albums_group") {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    ) {
+                        sortedAlbums.forEachIndexed { index, album ->
+                            LibraryAlbumSpotlightCard(
+                                album = album,
+                                shape = librarySegmentedShape(index, sortedAlbums.size),
+                                isActive = album.id == mediaMetadata?.album?.id,
+                                isPlaying = isPlaying,
+                                onPlay = {
+                                    coroutineScope.launch {
+                                        database.albumWithSongs(album.id).firstOrNull()?.let { albumWithSongs ->
+                                            playerConnection.playQueue(LocalAlbumRadio(albumWithSongs))
+                                        }
+                                    }
+                                },
+                                trailingContent = {
+                                    IconButton(
+                                        onClick = {
+                                            menuState.show {
+                                                AlbumMenu(
+                                                    originalAlbum = album,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_vert),
+                                            contentDescription = null,
                                         )
                                     }
                                 },
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.more_vert),
-                                    contentDescription = null,
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .combinedClickable(
-                                onClick = { navController.navigate("album/${album.id}") },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    menuState.show {
-                                        AlbumMenu(
-                                            originalAlbum = album,
-                                            navController = navController,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = { navController.navigate("album/${album.id}") },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            menuState.show {
+                                                AlbumMenu(
+                                                    originalAlbum = album,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    ),
                             )
-                            .animateItem(),
-                    )
+                        }
+                    }
                 }
             }
 
@@ -493,47 +526,51 @@ fun LibraryMixScreen(
                     )
                 }
 
-                items(
-                    items = sortedArtists,
-                    key = { it.id },
-                ) { artist ->
-                    LibraryArtistSpotlightCard(
-                        artist = artist,
-                        trailingContent = {
-                            IconButton(
-                                onClick = {
-                                    menuState.show {
-                                        ArtistMenu(
-                                            originalArtist = artist,
-                                            coroutineScope = coroutineScope,
-                                            onDismiss = menuState::dismiss,
+                item(key = "artists_group") {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    ) {
+                        sortedArtists.forEachIndexed { index, artist ->
+                            LibraryArtistSpotlightCard(
+                                artist = artist,
+                                shape = librarySegmentedShape(index, sortedArtists.size),
+                                trailingContent = {
+                                    IconButton(
+                                        onClick = {
+                                            menuState.show {
+                                                ArtistMenu(
+                                                    originalArtist = artist,
+                                                    coroutineScope = coroutineScope,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_vert),
+                                            contentDescription = null,
                                         )
                                     }
                                 },
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.more_vert),
-                                    contentDescription = null,
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .combinedClickable(
-                                onClick = { navController.navigate("artist/${artist.id}") },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    menuState.show {
-                                        ArtistMenu(
-                                            originalArtist = artist,
-                                            coroutineScope = coroutineScope,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = { navController.navigate("artist/${artist.id}") },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            menuState.show {
+                                                ArtistMenu(
+                                                    originalArtist = artist,
+                                                    coroutineScope = coroutineScope,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    ),
                             )
-                            .animateItem(),
-                    )
+                        }
+                    }
                 }
             }
         }

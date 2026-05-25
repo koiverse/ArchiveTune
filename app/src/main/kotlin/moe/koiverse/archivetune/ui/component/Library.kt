@@ -16,11 +16,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
@@ -175,6 +178,7 @@ fun LibraryPlaylistListItem(
     coroutineScope: CoroutineScope,
     playlist: Playlist,
     modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(26.dp),
     showDragHandle: Boolean = false,
     dragHandleModifier: Modifier = Modifier,
 ) {
@@ -251,6 +255,7 @@ fun LibraryPlaylistListItem(
 
     LibraryPlaylistFeatureCard(
         playlist = playlist,
+        shape = shape,
         trailingContent = trailing,
         modifier = modifier
             .fillMaxWidth()

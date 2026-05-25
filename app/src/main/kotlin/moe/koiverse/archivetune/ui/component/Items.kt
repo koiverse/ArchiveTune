@@ -917,6 +917,7 @@ fun LibraryPinnedCollectionTile(
 fun LibraryPlaylistFeatureCard(
     playlist: Playlist,
     modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(26.dp),
     autoPlaylist: Boolean = false,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
@@ -925,7 +926,7 @@ fun LibraryPlaylistFeatureCard(
     val thumbnailShape = RoundedCornerShape(22.dp)
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        shape = RoundedCornerShape(26.dp),
+        shape = shape,
         modifier = modifier,
     ) {
         Row(
@@ -982,6 +983,7 @@ fun LibraryPlaylistFeatureCard(
 fun LibraryAlbumSpotlightCard(
     album: Album,
     modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(26.dp),
     isActive: Boolean = false,
     isPlaying: Boolean = false,
     onPlay: (() -> Unit)? = null,
@@ -993,7 +995,7 @@ fun LibraryAlbumSpotlightCard(
     )
 
     Card(
-        shape = RoundedCornerShape(26.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = if (isActive) {
                 MaterialTheme.colorScheme.secondaryContainer
@@ -1063,10 +1065,11 @@ fun LibraryAlbumSpotlightCard(
 fun LibraryArtistSpotlightCard(
     artist: Artist,
     modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(26.dp),
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     Card(
-        shape = RoundedCornerShape(26.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = modifier,
     ) {
