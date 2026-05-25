@@ -98,6 +98,7 @@ import kotlin.math.roundToInt
 fun CurrentSongHeader(
     sheetState: BottomSheetState,
     mediaMetadata: MediaMetadata?,
+    liked: Boolean,
     isPlaying: Boolean,
     repeatMode: Int,
     shuffleModeEnabled: Boolean,
@@ -183,14 +184,14 @@ fun CurrentSongHeader(
                 onClick = onToggleLike,
                 modifier = Modifier.size(44.dp),
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = if (mediaMetadata?.liked == true)
+                    contentColor = if (liked)
                         MaterialTheme.colorScheme.primary
                     else onBackgroundColor
                 )
             ) {
                 Icon(
                     painter = painterResource(
-                        if (mediaMetadata?.liked == true) R.drawable.favorite
+                        if (liked) R.drawable.favorite
                         else R.drawable.favorite_border
                     ),
                     contentDescription = stringResource(R.string.action_like),
