@@ -39,19 +39,22 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
+import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -99,7 +102,7 @@ fun ViewNewsScreen(
 ) {
     val contentState by viewModel.contentState.collectAsStateWithLifecycle()
     val newsItem = viewModel.newsItem
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
         modifier = Modifier
@@ -108,14 +111,14 @@ fun ViewNewsScreen(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = {
                     Text(
                         text = newsItem?.title ?: "",
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
                     )
                 },
                 navigationIcon = {
@@ -129,9 +132,10 @@ fun ViewNewsScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
+                colors = TopAppBarDefaults.largeTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
                 scrollBehavior = scrollBehavior,
             )
@@ -186,30 +190,18 @@ private fun ViewNewsArticleContent(
                 ),
             ),
     ) {
-        val horizontalPadding = if (maxWidth > 840.dp) (maxWidth - 760.dp) / 2 else 20.dp
+        val horizontalPadding = if (maxWidth > 840.dp) (maxWidth - 760.dp) / 2 else 24.dp
         val imageUrls = newsItem?.imageUrls.orEmpty()
         var fullImageUrl by remember { mutableStateOf<String?>(null) }
 
         LazyColumn(
             contentPadding = PaddingValues(
-                top = innerPadding.calculateTopPadding(),
-                bottom = innerPadding.calculateBottomPadding() + 32.dp,
+                top = innerPadding.calculateTopPadding() + 16.dp,
+                bottom = innerPadding.calculateBottomPadding() + 48.dp,
             ),
             modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            if (imageUrls.isNotEmpty()) {
-                item(key = "article_carousel", contentType = "carousel") {
-                    ViewNewsCarousel(
-                        imageUrls = imageUrls,
-                        onImageClick = { url -> fullImageUrl = url },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(280.dp),
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-
             if (newsItem != null) {
                 item(key = "article_meta", contentType = "meta") {
                     ViewNewsMetaRow(
@@ -218,28 +210,28 @@ private fun ViewNewsArticleContent(
                             .fillMaxWidth()
                             .padding(horizontal = horizontalPadding),
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
+            }
 
-                item(key = "article_title", contentType = "title") {
-                    Text(
-                        text = newsItem.title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+            if (imageUrls.isNotEmpty()) {
+                item(key = "article_carousel", contentType = "carousel") {
+                    ViewNewsCarousel(
+                        imageUrls = imageUrls,
+                        onImageClick = { url -> fullImageUrl = url },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = horizontalPadding),
+                            .height(320.dp),
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
 
             item(key = "article_content", contentType = "markdown") {
                 MarkdownText(
                     markdown = content,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.2f
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = horizontalPadding),
@@ -275,6 +267,8 @@ private fun ViewNewsCarousel(
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier
+                .padding(horizontal = 24.dp)
+                .maskClip(MaterialTheme.shapes.extraLarge)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .clickable(role = Role.Image) { onImageClick(imageUrls.first()) },
         )
@@ -283,11 +277,11 @@ private fun ViewNewsCarousel(
 
     val carouselState = rememberCarouselState { imageUrls.size }
 
-    HorizontalCenteredHeroCarousel(
+    HorizontalMultiBrowseCarousel(
         state = carouselState,
-        maxItemWidth = 420.dp,
-        itemSpacing = 8.dp,
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        preferredItemWidth = 320.dp,
+        itemSpacing = 12.dp,
+        contentPadding = PaddingValues(horizontal = 24.dp),
         modifier = modifier,
     ) { index ->
         val context = LocalContext.current
@@ -318,44 +312,51 @@ private fun ViewNewsMetaRow(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (item.important) {
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            ) {
-                Text(
-                    text = stringResource(R.string.news_important_badge),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                )
-            }
-        }
-
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f, fill = false),
-        ) {
-            val formattedDate = remember(item.timestamp) {
-                if (item.timestamp == 0L) ""
-                else DateTimeFormatter.ofPattern("d MMM yyyy").format(
-                    LocalDateTime.ofInstant(Instant.ofEpochSecond(item.timestamp), ZoneId.systemDefault())
-                )
-            }
-            Text(
-                text = stringResource(R.string.news_author_on_date, item.author, formattedDate),
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            AssistChip(
+                onClick = {},
+                label = {
+                    Text(
+                        text = stringResource(R.string.news_important_badge),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    labelColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
+                border = null,
+                shape = MaterialTheme.shapes.large
             )
         }
+
+        val formattedDate = remember(item.timestamp) {
+            if (item.timestamp == 0L) ""
+            else DateTimeFormatter.ofPattern("d MMM yyyy").format(
+                LocalDateTime.ofInstant(Instant.ofEpochSecond(item.timestamp), ZoneId.systemDefault())
+            )
+        }
+
+        AssistChip(
+            onClick = {},
+            label = {
+                Text(
+                    text = stringResource(R.string.news_author_on_date, item.author, formattedDate),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            colors = AssistChipDefaults.assistChipColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
+            border = null,
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.weight(1f, fill = false)
+        )
     }
 }
 
@@ -370,6 +371,7 @@ private fun ViewNewsFullImageDialog(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
+            decorFitsSystemWindows = false
         ),
     ) {
         val context = LocalContext.current
@@ -383,7 +385,7 @@ private fun ViewNewsFullImageDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.92f))
+                .background(Color.Black.copy(alpha = 0.96f))
                 .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
@@ -403,22 +405,28 @@ private fun ViewNewsLoadingState(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
         modifier = modifier.padding(24.dp),
     ) {
-        Surface(
+        ElevatedCard(
             shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            tonalElevation = 2.dp,
+            colors = MaterialTheme.colorScheme.surfaceContainerHigh.let {
+                androidx.compose.material3.CardDefaults.elevatedCardColors(containerColor = it)
+            },
+            elevation = androidx.compose.material3.CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
         ) {
             Column(
-                modifier = Modifier.padding(32.dp),
+                modifier = Modifier.padding(48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
-                CircularWavyProgressIndicator(modifier = Modifier.size(64.dp))
+                CircularWavyProgressIndicator(
+                    modifier = Modifier.size(72.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                )
                 Text(
                     text = stringResource(R.string.news_loading),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -435,45 +443,47 @@ private fun ViewNewsErrorState(
         contentAlignment = Alignment.Center,
         modifier = modifier.padding(24.dp),
     ) {
-        Surface(
+        ElevatedCard(
             shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            tonalElevation = 2.dp,
+            colors = MaterialTheme.colorScheme.surfaceContainerHigh.let {
+                androidx.compose.material3.CardDefaults.elevatedCardColors(containerColor = it)
+            },
+            elevation = androidx.compose.material3.CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 560.dp),
         ) {
             Column(
-                modifier = Modifier.padding(28.dp),
+                modifier = Modifier.padding(40.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.size(72.dp),
+                    modifier = Modifier.size(88.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             painter = painterResource(R.drawable.info),
                             contentDescription = null,
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(44.dp),
                         )
                     }
                 }
 
                 Text(
                     text = stringResource(R.string.news_error_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
                     textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Text(
                     text = stringResource(R.string.news_error_desc),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -481,23 +491,29 @@ private fun ViewNewsErrorState(
                 if (message.isNotBlank()) {
                     Text(
                         text = message,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 ElevatedButton(
                     onClick = onRetry,
                     shape = MaterialTheme.shapes.extraLarge,
                     colors = ButtonDefaults.elevatedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ),
+                    contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
                 ) {
-                    Text(text = stringResource(R.string.news_retry))
+                    Text(
+                        text = stringResource(R.string.news_retry),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
