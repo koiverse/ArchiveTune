@@ -107,6 +107,7 @@ import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeLyricsLine
+import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeLyricsWordWithLineContext
 import moe.koiverse.archivetune.lyrics.LyricsUtils.shouldRomanizeLyricsLine
 import moe.koiverse.archivetune.ui.component.shimmer.ShimmerHost
 import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
@@ -209,7 +210,7 @@ fun LyricsEnhanced(
                 val romanized: List<String?> = try {
                     if (isTtmlFormat && entry.words != null) {
                         entry.words!!.filter { !it.isBackground }.map { word ->
-                            romanizeLyricsLine(word.text, romanizationPreferences)
+                            romanizeLyricsWordWithLineContext(word.text, entry.text, romanizationPreferences)
                         }
                     } else {
                         listOf(romanizeLyricsLine(entry.text, romanizationPreferences))
