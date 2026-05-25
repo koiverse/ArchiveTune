@@ -21,12 +21,18 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.res.ResourcesCompat
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.html.HtmlPlugin
+import io.noties.markwon.image.ImagesPlugin
+import io.noties.markwon.image.network.OkHttpNetworkSchemeHandler
+import io.noties.markwon.inlineparser.MarkdownInlineParserPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
+import io.noties.markwon.simple.ext.SimpleExtPlugin
+import moe.koiverse.archivetune.R
 
 @Composable
 fun MarkdownText(
@@ -39,13 +45,22 @@ fun MarkdownText(
     val colorArgb = color.toArgb()
     val fontSize = style.fontSize
 
+    val typeface = remember(context) {
+        ResourcesCompat.getFont(context, R.font.poppins)
+    }
+
     val markwon = remember(context) {
         Markwon.builder(context)
+            .usePlugin(ImagesPlugin.create { plugin ->
+                plugin.addSchemeHandler(OkHttpNetworkSchemeHandler.create())
+            })
+            .usePlugin(MarkdownInlineParserPlugin.create())
             .usePlugin(StrikethroughPlugin.create())
             .usePlugin(TablePlugin.create(context))
             .usePlugin(TaskListPlugin.create(context))
             .usePlugin(HtmlPlugin.create())
             .usePlugin(LinkifyPlugin.create())
+            .usePlugin(SimpleExtPlugin.create())
             .build()
     }
 
@@ -64,6 +79,7 @@ fun MarkdownText(
             if (fontSize.isSp) {
                 textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize.value)
             }
+            typeface?.let { textView.typeface = it }
             markwon.setParsedMarkdown(textView, spanned)
         },
         modifier = modifier,

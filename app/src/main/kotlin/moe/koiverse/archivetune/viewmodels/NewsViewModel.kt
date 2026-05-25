@@ -21,13 +21,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import moe.koiverse.archivetune.constants.NewsLastReadDateKey
+import moe.koiverse.archivetune.constants.NewsLastReadTimestampKey
 import moe.koiverse.archivetune.models.NewsItem
 import moe.koiverse.archivetune.repository.NewsRepository
 import moe.koiverse.archivetune.utils.dataStore
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
 sealed interface NewsUiState {
@@ -42,8 +39,6 @@ class NewsViewModel @Inject constructor(
     private val repository: NewsRepository,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
-
-    private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
     private val _rawItems = MutableStateFlow<List<NewsItem>>(emptyList())
     private val _loadState = MutableStateFlow<NewsUiState>(NewsUiState.Loading)
@@ -62,7 +57,6 @@ class NewsViewModel @Inject constructor(
                     val q = query.trim().lowercase()
                     val filtered = items.filter { item ->
                         item.title.lowercase().contains(q) ||
-                            item.description.lowercase().contains(q) ||
                             item.author.lowercase().contains(q)
                     }
                     if (filtered.isEmpty()) NewsUiState.Empty else NewsUiState.Success(filtered)
@@ -73,12 +67,9 @@ class NewsViewModel @Inject constructor(
 
     val hasUnreadNews: StateFlow<Boolean> = combine(
         _rawItems,
-        context.dataStore.data.map { prefs -> prefs[NewsLastReadDateKey] ?: "" },
-    ) { items, lastReadDate ->
-        if (items.isEmpty()) return@combine false
-        val latestDate = items.mapNotNull { parseDate(it.date) }.maxOrNull() ?: return@combine false
-        val storedDate = if (lastReadDate.isBlank()) null else parseDate(lastReadDate)
-        storedDate == null || latestDate.isAfter(storedDate)
+        context.dataStore.data.map { prefs -> prefs[NewsLastReadTimestampKey] ?: 0L },
+    ) { items, lastReadTimestamp ->
+        items.isNotEmpty() && items.maxOf { it.timestamp } > lastReadTimestamp
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     init {
@@ -89,9 +80,7 @@ class NewsViewModel @Inject constructor(
         viewModelScope.launch {
             _loadState.value = NewsUiState.Loading
             runCatching {
-                val items = repository.fetchNews()
-                    .sortedByDescending { parseDate(it.date) }
-                items
+                repository.fetchNews().sortedByDescending { it.timestamp }
             }.onSuccess { items ->
                 _rawItems.value = items
                 _loadState.value = if (items.isEmpty()) NewsUiState.Empty else NewsUiState.Success(items)
@@ -102,21 +91,11 @@ class NewsViewModel @Inject constructor(
     }
 
     fun markAllRead() {
-        val latestDate = _rawItems.value
-            .mapNotNull { parseDate(it.date) }
-            .maxOrNull()
-            ?.format(dateFormatter)
-            ?: return
+        val latestTimestamp = _rawItems.value.maxOfOrNull { it.timestamp } ?: return
         viewModelScope.launch {
             context.dataStore.edit { prefs ->
-                prefs[NewsLastReadDateKey] = latestDate
+                prefs[NewsLastReadTimestampKey] = latestTimestamp
             }
         }
-    }
-
-    private fun parseDate(dateStr: String): LocalDateTime? = try {
-        LocalDateTime.parse(dateStr.trim(), dateFormatter)
-    } catch (_: DateTimeParseException) {
-        null
     }
 }

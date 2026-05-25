@@ -25,17 +25,18 @@ import kotlinx.serialization.json.contentOrNull
 @Serializable
 @Immutable
 data class NewsItem(
+    @SerialName("id") val id: String = "",
     @SerialName("Title") val title: String,
-    @SerialName("Description") val description: String,
+    @SerialName("Description") val description: String = "",
     @SerialName("ImageURL")
     @Serializable(with = NewsImageUrlsSerializer::class)
     val imageUrls: List<String> = emptyList(),
     @SerialName("Important") val important: Boolean = false,
     @SerialName("Author") val author: String,
-    @SerialName("Date") val date: String,
+    @SerialName("Date") val timestamp: Long = 0L,
 ) {
     val stableKey: String
-        get() = "$date|$author|$title"
+        get() = id.ifEmpty { "$timestamp|$author|$title" }
 }
 
 object NewsImageUrlsSerializer : KSerializer<List<String>> {

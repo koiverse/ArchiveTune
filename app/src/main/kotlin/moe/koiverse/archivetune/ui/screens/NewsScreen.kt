@@ -12,8 +12,8 @@
 
 package moe.koiverse.archivetune.ui.screens
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -21,6 +21,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -50,6 +51,7 @@ import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -70,7 +72,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -84,17 +85,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.models.NewsItem
@@ -317,6 +324,9 @@ fun NewsScreen(
                             ) { _, item ->
                                 NewsCard(
                                     item = item,
+                                    onNavigateToArticle = {
+                                        navController.navigate("view_news/${Uri.encode(item.id)}")
+                                    },
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
@@ -391,13 +401,16 @@ private fun NewsListHeader(
 @Composable
 private fun NewsCard(
     item: NewsItem,
+    onNavigateToArticle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by rememberSaveable(item.stableKey) { mutableStateOf(false) }
     val hasImages = item.imageUrls.isNotEmpty()
+    val hasId = item.id.isNotEmpty()
+    var fullImageUrl by remember { mutableStateOf<String?>(null) }
 
     ElevatedCard(
-        onClick = { expanded = !expanded },
+        onClick = { if (hasId) onNavigateToArticle() },
+        enabled = hasId,
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -410,13 +423,12 @@ private fun NewsCard(
         ),
         modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier.animateContentSize(spring(stiffness = Spring.StiffnessMediumLow)),
-        ) {
+        Column {
             if (hasImages) {
                 NewsImageCarousel(
                     imageUrls = item.imageUrls,
                     title = item.title,
+                    onImageClick = { url -> fullImageUrl = url },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(12.dp)
@@ -429,7 +441,7 @@ private fun NewsCard(
                     start = 20.dp,
                     top = if (hasImages) 6.dp else 20.dp,
                     end = 20.dp,
-                    bottom = 20.dp,
+                    bottom = 16.dp,
                 ),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -439,20 +451,43 @@ private fun NewsCard(
                     text = item.title,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    maxLines = if (expanded) Int.MAX_VALUE else 3,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
 
-                Text(
-                    text = item.description,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = if (expanded) Int.MAX_VALUE else 4,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                if (item.description.isNotBlank()) {
+                    Text(
+                        text = item.description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                if (hasId) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        FilledTonalButton(
+                            onClick = onNavigateToArticle,
+                            shape = MaterialTheme.shapes.extraLarge,
+                        ) {
+                            Text(text = stringResource(R.string.more))
+                        }
+                    }
+                }
             }
         }
+    }
+
+    if (fullImageUrl != null) {
+        FullImageViewerDialog(
+            imageUrl = fullImageUrl!!,
+            onDismiss = { fullImageUrl = null },
+        )
     }
 }
 
@@ -487,11 +522,17 @@ private fun NewsMetaRow(
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f, fill = false),
         ) {
+            val formattedDate = remember(item.timestamp) {
+                if (item.timestamp == 0L) ""
+                else DateTimeFormatter.ofPattern("d MMM yyyy").format(
+                    LocalDateTime.ofInstant(Instant.ofEpochSecond(item.timestamp), ZoneId.systemDefault())
+                )
+            }
             Text(
                 text = stringResource(
                     R.string.news_author_on_date,
                     item.author,
-                    item.date,
+                    formattedDate,
                 ),
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
@@ -506,15 +547,18 @@ private fun NewsMetaRow(
 private fun NewsImageCarousel(
     imageUrls: List<String>,
     title: String,
+    onImageClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (imageUrls.size == 1) {
         Box(
-            modifier = modifier.clip(MaterialTheme.shapes.extraLarge),
+            modifier = modifier
+                .clip(MaterialTheme.shapes.extraLarge)
+                .clickable(role = Role.Image) { onImageClick(imageUrls.first()) },
         ) {
             NewsAsyncImage(
                 imageUrl = imageUrls.first(),
-                contentDescription = null,
+                contentDescription = title,
                 modifier = Modifier.fillMaxSize(),
             )
             NewsImageScrim()
@@ -528,7 +572,6 @@ private fun NewsImageCarousel(
             carouselState.currentItem.coerceIn(0, imageUrls.lastIndex)
         }
     }
-    val scope = rememberCoroutineScope()
 
     Box(modifier = modifier) {
         HorizontalCenteredHeroCarousel(
@@ -541,7 +584,8 @@ private fun NewsImageCarousel(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .maskClip(MaterialTheme.shapes.extraLarge),
+                    .maskClip(MaterialTheme.shapes.extraLarge)
+                    .clickable(role = Role.Image) { onImageClick(imageUrls[index]) },
             ) {
                 NewsAsyncImage(
                     imageUrl = imageUrls[index],
@@ -564,20 +608,43 @@ private fun NewsImageCarousel(
                 imageCount = imageUrls.size,
                 currentIndex = currentImageIndex,
             )
+        }
+    }
+}
 
-            NewsImageStepper(
-                currentIndex = currentImageIndex,
-                imageCount = imageUrls.size,
-                onPrevious = {
-                    scope.launch {
-                        carouselState.animateToWrappedItem(currentImageIndex - 1, imageUrls.size)
-                    }
-                },
-                onNext = {
-                    scope.launch {
-                        carouselState.animateToWrappedItem(currentImageIndex + 1, imageUrls.size)
-                    }
-                },
+@Composable
+private fun FullImageViewerDialog(
+    imageUrl: String,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+        ),
+    ) {
+        val context = LocalContext.current
+        val model = remember(context, imageUrl) {
+            ImageRequest.Builder(context)
+                .data(imageUrl)
+                .crossfade(true)
+                .build()
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.92f))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            AsyncImage(
+                model = model,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -666,63 +733,6 @@ private fun NewsCarouselIndicator(
             }
         }
     }
-}
-
-@Composable
-private fun NewsImageStepper(
-    currentIndex: Int,
-    imageCount: Int,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.92f),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        modifier = modifier.heightIn(min = 48.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onPrevious) {
-                Icon(
-                    painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = null,
-                )
-            }
-
-            Text(
-                text = "${currentIndex + 1} / $imageCount",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-            )
-
-            IconButton(onClick = onNext) {
-                Icon(
-                    painter = painterResource(R.drawable.arrow_forward),
-                    contentDescription = null,
-                )
-            }
-        }
-    }
-}
-
-private suspend fun CarouselState.animateToWrappedItem(
-    targetIndex: Int,
-    itemCount: Int,
-) {
-    val wrappedIndex = when {
-        targetIndex < 0 -> itemCount - 1
-        targetIndex >= itemCount -> 0
-        else -> targetIndex
-    }
-
-    animateScrollToItem(
-        wrappedIndex,
-        spring(stiffness = Spring.StiffnessMediumLow),
-    )
 }
 
 @Composable

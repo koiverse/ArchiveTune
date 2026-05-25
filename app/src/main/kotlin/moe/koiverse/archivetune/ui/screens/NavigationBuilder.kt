@@ -127,6 +127,14 @@ fun NavGraphBuilder.navigationBuilder(
     composable("news") {
         NewsScreen(navController)
     }
+    composable(
+        route = "view_news/{newsId}",
+        arguments = listOf(
+            navArgument("newsId") { type = NavType.StringType },
+        ),
+    ) {
+        ViewNewsScreen(navController)
+    }
     composable("year_in_music") {
         YearInMusicScreen(navController)
     }

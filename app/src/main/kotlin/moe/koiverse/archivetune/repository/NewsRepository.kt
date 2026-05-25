@@ -38,8 +38,10 @@ class NewsRepository @Inject constructor() {
         coerceInputValues = true
     }
 
+    @Volatile private var metadataCache: List<NewsItem>? = null
+
     suspend fun fetchNews(): List<NewsItem> {
-        val response = client.get(ANNOUNCEMENT_URL) {
+        val response = client.get(METADATA_URL) {
             headers {
                 append(HttpHeaders.CacheControl, "no-cache, no-store, must-revalidate")
                 append(HttpHeaders.Pragma, "no-cache")
@@ -47,11 +49,28 @@ class NewsRepository @Inject constructor() {
             }
         }
         val text = response.bodyAsText()
-        return json.decodeFromString<List<NewsItem>>(text)
+        val items = json.decodeFromString<List<NewsItem>>(text)
+        metadataCache = items
+        return items
     }
 
+    suspend fun fetchNewsContent(id: String): String {
+        val response = client.get("$CONTENT_BASE_URL$id") {
+            headers {
+                append(HttpHeaders.CacheControl, "no-cache, no-store, must-revalidate")
+                append(HttpHeaders.Pragma, "no-cache")
+                append(HttpHeaders.Expires, "0")
+            }
+        }
+        return response.bodyAsText()
+    }
+
+    fun getCachedItem(id: String): NewsItem? = metadataCache?.find { it.id == id }
+
     private companion object {
-        const val ANNOUNCEMENT_URL =
-            "https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/Announcement.json"
+        const val METADATA_URL =
+            "https://raw.githubusercontent.com/koiverse/ArchiveTuneNewsRepository/main/metadata.json"
+        const val CONTENT_BASE_URL =
+            "https://raw.githubusercontent.com/koiverse/ArchiveTuneNewsRepository/main/content/"
     }
 }

@@ -210,7 +210,10 @@ dependencies {
     implementation(libs.markwon.ext.tables)
     implementation(libs.markwon.ext.tasklist)
     implementation(libs.markwon.html)
+    implementation(libs.markwon.image)
+    implementation(libs.markwon.inline.parser)
     implementation(libs.markwon.linkify)
+    implementation(libs.markwon.simple.ext)
 
     implementation(libs.coil)
     implementation(libs.coil.gif)
