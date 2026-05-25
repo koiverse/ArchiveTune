@@ -98,7 +98,7 @@ fun DefaultDialog(
     modifier: Modifier = Modifier,
     icon: (@Composable () -> Unit)? = null,
     title: (@Composable () -> Unit)? = null,
-    buttons: (@Composable RowScope.() -> Unit)? = null,
+    buttons: (@Composable () -> Unit)? = null,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     contentScrollable: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
@@ -168,8 +168,9 @@ fun DefaultDialog(
                     if (buttons != null) {
                         Spacer(Modifier.height(24.dp))
 
-                        Row(
-                            modifier = Modifier.align(Alignment.End)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
                                 ProvideTextStyle(
