@@ -64,12 +64,12 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -83,8 +83,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -143,6 +143,8 @@ fun LocalSongScreen(
     val listState = rememberLazyListState()
     val scanSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showScanSheet by rememberSaveable { mutableStateOf(false) }
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var query by rememberSaveable { mutableStateOf("") }
     val (sortDescending, onSortDescendingChange) = rememberPreference(LocalSongsSortDescendingKey, true)
     val (sortTypeName, onSortTypeNameChange) = rememberPreference(LocalSongsSortTypeKey, LocalSongSortType.MODIFIED.name)
@@ -256,39 +258,105 @@ fun LocalSongScreen(
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
-            LargeFlexibleTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.local_history),
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+            AnimatedContent(
+                targetState = isSearchActive,
+                transitionSpec = {
+                    fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) togetherWith
+                        fadeOut(spring(stiffness = Spring.StiffnessMediumLow))
+                },
+                label = "localSongTopBar",
+            ) { searching ->
+                if (searching) {
+                    SearchBar(
+                        inputField = {
+                            SearchBarDefaults.InputField(
+                                query = query,
+                                onQueryChange = { query = it },
+                                onSearch = { isSearchActive = false },
+                                expanded = false,
+                                onExpandedChange = {},
+                                placeholder = {
+                                    Text(text = stringResource(R.string.search_library))
+                                },
+                                leadingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            query = ""
+                                            isSearchActive = false
+                                        },
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.arrow_back),
+                                            contentDescription = stringResource(R.string.back_button_desc),
+                                        )
+                                    }
+                                },
+                                trailingIcon = if (query.isNotEmpty()) {
+                                    {
+                                        IconButton(onClick = { query = "" }) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.close),
+                                                contentDescription = stringResource(R.string.close),
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    null
+                                },
+                            )
+                        },
+                        expanded = false,
+                        onExpandedChange = {},
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(top = 8.dp, bottom = 4.dp),
+                    ) {}
+                } else {
+                    LargeFlexibleTopAppBar(
+                        title = {
+                            Text(
+                                text = stringResource(R.string.local_history),
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = navController::navigateUp) {
+                                Icon(
+                                    painter = painterResource(R.drawable.arrow_back),
+                                    contentDescription = null,
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { isSearchActive = true }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.search),
+                                    contentDescription = stringResource(R.string.search),
+                                )
+                            }
+                            IconButton(onClick = { showScanSheet = true }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.settings),
+                                    contentDescription = stringResource(R.string.settings),
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.largeTopAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                            scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        ),
+                        scrollBehavior = scrollBehavior,
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = navController::navigateUp) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = null,
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showScanSheet = true }) {
-                        Icon(
-                            painter = painterResource(R.drawable.settings),
-                            contentDescription = stringResource(R.string.settings),
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                ),
-            )
+                }
+            }
         },
     ) { paddingValues ->
         LazyColumn(
@@ -307,8 +375,6 @@ fun LocalSongScreen(
                 contentType = CONTENT_TYPE_HEADER,
             ) {
                 LocalSongControlsCard(
-                    query = query,
-                    onQueryChange = { query = it },
                     sortType = sortType,
                     sortDescending = sortDescending,
                     visibleSongCount = visibleSongs.size,
@@ -434,91 +500,40 @@ private fun LocalSongBadge(
 
 @Composable
 private fun LocalSongControlsCard(
-    query: String,
-    onQueryChange: (String) -> Unit,
     sortType: LocalSongSortType,
     sortDescending: Boolean,
     visibleSongCount: Int,
     onSortTypeChange: (LocalSongSortType) -> Unit,
     onSortDescendingChange: (Boolean) -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(28.dp),
-        color = Color.Transparent,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 28.dp, vertical = 8.dp),
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.padding(horizontal = 15.dp, vertical = 15.dp),
-        ) {
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                singleLine = true,
-                placeholder = {
-                    Text(
-                        text = stringResource(R.string.search_library),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(R.drawable.search),
-                        contentDescription = null,
-                    )
-                },
-                trailingIcon = {
-                    if (query.isNotBlank()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(
-                                painter = painterResource(R.drawable.close),
-                                contentDescription = null,
-                            )
-                        }
-                    }
-                },
-                shape = RoundedCornerShape(22.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
+        SortHeader(
+            sortType = sortType,
+            sortDescending = sortDescending,
+            onSortTypeChange = onSortTypeChange,
+            onSortDescendingChange = onSortDescendingChange,
+            sortTypeText = { selectedSort ->
+                when (selectedSort) {
+                    LocalSongSortType.MODIFIED -> R.string.sort_by_last_updated
+                    LocalSongSortType.NAME -> R.string.sort_by_name
+                    LocalSongSortType.ARTIST -> R.string.sort_by_artist
+                    LocalSongSortType.ALBUM -> R.string.sort_by_album
+                }
+            },
+        )
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                SortHeader(
-                    sortType = sortType,
-                    sortDescending = sortDescending,
-                    onSortTypeChange = onSortTypeChange,
-                    onSortDescendingChange = onSortDescendingChange,
-                    sortTypeText = { selectedSort ->
-                        when (selectedSort) {
-                            LocalSongSortType.MODIFIED -> R.string.sort_by_last_updated
-                            LocalSongSortType.NAME -> R.string.sort_by_name
-                            LocalSongSortType.ARTIST -> R.string.sort_by_artist
-                            LocalSongSortType.ALBUM -> R.string.sort_by_album
-                        }
-                    },
-                )
+        Spacer(modifier = Modifier.weight(1f))
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                Text(
-                    text = pluralStringResource(R.plurals.n_song, visibleSongCount, visibleSongCount),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
-            }
-        }
+        Text(
+            text = pluralStringResource(R.plurals.n_song, visibleSongCount, visibleSongCount),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.secondary,
+        )
     }
 }
 
