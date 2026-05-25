@@ -211,6 +211,7 @@ dependencies {
     implementation(libs.markwon.linkify)
 
     implementation(libs.coil)
+    implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
 
     implementation(libs.shimmer)

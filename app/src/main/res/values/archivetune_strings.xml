@@ -62,12 +62,17 @@
     <string name="news_error_desc">Check your internet connection and try again.</string>
     <string name="news_retry">Retry</string>
     <string name="news_search_placeholder">Search news…</string>
+    <string name="news_search_results_title">Search results</string>
     <string name="news_no_results_title">No matching articles</string>
     <string name="news_no_results_desc">Try a different search term.</string>
     <string name="news_important_badge">Important</string>
     <string name="news_tooltip_title">New Announcements</string>
     <string name="news_tooltip_body">You have unread announcements from developers.</string>
     <string name="news_author_on_date">%1$s · %2$s</string>
+    <plurals name="news_article_count">
+        <item quantity="one">%d article</item>
+        <item quantity="other">%d articles</item>
+    </plurals>
     <string name="no_title">No title</string>
     <string name="unknown_artist">Unknown artist</string>
     <string name="unknown_item_type">Unknown item type</string>

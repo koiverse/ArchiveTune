@@ -20,10 +20,12 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -893,6 +895,15 @@ fun PlayerPlaybackControls(
     val view = LocalView.current
     val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
 
+    val cinematicPlayPauseCorner by animateDpAsState(
+        targetValue = if (isPlaying) 28.dp else 44.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "cinematicPlayPauseCorner",
+    )
+
     when (playerDesignStyle) {
         PlayerDesignStyle.V2 -> {
             BoxWithConstraints(
@@ -1223,7 +1234,7 @@ fun PlayerPlaybackControls(
                                 playerConnection.player.togglePlayPause()
                             }
                         },
-                        shape = RoundedCornerShape(28.dp),
+                        shape = RoundedCornerShape(cinematicPlayPauseCorner),
                         color = textButtonColor,
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
