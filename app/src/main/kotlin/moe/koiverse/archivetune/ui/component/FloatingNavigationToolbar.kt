@@ -5,7 +5,6 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
-
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.component
@@ -15,6 +14,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -31,11 +31,16 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +57,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -61,10 +67,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ui.screens.Screens
@@ -117,17 +127,13 @@ fun FloatingNavigationToolbar(
                 scrollBehavior = scrollBehavior,
                 animationSpec = FloatingToolbarDefaults.animationSpec(),
             ) {
-                items.forEach { screen ->
-                    val selected = isSelected(screen)
-
-                    FloatingNavigationToolbarItem(
-                        screen = screen,
-                        selected = selected,
-                        showSelectedLabel = showSelectedLabels,
-                        pureBlack = pureBlack,
-                        onClick = { onItemClick(screen, selected) },
-                    )
-                }
+                ToolbarItemsContainer(
+                    items = items,
+                    pureBlack = pureBlack,
+                    showSelectedLabels = showSelectedLabels,
+                    isSelected = isSelected,
+                    onItemClick = onItemClick
+                )
             }
         } else if (hasFabAction) {
             HorizontalFloatingToolbar(
@@ -145,17 +151,13 @@ fun FloatingNavigationToolbar(
                 scrollBehavior = scrollBehavior,
                 animationSpec = FloatingToolbarDefaults.animationSpec(),
             ) {
-                items.forEach { screen ->
-                    val selected = isSelected(screen)
-
-                    FloatingNavigationToolbarItem(
-                        screen = screen,
-                        selected = selected,
-                        showSelectedLabel = showSelectedLabels,
-                        pureBlack = pureBlack,
-                        onClick = { onItemClick(screen, selected) },
-                    )
-                }
+                ToolbarItemsContainer(
+                    items = items,
+                    pureBlack = pureBlack,
+                    showSelectedLabels = showSelectedLabels,
+                    isSelected = isSelected,
+                    onItemClick = onItemClick
+                )
             }
         } else {
             HorizontalFloatingToolbar(
@@ -164,17 +166,80 @@ fun FloatingNavigationToolbar(
                 colors = toolbarColors,
                 scrollBehavior = scrollBehavior,
             ) {
-                items.forEach { screen ->
-                    val selected = isSelected(screen)
+                ToolbarItemsContainer(
+                    items = items,
+                    pureBlack = pureBlack,
+                    showSelectedLabels = showSelectedLabels,
+                    isSelected = isSelected,
+                    onItemClick = onItemClick
+                )
+            }
+        }
+    }
+}
 
-                    FloatingNavigationToolbarItem(
-                        screen = screen,
-                        selected = selected,
-                        showSelectedLabel = showSelectedLabels,
-                        pureBlack = pureBlack,
-                        onClick = { onItemClick(screen, selected) },
+@Composable
+private fun ToolbarItemsContainer(
+    items: List<Screens>,
+    pureBlack: Boolean,
+    showSelectedLabels: Boolean,
+    isSelected: (Screens) -> Boolean,
+    onItemClick: (Screens, Boolean) -> Unit
+) {
+    val density = LocalDensity.current
+    val itemWidths = remember { mutableStateMapOf<Screens, Dp>() }
+    val itemPositions = remember { mutableStateMapOf<Screens, Dp>() }
+
+    val activeScreen = items.find { isSelected(it) }
+    val targetWidth = itemWidths[activeScreen] ?: 0.dp
+    val targetPosition = itemPositions[activeScreen] ?: 0.dp
+
+    val slidingPillWidth by animateDpAsState(
+        targetValue = targetWidth,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "pillWidth"
+    )
+
+    val slidingPillOffset by animateDpAsState(
+        targetValue = targetPosition,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "pillOffset"
+    )
+
+    Box(modifier = Modifier.height(IntrinsicSize.Min)) {
+        if (targetWidth > 0.dp) {
+            Box(
+                modifier = Modifier
+                    .offset(x = slidingPillOffset)
+                    .width(slidingPillWidth)
+                    .fillMaxHeight()
+                    .background(
+                        color = floatingToolbarSelectedItemContainerColor(pureBlack),
+                        shape = RoundedCornerShape(24.dp)
                     )
-                }
+            )
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            items.forEach { screen ->
+                val selected = isSelected(screen)
+                FloatingNavigationToolbarItem(
+                    screen = screen,
+                    selected = selected,
+                    showSelectedLabel = showSelectedLabels,
+                    pureBlack = pureBlack,
+                    onClick = { onItemClick(screen, selected) },
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        itemWidths[screen] = with(density) { coordinates.size.width.toDp() }
+                        itemPositions[screen] = with(density) { coordinates.positionInParent().x.toDp() }
+                    }
+                )
             }
         }
     }
@@ -314,17 +379,11 @@ private fun FloatingNavigationToolbarItem(
     showSelectedLabel: Boolean,
     pureBlack: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(24.dp)
     val showLabel = selected && showSelectedLabel && screen.route != Screens.Search.route
     val transition = updateTransition(targetState = selected, label = "navItem_${screen.route}")
-
-    val containerColor by transition.animateColor(
-        transitionSpec = { spring(stiffness = Spring.StiffnessMedium) },
-        label = "containerColor",
-    ) { isSelected ->
-        if (isSelected) floatingToolbarSelectedItemContainerColor(pureBlack) else Color.Transparent
-    }
 
     val contentColor by transition.animateColor(
         transitionSpec = { spring(stiffness = Spring.StiffnessMedium) },
@@ -368,10 +427,9 @@ private fun FloatingNavigationToolbarItem(
     )
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .scale(pressScale)
             .clip(shape)
-            .background(color = containerColor, shape = shape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
