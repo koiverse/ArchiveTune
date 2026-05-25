@@ -55,8 +55,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.maskClip
 import androidx.compose.material3.carousel.rememberCarouselState
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -269,7 +269,7 @@ private fun ViewNewsCarousel(
             contentScale = ContentScale.Crop,
             modifier = modifier
                 .padding(horizontal = 24.dp)
-                .maskClip(MaterialTheme.shapes.extraLarge)
+                .clip(MaterialTheme.shapes.extraLarge)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .clickable(role = Role.Image) { onImageClick(imageUrls.first()) },
         )
