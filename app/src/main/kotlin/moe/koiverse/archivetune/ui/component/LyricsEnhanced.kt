@@ -248,6 +248,8 @@ fun LyricsEnhanced(
     val playbackPositionMs = remember(player) {
         mutableLongStateOf(player.currentPosition.coerceAtLeast(0L))
     }
+    var isManualScrolling by remember { mutableStateOf(false) }
+    var lastManualScrollTime by remember { mutableLongStateOf(0L) }
     LaunchedEffect(player) {
         var wasSliderActive = false
         while (isActive) {
@@ -288,8 +290,6 @@ fun LyricsEnhanced(
     }
 
     val listState = rememberLazyListState()
-    var isManualScrolling by remember { mutableStateOf(false) }
-    var lastManualScrollTime by remember { mutableLongStateOf(0L) }
 
     val nestedScrollConnection = remember {
         var lastUserScrollEventMs = 0L
