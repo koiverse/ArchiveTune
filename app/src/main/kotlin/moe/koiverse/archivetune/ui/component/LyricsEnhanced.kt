@@ -471,7 +471,8 @@ fun LyricsEnhanced(
                                     focusedPosition()
                                 )
                                 if (firstIndex in syncedLyrics.lines.indices) {
-                                    listState.keepLyricLineVisible(firstIndex)
+                                    val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
+                                    listState.animateScrollToItem(firstIndex, -(viewportHeight * 0.42f).roundToInt())
                                 }
                             }
                         },
