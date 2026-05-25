@@ -434,7 +434,7 @@ fun LibraryMixScreen(
             } else {
                 item(key = "playlists_group") {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
                         modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
                         visiblePlaylists.forEachIndexed { index, item ->
@@ -462,7 +462,7 @@ fun LibraryMixScreen(
 
                 item(key = "albums_group") {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
                         modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
                         sortedAlbums.forEachIndexed { index, album ->
@@ -528,7 +528,7 @@ fun LibraryMixScreen(
 
                 item(key = "artists_group") {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
                         modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
                         sortedArtists.forEachIndexed { index, artist ->
