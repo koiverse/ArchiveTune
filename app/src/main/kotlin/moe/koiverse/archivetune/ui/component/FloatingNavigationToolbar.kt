@@ -43,6 +43,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.FloatingToolbarScrollBehavior
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -81,6 +82,7 @@ fun FloatingNavigationToolbar(
     shuffleContentDescription: String = "",
     onMusicRecognitionClick: (() -> Unit)? = null,
     musicRecognitionContentDescription: String = "",
+    scrollBehavior: FloatingToolbarScrollBehavior? = null,
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
@@ -112,6 +114,8 @@ fun FloatingNavigationToolbar(
                 },
                 modifier = Modifier.widthIn(max = 480.dp),
                 colors = toolbarColors,
+                scrollBehavior = scrollBehavior,
+                animationSpec = FloatingToolbarDefaults.animationSpec(),
             ) {
                 items.forEach { screen ->
                     val selected = isSelected(screen)
@@ -138,6 +142,8 @@ fun FloatingNavigationToolbar(
                 },
                 modifier = Modifier.widthIn(max = 480.dp),
                 colors = toolbarColors,
+                scrollBehavior = scrollBehavior,
+                animationSpec = FloatingToolbarDefaults.animationSpec(),
             ) {
                 items.forEach { screen ->
                     val selected = isSelected(screen)
@@ -156,6 +162,7 @@ fun FloatingNavigationToolbar(
                 expanded = true,
                 modifier = Modifier.widthIn(max = 420.dp),
                 colors = toolbarColors,
+                scrollBehavior = scrollBehavior,
             ) {
                 items.forEach { screen ->
                     val selected = isSelected(screen)
