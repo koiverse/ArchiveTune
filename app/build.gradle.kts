@@ -65,9 +65,11 @@ android {
     productFlavors {
         create("mobile") {
             dimension = "device"
+            buildConfigField("String", "DEVICE", "\"mobile\"")
         }
         create("tv") {
             dimension = "device"
+            buildConfigField("String", "DEVICE", "\"tv\"")
         }
         create("universal") {
             dimension = "abi"
