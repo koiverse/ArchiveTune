@@ -331,12 +331,14 @@ fun LyricsEnhanced(
         if (!isSynced || syncedLyrics.lines.isEmpty()) return@LaunchedEffect
         var isFirstEmit = true
         snapshotFlow {
-            syncedLyrics.getCurrentFirstHighlightLineIndexByTime(focusedPosition())
+            syncedLyrics.getCurrentFirstHighlightLineIndexByTime(focusedPosition()) to isManualScrolling
         }
             .distinctUntilChanged()
+            .filter { (_, manual) -> !manual }
+            .map { (index, _) -> index }
             .collectLatest { index ->
                 if (index !in syncedLyrics.lines.indices) return@collectLatest
-                if (isSelectionModeActive || isManualScrolling) return@collectLatest
+                if (isSelectionModeActive) return@collectLatest
                 if (isFirstEmit) {
                     isFirstEmit = false
                     snapshotFlow { listState.layoutInfo.viewportEndOffset > 0 }.first { it }
@@ -346,7 +348,7 @@ fun LyricsEnhanced(
                     if (latestSliderPositionProvider.value() == null) {
                         delay(ACTIVE_LINE_REVEAL_DELAY_MS)
                     }
-                    if (!isSelectionModeActive && !isManualScrolling) {
+                    if (!isSelectionModeActive) {
                         listState.keepLyricLineVisible(index)
                     }
                 }
