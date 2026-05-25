@@ -498,6 +498,15 @@ fun AppearanceSettings(
             }
 
             item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.aod_customize_title)) },
+                    description = stringResource(R.string.aod_customize_entry_desc),
+                    icon = { Icon(painterResource(R.drawable.bedtime), null) },
+                    onClick = { navController.navigate("settings/appearance/aod_customized") }
+                )
+            }
+
+            item {
                 EnumListPreference(
                     title = { Text(stringResource(R.string.player_buttons_style)) },
                     icon = { Icon(painterResource(R.drawable.palette), null) },

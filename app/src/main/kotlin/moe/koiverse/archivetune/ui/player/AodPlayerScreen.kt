@@ -10,6 +10,7 @@
 
 package moe.koiverse.archivetune.ui.player
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,9 +22,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -35,23 +37,55 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.media3.common.C
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.models.MediaMetadata
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalView
+import moe.koiverse.archivetune.constants.AodAccentStyle
+import moe.koiverse.archivetune.constants.AodAccentStyleKey
+import moe.koiverse.archivetune.constants.AodAmbientIntensityKey
+import moe.koiverse.archivetune.constants.AodArtworkGlowKey
+import moe.koiverse.archivetune.constants.AodBackgroundStyle
+import moe.koiverse.archivetune.constants.AodBackgroundStyleKey
+import moe.koiverse.archivetune.constants.AodContentPosition
+import moe.koiverse.archivetune.constants.AodContentPositionKey
+import moe.koiverse.archivetune.constants.AodControlSizeKey
+import moe.koiverse.archivetune.constants.AodControlStyle
+import moe.koiverse.archivetune.constants.AodControlStyleKey
 import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
+import moe.koiverse.archivetune.constants.AodHorizontalPaddingKey
+import moe.koiverse.archivetune.constants.AodShowAlbumKey
+import moe.koiverse.archivetune.constants.AodShowArtistKey
+import moe.koiverse.archivetune.constants.AodShowControlsKey
+import moe.koiverse.archivetune.constants.AodShowExitButtonKey
+import moe.koiverse.archivetune.constants.AodShowProgressKey
+import moe.koiverse.archivetune.constants.AodShowThumbnailKey
+import moe.koiverse.archivetune.constants.AodShowTimeLabelsKey
+import moe.koiverse.archivetune.constants.AodTextAlignment
+import moe.koiverse.archivetune.constants.AodTextAlignmentKey
+import moe.koiverse.archivetune.constants.AodThumbnailShape
+import moe.koiverse.archivetune.constants.AodThumbnailShapeKey
+import moe.koiverse.archivetune.constants.AodThumbnailShapeRotationKey
+import moe.koiverse.archivetune.constants.AodThumbnailSizeKey
+import moe.koiverse.archivetune.constants.AodTitleMaxLinesKey
+import moe.koiverse.archivetune.constants.AodVerticalSpacingKey
+import moe.koiverse.archivetune.ui.utils.toComposeShape
+import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.makeTimeString
 
@@ -79,50 +113,114 @@ fun AodPlayerScreen(
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val haptic = LocalHapticFeedback.current
-    val thumbnailShape = remember(thumbnailCornerRadius) {
-        RoundedCornerShape(thumbnailCornerRadius.dp)
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val (thumbnailShapeType) = rememberEnumPreference(AodThumbnailShapeKey, AodThumbnailShape.ROUNDED)
+    val (thumbnailSize) = rememberPreference(AodThumbnailSizeKey, 260f)
+    val (thumbnailShapeRotation) = rememberPreference(AodThumbnailShapeRotationKey, 0)
+    val (showThumbnail) = rememberPreference(AodShowThumbnailKey, true)
+    val (showArtist) = rememberPreference(AodShowArtistKey, true)
+    val (showAlbum) = rememberPreference(AodShowAlbumKey, false)
+    val (showProgress) = rememberPreference(AodShowProgressKey, true)
+    val (showTimeLabels) = rememberPreference(AodShowTimeLabelsKey, true)
+    val (showControls) = rememberPreference(AodShowControlsKey, true)
+    val (showExitButton) = rememberPreference(AodShowExitButtonKey, true)
+    val (artworkGlow) = rememberPreference(AodArtworkGlowKey, true)
+    val (backgroundStyle) = rememberEnumPreference(AodBackgroundStyleKey, AodBackgroundStyle.PURE_BLACK)
+    val (accentStyle) = rememberEnumPreference(AodAccentStyleKey, AodAccentStyle.MONOCHROME)
+    val (contentPosition) = rememberEnumPreference(AodContentPositionKey, AodContentPosition.CENTER)
+    val (textAlignment) = rememberEnumPreference(AodTextAlignmentKey, AodTextAlignment.CENTER)
+    val (controlStyle) = rememberEnumPreference(AodControlStyleKey, AodControlStyle.FILLED)
+    val (controlSize) = rememberPreference(AodControlSizeKey, 64f)
+    val (horizontalPadding) = rememberPreference(AodHorizontalPaddingKey, 40f)
+    val (verticalSpacing) = rememberPreference(AodVerticalSpacingKey, 20f)
+    val (titleMaxLines) = rememberPreference(AodTitleMaxLinesKey, 1)
+    val (ambientIntensity) = rememberPreference(AodAmbientIntensityKey, 0.18f)
+    val accentColor =
+        if (accentStyle == AodAccentStyle.THEME) MaterialTheme.colorScheme.primary else Color.White
+    val thumbnailShape = thumbnailShapeType.toComposeShape(
+        cornerRadius = thumbnailCornerRadius,
+        startAngle = thumbnailShapeRotation,
+    )
+    val artworkSize = thumbnailSize.coerceIn(160f, 340f).dp
+    val artworkSizePx = with(density) { artworkSize.roundToPx().coerceAtLeast(1) }
+    val imageRequest = remember(context, mediaMetadata.thumbnailUrl, artworkSizePx) {
+        ImageRequest.Builder(context)
+            .data(mediaMetadata.thumbnailUrl)
+            .size(artworkSizePx, artworkSizePx)
+            .allowHardware(true)
+            .build()
     }
     val artistText = remember(mediaMetadata.artists) {
         mediaMetadata.artists.joinToString { it.name }
     }
+    val contentAlignment = contentPosition.toBoxAlignment()
+    val textHorizontalAlignment = textAlignment.toHorizontalAlignment()
+    val textAlign = textAlignment.toTextAlign()
 
-    Box(modifier = modifier.fillMaxSize()) {
-        IconButton(
-            onClick = onExit,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .safeDrawingPadding()
-                .padding(8.dp),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.close),
-                contentDescription = stringResource(R.string.aod_mode_exit),
-                tint = White70,
-            )
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .aodBackground(
+                style = backgroundStyle,
+                accentColor = accentColor,
+                ambientIntensity = ambientIntensity,
+            ),
+    ) {
+        if (showExitButton) {
+            IconButton(
+                onClick = onExit,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .safeDrawingPadding()
+                    .padding(8.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.close),
+                    contentDescription = stringResource(R.string.aod_mode_exit),
+                    tint = White70,
+                )
+            }
         }
 
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalAlignment = textHorizontalAlignment,
+            verticalArrangement = Arrangement.spacedBy(verticalSpacing.coerceIn(8f, 36f).dp),
             modifier = Modifier
-                .align(Alignment.Center)
+                .align(contentAlignment)
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 40.dp),
+                .padding(horizontal = horizontalPadding.coerceIn(16f, 72f).dp)
+                .padding(vertical = 32.dp),
         ) {
-            AsyncImage(
-                model = mediaMetadata.thumbnailUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(260.dp)
-                    .clip(thumbnailShape),
-            )
+            if (showThumbnail) {
+                AsyncImage(
+                    model = imageRequest,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .size(artworkSize)
+                        .then(
+                            if (artworkGlow) {
+                                Modifier.shadow(
+                                    elevation = 28.dp,
+                                    shape = thumbnailShape,
+                                    clip = false,
+                                    ambientColor = accentColor,
+                                    spotColor = accentColor,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .clip(thumbnailShape),
+                )
+            }
 
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+                horizontalAlignment = textHorizontalAlignment,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -130,45 +228,60 @@ fun AodPlayerScreen(
                     text = mediaMetadata.title,
                     style = MaterialTheme.typography.titleLarge,
                     color = Color.White,
-                    maxLines = 1,
+                    maxLines = titleMaxLines.coerceIn(1, 3),
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
+                    textAlign = textAlign,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                Text(
-                    text = artistText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = White65,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
+                if (showArtist) {
+                    Text(
+                        text = artistText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = White65,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = textAlign,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (showAlbum && mediaMetadata.album?.title?.isNotBlank() == true) {
+                    Text(
+                        text = mediaMetadata.album.title,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = White65.copy(alpha = 0.78f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = textAlign,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            if (showProgress) {
+                AodSliderSection(
+                    position = position,
+                    duration = duration,
+                    sliderPosition = sliderPosition,
+                    accentColor = accentColor,
+                    showTimeLabels = showTimeLabels,
+                    onSeek = onSeek,
+                    onSeekFinished = onSeekFinished,
                 )
             }
 
-            AodSliderSection(
-                position = position,
-                duration = duration,
-                sliderPosition = sliderPosition,
-                onSeek = onSeek,
-                onSeekFinished = onSeekFinished,
-            )
-
-            AodControls(
-                isPlaying = isPlaying,
-                canSkipPrevious = canSkipPrevious,
-                canSkipNext = canSkipNext,
-                onPlayPause = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onPlayPause()
-                },
-                onSkipPrevious = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onSkipPrevious()
-                },
-                onSkipNext = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onSkipNext()
-                },
-            )
+            if (showControls) {
+                AodControls(
+                    isPlaying = isPlaying,
+                    canSkipPrevious = canSkipPrevious,
+                    canSkipNext = canSkipNext,
+                    controlStyle = controlStyle,
+                    controlSize = controlSize.coerceIn(52f, 84f),
+                    accentColor = accentColor,
+                    onPlayPause = onPlayPause,
+                    onSkipPrevious = onSkipPrevious,
+                    onSkipNext = onSkipNext,
+                )
+            }
         }
     }
 }
@@ -178,6 +291,8 @@ private fun AodSliderSection(
     position: Long,
     duration: Long,
     sliderPosition: Long?,
+    accentColor: Color,
+    showTimeLabels: Boolean,
     onSeek: (Long) -> Unit,
     onSeekFinished: () -> Unit,
 ) {
@@ -191,8 +306,8 @@ private fun AodSliderSection(
         if (seekEnabled) makeTimeString(duration) else ""
     }
     val sliderColors = SliderDefaults.colors(
-        thumbColor = Color.White,
-        activeTrackColor = Color.White,
+        thumbColor = accentColor,
+        activeTrackColor = accentColor,
         inactiveTrackColor = White30,
         disabledThumbColor = White30,
         disabledActiveTrackColor = White30,
@@ -209,22 +324,24 @@ private fun AodSliderSection(
             colors = sliderColors,
             modifier = Modifier.fillMaxWidth(),
         )
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-        ) {
-            Text(
-                text = positionText,
-                style = MaterialTheme.typography.labelSmall,
-                color = White65,
-            )
-            Text(
-                text = durationText,
-                style = MaterialTheme.typography.labelSmall,
-                color = White65,
-            )
+        if (showTimeLabels) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+            ) {
+                Text(
+                    text = positionText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = White65,
+                )
+                Text(
+                    text = durationText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = White65,
+                )
+            }
         }
     }
 }
@@ -234,16 +351,26 @@ private fun AodControls(
     isPlaying: Boolean,
     canSkipPrevious: Boolean,
     canSkipNext: Boolean,
+    controlStyle: AodControlStyle,
+    controlSize: Float,
+    accentColor: Color,
     onPlayPause: () -> Unit,
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
 ) {
     val view = LocalView.current
     val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
-    
+    val playButtonSize = controlSize.dp
+    val skipButtonSize = (controlSize * 0.75f).dp
+    val playIconSize = (controlSize * 0.5f).dp
+    val skipIconSize = (controlSize * 0.5f).dp
     val playButtonColors = IconButtonDefaults.filledIconButtonColors(
-        containerColor = Color.White,
-        contentColor = Color.Black,
+        containerColor = accentColor,
+        contentColor = if (accentColor == Color.White) Color.Black else MaterialTheme.colorScheme.onPrimary,
+    )
+    val tonalButtonColors = IconButtonDefaults.filledTonalIconButtonColors(
+        containerColor = accentColor.copy(alpha = 0.22f),
+        contentColor = Color.White,
     )
 
     Row(
@@ -257,29 +384,69 @@ private fun AodControls(
                 onSkipPrevious()
             },
             enabled = canSkipPrevious,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(skipButtonSize),
         ) {
             Icon(
                 painter = painterResource(R.drawable.skip_previous),
                 contentDescription = null,
                 tint = if (canSkipPrevious) Color.White else White35,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(skipIconSize),
             )
         }
 
-        FilledIconButton(
-            onClick = {
-                if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
-                onPlayPause()
-            },
-            modifier = Modifier.size(64.dp),
-            colors = playButtonColors,
-        ) {
-            Icon(
-                painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-            )
+        when (controlStyle) {
+            AodControlStyle.FILLED -> {
+                FilledIconButton(
+                    onClick = {
+                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                        onPlayPause()
+                    },
+                    modifier = Modifier
+                        .size(playButtonSize)
+                        .clip(CircleShape),
+                    colors = playButtonColors,
+                ) {
+                    Icon(
+                        painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
+                        contentDescription = null,
+                        modifier = Modifier.size(playIconSize),
+                    )
+                }
+            }
+            AodControlStyle.TONAL -> {
+                FilledTonalIconButton(
+                    onClick = {
+                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                        onPlayPause()
+                    },
+                    modifier = Modifier
+                        .size(playButtonSize)
+                        .clip(CircleShape),
+                    colors = tonalButtonColors,
+                ) {
+                    Icon(
+                        painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
+                        contentDescription = null,
+                        modifier = Modifier.size(playIconSize),
+                    )
+                }
+            }
+            AodControlStyle.MINIMAL -> {
+                IconButton(
+                    onClick = {
+                        if (enableHapticFeedback) view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                        onPlayPause()
+                    },
+                    modifier = Modifier.size(playButtonSize),
+                ) {
+                    Icon(
+                        painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(playIconSize),
+                    )
+                }
+            }
         }
 
         IconButton(
@@ -288,14 +455,71 @@ private fun AodControls(
                 onSkipNext()
             },
             enabled = canSkipNext,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(skipButtonSize),
         ) {
             Icon(
                 painter = painterResource(R.drawable.skip_next),
                 contentDescription = null,
                 tint = if (canSkipNext) Color.White else White35,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(skipIconSize),
             )
         }
     }
 }
+
+@Composable
+private fun Modifier.aodBackground(
+    style: AodBackgroundStyle,
+    accentColor: Color,
+    ambientIntensity: Float,
+): Modifier {
+    val alpha = ambientIntensity.coerceIn(0f, 1f)
+    val brush = remember(style, accentColor, alpha) {
+        when (style) {
+            AodBackgroundStyle.PURE_BLACK -> Brush.verticalGradient(listOf(Color.Black, Color.Black))
+            AodBackgroundStyle.SOFT_RADIAL -> Brush.radialGradient(
+                colors = listOf(
+                    accentColor.copy(alpha = 0.22f * alpha),
+                    Color.Black,
+                ),
+            )
+            AodBackgroundStyle.TONAL_EDGE -> Brush.verticalGradient(
+                colors = listOf(
+                    accentColor.copy(alpha = 0.18f * alpha),
+                    Color.Black,
+                    accentColor.copy(alpha = 0.12f * alpha),
+                ),
+            )
+            AodBackgroundStyle.AMBIENT_GLOW -> Brush.linearGradient(
+                colors = listOf(
+                    accentColor.copy(alpha = 0.28f * alpha),
+                    Color.Black,
+                    Color(0xFF101010),
+                ),
+            )
+        }
+    }
+
+    return background(brush)
+}
+
+private fun AodContentPosition.toBoxAlignment(): Alignment =
+    when (this) {
+        AodContentPosition.TOP -> Alignment.TopCenter
+        AodContentPosition.CENTER -> Alignment.Center
+        AodContentPosition.BOTTOM -> Alignment.BottomCenter
+    }
+
+private fun AodTextAlignment.toTextAlign(): TextAlign =
+    when (this) {
+        AodTextAlignment.START -> TextAlign.Start
+        AodTextAlignment.CENTER -> TextAlign.Center
+        AodTextAlignment.END -> TextAlign.End
+    }
+
+private fun AodTextAlignment.toHorizontalAlignment(): Alignment.Horizontal =
+    when (this) {
+        AodTextAlignment.START -> Alignment.Start
+        AodTextAlignment.CENTER -> Alignment.CenterHorizontally
+        AodTextAlignment.END -> Alignment.End
+    }

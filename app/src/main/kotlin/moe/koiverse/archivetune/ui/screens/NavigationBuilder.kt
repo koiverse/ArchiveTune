@@ -71,6 +71,7 @@ import moe.koiverse.archivetune.ui.screens.search.OnlineSearchResult
 import moe.koiverse.archivetune.ui.screens.settings.AboutScreen
 import moe.koiverse.archivetune.ui.screens.settings.AccountSettings
 import moe.koiverse.archivetune.ui.screens.settings.AiIntegrationSettings
+import moe.koiverse.archivetune.ui.screens.settings.AodCustomizedScreen
 import moe.koiverse.archivetune.ui.screens.settings.AppearanceSettings
 import moe.koiverse.archivetune.ui.screens.settings.CustomizeBackground
 import moe.koiverse.archivetune.ui.screens.settings.BackupAndRestore
@@ -351,6 +352,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/appearance") {
         AppearanceSettings(navController, scrollBehavior)
+    }
+    composable("settings/appearance/aod_customized") {
+        AodCustomizedScreen(navController, scrollBehavior)
     }
     composable("settings/appearance/palette_picker") {
         PalettePickerScreen(navController)
