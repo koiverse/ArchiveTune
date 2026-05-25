@@ -6,8 +6,8 @@
     android:targetCellHeight="1"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:resizeMode="horizontal"
+    android:resizeMode="horizontal|vertical"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="60dp"
     android:widgetCategory="home_screen"
     android:description="@string/widget_description" />
-
-<!-- Made with Bob -->

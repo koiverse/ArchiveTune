@@ -15,11 +15,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 object MusicWidgetKeys {
     val TRACK_TITLE = stringPreferencesKey("widget_track_title")
     val TRACK_ARTIST = stringPreferencesKey("widget_track_artist")
-    val ART_PATH = stringPreferencesKey("widget_art_path")   // absolute path to cached file
+    val ART_PATH = stringPreferencesKey("widget_art_path")
     val IS_PLAYING = booleanPreferencesKey("widget_is_playing")
-    val IS_AVAILABLE = booleanPreferencesKey("widget_is_available") // false = nothing loaded yet
-    val DOMINANT_COLOR = intPreferencesKey("widget_dominant_color")  // ARGB color from album art
-    val PLAYBACK_POSITION = floatPreferencesKey("widget_position")   // 0f..1f progress
+    val IS_AVAILABLE = booleanPreferencesKey("widget_is_available")
+    val DOMINANT_COLOR = intPreferencesKey("widget_dominant_color")
+    val PLAYBACK_POSITION = floatPreferencesKey("widget_position")
 }
-
-// Made with Bob

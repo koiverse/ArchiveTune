@@ -7,7 +7,6 @@
 
 package moe.koiverse.archivetune.widget
 
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -20,9 +19,8 @@ class PlayPauseAction : ActionCallback {
     override suspend fun onAction(
         context: Context,
         glanceId: GlanceId,
-        parameters: ActionParameters
+        parameters: ActionParameters,
     ) {
-        Log.d("MusicWidgetActions", "PlayPauseAction triggered")
         sendWidgetAction(context, ACTION_PLAY_PAUSE)
     }
 }
@@ -31,9 +29,8 @@ class SkipNextAction : ActionCallback {
     override suspend fun onAction(
         context: Context,
         glanceId: GlanceId,
-        parameters: ActionParameters
+        parameters: ActionParameters,
     ) {
-        Log.d("MusicWidgetActions", "SkipNextAction triggered")
         sendWidgetAction(context, ACTION_SKIP_NEXT)
     }
 }
@@ -42,29 +39,22 @@ class SkipPrevAction : ActionCallback {
     override suspend fun onAction(
         context: Context,
         glanceId: GlanceId,
-        parameters: ActionParameters
+        parameters: ActionParameters,
     ) {
-        Log.d("MusicWidgetActions", "SkipPrevAction triggered")
         sendWidgetAction(context, ACTION_SKIP_PREV)
     }
 }
 
-// ── Helper function using custom broadcast intents ────────────────────────────
-
 private const val ACTION_PLAY_PAUSE = "moe.koiverse.archivetune.WIDGET_PLAY_PAUSE"
 private const val ACTION_SKIP_NEXT = "moe.koiverse.archivetune.WIDGET_SKIP_NEXT"
 private const val ACTION_SKIP_PREV = "moe.koiverse.archivetune.WIDGET_SKIP_PREV"
+private const val TAG = "MusicWidgetActions"
 
 private fun sendWidgetAction(context: Context, action: String) {
-    val intent = Intent(action).apply {
-        component = ComponentName(context, MusicService::class.java)
-    }
-    try {
+    val intent = Intent(action).setClass(context, MusicService::class.java)
+    runCatching {
         context.startService(intent)
-        Log.d("MusicWidgetActions", "Sent widget action: $action")
-    } catch (e: Exception) {
-        Log.e("MusicWidgetActions", "Failed to send widget action: $action", e)
+    }.onFailure { error ->
+        Log.e(TAG, "Failed to send widget action: $action", error)
     }
 }
-
-// Made with Bob

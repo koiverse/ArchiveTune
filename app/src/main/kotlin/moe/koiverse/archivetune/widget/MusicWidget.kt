@@ -7,25 +7,20 @@
 
 package moe.koiverse.archivetune.widget
 
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
-import android.graphics.BitmapFactory
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.Image
-import androidx.glance.ImageProvider
+import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.components.Scaffold
+import androidx.glance.appwidget.LinearProgressIndicator
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -33,7 +28,6 @@ import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
-import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
@@ -42,255 +36,322 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.layout.wrapContentHeight
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import moe.koiverse.archivetune.R
 
 class MusicWidget : GlanceAppWidget() {
 
-    // Tell Glance to use DataStore Preferences as the state store.
-    // This persists across process death — critical for closed-app reliability.
+    override val sizeMode = SizeMode.Exact
     override val stateDefinition = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
-            MusicWidgetContent()
+            MusicWidgetContent(context)
         }
     }
 }
 
-// Helper function to determine if a color is dark (needs white text)
-private fun isColorDark(color: Color): Boolean {
-    // Calculate relative luminance using WCAG formula
-    val red = color.red
-    val green = color.green
-    val blue = color.blue
-    
-    val luminance = 0.299 * red + 0.587 * green + 0.114 * blue
-    return luminance < 0.5  // Dark if luminance is less than 50%
+@Composable
+private fun MusicWidgetContent(context: Context) {
+    val prefs = currentState<Preferences>()
+    val state = prefs.toWidgetPlaybackState(context)
+
+    GlanceTheme {
+        val palette = rememberWidgetPalette(state.dominantColor)
+        val size = LocalSize.current
+        when (size.toMusicWidgetLayout()) {
+            MusicWidgetLayout.Compact -> MusicWidgetBar(
+                state = state,
+                palette = palette,
+                context = context,
+                showFullControls = false,
+                showProgress = false,
+            )
+
+            MusicWidgetLayout.Bar -> MusicWidgetBar(
+                state = state,
+                palette = palette,
+                context = context,
+                showFullControls = true,
+                showProgress = state.isAvailable && state.playbackPosition > 0f && size.height >= 78.dp,
+            )
+
+            MusicWidgetLayout.Panel -> MusicWidgetPanel(
+                state = state,
+                palette = palette,
+                context = context,
+            )
+        }
+    }
 }
 
 @Composable
-private fun MusicWidgetContent() {
-    val prefs = currentState<Preferences>()
-    val title = prefs[MusicWidgetKeys.TRACK_TITLE] ?: "Nothing playing"
-    val artist = prefs[MusicWidgetKeys.TRACK_ARTIST] ?: ""
-    val isPlaying = prefs[MusicWidgetKeys.IS_PLAYING] ?: false
-    val artPath = prefs[MusicWidgetKeys.ART_PATH]
-    val available = prefs[MusicWidgetKeys.IS_AVAILABLE] ?: false
-    val dominantColor = prefs[MusicWidgetKeys.DOMINANT_COLOR]
-    val playbackPosition = prefs[MusicWidgetKeys.PLAYBACK_POSITION] ?: 0f
-    
-    // Calculate text color based on background luminance
-    val textColor = if (dominantColor != null) {
-        val color = Color(dominantColor)
-        if (isColorDark(color)) Color.White else Color.Black
-    } else {
-        Color.White  // Default to white for fallback background
-    }
-    
-    val subtextColor = textColor.copy(alpha = 0.7f)
-
-    // Determine background color with glassmorphism effect
-    val bgColor = if (dominantColor != null) {
-        ColorProvider(Color(dominantColor).copy(alpha = 0.85f))
-    } else {
-        GlanceTheme.colors.widgetBackground
-    }
-
-    GlanceTheme {
-        Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(bgColor)
-                .cornerRadius(24.dp)
-                .padding(12.dp)
-        ) {
-            Column(
-                modifier = GlanceModifier.fillMaxSize()
+private fun MusicWidgetBar(
+    state: WidgetPlaybackState,
+    palette: WidgetPalette,
+    context: Context,
+    showFullControls: Boolean,
+    showProgress: Boolean,
+) {
+    Box(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .background(palette.surface)
+            .cornerRadius(28.dp)
+            .padding(6.dp)
+            .clickable(openArchiveTuneAction(context)),
+    ) {
+        Column(modifier = GlanceModifier.fillMaxSize()) {
+            Row(
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = GlanceModifier
-                        .fillMaxWidth()
-                        .wrapContentHeight(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Album art - clickable to open app
-                    val artModifier = GlanceModifier
-                        .size(60.dp)
-                        .cornerRadius(8.dp)
-                        .clickable(
-                            actionStartActivity(
-                                Intent(
-                                    Intent.ACTION_MAIN
-                                ).apply {
-                                    component = ComponentName(
-                                        "moe.koiverse.archivetune",
-                                        "moe.koiverse.archivetune.MainActivity"
-                                    )
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                                }
-                            )
-                        )
-                    
-                    if (artPath != null) {
-                        val bitmap = BitmapFactory.decodeFile(artPath)
-                        if (bitmap != null) {
-                            Image(
-                                provider = ImageProvider(bitmap),
-                                contentDescription = "Album art - Tap to open app",
-                                modifier = artModifier,
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Image(
-                                provider = ImageProvider(R.drawable.music_note),
-                                contentDescription = "Album art - Tap to open app",
-                                modifier = artModifier
-                            )
-                        }
-                    } else {
-                        Image(
-                            provider = ImageProvider(R.drawable.music_note),
-                            contentDescription = "Album art - Tap to open app",
-                            modifier = artModifier
-                        )
-                    }
+                WidgetArtwork(
+                    artPath = state.artPath,
+                    context = context,
+                    contentDescription = context.getString(R.string.album_cover_desc),
+                    targetSize = 48.dp,
+                    cornerRadius = 16.dp,
+                    palette = palette,
+                    modifier = GlanceModifier.size(48.dp),
+                )
 
-                    Spacer(GlanceModifier.width(12.dp))
+                Spacer(GlanceModifier.width(10.dp))
 
-                    // Track info
-                    Column(
-                        modifier = GlanceModifier.defaultWeight().wrapContentHeight()
-                    ) {
-                        Text(
-                            text = title,
-                            style = TextStyle(
-                                color = ColorProvider(textColor),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            maxLines = 1
-                        )
-                        if (artist.isNotEmpty()) {
-                            Text(
-                                text = artist,
-                                style = TextStyle(
-                                    color = ColorProvider(subtextColor),
-                                    fontSize = 12.sp
-                                ),
-                                maxLines = 1
-                            )
-                        }
-                    }
+                MusicWidgetTrackText(
+                    state = state,
+                    palette = palette,
+                    titleSize = 14,
+                    artistSize = 12,
+                    modifier = GlanceModifier.defaultWeight(),
+                )
 
-                    // Controls — only shown when something is/was loaded
-                    if (available) {
-                        Spacer(GlanceModifier.width(4.dp))
-                        // Previous button - rounded triangle shape
-                        TriangleButton(
-                            imageProvider = ImageProvider(R.drawable.widget_triangle_prev),
-                            contentDescription = "Previous",
-                            onClick = actionRunCallback<SkipPrevAction>(),
-                            backgroundColor = textColor.copy(alpha = 0.15f),
-                            contentColor = textColor
-                        )
-                        Spacer(GlanceModifier.width(6.dp))
-                        // Play/Pause button - rounded square shape
-                        SquareButton(
-                            imageProvider = ImageProvider(
-                                if (isPlaying) R.drawable.pause else R.drawable.play
-                            ),
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            onClick = actionRunCallback<PlayPauseAction>(),
-                            backgroundColor = textColor.copy(alpha = 0.15f),
-                            contentColor = textColor
-                        )
-                        Spacer(GlanceModifier.width(6.dp))
-                        // Next button - rounded triangle shape
-                        TriangleButton(
-                            imageProvider = ImageProvider(R.drawable.widget_triangle_next),
-                            contentDescription = "Next",
-                            onClick = actionRunCallback<SkipNextAction>(),
-                            backgroundColor = textColor.copy(alpha = 0.15f),
-                            contentColor = textColor
-                        )
-                    }
-                }
-
-                // Progress bar
-                if (available && playbackPosition > 0f) {
-                    Spacer(GlanceModifier.height(8.dp))
-                    androidx.glance.appwidget.LinearProgressIndicator(
-                        progress = playbackPosition,
-                        modifier = GlanceModifier.fillMaxWidth().height(3.dp),
-                        color = if (dominantColor != null) {
-                            ColorProvider(Color(dominantColor).copy(alpha = 1f))
-                        } else {
-                            GlanceTheme.colors.primary
-                        },
-                        backgroundColor = ColorProvider(Color.White.copy(alpha = 0.2f))
+                if (state.isAvailable) {
+                    Spacer(GlanceModifier.width(8.dp))
+                    MusicWidgetControls(
+                        state = state,
+                        palette = palette,
+                        context = context,
+                        showPreviousNext = showFullControls,
+                        modifier = GlanceModifier,
+                        buttonModifier = GlanceModifier.size(48.dp),
                     )
                 }
+            }
+
+            if (showProgress) {
+                Spacer(GlanceModifier.height(6.dp))
+                MusicWidgetProgress(
+                    progress = state.playbackPosition,
+                    palette = palette,
+                )
             }
         }
     }
 }
 
-// Custom button composables for different shapes
-
 @Composable
-private fun TriangleButton(
-    imageProvider: ImageProvider,
-    contentDescription: String,
-    onClick: androidx.glance.action.Action,
-    backgroundColor: Color,
-    contentColor: Color
+private fun MusicWidgetPanel(
+    state: WidgetPlaybackState,
+    palette: WidgetPalette,
+    context: Context,
 ) {
     Box(
         modifier = GlanceModifier
-            .size(40.dp)
-            .background(ColorProvider(backgroundColor))
-            .cornerRadius(8.dp)  // Rounded triangle effect
-            .clickable(onClick),
-        contentAlignment = Alignment.Center
+            .fillMaxSize()
+            .background(palette.surface)
+            .cornerRadius(28.dp)
+            .padding(16.dp)
+            .clickable(openArchiveTuneAction(context)),
     ) {
-        Image(
-            provider = imageProvider,
-            contentDescription = contentDescription,
-            modifier = GlanceModifier.size(20.dp),
-            colorFilter = androidx.glance.ColorFilter.tint(ColorProvider(contentColor))
+        Column(modifier = GlanceModifier.fillMaxSize()) {
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                WidgetArtwork(
+                    artPath = state.artPath,
+                    context = context,
+                    contentDescription = context.getString(R.string.album_cover_desc),
+                    targetSize = 72.dp,
+                    cornerRadius = 18.dp,
+                    palette = palette,
+                    modifier = GlanceModifier.size(72.dp),
+                )
+
+                Spacer(GlanceModifier.width(14.dp))
+
+                MusicWidgetTrackText(
+                    state = state,
+                    palette = palette,
+                    titleSize = 16,
+                    artistSize = 13,
+                    modifier = GlanceModifier.defaultWeight(),
+                )
+            }
+
+            Spacer(GlanceModifier.defaultWeight())
+
+            if (state.isAvailable) {
+                MusicWidgetControls(
+                    state = state,
+                    palette = palette,
+                    context = context,
+                    showPreviousNext = true,
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    buttonModifier = GlanceModifier
+                        .defaultWeight()
+                        .height(50.dp),
+                )
+            } else {
+                Box(
+                    modifier = GlanceModifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .background(palette.secondaryContainer)
+                        .cornerRadius(25.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = context.getString(R.string.widget_tap_to_open),
+                        style = TextStyle(
+                            color = palette.onSecondaryContainer,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                        maxLines = 1,
+                    )
+                }
+            }
+
+            if (state.isAvailable && state.playbackPosition > 0f) {
+                Spacer(GlanceModifier.height(10.dp))
+                MusicWidgetProgress(
+                    progress = state.playbackPosition,
+                    palette = palette,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MusicWidgetTrackText(
+    state: WidgetPlaybackState,
+    palette: WidgetPalette,
+    titleSize: Int,
+    artistSize: Int,
+    modifier: GlanceModifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+    ) {
+        Text(
+            text = state.title,
+            style = TextStyle(
+                color = palette.onSurface,
+                fontSize = titleSize.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            maxLines = 1,
+        )
+        Spacer(GlanceModifier.height(2.dp))
+        Text(
+            text = state.artist,
+            style = TextStyle(
+                color = palette.onSurfaceVariant,
+                fontSize = artistSize.sp,
+            ),
+            maxLines = 1,
         )
     }
 }
 
 @Composable
-private fun SquareButton(
-    imageProvider: ImageProvider,
-    contentDescription: String,
-    onClick: androidx.glance.action.Action,
-    backgroundColor: Color,
-    contentColor: Color
+private fun MusicWidgetControls(
+    state: WidgetPlaybackState,
+    palette: WidgetPalette,
+    context: Context,
+    showPreviousNext: Boolean,
+    modifier: GlanceModifier,
+    buttonModifier: GlanceModifier,
 ) {
-    Box(
-        modifier = GlanceModifier
-            .size(40.dp)
-            .background(ColorProvider(backgroundColor))
-            .cornerRadius(12.dp)  // More rounded for square
-            .clickable(onClick),
-        contentAlignment = Alignment.Center
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
-            provider = imageProvider,
-            contentDescription = contentDescription,
-            modifier = GlanceModifier.size(20.dp),
-            colorFilter = androidx.glance.ColorFilter.tint(ColorProvider(contentColor))
+        if (showPreviousNext) {
+            WidgetControlButton(
+                modifier = buttonModifier,
+                action = skipPreviousAction(),
+                icon = R.drawable.skip_previous,
+                contentDescription = context.getString(R.string.widget_previous),
+                backgroundColor = palette.secondaryContainer,
+                contentColor = palette.onSecondaryContainer,
+                cornerRadius = 16.dp,
+            )
+            Spacer(GlanceModifier.width(6.dp))
+        }
+
+        WidgetControlButton(
+            modifier = buttonModifier,
+            action = playPauseAction(),
+            icon = if (state.isPlaying) R.drawable.pause else R.drawable.play,
+            contentDescription = context.getString(
+                if (state.isPlaying) R.string.widget_pause else R.string.play,
+            ),
+            backgroundColor = palette.primaryContainer,
+            contentColor = palette.onPrimaryContainer,
+            cornerRadius = if (state.isPlaying) 16.dp else 24.dp,
+            iconSize = 24.dp,
         )
+
+        if (showPreviousNext) {
+            Spacer(GlanceModifier.width(6.dp))
+            WidgetControlButton(
+                modifier = buttonModifier,
+                action = skipNextAction(),
+                icon = R.drawable.skip_next,
+                contentDescription = context.getString(R.string.next),
+                backgroundColor = palette.secondaryContainer,
+                contentColor = palette.onSecondaryContainer,
+                cornerRadius = 16.dp,
+            )
+        }
     }
 }
 
-// Made with Bob
+@Composable
+private fun MusicWidgetProgress(
+    progress: Float,
+    palette: WidgetPalette,
+) {
+    LinearProgressIndicator(
+        progress = progress,
+        color = palette.progress,
+        backgroundColor = palette.progressTrack,
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .cornerRadius(3.dp),
+    )
+}
+
+private enum class MusicWidgetLayout {
+    Compact,
+    Bar,
+    Panel,
+}
+
+private fun DpSize.toMusicWidgetLayout(): MusicWidgetLayout =
+    when {
+        height >= 128.dp -> MusicWidgetLayout.Panel
+        width < 300.dp -> MusicWidgetLayout.Compact
+        else -> MusicWidgetLayout.Bar
+    }

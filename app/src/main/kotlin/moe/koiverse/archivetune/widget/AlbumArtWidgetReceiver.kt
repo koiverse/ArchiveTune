@@ -12,5 +12,3 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 class AlbumArtWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget = AlbumArtWidget()
 }
-
-// Made with Bob

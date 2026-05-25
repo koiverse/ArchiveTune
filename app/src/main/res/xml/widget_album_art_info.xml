@@ -1,14 +1,12 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="120dp"
-    android:minHeight="120dp"
-    android:maxWidth="120dp"
-    android:maxHeight="120dp"
+    android:minWidth="80dp"
+    android:minHeight="80dp"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:resizeMode="none"
+    android:resizeMode="horizontal|vertical"
+    android:minResizeWidth="80dp"
+    android:minResizeHeight="80dp"
     android:widgetCategory="home_screen"
     android:description="@string/widget_album_art_description" />
-
-<!-- Made with Bob -->

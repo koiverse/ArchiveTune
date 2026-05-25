@@ -16,17 +16,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.playback.MusicService
 import java.util.concurrent.TimeUnit
 
 class MusicWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget = MusicWidget()
-    
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        // Try to get current state from the service when widget is first added
         scope.launch {
             tryUpdateFromService(context)
         }
@@ -35,10 +35,9 @@ class MusicWidgetReceiver : GlanceAppWidgetReceiver() {
     override fun onUpdate(
         context: Context,
         appWidgetManager: android.appwidget.AppWidgetManager,
-        appWidgetIds: IntArray
+        appWidgetIds: IntArray,
     ) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
-        // Also try to update when widget is updated
         scope.launch {
             tryUpdateFromService(context)
         }
@@ -48,34 +47,32 @@ class MusicWidgetReceiver : GlanceAppWidgetReceiver() {
         try {
             val token = SessionToken(
                 context,
-                ComponentName(context, MusicService::class.java)
+                ComponentName(context, MusicService::class.java),
             )
             val future = MediaController.Builder(context, token).buildAsync()
-            val controller = kotlinx.coroutines.withContext(Dispatchers.IO) {
+            val controller = withContext(Dispatchers.IO) {
                 future.get(2, TimeUnit.SECONDS)
             }
-            
-            // If we got a controller, the service is running
-            // Get the service instance and trigger widget update
-            val serviceIntent = android.content.Intent(context, MusicService::class.java)
-            context.bindService(
-                serviceIntent,
-                object : android.content.ServiceConnection {
-                    override fun onServiceConnected(name: ComponentName?, binder: android.os.IBinder?) {
-                        val service = (binder as? MusicService.MusicBinder)?.service
-                        service?.updateWidget()
-                        context.unbindService(this)
-                    }
-                    override fun onServiceDisconnected(name: ComponentName?) {}
-                },
-                Context.BIND_AUTO_CREATE
-            )
-            
-            controller.release()
+
+            try {
+                val serviceIntent = android.content.Intent(context, MusicService::class.java)
+                context.bindService(
+                    serviceIntent,
+                    object : android.content.ServiceConnection {
+                        override fun onServiceConnected(name: ComponentName?, binder: android.os.IBinder?) {
+                            val service = (binder as? MusicService.MusicBinder)?.service
+                            service?.updateWidget()
+                            context.unbindService(this)
+                        }
+
+                        override fun onServiceDisconnected(name: ComponentName?) {}
+                    },
+                    Context.BIND_AUTO_CREATE,
+                )
+            } finally {
+                controller.release()
+            }
         } catch (e: Exception) {
-            // Service not running or no media loaded - widget will show default state
         }
     }
 }
-
-// Made with Bob
