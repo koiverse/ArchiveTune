@@ -125,10 +125,14 @@
     <string name="remove_from_history">履歴から削除</string>
     <string name="remove_from_playlist">プレイリストから削除</string>
     <string name="remove_from_queue">キューから削除</string>
+    <string name="removed_song_from_queue">\"%s\" をキューから削除しました</string>
+    <string name="removed_n_songs_from_queue">%d 曲をキューから削除しました</string>
     <string name="search_online">オンラインで検索</string>
     <string name="action_sync">同期</string>
     <string name="advanced">上級者向け</string>
     <string name="tempo_and_pitch">テンポとピッチ</string>
+    <string name="aod_mode">AODモード</string>
+    <string name="aod_mode_exit">AOD を終了する</string>
     <string name="tempo">テンポ</string>
     <string name="pitch">ピッチ</string>
     <string name="pitch_mode_semitones_short">セント</string>
@@ -218,6 +222,7 @@
     <string name="undo">元に戻す</string>
     <!-- Player -->
     <string name="lyrics_not_found">歌詞が見つかりません</string>
+    <string name="lyrics_word_sync">ワードシンク</string>
     <string name="sleep_timer">スリープタイマー</string>
     <string name="end_of_song">曲の終わり</string>
     <plurals name="minute">
@@ -227,6 +232,7 @@
     <string name="error_no_stream">利用可能なストリームがありません</string>
     <string name="error_no_internet">ネットワーク接続がありません</string>
     <string name="error_timeout">タイムアウト</string>
+    <string name="error_malformed_stream">ソースエラー</string>
     <string name="error_unknown">不明なエラー</string>
     <!-- Player action -->
     <string name="action_like">いいね</string>
@@ -406,12 +412,18 @@
     <string name="default_">デフォルト</string>
     <string name="squiggly">波打つ</string>
     <string name="misc">その他</string>
+    <string name="haptics">振動</string>
+    <string name="haptics_desc">インタラクティブな要素で触覚フィードバックを有効にする</string>
     <string name="default_open_tab">デフォルトで開いているタブ</string>
     <string name="grid_cell_size">グリッドセルのサイズ</string>
     <string name="small">小</string>
     <string name="big">大きい</string>
     <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">歌詞アニメーション風</string>
+    <string name="lyrics_mode">歌詞モード</string>
+    <string name="lyrics_mode_v2">V2 Legacy</string>
+    <string name="lyrics_mode_enhanced">強化された</string>
+    <string name="lyrics_animation_style_v2_only">V2 歌詞モードでのみ利用可能</string>
     <!-- Animation options -->
     <string name="none">なし</string>
     <string name="fade">フェード</string>
@@ -434,12 +446,37 @@
     <string name="content_country">デフォルトのコンテンツの国</string>
     <string name="system_default">システムのデフォルト</string>
     <string name="enable_proxy">プロキシを有効にする</string>
+    <string name="internet">インターネット</string>
+    <string name="internet_warning_title">セキュリティ &amp; 使用上の警告</string>
+    <string name="internet_warning_doh">DNS over HTTPS は、お住まいの国が YouTube をブロックしている場合にのみ機能します。 YouTube が地域を積極的にブロックしている場合は、プロキシまたは VPN の使用を検討してください。</string>
+    <string name="internet_warning_proxy">安全であると確信できるプロキシのみを使用してください。無料プロキシは便利ですが、必ずしも安全であるとは限りませんので、注意してください。あなたは警告を受けていますが、私たちはあなたの安全について責任を負いません。</string>
+    <string name="dns_over_https">HTTPS 経由の DNS</string>
+    <string name="dns_over_https_desc">DNS over HTTPS (DoH) を使用してホスト名を解決する</string>
+    <string name="dns_provider">DNSプロバイダー</string>
+    <string name="dns_custom_url">カスタム DNS DoH URL</string>
     <string name="proxy_type">プロキシの種類</string>
+    <string name="proxy_host">プロキシホスト(IP)</string>
+    <string name="proxy_port">プロキシポート</string>
+    <string name="proxy_auth">プロキシ認証 (オプション)</string>
+    <string name="proxy_username">ユーザー名</string>
+    <string name="proxy_password">パスワード</string>
+    <string name="test_proxy_connection">プロキシ接続のテスト</string>
+    <string name="testing_proxy_connection">プロキシ接続をテストしています…</string>
+    <string name="proxy_connection_success">プロキシ接続に成功しました!</string>
+    <string name="proxy_connection_failed">プロキシ接続に失敗しました: %s</string>
+    <string name="ip_rotation">IPローテーション</string>
+    <string name="ip_rotation_desc">再生またはコンテンツの問題が発生した場合は、現在の IP をローテーションします。</string>
+    <string name="ip_rotation_active_proxies">%d 個のアクティブなプロキシ</string>
+    <string name="ip_rotation_loading">プロキシ リストを読み込み中…</string>
+    <string name="ip_rotation_refreshing">IPを更新中…</string>
+    <string name="ip_rotation_refresh">IPをリフレッシュ</string>
     <string name="stream_bypass_proxy">ストリームのプロキシをバイパスする</string>
     <string name="stream_bypass_proxy_desc">IP の不一致を避けるためにストリーム再生には直接 IP を使用してください</string>
     <string name="restart_to_take_effect">再起動して有効にします</string>
     <string name="enable_betterlyrics">BetterLyrics を有効にする</string>
+    <string name="enable_unison_lyrics">ユニゾン歌詞を有効にする</string>
     <string name="enable_simpmusic_lyrics">SimpMusic の歌詞を有効にする</string>
+    <string name="enable_paxsenix_lyrics">Paxsenix の歌詞を有効にする</string>
     <string name="player_and_audio">プレーヤーとオーディオ</string>
     <string name="audio_quality">オーディオ品質</string>
     <string name="audio_quality_auto">自動</string>
@@ -526,6 +563,19 @@
     <string name="clear_image_cache">画像キャッシュをクリアする</string>
     <string name="max_song_cache_size">最大曲キャッシュサイズ</string>
     <string name="clear_song_cache">曲のキャッシュをクリアする</string>
+    <string name="clear_lyrics_cache">歌詞キャッシュをクリアする</string>
+    <string name="clear_lyrics_cache_confirm">すべての歌詞キャッシュをクリアしてもよろしいですか?</string>
+    <string name="paxsenix_stats">Paxsenix API 統計</string>
+    <string name="uptime">稼働時間</string>
+    <string name="total_requests">総リクエスト数</string>
+    <string name="success_rate">成功率</string>
+    <string name="providers">プロバイダー</string>
+    <string name="paxsenix_status_operational">稼働中</string>
+    <string name="paxsenix_status_degraded">劣化した</string>
+    <string name="paxsenix_status_down">ダウン</string>
+    <string name="paxsenix_stats_failed">API統計のロードに失敗しました</string>
+    <string name="visit_website">ウェブサイトにアクセス</string>
+    <string name="recent_requests">最近のリクエスト</string>
     <string name="size_used">%sが使用されました</string>
     <string name="privacy">プライバシー</string>
     <string name="listen_history">視聴履歴</string>
@@ -544,6 +594,8 @@
     <string name="enable_kugou">KuGou 歌詞プロバイダーを有効にする</string>
     <string name="preload_queue_lyrics">キューの歌詞をプリロードする</string>
     <string name="queue_lyrics_preload_count">プリロードする曲の数</string>
+    <string name="display">ディスプレイ</string>
+    <string name="romanization">ローマ字化</string>
     <string name="hide_explicit">露骨なコンテンツを非表示にする</string>
     <string name="hide_video">ミュージックビデオを非表示にする</string>
     <string name="backup_restore">バックアップと復元</string>
@@ -606,7 +658,12 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="select_language">言語の選択</string>
     <string name="close_dialog">閉じる</string>
     <string name="select_dialog">選択</string>
-    <string name="support_github">スターアーカイブチューン!</string>
+    <string name="support_github">スターアーカイブチューン！</string>
+    <string name="support_development_title">サポート開発</string>
+    <string name="support_development_message">ちょっと、そこ！ ArchiveTune の開発者、Koiverse です。 ArchiveTune が毎日のリスニングに活用されている場合は、GitHub でプロジェクトに寄付したりスターを付けたりすることで、ArchiveTune を前進させることができます。アプリの開発にご協力いただきありがとうございます。</string>
+    <string name="support_development_donate">開発をサポートするために寄付する</string>
+    <string name="support_development_star">GitHub でスターを付ける</string>
+    <string name="later">後で</string>
     <!-- Update dialog -->
     <string name="new_update_available">新しいアップデートが利用可能</string>
     <string name="release_notes_unavailable">リリースノートは入手できません</string>
@@ -801,7 +858,7 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="together_connected">接続済み</string>
     <string name="together_error_state">エラー</string>
 
-    <string name="got_it">分かりました</string>
+    <string name="got_it">わかりました</string>
     <string name="together_dont_show_again">これを二度と表示しないでください</string>
     <string name="together_welcome_title">ArchiveTune Music Together へようこそ</string>
     <string name="together_welcome_body">Music Together を使用すると、複数のデバイスが同期されたキューと再生を使用してライブ セッションを共有できます。</string>
@@ -841,4 +898,8 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="po_token_account_notice_body">PO トークンを生成する前に、ArchiveTune 内で YouTube Music にすでに使用しているのと同じ Google アカウントでここにサインインします。</string>
     <string name="po_token_account_notice_same_account">この WebView が別のアカウントを使用している場合、生成されたトークンは正しく機能しません。</string>
     <string name="po_token_account_notice_mismatch">一致するアカウントを使用してサインイン フローを完了し、youtube.com/account を開いてそのページからトークンを生成します。</string>
+    <string name="saved_accounts">保存されたアカウント</string>
+    <string name="save_current_account">現在のアカウントを保存する</string>
+    <string name="no_saved_accounts">保存されたアカウントはまだありません</string>
+    <string name="remove_account">アカウントを削除する</string>
 </resources>

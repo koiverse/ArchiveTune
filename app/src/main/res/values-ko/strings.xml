@@ -125,10 +125,14 @@
     <string name="remove_from_history">기록에서 삭제</string>
     <string name="remove_from_playlist">재생목록에서 삭제</string>
     <string name="remove_from_queue">대기열에서 제거</string>
+    <string name="removed_song_from_queue">대기열에서 \"%s\"을(를) 제거했습니다.</string>
+    <string name="removed_n_songs_from_queue">대기열에서 노래 %d곡을 삭제했습니다.</string>
     <string name="search_online">온라인으로 검색</string>
     <string name="action_sync">동기화</string>
     <string name="advanced">고급</string>
     <string name="tempo_and_pitch">템포와 피치</string>
+    <string name="aod_mode">AOD 모드</string>
+    <string name="aod_mode_exit">AOD 종료</string>
     <string name="tempo">템포</string>
     <string name="pitch">피치</string>
     <string name="pitch_mode_semitones_short">성</string>
@@ -218,6 +222,7 @@
     <string name="undo">실행 취소</string>
     <!-- Player -->
     <string name="lyrics_not_found">가사를 찾을 수 없습니다</string>
+    <string name="lyrics_word_sync">워드 싱크</string>
     <string name="sleep_timer">취침 타이머</string>
     <string name="end_of_song">노래 끝</string>
     <plurals name="minute">
@@ -227,6 +232,7 @@
     <string name="error_no_stream">사용 가능한 스트림이 없습니다.</string>
     <string name="error_no_internet">네트워크 연결 없음</string>
     <string name="error_timeout">시간 초과</string>
+    <string name="error_malformed_stream">소스 오류</string>
     <string name="error_unknown">알 수 없는 오류</string>
     <!-- Player action -->
     <string name="action_like">좋아요</string>
@@ -326,7 +332,7 @@
     <!-- Neon & Vibrant -->
     <string name="palette_neon_green">네온 그린</string>
     <string name="palette_neon_pink">네온 핑크</string>
-    <string name="palette_neon_blue">네온블루</string>
+    <string name="palette_neon_blue">네온 블루</string>
     <string name="palette_neon_orange">네온 오렌지</string>
     <string name="palette_cyberpunk">사이버펑크</string>
     <string name="palette_synthwave">신스웨이브</string>
@@ -357,7 +363,7 @@
     <!-- End of Color Palette -->
 
     <string name="dark_theme">어두운 테마</string>
-    <string name="dark_theme_on">켜기</string>
+    <string name="dark_theme_on">켜짐</string>
     <string name="dark_theme_off">끄기</string>
     <string name="show_button">버튼 표시</string>
     <string name="corner_radius">코너 반경: %1$d</string>
@@ -406,12 +412,18 @@
     <string name="default_">기본값</string>
     <string name="squiggly">구불구불한</string>
     <string name="misc">기타</string>
+    <string name="haptics">진동</string>
+    <string name="haptics_desc">대화형 요소에 대한 햅틱 피드백 활성화</string>
     <string name="default_open_tab">기본 열린 탭</string>
     <string name="grid_cell_size">그리드 셀 크기</string>
     <string name="small">작은</string>
     <string name="big">큰</string>
     <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">가사 애니메이션 스타일</string>
+    <string name="lyrics_mode">가사 모드</string>
+    <string name="lyrics_mode_v2">V2 Legacy</string>
+    <string name="lyrics_mode_enhanced">향상된</string>
+    <string name="lyrics_animation_style_v2_only">V2 가사 모드에서만 사용 가능</string>
     <!-- Animation options -->
     <string name="none">없음</string>
     <string name="fade">페이드</string>
@@ -434,12 +446,37 @@
     <string name="content_country">기본 콘텐츠 국가</string>
     <string name="system_default">시스템 기본값</string>
     <string name="enable_proxy">프록시 활성화</string>
+    <string name="internet">인터넷</string>
+    <string name="internet_warning_title">보안 &amp; 사용 경고</string>
+    <string name="internet_warning_doh">HTTPS를 통한 DNS는 해당 국가에서 YouTube를 차단하는 경우에만 작동합니다. YouTube에서 해당 지역을 적극적으로 차단하는 경우 프록시 또는 VPN 사용을 고려해보세요.</string>
+    <string name="internet_warning_proxy">안전하다고 확신하는 프록시만 사용하세요. 무료 프록시는 편리하지만 항상 안전한 것은 아니므로 주의하세요. 귀하는 경고를 받았으며 당사는 귀하의 보안에 대해 책임을 지지 않습니다.</string>
+    <string name="dns_over_https">HTTPS를 통한 DNS</string>
+    <string name="dns_over_https_desc">DoH(DNS over HTTPS)를 사용하여 호스트 이름 확인</string>
+    <string name="dns_provider">DNS 공급자</string>
+    <string name="dns_custom_url">사용자 정의 DNS DoH URL</string>
     <string name="proxy_type">프록시 유형</string>
+    <string name="proxy_host">프록시 호스트(IP)</string>
+    <string name="proxy_port">프록시 포트</string>
+    <string name="proxy_auth">프록시 인증(선택사항)</string>
+    <string name="proxy_username">사용자 이름</string>
+    <string name="proxy_password">비밀번호</string>
+    <string name="test_proxy_connection">프록시 연결 테스트</string>
+    <string name="testing_proxy_connection">프록시 연결 테스트 중…</string>
+    <string name="proxy_connection_success">프록시 연결이 성공했습니다!</string>
+    <string name="proxy_connection_failed">프록시 연결 실패: %s</string>
+    <string name="ip_rotation">IP 순환</string>
+    <string name="ip_rotation_desc">재생이나 콘텐츠 문제가 발생하면 현재 IP를 회전하세요.</string>
+    <string name="ip_rotation_active_proxies">%d 활성 프록시</string>
+    <string name="ip_rotation_loading">프록시 목록 로드 중…</string>
+    <string name="ip_rotation_refreshing">IP 새로 고침…</string>
+    <string name="ip_rotation_refresh">IP 새로 고침</string>
     <string name="stream_bypass_proxy">스트림용 프록시 우회</string>
     <string name="stream_bypass_proxy_desc">IP 불일치를 방지하려면 스트림 재생에 직접 IP를 사용하세요.</string>
     <string name="restart_to_take_effect">적용하려면 다시 시작하세요.</string>
     <string name="enable_betterlyrics">BetterLyric 활성화</string>
+    <string name="enable_unison_lyrics">Unison 가사 활성화</string>
     <string name="enable_simpmusic_lyrics">SimpMusic 가사 활성화</string>
+    <string name="enable_paxsenix_lyrics">Paxsenix 가사 활성화</string>
     <string name="player_and_audio">플레이어 및 오디오</string>
     <string name="audio_quality">오디오 품질</string>
     <string name="audio_quality_auto">자동</string>
@@ -526,8 +563,21 @@
     <string name="clear_image_cache">이미지 캐시 지우기</string>
     <string name="max_song_cache_size">최대 노래 캐시 크기</string>
     <string name="clear_song_cache">노래 캐시 지우기</string>
+    <string name="clear_lyrics_cache">가사 캐시 지우기</string>
+    <string name="clear_lyrics_cache_confirm">모든 가사 캐시를 지우시겠습니까?</string>
+    <string name="paxsenix_stats">Paxsenix API 통계</string>
+    <string name="uptime">가동 시간</string>
+    <string name="total_requests">총 요청</string>
+    <string name="success_rate">성공률</string>
+    <string name="providers">공급자</string>
+    <string name="paxsenix_status_operational">운영</string>
+    <string name="paxsenix_status_degraded">저하됨</string>
+    <string name="paxsenix_status_down">아래로</string>
+    <string name="paxsenix_stats_failed">API 통계를 로드하지 못했습니다.</string>
+    <string name="visit_website">웹사이트 방문</string>
+    <string name="recent_requests">최근 요청</string>
     <string name="size_used">%s 사용됨</string>
-    <string name="privacy">개인 정보 보호</string>
+    <string name="privacy">개인정보 보호</string>
     <string name="listen_history">듣기 기록</string>
     <string name="pause_listen_history">청취 기록 일시중지</string>
     <string name="clear_listen_history">청취 기록 지우기</string>
@@ -544,6 +594,8 @@
     <string name="enable_kugou">KuGou 가사 제공자 활성화</string>
     <string name="preload_queue_lyrics">미리 로드 대기열 가사</string>
     <string name="queue_lyrics_preload_count">미리 로드할 노래 수</string>
+    <string name="display">디스플레이</string>
+    <string name="romanization">로마자 표기</string>
     <string name="hide_explicit">노골적인 콘텐츠 숨기기</string>
     <string name="hide_video">뮤직 비디오 숨기기</string>
     <string name="backup_restore">백업 및 복원</string>
@@ -607,6 +659,11 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="close_dialog">닫기</string>
     <string name="select_dialog">선택</string>
     <string name="support_github">스타 아카이브Tune!</string>
+    <string name="support_development_title">개발 지원</string>
+    <string name="support_development_message">안녕하세요! ArchiveTune의 개발자 코이버스입니다. ArchiveTune이 일상적인 청취의 자리를 차지했다면 GitHub에서 프로젝트를 기부하거나 별표 표시하여 계속해서 발전하는 데 도움을 줄 수 있습니다. 앱 작업을 지원해 주셔서 감사합니다.</string>
+    <string name="support_development_donate">개발 지원을 위해 기부하세요</string>
+    <string name="support_development_star">GitHub의 스타</string>
+    <string name="later">나중에</string>
     <!-- Update dialog -->
     <string name="new_update_available">새 업데이트 사용 가능</string>
     <string name="release_notes_unavailable">출시 노트를 사용할 수 없습니다.</string>
@@ -841,4 +898,8 @@ ArchiveTune will only extract your token, and everything else is stored locally.
     <string name="po_token_account_notice_body">PO 토큰을 생성하기 전에 ArchiveTune 내에서 이미 YouTube Music에 사용하고 있는 것과 동일한 Google 계정으로 여기에 로그인하세요.</string>
     <string name="po_token_account_notice_same_account">이 WebView가 다른 계정을 사용하는 경우 생성된 토큰이 올바르게 작동하지 않습니다.</string>
     <string name="po_token_account_notice_mismatch">일치하는 계정을 사용하고 로그인 과정을 마친 다음 youtube.com/account를 열고 해당 페이지에서 토큰을 생성하세요.</string>
+    <string name="saved_accounts">저장된 계정</string>
+    <string name="save_current_account">현재 계정 저장</string>
+    <string name="no_saved_accounts">아직 저장된 계정이 없습니다.</string>
+    <string name="remove_account">계정 삭제</string>
 </resources>

@@ -586,7 +586,7 @@ private fun NewsImageCarousel(
 @Composable
 private fun NewsAsyncImage(
     imageUrl: String,
-    contentDescription: String,
+    contentDescription: String?,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
