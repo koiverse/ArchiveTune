@@ -8,7 +8,9 @@
 package moe.koiverse.archivetune.widget
 
 import android.content.Context
+import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +39,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
 import moe.koiverse.archivetune.R
 
 class AlbumArtWidget : GlanceAppWidget() {
@@ -56,7 +59,13 @@ private fun AlbumArtWidgetContent(context: Context) {
     val prefs = currentState<Preferences>()
     val state = prefs.toWidgetPlaybackState(context)
 
-    GlanceTheme {
+    GlanceTheme(
+        colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            GlanceTheme.colors
+        } else {
+            ArchiveTuneWidgetColors.providers
+        },
+    ) {
         val palette = rememberWidgetPalette(state.dominantColor)
         val size = LocalSize.current
         val minSide = if (size.width < size.height) size.width else size.height
@@ -134,23 +143,23 @@ private fun AlbumArtControls(
             Row(
                 modifier = GlanceModifier
                     .padding(bottom = 8.dp)
-                    .background(palette.surface)
-                    .cornerRadius(28.dp)
-                    .padding(4.dp),
+                    .background(palette.secondaryContainer)
+                    .cornerRadius(25.dp)
+                    .padding(3.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 WidgetControlButton(
-                    modifier = GlanceModifier.size(48.dp),
+                    modifier = GlanceModifier.size(44.dp),
                     action = skipPreviousAction(),
                     icon = R.drawable.skip_previous,
                     contentDescription = context.getString(R.string.widget_previous),
-                    backgroundColor = palette.secondaryContainer,
+                    backgroundColor = ColorProvider(Color.Transparent),
                     contentColor = palette.onSecondaryContainer,
-                    cornerRadius = 18.dp,
+                    cornerRadius = 22.dp,
                 )
-                Spacer(GlanceModifier.width(4.dp))
+                Spacer(GlanceModifier.width(2.dp))
                 WidgetControlButton(
-                    modifier = GlanceModifier.size(52.dp),
+                    modifier = GlanceModifier.size(56.dp),
                     action = playPauseAction(),
                     icon = if (state.isPlaying) R.drawable.pause else R.drawable.play,
                     contentDescription = context.getString(
@@ -158,18 +167,18 @@ private fun AlbumArtControls(
                     ),
                     backgroundColor = palette.primaryContainer,
                     contentColor = palette.onPrimaryContainer,
-                    cornerRadius = if (state.isPlaying) 18.dp else 26.dp,
-                    iconSize = 26.dp,
+                    cornerRadius = if (state.isPlaying) 13.dp else 28.dp,
+                    iconSize = 28.dp,
                 )
-                Spacer(GlanceModifier.width(4.dp))
+                Spacer(GlanceModifier.width(2.dp))
                 WidgetControlButton(
-                    modifier = GlanceModifier.size(48.dp),
+                    modifier = GlanceModifier.size(44.dp),
                     action = skipNextAction(),
                     icon = R.drawable.skip_next,
                     contentDescription = context.getString(R.string.next),
-                    backgroundColor = palette.secondaryContainer,
+                    backgroundColor = ColorProvider(Color.Transparent),
                     contentColor = palette.onSecondaryContainer,
-                    cornerRadius = 18.dp,
+                    cornerRadius = 22.dp,
                 )
             }
         } else {
@@ -184,7 +193,7 @@ private fun AlbumArtControls(
                 ),
                 backgroundColor = palette.primaryContainer,
                 contentColor = palette.onPrimaryContainer,
-                cornerRadius = if (state.isPlaying) 18.dp else 26.dp,
+                cornerRadius = if (state.isPlaying) 13.dp else 26.dp,
                 iconSize = 26.dp,
             )
         }

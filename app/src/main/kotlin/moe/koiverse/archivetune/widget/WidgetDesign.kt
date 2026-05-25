@@ -12,7 +12,10 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.LruCache
+import android.os.Build
 import androidx.annotation.DrawableRes
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
@@ -34,8 +37,14 @@ import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.ContentScale
+import androidx.glance.layout.Row
+import androidx.glance.layout.defaultWeight
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
+import androidx.glance.layout.padding
 import androidx.glance.layout.size
+import androidx.glance.material3.ColorProviders
 import androidx.glance.unit.ColorProvider
 import java.io.File
 import moe.koiverse.archivetune.MainActivity
@@ -219,6 +228,95 @@ internal fun playPauseAction(): Action = actionRunCallback<PlayPauseAction>()
 internal fun skipNextAction(): Action = actionRunCallback<SkipNextAction>()
 
 internal fun skipPreviousAction(): Action = actionRunCallback<SkipPrevAction>()
+
+internal object ArchiveTuneWidgetColors {
+    val providers = ColorProviders(
+        light = lightColorScheme(
+            primary = Color(0xFFB3181C),
+            onPrimary = Color(0xFFFFFFFF),
+            primaryContainer = Color(0xFFFFDAD6),
+            onPrimaryContainer = Color(0xFF410003),
+            secondary = Color(0xFF775651),
+            onSecondary = Color(0xFFFFFFFF),
+            secondaryContainer = Color(0xFFFFDAD6),
+            onSecondaryContainer = Color(0xFF2C1512),
+            surface = Color(0xFFFFF8F7),
+            onSurface = Color(0xFF231919),
+            onSurfaceVariant = Color(0xFF534342),
+            surfaceVariant = Color(0xFFF5DDDB),
+        ),
+        dark = darkColorScheme(
+            primary = Color(0xFFFFB3AD),
+            onPrimary = Color(0xFF680007),
+            primaryContainer = Color(0xFF93000D),
+            onPrimaryContainer = Color(0xFFFFDAD6),
+            secondary = Color(0xFFE7BDB8),
+            onSecondary = Color(0xFF442926),
+            secondaryContainer = Color(0xFF5D3F3C),
+            onSecondaryContainer = Color(0xFFFFDAD6),
+            surface = Color(0xFF1A1111),
+            onSurface = Color(0xFFEEDEDD),
+            onSurfaceVariant = Color(0xFFD8C2C0),
+            surfaceVariant = Color(0xFF534342),
+        ),
+    )
+}
+
+@Composable
+internal fun WidgetExpressiveControlPill(
+    state: WidgetPlaybackState,
+    palette: WidgetPalette,
+    context: Context,
+    modifier: GlanceModifier = GlanceModifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .background(palette.secondaryContainer)
+            .cornerRadius(25.dp),
+    ) {
+        Row(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .padding(horizontal = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WidgetControlButton(
+                modifier = GlanceModifier.size(44.dp),
+                action = skipPreviousAction(),
+                icon = R.drawable.skip_previous,
+                contentDescription = context.getString(R.string.widget_previous),
+                backgroundColor = ColorProvider(Color.Transparent),
+                contentColor = palette.onSecondaryContainer,
+                cornerRadius = 22.dp,
+            )
+            WidgetControlButton(
+                modifier = GlanceModifier
+                    .defaultWeight()
+                    .height(44.dp),
+                action = playPauseAction(),
+                icon = if (state.isPlaying) R.drawable.pause else R.drawable.play,
+                contentDescription = context.getString(
+                    if (state.isPlaying) R.string.widget_pause else R.string.play,
+                ),
+                backgroundColor = palette.primaryContainer,
+                contentColor = palette.onPrimaryContainer,
+                cornerRadius = if (state.isPlaying) 13.dp else 22.dp,
+                iconSize = 26.dp,
+            )
+            WidgetControlButton(
+                modifier = GlanceModifier.size(44.dp),
+                action = skipNextAction(),
+                icon = R.drawable.skip_next,
+                contentDescription = context.getString(R.string.next),
+                backgroundColor = ColorProvider(Color.Transparent),
+                contentColor = palette.onSecondaryContainer,
+                cornerRadius = 22.dp,
+            )
+        }
+    }
+}
 
 private object WidgetArtworkCache {
     private const val CacheSizeBytes = 4 * 1024 * 1024

@@ -8,6 +8,7 @@
 package moe.koiverse.archivetune.widget
 
 import android.content.Context
+import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -59,7 +60,13 @@ private fun MusicWidgetContent(context: Context) {
     val prefs = currentState<Preferences>()
     val state = prefs.toWidgetPlaybackState(context)
 
-    GlanceTheme {
+    GlanceTheme(
+        colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            GlanceTheme.colors
+        } else {
+            ArchiveTuneWidgetColors.providers
+        },
+    ) {
         val palette = rememberWidgetPalette(state.dominantColor)
         val size = LocalSize.current
         when (size.toMusicWidgetLayout()) {
@@ -198,15 +205,10 @@ private fun MusicWidgetPanel(
             Spacer(GlanceModifier.defaultWeight())
 
             if (state.isAvailable) {
-                MusicWidgetControls(
+                WidgetExpressiveControlPill(
                     state = state,
                     palette = palette,
                     context = context,
-                    showPreviousNext = true,
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    buttonModifier = GlanceModifier
-                        .defaultWeight()
-                        .height(50.dp),
                 )
             } else {
                 Box(
@@ -294,7 +296,7 @@ private fun MusicWidgetControls(
                 contentDescription = context.getString(R.string.widget_previous),
                 backgroundColor = palette.secondaryContainer,
                 contentColor = palette.onSecondaryContainer,
-                cornerRadius = 16.dp,
+                cornerRadius = 22.dp,
             )
             Spacer(GlanceModifier.width(6.dp))
         }
@@ -308,7 +310,7 @@ private fun MusicWidgetControls(
             ),
             backgroundColor = palette.primaryContainer,
             contentColor = palette.onPrimaryContainer,
-            cornerRadius = if (state.isPlaying) 16.dp else 24.dp,
+            cornerRadius = if (state.isPlaying) 13.dp else 24.dp,
             iconSize = 24.dp,
         )
 
@@ -321,7 +323,7 @@ private fun MusicWidgetControls(
                 contentDescription = context.getString(R.string.next),
                 backgroundColor = palette.secondaryContainer,
                 contentColor = palette.onSecondaryContainer,
-                cornerRadius = 16.dp,
+                cornerRadius = 22.dp,
             )
         }
     }
