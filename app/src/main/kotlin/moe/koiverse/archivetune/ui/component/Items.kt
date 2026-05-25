@@ -913,6 +913,8 @@ fun LibraryPinnedCollectionTile(
     }
 }
 
+private val LibraryCardThumbnailSize = 72.dp
+
 @Composable
 fun LibraryPlaylistFeatureCard(
     playlist: Playlist,
@@ -922,8 +924,8 @@ fun LibraryPlaylistFeatureCard(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
-    val thumbnailSize = 86.dp
-    val thumbnailShape = RoundedCornerShape(22.dp)
+    val thumbnailSize = LibraryCardThumbnailSize
+    val thumbnailShape = RoundedCornerShape(18.dp)
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         shape = shape,
@@ -933,7 +935,7 @@ fun LibraryPlaylistFeatureCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
         ) {
             PlaylistThumbnail(
                 thumbnails = playlist.thumbnails,
@@ -1009,14 +1011,14 @@ fun LibraryAlbumSpotlightCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
         ) {
-            Box(modifier = Modifier.size(86.dp)) {
+            Box(modifier = Modifier.size(LibraryCardThumbnailSize)) {
                 LocalThumbnail(
                     thumbnailUrl = album.album.thumbnailUrl,
                     isActive = isActive,
                     isPlaying = isPlaying,
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (onPlay != null) {
@@ -1077,14 +1079,14 @@ fun LibraryArtistSpotlightCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
         ) {
             LocalThumbnail(
                 thumbnailUrl = artist.artist.thumbnailUrl,
                 isActive = false,
                 isPlaying = false,
                 shape = CircleShape,
-                modifier = Modifier.size(82.dp),
+                modifier = Modifier.size(LibraryCardThumbnailSize),
             )
             Spacer(Modifier.width(16.dp))
             Column(

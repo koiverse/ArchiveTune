@@ -104,6 +104,7 @@ import java.util.Locale
 
 private val LibraryGroupLargeCorner: Dp = 28.dp
 private val LibraryGroupSmallCorner: Dp = 6.dp
+private val LibraryGroupItemSpacing: Dp = 4.dp
 
 private fun librarySegmentedShape(index: Int, count: Int): Shape {
     val large = LibraryGroupLargeCorner
@@ -434,7 +435,7 @@ fun LibraryMixScreen(
             } else {
                 item(key = "playlists_group") {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalArrangement = Arrangement.spacedBy(LibraryGroupItemSpacing),
                         modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
                         visiblePlaylists.forEachIndexed { index, item ->
@@ -462,7 +463,7 @@ fun LibraryMixScreen(
 
                 item(key = "albums_group") {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalArrangement = Arrangement.spacedBy(LibraryGroupItemSpacing),
                         modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
                         sortedAlbums.forEachIndexed { index, album ->
@@ -528,7 +529,7 @@ fun LibraryMixScreen(
 
                 item(key = "artists_group") {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalArrangement = Arrangement.spacedBy(LibraryGroupItemSpacing),
                         modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
                         sortedArtists.forEachIndexed { index, artist ->
