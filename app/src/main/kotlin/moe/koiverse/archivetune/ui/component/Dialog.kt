@@ -98,7 +98,7 @@ fun DefaultDialog(
     modifier: Modifier = Modifier,
     icon: (@Composable () -> Unit)? = null,
     title: (@Composable () -> Unit)? = null,
-    buttons: (@Composable () -> Unit)? = null,
+    buttons: (@Composable RowScope.() -> Unit)? = null,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     contentScrollable: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
@@ -171,12 +171,12 @@ fun DefaultDialog(
                         FlowRow(
                             horizontalArrangement = Arrangement.End,
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
+                        ) flowRowScope@{
                             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
                                 ProvideTextStyle(
                                     value = MaterialTheme.typography.labelLarge
                                 ) {
-                                    buttons()
+                                    this@flowRowScope.buttons()
                                 }
                             }
                         }
