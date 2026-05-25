@@ -15,6 +15,7 @@ package moe.koiverse.archivetune.ui.screens
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,28 +34,28 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
@@ -62,10 +63,12 @@ import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
+import androidx.compose.material3.carousel.CarouselState
+import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,6 +77,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -121,6 +125,7 @@ fun NewsScreen(
     }
 
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
+
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val listState = rememberLazyListState()
 
@@ -188,11 +193,11 @@ fun NewsScreen(
                             .padding(top = 8.dp, bottom = 4.dp),
                     ) {}
                 } else {
-                    LargeTopAppBar(
+                    LargeFlexibleTopAppBar(
                         title = {
                             Text(
                                 text = stringResource(R.string.news),
-                                style = MaterialTheme.typography.headlineMedium,
+                                style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                             )
                         },
@@ -281,15 +286,15 @@ fun NewsScreen(
                         val horizontalPadding = if (maxWidth > 840.dp) {
                             (maxWidth - 760.dp) / 2
                         } else {
-                            24.dp
+                            16.dp
                         }
 
                         LazyColumn(
                             state = listState,
-                            verticalArrangement = Arrangement.spacedBy(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                             contentPadding = PaddingValues(
-                                top = innerPadding.calculateTopPadding() + 16.dp,
-                                bottom = innerPadding.calculateBottomPadding() + 48.dp,
+                                top = innerPadding.calculateTopPadding() + 12.dp,
+                                bottom = innerPadding.calculateBottomPadding() + 24.dp,
                                 start = horizontalPadding,
                                 end = horizontalPadding,
                             ),
@@ -339,38 +344,36 @@ private fun NewsListHeader(
     isSearching: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    ElevatedCard(
+    Surface(
         shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        tonalElevation = 3.dp,
         modifier = modifier,
     ) {
         Row(
-            modifier = Modifier.padding(24.dp),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier.padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.12f),
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(64.dp),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(52.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         painter = painterResource(R.drawable.newspaper),
                         contentDescription = null,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(26.dp),
                     )
                 }
             }
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text = stringResource(
@@ -380,15 +383,15 @@ private fun NewsListHeader(
                             R.string.news_tooltip_title
                         },
                     ),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = pluralStringResource(R.plurals.news_article_count, itemCount, itemCount),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
                 )
             }
         }
@@ -413,10 +416,10 @@ private fun NewsCard(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
         elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = 4.dp,
-            pressedElevation = 8.dp,
-            focusedElevation = 6.dp,
-            hoveredElevation = 6.dp,
+            defaultElevation = 2.dp,
+            pressedElevation = 6.dp,
+            focusedElevation = 4.dp,
+            hoveredElevation = 4.dp,
         ),
         modifier = modifier,
     ) {
@@ -428,25 +431,25 @@ private fun NewsCard(
                     onImageClick = { url -> fullImageUrl = url },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
-                        .height(300.dp),
+                        .padding(12.dp)
+                        .height(if (item.imageUrls.size > 1) 252.dp else 220.dp),
                 )
             }
 
             Column(
                 modifier = Modifier.padding(
-                    start = 24.dp,
-                    top = if (hasImages) 8.dp else 24.dp,
-                    end = 24.dp,
-                    bottom = 24.dp,
+                    start = 20.dp,
+                    top = if (hasImages) 6.dp else 20.dp,
+                    end = 20.dp,
+                    bottom = 16.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 NewsMetaRow(item = item)
 
                 Text(
                     text = item.title,
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
@@ -458,7 +461,7 @@ private fun NewsCard(
                         text = item.description,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 4,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -471,13 +474,8 @@ private fun NewsCard(
                         FilledTonalButton(
                             onClick = onNavigateToArticle,
                             shape = MaterialTheme.shapes.extraLarge,
-                            contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
                         ) {
-                            Text(
-                                text = stringResource(R.string.more),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text(text = stringResource(R.string.more))
                         }
                     }
                 }
@@ -500,52 +498,48 @@ private fun NewsMetaRow(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (item.important) {
-            AssistChip(
-                onClick = {},
-                label = {
-                    Text(
-                        text = stringResource(R.string.news_important_badge),
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = AssistChipDefaults.assistChipColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    labelColor = MaterialTheme.colorScheme.onErrorContainer,
-                ),
-                border = null,
-                shape = MaterialTheme.shapes.large
-            )
-        }
-
-        val formattedDate = remember(item.timestamp) {
-            if (item.timestamp == 0L) ""
-            else DateTimeFormatter.ofPattern("d MMM yyyy").format(
-                LocalDateTime.ofInstant(Instant.ofEpochSecond(item.timestamp), ZoneId.systemDefault())
-            )
-        }
-
-        AssistChip(
-            onClick = {},
-            label = {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            ) {
                 Text(
-                    text = stringResource(R.string.news_author_on_date, item.author, formattedDate),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Medium
+                    text = stringResource(R.string.news_important_badge),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                 )
-            },
-            colors = AssistChipDefaults.assistChipColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            ),
-            border = null,
+            }
+        }
+
+        Surface(
             shape = MaterialTheme.shapes.large,
-            modifier = Modifier.weight(1f, fill = false)
-        )
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f, fill = false),
+        ) {
+            val formattedDate = remember(item.timestamp) {
+                if (item.timestamp == 0L) ""
+                else DateTimeFormatter.ofPattern("d MMM yyyy").format(
+                    LocalDateTime.ofInstant(Instant.ofEpochSecond(item.timestamp), ZoneId.systemDefault())
+                )
+            }
+            Text(
+                text = stringResource(
+                    R.string.news_author_on_date,
+                    item.author,
+                    formattedDate,
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            )
+        }
     }
 }
 
@@ -567,28 +561,52 @@ private fun NewsImageCarousel(
                 contentDescription = title,
                 modifier = Modifier.fillMaxSize(),
             )
+            NewsImageScrim()
         }
         return
     }
 
     val carouselState = rememberCarouselState { imageUrls.size }
+    val currentImageIndex by remember(carouselState, imageUrls.size) {
+        derivedStateOf {
+            carouselState.currentItem.coerceIn(0, imageUrls.lastIndex)
+        }
+    }
 
-    HorizontalMultiBrowseCarousel(
-        state = carouselState,
-        preferredItemWidth = 280.dp,
-        itemSpacing = 12.dp,
-        modifier = modifier,
-    ) { index ->
-        Box(
+    Box(modifier = modifier) {
+        HorizontalCenteredHeroCarousel(
+            state = carouselState,
+            maxItemWidth = 336.dp,
+            itemSpacing = 8.dp,
+            contentPadding = PaddingValues(horizontal = 14.dp),
+            modifier = Modifier.fillMaxSize(),
+        ) { index ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .maskClip(MaterialTheme.shapes.extraLarge)
+                    .clickable(role = Role.Image) { onImageClick(imageUrls[index]) },
+            ) {
+                NewsAsyncImage(
+                    imageUrl = imageUrls[index],
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                NewsImageScrim()
+            }
+        }
+
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .maskClip(MaterialTheme.shapes.extraLarge)
-                .clickable(role = Role.Image) { onImageClick(imageUrls[index]) },
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            NewsAsyncImage(
-                imageUrl = imageUrls[index],
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
+            NewsCarouselIndicator(
+                imageCount = imageUrls.size,
+                currentIndex = currentImageIndex,
             )
         }
     }
@@ -605,7 +623,6 @@ private fun FullImageViewerDialog(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
-            decorFitsSystemWindows = false
         ),
     ) {
         val context = LocalContext.current
@@ -619,7 +636,7 @@ private fun FullImageViewerDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.96f))
+                .background(Color.Black.copy(alpha = 0.92f))
                 .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
@@ -656,6 +673,69 @@ private fun NewsAsyncImage(
 }
 
 @Composable
+private fun NewsImageScrim(
+    modifier: Modifier = Modifier,
+) {
+    val surfaceColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val brush = remember(surfaceColor) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.Transparent,
+                surfaceColor.copy(alpha = 0.78f),
+            ),
+            startY = 80f,
+        )
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(brush),
+    )
+}
+
+@Composable
+private fun NewsCarouselIndicator(
+    imageCount: Int,
+    currentIndex: Int,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.9f),
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.heightIn(min = 48.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            repeat(imageCount) { index ->
+                val selected = index == currentIndex
+                val dotWidth by animateDpAsState(
+                    targetValue = if (selected) 18.dp else 7.dp,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "newsImageDotWidth",
+                )
+
+                Surface(
+                    shape = CircleShape,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                    },
+                    modifier = Modifier
+                        .width(dotWidth)
+                        .height(7.dp),
+                ) {}
+            }
+        }
+    }
+}
+
+@Composable
 private fun NewsLoadingState(
     modifier: Modifier = Modifier,
 ) {
@@ -663,28 +743,22 @@ private fun NewsLoadingState(
         contentAlignment = Alignment.Center,
         modifier = modifier.padding(24.dp),
     ) {
-        ElevatedCard(
+        Surface(
             shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            ),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 2.dp,
         ) {
             Column(
-                modifier = Modifier.padding(48.dp),
+                modifier = Modifier.padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                CircularWavyProgressIndicator(
-                    modifier = Modifier.size(72.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                )
+                CircularWavyProgressIndicator(modifier = Modifier.size(64.dp))
                 Text(
                     text = stringResource(R.string.news_loading),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }
@@ -727,16 +801,11 @@ private fun NewsErrorState(
                 onClick = onRetry,
                 shape = MaterialTheme.shapes.extraLarge,
                 colors = ButtonDefaults.elevatedButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 ),
-                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.news_retry),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = stringResource(R.string.news_retry))
             }
         },
     )
@@ -756,47 +825,46 @@ private fun NewsStatePanel(
         contentAlignment = Alignment.Center,
         modifier = modifier.padding(24.dp),
     ) {
-        ElevatedCard(
+        Surface(
             shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            ),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 2.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 560.dp),
         ) {
             Column(
-                modifier = Modifier.padding(40.dp),
+                modifier = Modifier.padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Surface(
                     shape = CircleShape,
                     color = iconColor.copy(alpha = 0.14f),
                     contentColor = iconColor,
-                    modifier = Modifier.size(88.dp),
+                    modifier = Modifier.size(72.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             painter = painterResource(icon),
                             contentDescription = null,
-                            modifier = Modifier.size(44.dp),
+                            modifier = Modifier.size(36.dp),
                         )
                     }
                 }
 
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
 
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -804,15 +872,14 @@ private fun NewsStatePanel(
                 if (supportingText != null) {
                     Text(
                         text = supportingText,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.labelMedium,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 8.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                     )
                 }
 
                 if (action != null) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     action()
                 }
             }
