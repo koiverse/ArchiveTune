@@ -162,6 +162,8 @@ fun Queue(
 
     val currentWindowIndex by playerConnection.currentWindowIndex.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
+    val currentSongLiked = currentSong?.song?.liked == true
 
     val currentFormat by playerConnection.currentFormat.collectAsState(initial = null)
 
@@ -666,6 +668,7 @@ fun Queue(
                 CurrentSongHeader(
                     sheetState = state,
                     mediaMetadata = mediaMetadata,
+                    liked = currentSongLiked,
                     isPlaying = isPlaying,
                     repeatMode = repeatMode,
                     shuffleModeEnabled = playerConnection.player.shuffleModeEnabled,
