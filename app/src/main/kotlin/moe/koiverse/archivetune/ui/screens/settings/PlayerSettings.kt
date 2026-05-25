@@ -154,7 +154,7 @@ fun PlayerSettings(
     )
     val (crossfadeGapless, onCrossfadeGaplessChange) = rememberPreference(
         CrossfadeGaplessKey,
-        defaultValue = false
+        defaultValue = true
     )
 
     val (artistSeparators, onArtistSeparatorsChange) = rememberPreference(
@@ -291,8 +291,12 @@ fun PlayerSettings(
                     description = stringResource(R.string.audio_crossfade_description),
                     icon = { Icon(painterResource(R.drawable.animation), null) },
                     checked = crossfadeEnabled,
-                    onCheckedChange = onCrossfadeEnabledChange,
-                    isEnabled = false,
+                    onCheckedChange = { enabled ->
+                        if (enabled) {
+                            onAudioOffloadChange(false)
+                        }
+                        onCrossfadeEnabledChange(enabled)
+                    },
                 )
             }
 
@@ -300,7 +304,7 @@ fun PlayerSettings(
                 CrossfadeSliderPreference(
                     valueSeconds = crossfadeDurationSeconds,
                     onValueChange = onCrossfadeDurationSecondsChange,
-                    isEnabled = false,
+                    isEnabled = crossfadeEnabled,
                 )
             }
 
@@ -311,7 +315,7 @@ fun PlayerSettings(
                     icon = { Icon(painterResource(R.drawable.fast_forward), null) },
                     checked = crossfadeGapless,
                     onCheckedChange = onCrossfadeGaplessChange,
-                    isEnabled = false,
+                    isEnabled = crossfadeEnabled,
                 )
             }
 
@@ -344,6 +348,7 @@ fun PlayerSettings(
                         onAudioOffloadChange(enabled)
                         if (enabled) {
                             onSkipSilenceChange(false)
+                            onCrossfadeEnabledChange(false)
                         }
                     }
                 )
