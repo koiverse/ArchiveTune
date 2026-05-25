@@ -89,6 +89,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerConnection
@@ -213,16 +214,26 @@ fun LyricsEnhanced(
 
         val jobs = toRomanize.map { (index, entry) ->
             async {
-                val romanized = try {
-                    romanizeLyricsLine(entry.text, romanizationPreferences)
+                val romanized: List<String?> = try {
+                    if (isTtmlFormat && entry.words != null) {
+                        entry.words!!.filter { !it.isBackground }.map { word ->
+                            romanizeLyricsLine(word.text, romanizationPreferences)
+                        }
+                    } else {
+                        listOf(romanizeLyricsLine(entry.text, romanizationPreferences))
+                    }
                 } catch (e: Exception) {
                     reportException(e)
-                    null
+                    if (isTtmlFormat && entry.words != null) {
+                        List(entry.words!!.count { !it.isBackground }) { null }
+                    } else {
+                        listOf(null)
+                    }
                 }
                 index to romanized
             }
         }
-        val tempMap = mutableMapOf<Int, String?>()
+        val tempMap = mutableMapOf<Int, List<String?>>()
         jobs.awaitAll().forEach { (index, romanized) ->
             tempMap[index] = romanized
         }
@@ -238,8 +249,14 @@ fun LyricsEnhanced(
         mutableLongStateOf(player.currentPosition.coerceAtLeast(0L))
     }
     LaunchedEffect(player) {
+        var wasSliderActive = false
         while (isActive) {
             val sliderPosition = latestSliderPositionProvider.value()
+            val isSliderActive = sliderPosition != null
+            if (isSliderActive && !wasSliderActive) {
+                isManualScrolling = false
+            }
+            wasSliderActive = isSliderActive
             val nextPosition = (sliderPosition ?: player.currentPosition).coerceAtLeast(0L)
             if (playbackPositionMs.longValue != nextPosition) {
                 playbackPositionMs.longValue = nextPosition
@@ -312,6 +329,7 @@ fun LyricsEnhanced(
 
     LaunchedEffect(syncedLyrics, isSynced) {
         if (!isSynced || syncedLyrics.lines.isEmpty()) return@LaunchedEffect
+        var isFirstEmit = true
         snapshotFlow {
             syncedLyrics.getCurrentFirstHighlightLineIndexByTime(focusedPosition())
         }
@@ -319,9 +337,18 @@ fun LyricsEnhanced(
             .collectLatest { index ->
                 if (index !in syncedLyrics.lines.indices) return@collectLatest
                 if (isSelectionModeActive || isManualScrolling) return@collectLatest
-                delay(ACTIVE_LINE_REVEAL_DELAY_MS)
-                if (!isSelectionModeActive && !isManualScrolling) {
-                    listState.keepLyricLineVisible(index)
+                if (isFirstEmit) {
+                    isFirstEmit = false
+                    snapshotFlow { listState.layoutInfo.viewportEndOffset > 0 }.first { it }
+                    val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
+                    listState.scrollToItem(index, -(viewportHeight * 0.42f).roundToInt())
+                } else {
+                    if (latestSliderPositionProvider.value() == null) {
+                        delay(ACTIVE_LINE_REVEAL_DELAY_MS)
+                    }
+                    if (!isSelectionModeActive && !isManualScrolling) {
+                        listState.keepLyricLineVisible(index)
+                    }
                 }
             }
     }
@@ -733,7 +760,7 @@ private fun SyncedLyrics.findLastStartedLineIndex(time: Int): Int {
 private fun buildSyncedLyrics(
     entries: List<LyricsEntry>,
     isTtml: Boolean,
-    romanizationMap: Map<Int, String?>,
+    romanizationMap: Map<Int, List<String?>>,
 ): SyncedLyrics {
     if (entries.isEmpty()) return SyncedLyrics(emptyList())
     val lines = mutableListOf<ISyncedLine>()
@@ -742,8 +769,6 @@ private fun buildSyncedLyrics(
         if (entry.time < 0L) return@forEachIndexed
         if (entry.isInstrumental) return@forEachIndexed
         if (entry.text.isBlank() && entry.words.isNullOrEmpty()) return@forEachIndexed
-
-        val romanized = romanizationMap[index]
 
         if (isTtml && entry.words != null) {
             val mainWords = entry.words!!.filter { !it.isBackground }
@@ -754,10 +779,11 @@ private fun buildSyncedLyrics(
             }
 
             val wordsForMain = if (mainWords.isNotEmpty()) mainWords else entry.words!!
-            val mainSyllables = wordsForMain.map { word ->
+            val wordPhonetics = romanizationMap[index] ?: emptyList()
+            val mainSyllables = wordsForMain.mapIndexed { wordIdx, word ->
                 val start = (word.startTime * 1000).toInt()
                 val end = (word.endTime * 1000).toInt().coerceAtLeast(start + 1)
-                KaraokeSyllable(content = word.text, start = start, end = end)
+                KaraokeSyllable(content = word.text, start = start, end = end, phonetic = wordPhonetics.getOrNull(wordIdx))
             }
 
             val lineStart = mainSyllables.first().start
@@ -797,7 +823,7 @@ private fun buildSyncedLyrics(
                     alignment = alignment,
                     start = lineStart,
                     end = lineEnd,
-                    phonetic = romanized,
+                    phonetic = null,
                     accompanimentLines = accompanimentLines,
                 )
             )
@@ -817,7 +843,7 @@ private fun buildSyncedLyrics(
             lines.add(
                 SyncedLine(
                     content = entry.text,
-                    translation = romanized,
+                    translation = romanizationMap[index]?.firstOrNull(),
                     start = entry.time.toInt(),
                     end = lineEnd,
                 )
