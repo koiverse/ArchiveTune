@@ -261,7 +261,7 @@ ArchiveTune belongs to everyone. Help us localize the experience for your region
 
 ### ✨ Project Contributors
 <a href="https://github.com/koiverse/ArchiveTune/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=koiverse/ArchiveTune" />
+  <img src="https://contrib.rocks/image?repo=koiverse/ArchiveTune&columns=6" />
 </a>
 
 ### 🛠️ Development & Engineering
