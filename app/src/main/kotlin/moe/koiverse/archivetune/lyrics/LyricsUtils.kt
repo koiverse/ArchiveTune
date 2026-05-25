@@ -558,6 +558,23 @@ object LyricsUtils {
         return normalizeRomanizedText(text, romanized)
     }
 
+    suspend fun romanizeLyricsWordWithLineContext(
+        word: String,
+        lineText: String,
+        preferences: LyricsRomanizationPreferences,
+    ): String? {
+        if (word.isBlank()) return null
+        val romanized = when {
+            preferences.romanizeJapanese && looksJapanese(lineText) -> romanizeJapanese(word)
+            preferences.romanizeKorean && isKorean(lineText) -> romanizeKorean(word)
+            preferences.romanizeHindi && isHindi(lineText) -> romanizeWithIcu(word)
+            preferences.romanizeChinese && isChinese(lineText) -> romanizeWithIcu(word)
+            preferences.romanizeOther && hasOtherRomanizableScript(lineText) -> romanizeWithIcu(word)
+            else -> null
+        }
+        return normalizeRomanizedText(word, romanized)
+    }
+
     private suspend fun romanizeWithIcu(text: String): String = withContext(Dispatchers.Default) {
         genericRomanizationTransliterator.get().transliterate(text)
     }
