@@ -21,7 +21,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -43,7 +42,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -58,28 +56,30 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -96,6 +96,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -105,6 +106,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -120,6 +122,7 @@ import moe.koiverse.archivetune.musicrecognition.MusicRecognitionRoute
 import moe.koiverse.archivetune.shazamkit.Shazam
 import moe.koiverse.archivetune.shazamkit.ShazamSignatureGenerator
 import moe.koiverse.archivetune.shazamkit.models.RecognitionResult
+import moe.koiverse.archivetune.ui.utils.appBarScrollBehavior
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,7 +138,7 @@ fun MusicRecognitionScreen(
     val backStackEntry = remember(navController) { navController.getBackStackEntry(MusicRecognitionRoute) }
     val autoStartRequestId by backStackEntry.savedStateHandle
         .getStateFlow(MusicRecognitionAutoStartRequestKey, 0L)
-        .collectAsState()
+        .collectAsStateWithLifecycle()
 
     val strings =
         remember {
@@ -202,9 +205,11 @@ fun MusicRecognitionScreen(
         startOrRequestPermission()
     }
 
+    val scrollBehavior = appBarScrollBehavior()
+
     Scaffold(
         topBar = {
-            TopAppBar(
+            LargeFlexibleTopAppBar(
                 title = { Text(stringResource(R.string.music_recognition)) },
                 navigationIcon = {
                     Surface(
@@ -225,14 +230,17 @@ fun MusicRecognitionScreen(
                     }
                 },
                 colors =
-                    TopAppBarDefaults.topAppBarColors(
+                    TopAppBarDefaults.largeTopAppBarColors(
                         containerColor = Color.Transparent,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                     ),
+                scrollBehavior = scrollBehavior,
             )
         },
         containerColor = Color.Transparent,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { padding ->
         val primary = MaterialTheme.colorScheme.primary
         val tertiary = MaterialTheme.colorScheme.tertiary
@@ -245,12 +253,12 @@ fun MusicRecognitionScreen(
                 )
             }
 
-        val infinite = rememberInfiniteTransition(label = "")
+        val infinite = rememberInfiniteTransition(label = "backgroundDrift")
         val drift by infinite.animateFloat(
             initialValue = 0f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(tween(9000, easing = LinearEasing), RepeatMode.Reverse),
-            label = "",
+            label = "drift",
         )
 
         Box(
@@ -284,7 +292,7 @@ fun MusicRecognitionScreen(
                         (fadeIn(tween(220)) + scaleIn(tween(220), initialScale = 0.98f))
                             .togetherWith(fadeOut(tween(160)) + scaleOut(tween(160), targetScale = 1.02f))
                     },
-                    label = "",
+                    label = "stateContent",
                 ) { target ->
                     when (target) {
                         is MusicRecognitionState.Success -> {
@@ -321,7 +329,7 @@ fun MusicRecognitionScreen(
                 AnimatedContent(
                     targetState = state,
                     transitionSpec = { fadeIn(tween(180)).togetherWith(fadeOut(tween(120))) },
-                    label = "",
+                    label = "statusContent",
                 ) { target ->
                     when (target) {
                         MusicRecognitionState.Ready -> {
@@ -363,7 +371,6 @@ fun MusicRecognitionScreen(
                         }
                         is MusicRecognitionState.Success -> {
                             SuccessActions(
-                                result = target.result,
                                 onSearch = {
                                     val query = "${target.result.title} ${target.result.artist}".trim()
                                     navController.navigate("search/${Uri.encode(query)}")
@@ -387,14 +394,16 @@ fun MusicRecognitionScreen(
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
+                AnimatedVisibility(
+                    visible = isBusy,
+                    enter = fadeIn(tween(180)),
+                    exit = fadeOut(tween(120)),
                 ) {
-                    if (isBusy) {
-                        CircularWavyProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        LoadingIndicator(modifier = Modifier.size(36.dp))
                     }
                 }
 
@@ -617,24 +626,24 @@ private fun ListeningOrb(
     isProcessing: Boolean,
     onClick: () -> Unit,
 ) {
-    val infinite = rememberInfiniteTransition(label = "")
+    val infinite = rememberInfiniteTransition(label = "orbPulse")
     val ringProgress by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(animation = tween(1700, easing = LinearEasing)),
-        label = "",
+        label = "ring1",
     )
     val ringProgress2 by infinite.animateFloat(
         initialValue = 0.25f,
         targetValue = 1.25f,
         animationSpec = infiniteRepeatable(animation = tween(2100, easing = LinearEasing)),
-        label = "",
+        label = "ring2",
     )
 
     val orbScale by animateFloatAsState(
         targetValue = if (isActive) 1.03f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "",
+        label = "orbScale",
     )
 
     val baseColor =
@@ -683,7 +692,7 @@ private fun ListeningOrb(
         val iconAlpha by animateFloatAsState(
             targetValue = if (isProcessing) 0.9f else 1f,
             animationSpec = tween(180),
-            label = "",
+            label = "iconAlpha",
         )
 
         Icon(
@@ -718,7 +727,7 @@ private fun StatusPill(
     iconRes: Int,
 ) {
     Surface(
-        shape = RoundedCornerShape(999.dp),
+        shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 2.dp,
     ) {
@@ -748,11 +757,12 @@ private fun StatusPill(
 private fun PermissionCard(
     onAllow: () -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 3.dp,
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Text(
@@ -785,11 +795,12 @@ private fun FailureCard(
     actionLabel: String,
     onAction: () -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 3.dp,
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Text(
@@ -815,92 +826,57 @@ private fun FailureCard(
 
 @Composable
 private fun SuccessActions(
-    result: RecognitionResult,
     onSearch: () -> Unit,
     onListenAgain: () -> Unit,
 ) {
-    val context = LocalContext.current
-    Column(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        FilledTonalButton(
+            onClick = onListenAgain,
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp),
+            shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
         ) {
-            FilledTonalButton(
-                onClick = onListenAgain,
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp),
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.replay),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.music_recognition_listen_again),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    softWrap = false,
-                )
-            }
-
-            Button(
-                onClick = onSearch,
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.search),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.search),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    softWrap = false,
-                )
-            }
+            Icon(
+                painter = painterResource(R.drawable.replay),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = stringResource(R.string.music_recognition_listen_again),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = false,
+            )
         }
 
-        if (!result.shazamUrl.isNullOrBlank()) {
-            FilledTonalButton(
-                onClick = {
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(result.shazamUrl)),
-                    )
-                },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.arrow_forward),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.music_recognition_open_shazam),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    softWrap = false,
-                )
-            }
+        Button(
+            onClick = onSearch,
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+            shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.search),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = stringResource(R.string.search),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = false,
+            )
         }
     }
 }
@@ -911,11 +887,12 @@ private fun ResultCard(
 ) {
     val context = LocalContext.current
 
-    Surface(
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 6.dp,
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
     ) {
         Column {
             val cover = result.coverArtHqUrl ?: result.coverArtUrl
@@ -933,140 +910,66 @@ private fun ResultCard(
                     )
                 }
 
-            BoxWithConstraints(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = heroColors,
-                            ),
-                        )
-                        .padding(16.dp),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Brush.verticalGradient(colors = heroColors))
+                    .padding(16.dp),
             ) {
-                val isCompact = maxWidth < 380.dp
+                CoverArt(
+                    coverUrl = cover,
+                    modifier = Modifier.size(96.dp),
+                )
 
-                if (isCompact) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CoverArt(
-                                coverUrl = cover,
-                                modifier = Modifier.size(88.dp),
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f, fill = true)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = artist,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    FlowChips(
+                        album = result.album,
+                        genre = result.genre,
+                        releaseDate = result.releaseDate,
+                        isrc = result.isrc,
+                    )
+                }
+
+                if (!result.shazamUrl.isNullOrBlank()) {
+                    OutlinedButton(
+                        onClick = {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(result.shazamUrl)),
                             )
-
-                            Spacer(modifier = Modifier.width(14.dp))
-
-                            Column(modifier = Modifier.weight(1f, fill = true)) {
-                                Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = artist,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        FlowChips(
-                            album = result.album,
-                            genre = result.genre,
-                            releaseDate = result.releaseDate,
-                            isrc = result.isrc,
+                        },
+                        modifier = Modifier.heightIn(min = 40.dp),
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.link),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
                         )
-
-                        if (!result.shazamUrl.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            OutlinedButton(
-                                onClick = {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(result.shazamUrl)),
-                                    )
-                                },
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
-                                shapes = ButtonDefaults.shapes(),
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.link),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = stringResource(R.string.music_recognition_open_shazam),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    softWrap = false,
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CoverArt(
-                            coverUrl = cover,
-                            modifier = Modifier.size(96.dp),
-                        )
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        Column(modifier = Modifier.weight(1f, fill = true)) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = artist,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-                            FlowChips(
-                                album = result.album,
-                                genre = result.genre,
-                                releaseDate = result.releaseDate,
-                                isrc = result.isrc,
-                            )
-                        }
-
-                        if (!result.shazamUrl.isNullOrBlank()) {
-                            OutlinedButton(
-                                onClick = {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(result.shazamUrl)),
-                                    )
-                                },
-                                modifier = Modifier.heightIn(min = 40.dp),
-                                shapes = ButtonDefaults.shapes(),
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.link),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        }
                     }
                 }
             }
 
-            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
 
             Column(modifier = Modifier.padding(16.dp)) {
                 val lyrics = result.lyrics?.takeIf { it.isNotEmpty() }?.take(6)?.joinToString("\n")
@@ -1094,7 +997,7 @@ private fun ResultCard(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Surface(
-                        shape = RoundedCornerShape(22.dp),
+                        shape = MaterialTheme.shapes.large,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                     ) {
                         Text(
@@ -1112,7 +1015,7 @@ private fun ResultCard(
                 if (label != null) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Surface(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = MaterialTheme.shapes.large,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                     ) {
                         Row(
@@ -1149,7 +1052,7 @@ private fun CoverArt(
     val context = LocalContext.current
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 2.dp,
     ) {
