@@ -77,6 +77,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -833,12 +835,19 @@ private fun SuccessActions(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
-        FilledTonalButton(
-            onClick = onListenAgain,
+        ToggleButton(
+            checked = false,
+            onCheckedChange = { onListenAgain() },
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = 48.dp),
             shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+            colors = ToggleButtonDefaults.toggleButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
         ) {
             Icon(
                 painter = painterResource(R.drawable.replay),
@@ -854,14 +863,17 @@ private fun SuccessActions(
             )
         }
 
-        Button(
-            onClick = onSearch,
+        ToggleButton(
+            checked = false,
+            onCheckedChange = { onSearch() },
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = 48.dp),
-            colors = ButtonDefaults.buttonColors(
+            colors = ToggleButtonDefaults.toggleButtonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
+                checkedContainerColor = MaterialTheme.colorScheme.primary,
+                checkedContentColor = MaterialTheme.colorScheme.onPrimary,
             ),
             shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
         ) {
