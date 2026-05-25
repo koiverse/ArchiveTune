@@ -29,7 +29,6 @@ import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.image.network.OkHttpNetworkSchemeHandler
-import io.noties.markwon.inlineparser.MarkdownInlineParserPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
 import io.noties.markwon.simple.ext.SimpleExtPlugin
 import moe.koiverse.archivetune.R
@@ -54,7 +53,6 @@ fun MarkdownText(
             .usePlugin(ImagesPlugin.create { plugin ->
                 plugin.addSchemeHandler(OkHttpNetworkSchemeHandler.create())
             })
-            .usePlugin(MarkdownInlineParserPlugin.create())
             .usePlugin(StrikethroughPlugin.create())
             .usePlugin(TablePlugin.create(context))
             .usePlugin(TaskListPlugin.create(context))
