@@ -13,11 +13,8 @@ import android.app.Activity
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -87,8 +84,6 @@ import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -118,7 +113,6 @@ import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val LRC_LEAD_MS = 300L
@@ -126,8 +120,6 @@ private const val TTML_LEAD_MS = 0L
 private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private const val MANUAL_SCROLL_DEBOUNCE_MS = 50L
-private const val ACTIVE_LINE_REVEAL_DELAY_MS = 90L
-private const val ACTIVE_LINE_FAR_SCROLL_THRESHOLD = 10
 
 @Composable
 fun LyricsEnhanced(
@@ -324,35 +316,25 @@ fun LyricsEnhanced(
         if (isManualScrolling) {
             delay(MANUAL_SCROLL_TIMEOUT_MS)
             isManualScrolling = false
+        } else if (lastManualScrollTime > 0L && syncedLyrics.lines.isNotEmpty() && !isSelectionModeActive) {
+            val index = syncedLyrics.getCurrentFirstHighlightLineIndexByTime(
+                syncedLyrics.positionForStableLineFocus(currentPosition())
+            )
+            if (index in syncedLyrics.lines.indices) {
+                val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
+                listState.animateScrollToItem(index, -(viewportHeight * 0.42f).roundToInt())
+            }
         }
     }
 
     LaunchedEffect(syncedLyrics, isSynced) {
         if (!isSynced || syncedLyrics.lines.isEmpty()) return@LaunchedEffect
-        var isFirstEmit = true
-        snapshotFlow {
-            syncedLyrics.getCurrentFirstHighlightLineIndexByTime(focusedPosition()) to isManualScrolling
-        }
-            .distinctUntilChanged()
-            .filter { (_, manual) -> !manual }
-            .map { (index, _) -> index }
-            .collectLatest { index ->
-                if (index !in syncedLyrics.lines.indices) return@collectLatest
-                if (isSelectionModeActive) return@collectLatest
-                if (isFirstEmit) {
-                    isFirstEmit = false
-                    snapshotFlow { listState.layoutInfo.viewportEndOffset > 0 }.first { it }
-                    val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
-                    listState.scrollToItem(index, -(viewportHeight * 0.42f).roundToInt())
-                } else {
-                    if (latestSliderPositionProvider.value() == null) {
-                        delay(ACTIVE_LINE_REVEAL_DELAY_MS)
-                    }
-                    if (!isSelectionModeActive) {
-                        listState.keepLyricLineVisible(index)
-                    }
-                }
-            }
+        if (isManualScrolling) return@LaunchedEffect
+        snapshotFlow { listState.layoutInfo.viewportEndOffset > 0 }.first { it }
+        val index = syncedLyrics.getCurrentFirstHighlightLineIndexByTime(focusedPosition())
+        if (index !in syncedLyrics.lines.indices) return@LaunchedEffect
+        val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
+        listState.scrollToItem(index, -(viewportHeight * 0.42f).roundToInt())
     }
 
     BackHandler(enabled = isSelectionModeActive) {
@@ -693,41 +675,6 @@ private fun ISyncedLine.lineText(): String = when (this) {
     is KaraokeLine -> syllables.joinToString("") { it.content }
     is SyncedLine -> content
     else -> ""
-}
-
-private suspend fun LazyListState.keepLyricLineVisible(index: Int) {
-    val info = layoutInfo
-    val viewportHeight = info.viewportEndOffset - info.viewportStartOffset
-    if (viewportHeight <= 0) return
-
-    val preferredCenter = info.viewportStartOffset + (viewportHeight * 0.46f).roundToInt()
-    val safeStart = info.viewportStartOffset + (viewportHeight * 0.16f).roundToInt()
-    val safeEnd = info.viewportEndOffset - (viewportHeight * 0.24f).roundToInt()
-    val targetItem = info.visibleItemsInfo.firstOrNull { it.index == index }
-
-    if (targetItem == null) {
-        val firstVisibleIndex = info.visibleItemsInfo.firstOrNull()?.index ?: firstVisibleItemIndex
-        val scrollOffset = -(viewportHeight * 0.42f).roundToInt()
-        if (abs(index - firstVisibleIndex) > ACTIVE_LINE_FAR_SCROLL_THRESHOLD) {
-            scrollToItem(index, scrollOffset)
-        } else {
-            animateScrollToItem(index, scrollOffset)
-        }
-        return
-    }
-
-    val itemStart = targetItem.offset
-    val itemEnd = targetItem.offset + targetItem.size
-    if (itemStart >= safeStart && itemEnd <= safeEnd) return
-
-    val itemCenter = itemStart + targetItem.size / 2
-    animateScrollBy(
-        value = (itemCenter - preferredCenter).toFloat(),
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow,
-        ),
-    )
 }
 
 private fun SyncedLyrics.positionForStableLineFocus(time: Int): Int {
