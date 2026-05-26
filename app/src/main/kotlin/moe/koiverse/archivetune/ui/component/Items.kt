@@ -968,7 +968,7 @@ fun LibraryPlaylistFeatureCard(
                 modifier = Modifier
                     .size(thumbnailSize)
                     .shadow(
-                        elevation = 20.dp,
+                        elevation = 25.dp,
                         shape = thumbnailShape,
                         clip = false,
                         ambientColor = glowColor.copy(alpha = 0.5f),
@@ -1076,7 +1076,7 @@ fun LibraryAlbumSpotlightCard(
                 modifier = Modifier
                     .size(LibraryCardThumbnailSize)
                     .shadow(
-                        elevation = 20.dp,
+                        elevation = 25.dp,
                         shape = RoundedCornerShape(18.dp),
                         clip = false,
                         ambientColor = glowColor.copy(alpha = 0.5f),
@@ -1174,7 +1174,7 @@ fun LibraryArtistSpotlightCard(
                 modifier = Modifier
                     .size(LibraryCardThumbnailSize)
                     .shadow(
-                        elevation = 20.dp,
+                        elevation = 25.dp,
                         shape = CircleShape,
                         clip = false,
                         ambientColor = glowColor.copy(alpha = 0.5f),

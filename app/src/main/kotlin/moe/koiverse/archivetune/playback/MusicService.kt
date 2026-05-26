@@ -423,6 +423,7 @@ class MusicService :
     private var crossfadeSeekGeneration = 0L
     private var crossfadeBaseVolume = 1f
     private var crossfadeProgress = 0f
+    private var crossfadePlaybackRequested = false
     private var lyricsPreloadManager: LyricsPreloadManager? = null
 
     private val secondaryCrossfadeListener =
@@ -1648,6 +1649,7 @@ class MusicService :
                 isCrossfading = true
                 crossfadeProgress = 0f
                 crossfadeBaseVolume = currentEffectivePlayerVolume()
+                crossfadePlaybackRequested = player.playWhenReady
                 player.pauseAtEndOfMediaItems = true
 
                 try {
@@ -1658,8 +1660,8 @@ class MusicService :
                     }
 
                     incomingPlayer.playbackParameters = player.playbackParameters
-                    incomingPlayer.playWhenReady = player.playWhenReady
-                    if (player.playWhenReady) {
+                    incomingPlayer.playWhenReady = crossfadePlaybackRequested
+                    if (crossfadePlaybackRequested) {
                         incomingPlayer.play()
                     }
 
@@ -1672,7 +1674,7 @@ class MusicService :
                         }
 
                         val nowMs = android.os.SystemClock.elapsedRealtime()
-                        if (player.playWhenReady) {
+                        if (crossfadePlaybackRequested) {
                             incomingPlayer.playWhenReady = true
                             elapsedMs = (elapsedMs + (nowMs - lastTickMs)).coerceAtMost(durationMs)
                             crossfadeProgress = (elapsedMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
@@ -1721,7 +1723,7 @@ class MusicService :
         }
 
         val incomingPosition = incomingPlayer.currentPosition.coerceAtLeast(0L)
-        val shouldContinuePlayback = player.playWhenReady || incomingPlayer.playWhenReady
+        val shouldContinuePlayback = crossfadePlaybackRequested
 
         player.pauseAtEndOfMediaItems = false
         player.volume = 0f
@@ -1741,6 +1743,7 @@ class MusicService :
 
         isCrossfading = false
         crossfadeProgress = 0f
+        crossfadePlaybackRequested = false
         releaseSecondaryCrossfadePlayer()
         applyEffectiveVolume()
         scheduleCrossfade()
@@ -1773,6 +1776,7 @@ class MusicService :
         applyingCrossfadeSeek = false
         ignoreNextCrossfadeSeekDiscontinuity = false
         crossfadeProgress = 0f
+        crossfadePlaybackRequested = false
         if (::player.isInitialized && resetPauseAtEnd) {
             player.pauseAtEndOfMediaItems = false
         }
@@ -4464,7 +4468,9 @@ class MusicService :
     updateHistoryTrackingPlaybackState()
     if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
         enqueueCurrentHistorySessionForFinalization()
-        cancelCrossfade(resetVolume = true, resetPauseAtEnd = true)
+            if (!isCrossfading || playbackState == Player.STATE_IDLE) {
+                cancelCrossfade(resetVolume = true, resetPauseAtEnd = true)
+            }
     } else if (playbackState == Player.STATE_READY) {
         scheduleCrossfade()
     }
@@ -4490,10 +4496,17 @@ override fun onPlayWhenReadyChanged(
     super.onPlayWhenReadyChanged(playWhenReady, reason)
     secondaryCrossfadePlayer?.let { secondaryPlayer ->
         if (isCrossfading) {
-            secondaryPlayer.playWhenReady = playWhenReady
-            if (playWhenReady) {
+            val isEndOfOutgoingItemPause =
+                !playWhenReady &&
+                    reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM &&
+                    player.pauseAtEndOfMediaItems
+            if (!isEndOfOutgoingItemPause) {
+                crossfadePlaybackRequested = playWhenReady
+            }
+            secondaryPlayer.playWhenReady = crossfadePlaybackRequested
+            if (crossfadePlaybackRequested) {
                 secondaryPlayer.play()
-            } else {
+            } else if (!isEndOfOutgoingItemPause) {
                 secondaryPlayer.pause()
             }
         }
