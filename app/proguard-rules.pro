@@ -98,6 +98,11 @@
 # Keep all classes within the kuromoji package
 -keep class com.atilika.kuromoji.** { *; }
 
+## Discord Social SDK
+-keep class com.discord.socialsdk.** { *; }
+-keep class moe.koiverse.archivetune.discord.DiscordSocialNativeBridge { *; }
+-dontwarn com.discord.socialsdk.**
+
 ## Queue Persistence Rules
 # Keep queue-related classes to prevent serialization issues in release builds
 -keep class moe.koiverse.archivetune.models.PersistQueue { *; }

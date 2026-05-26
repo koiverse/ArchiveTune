@@ -47,6 +47,7 @@ import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.*
 import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.discord.DiscordOAuthRepository
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.SwitchPreference
@@ -62,9 +63,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.TextButton
-import com.my.kizzy.rpc.KizzyRPC
 import timber.log.Timber
-import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
 import kotlinx.coroutines.*
 import moe.koiverse.archivetune.utils.ArtworkStorage
@@ -98,21 +97,14 @@ fun DiscordSettings(
 
     LaunchedEffect(discordToken) {
         val token = discordToken
-        if (token.isNotEmpty()) {
-            // Run the network call inside this LaunchedEffect coroutine so it is
-            // cancelled automatically if the composable leaves the composition.
-            try {
-                withContext(Dispatchers.IO) {
-                    // KizzyRPC.getUserInfo may throw network/socket exceptions when the
-                    // app is backgrounded or network drops; catch them to avoid crashing.
-                    KizzyRPC.getUserInfo(token)
-                }.onSuccess {
-                    discordUsername = it.username
-                    discordName = it.name
-                }
-            } catch (e: Exception) {
-                // Log and ignore network errors (e.g. SocketException on resume).
-                Timber.tag("DiscordSettings").w(e, "getUserInfo failed")
+        if (token.isNotBlank()) {
+            runCatching {
+                DiscordOAuthRepository.fetchAccount(token)
+            }.onSuccess {
+                discordUsername = it.username
+                discordName = it.displayName
+            }.onFailure {
+                Timber.tag("DiscordSettings").w(it, "Discord account lookup failed")
             }
         }
     }
@@ -124,22 +116,9 @@ fun DiscordSettings(
 
     LaunchedEffect(discordToken, discordRPC) {
         if (discordRPC && discordToken.isNotBlank()) {
-            Timber.tag("DiscordSettings").d("RPC enabled with token, MusicService will handle start")
-            // DiscordPresenceManager.start(
-            //     context = context,
-            //     token = discordToken,
-            //     songProvider = { song },
-            //     positionProvider = { playerConnection.player.currentPosition },
-            //     isPausedProvider = {
-            //         val isPlaying = playerConnection.player.playWhenReady &&
-            //                 playerConnection.player.playbackState == STATE_READY
-            //         !isPlaying
-            //     },
-            //     intervalProvider = { getPresenceIntervalMillis(context) }
-            // )
+            Timber.tag("DiscordSettings").d("Discord Rich Presence enabled, MusicService will handle start")
         } else {
-            // user disabled RPC or cleared token -> ensure manager is stopped
-            Timber.tag("DiscordSettings").d("RPC disabled or no token, stopping manager")
+            Timber.tag("DiscordSettings").d("Discord Rich Presence disabled or not authorized, stopping manager")
             DiscordPresenceManager.stop()
         }
     }
@@ -174,7 +153,7 @@ fun DiscordSettings(
                     .padding(16.dp),
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.info),
+                    painter = painterResource(R.drawable.check),
                     contentDescription = null,
                     modifier = Modifier.padding(16.dp),
                 )
@@ -230,9 +209,13 @@ fun DiscordSettings(
                     text = { Text(stringResource(R.string.logout_confirm_message)) },
                     confirmButton = {
                         TextButton(onClick = {
+                            coroutineScope.launch {
+                                DiscordOAuthRepository.clearSession(context)
+                            }
                             discordName = ""
                             discordToken = ""
                             discordUsername = ""
+                            DiscordPresenceManager.stop()
                             showLogoutConfirm = false
                         }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.logout_confirm_yes)) }
                     },
@@ -257,31 +240,6 @@ fun DiscordSettings(
             isEnabled = isLoggedIn,
         )
 
-        // Add a refresh action to manually re-update Discord RPC
-        // PreferenceEntry(
-        //     title = { Text(stringResource(R.string.refresh)) },
-        //     description = stringResource(R.string.description_refresh),
-        //     icon = { Icon(painterResource(R.drawable.refresh), null) },
-        //     trailingContent = {
-        //         IconButton(onClick = {
-        //             // trigger update in background
-        //             coroutineScope.launch(Dispatchers.IO) {
-        //                 val token = discordToken
-        //                 if (token.isNotBlank()) {
-        //                     try {
-        //                         val rpc = DiscordRPC(context, token)
-        //                         song?.let { rpc.updateSong(it, position) }
-        //                     } catch (_: Exception) {
-        //                         // ignore
-        //                     }
-        //                 }
-        //             }
-        //         }) {
-        //             Icon(painterResource(R.drawable.update), contentDescription = null)
-        //         }
-        //     }
-        // )
-        
         // Discord presence image preferences (hoisted so refresh action can read them)
         val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
         val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
@@ -404,7 +362,7 @@ fun DiscordSettings(
         val platformOptions = listOf("android", "desktop", "web")
         val (platformSelection, onPlatformSelectionChange) = rememberPreference(
             key = DiscordActivityPlatformKey,
-            defaultValue = "desktop"
+            defaultValue = "android"
         )
 
         var platformExpanded by remember { mutableStateOf(false) }

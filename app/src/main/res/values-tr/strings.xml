@@ -474,7 +474,7 @@
     <string name="backup_create_failed">Yedekleme oluşturulamadı</string>
     <string name="restore_failed">Yedekleme geri yüklenemedi</string>
     <string name="discord_integration">Discord Entegrasyonu</string>
-    <string name="discord_information">ArchiveTune, Discord hesabınızın durumunu ayarlamak için KizzyRPC kütüphanesini kullanır. Bu, Discord\'un Hizmet Şartları\'nın ihlali olarak değerlendirilebilecek Discord Ağ Geçidi bağlantısını kullanılır. Bununla birlikte, bu nedenle kullanıcı hesaplarının askıya alındığı bilinen bir durum bulunmuyor. Kullanım riski size aittir. ArchiveTune yalnızca token\'ınızı çıkaracak ve geri kalan her şey yerel olarak saklanacaktır.</string>
+    <string name="discord_information">ArchiveTune uses the official Discord Social SDK to publish Rich Presence. Login uses Discord OAuth in your browser and stores the resulting access and refresh tokens locally for this integration.</string>
     <string name="dismiss">Reddet</string>
     <string name="options">Seçenekler</string>
     <string name="preview">Önizleme</string>

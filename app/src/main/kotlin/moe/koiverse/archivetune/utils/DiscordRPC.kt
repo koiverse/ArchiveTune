@@ -5,74 +5,75 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
-
-
-
-
 package moe.koiverse.archivetune.utils
 
 import android.content.Context
-import moe.koiverse.archivetune.R
-import moe.koiverse.archivetune.db.entities.Song
-import moe.koiverse.archivetune.constants.*
-import moe.koiverse.archivetune.utils.dataStore
-import com.my.kizzy.rpc.KizzyRPC
-import com.my.kizzy.rpc.RpcImage
-import timber.log.Timber
-import me.bush.translator.Translator
 import me.bush.translator.Language
-
+import me.bush.translator.Translator
+import moe.koiverse.archivetune.BuildConfig
+import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.DiscordActivityButton1CustomUrlKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton1EnabledKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton1LabelKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton1UrlSourceKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton2CustomUrlKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton2EnabledKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton2LabelKey
+import moe.koiverse.archivetune.constants.DiscordActivityButton2UrlSourceKey
+import moe.koiverse.archivetune.constants.DiscordActivityDetailsKey
+import moe.koiverse.archivetune.constants.DiscordActivityNameKey
+import moe.koiverse.archivetune.constants.DiscordActivityPlatformKey
+import moe.koiverse.archivetune.constants.DiscordActivityStateKey
+import moe.koiverse.archivetune.constants.DiscordActivityTypeKey
+import moe.koiverse.archivetune.constants.DiscordLargeImageCustomUrlKey
+import moe.koiverse.archivetune.constants.DiscordLargeImageTypeKey
+import moe.koiverse.archivetune.constants.DiscordLargeTextCustomKey
+import moe.koiverse.archivetune.constants.DiscordLargeTextSourceKey
+import moe.koiverse.archivetune.constants.DiscordPresenceStatusKey
+import moe.koiverse.archivetune.constants.DiscordShowWhenPausedKey
+import moe.koiverse.archivetune.constants.DiscordSmallImageCustomUrlKey
+import moe.koiverse.archivetune.constants.DiscordSmallImageTypeKey
+import moe.koiverse.archivetune.constants.EnableTranslatorKey
+import moe.koiverse.archivetune.constants.TranslatorContextsKey
+import moe.koiverse.archivetune.constants.TranslatorTargetLangKey
+import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.discord.DiscordActivityPlatform
+import moe.koiverse.archivetune.discord.DiscordActivityType
+import moe.koiverse.archivetune.discord.DiscordOnlineStatus
+import moe.koiverse.archivetune.discord.DiscordPresenceActivity
+import moe.koiverse.archivetune.discord.DiscordPresenceAssets
+import moe.koiverse.archivetune.discord.DiscordPresenceButton
+import moe.koiverse.archivetune.discord.DiscordPresenceTimestamps
+import moe.koiverse.archivetune.discord.DiscordSocialPresenceClient
+import moe.koiverse.archivetune.discord.DiscordStatusDisplayType
+import timber.log.Timber
 
 class DiscordRPC(
-    val context: Context,
-    token: String,
-) : KizzyRPC(token) {
-
+    private val context: Context,
+    private val accessToken: String,
+) {
     companion object {
-        private const val APPLICATION_ID = "1165706613961789445"
         private const val PAUSE_IMAGE_URL =
             "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/RPC/pause_icon.png"
-        private const val APP_ICON_URL = 
+        private const val APP_ICON_URL =
             "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
-        private const val logtag = "DiscordRPC"
+        private const val TAG = "DiscordRPC"
     }
 
     private val translationCache: MutableMap<String, String> = mutableMapOf()
     private var lastSongId: String? = null
 
-    private fun pickSourceValue(pref: String, song: Song?, default: String): String = when (pref) {
-        "ARTIST" -> song?.artists?.firstOrNull()?.name ?: default
-        "ALBUM" -> song?.song?.albumName ?: song?.album?.title ?: default
-        "SONG" -> song?.song?.title ?: default
-        "APP" -> default
-        else -> default
-    }
+    fun isRpcRunning(): Boolean = DiscordSocialPresenceClient.isStarted
 
-    private fun resolveUrl(source: String, song: Song, custom: String): String? = when (source.lowercase()) {
-        "songurl" -> "https://music.youtube.com/watch?v=${song.song.id}"
-        "artisturl" -> song.artists.firstOrNull()?.id?.let { "https://music.youtube.com/channel/$it" }
-        "albumurl" -> song.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
-        "custom" -> custom.takeIf { it.isNotBlank() }?.let { normalizeUrl(it) }
-        else -> null
-    }
-
-    private fun normalizeUrl(input: String): String? {
-        val trimmed = input.trim()
-        if (trimmed.isBlank()) return null
-        if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
-            return trimmed
+    suspend fun stopActivity() {
+        DiscordSocialPresenceClient.clearPresence().getOrElse {
+            Timber.tag(TAG).v(it, "clearPresence failed")
         }
-        return "https://$trimmed"
     }
 
-    private fun createRpcImage(imageId: String?): RpcImage? {
-        if (imageId.isNullOrBlank()) return null
-        return when {
-            imageId.startsWith("mp:") -> RpcImage.DiscordImage(imageId.removePrefix("mp:"))
-            imageId.startsWith("external/") -> RpcImage.DiscordImage(imageId)
-            imageId.startsWith("attachments/") -> RpcImage.DiscordImage(imageId)
-            imageId.startsWith("http://", ignoreCase = true) || imageId.startsWith("https://", ignoreCase = true) -> RpcImage.ExternalImage(imageId)
-            else -> RpcImage.DiscordImage(imageId)
+    suspend fun closeRPC() {
+        DiscordSocialPresenceClient.close().getOrElse {
+            Timber.tag(TAG).v(it, "close failed")
         }
     }
 
@@ -81,225 +82,206 @@ class DiscordRPC(
         currentPlaybackTimeMillis: Long,
         isPaused: Boolean = false,
     ) = runCatching {
-        val currentTime = System.currentTimeMillis()
-        val calculatedStartTime = currentTime - currentPlaybackTimeMillis
-
         if (lastSongId != song.song.id) {
             translationCache.clear()
             DiscordImageResolver.clearCache()
             lastSongId = song.song.id
         }
 
-        val namePref = context.dataStore[DiscordActivityNameKey] ?: "APP"
-        val detailsPref = context.dataStore[DiscordActivityDetailsKey] ?: "SONG"
-        val statePref = context.dataStore[DiscordActivityStateKey] ?: "ARTIST"
-        val statusPref = context.dataStore[DiscordPresenceStatusKey] ?: "online"
         val showWhenPaused = context.dataStore[DiscordShowWhenPausedKey] ?: false
-
         if (isPaused && !showWhenPaused) {
-            Timber.tag(logtag).v("paused and 'showWhenPaused' disabled → stopping activity")
+            Timber.tag(TAG).v("Paused and show-when-paused is disabled; clearing Discord presence")
             stopActivity()
             return@runCatching
         }
 
+        val translatedMap = translateSongFields(song)
+        val appName = context.getString(R.string.app_name)
+        val namePref = context.dataStore[DiscordActivityNameKey] ?: "APP"
+        val detailsPref = context.dataStore[DiscordActivityDetailsKey] ?: "SONG"
+        val statePref = context.dataStore[DiscordActivityStateKey] ?: "ARTIST"
 
-        // --- Translator Integration with Cache ---
-        val translatorEnabled = context.dataStore[EnableTranslatorKey] ?: false
-        val translatedMap = mutableMapOf<String, String>()
-
-        if (translatorEnabled) {
-            val contextList = (context.dataStore[TranslatorContextsKey] ?: "{song}")
-                .split(",")
-                .map { it.trim() }
-            val targetLang = context.dataStore[TranslatorTargetLangKey] ?: "ENGLISH"
-
-            val rawMap = mapOf(
-                "{song}" to song.song.title,
-                "{artist}" to song.artists.joinToString { it.name },
-                "{album}" to (song.song.albumName ?: song.album?.title ?: "")
-            )
-
-            try {
-                val translator = Translator()
-                for (ctx in contextList) {
-                    val value = rawMap[ctx]
-                    if (!value.isNullOrBlank()) {
-                        val cacheKey = "${song.song.id}:$ctx:$targetLang"
-                        val translated = translationCache[cacheKey]
-
-                        if (translated != null) {
-                            translatedMap[ctx] = translated
-                        } else {
-                            try {
-                                val result = translator.translateBlocking(value, Language.valueOf(targetLang.uppercase()))
-                                translatedMap[ctx] = result.translatedText
-                                translationCache[cacheKey] = result.translatedText
-                            } catch (e: Exception) {
-                                Timber.tag(logtag).e(e, "Translation failed for $ctx")
-                                translatedMap[ctx] = value // fallback original
-                                translationCache[cacheKey] = value
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.tag(logtag).e(e, "Translator init failed")
-            }
-        }
-        // --- End Translator ---
-
-        val activityName = when (namePref.uppercase()) {
-            "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
-            "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
-            "SONG" -> translatedMap["{song}"] ?: pickSourceValue(namePref, song, context.getString(R.string.app_name))
-            "APP" -> context.getString(R.string.app_name)
-            else -> pickSourceValue(namePref, song, context.getString(R.string.app_name))
-        }
-
-        var activityDetails = when (detailsPref.uppercase()) {
-            "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(detailsPref, song, song.song.title)
-            "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(detailsPref, song, song.song.title)
-            "SONG" -> translatedMap["{song}"] ?: pickSourceValue(detailsPref, song, song.song.title)
-            "APP" -> context.getString(R.string.app_name)
-            else -> pickSourceValue(detailsPref, song, song.song.title)
-        }
-
-        // Ensure details are not empty — fallback to song title or app name so Discord shows something.
-        if (activityDetails.isNullOrBlank()) {
-            activityDetails = song.song.title.ifBlank { context.getString(R.string.app_name) }
-        }
-
-        var activityState = when (statePref.uppercase()) {
-            "ARTIST" -> translatedMap["{artist}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
-            "ALBUM" -> translatedMap["{album}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
-            "SONG" -> translatedMap["{song}"] ?: pickSourceValue(statePref, song, song.artists.joinToString { it.name })
-            "APP" -> context.getString(R.string.app_name)
-            else -> pickSourceValue(statePref, song, song.artists.joinToString { it.name })
-        }
-
-        if (activityState.isNullOrBlank()) {
-            activityState = song.artists.firstOrNull()?.name ?: context.getString(R.string.app_name)
-        }
-
-        val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
-
-        val button1Label = context.dataStore[DiscordActivityButton1LabelKey] ?: "Listen on YouTube Music"
-        val button1Enabled = context.dataStore[DiscordActivityButton1EnabledKey] ?: true
-        val button2Label = context.dataStore[DiscordActivityButton2LabelKey] ?: "Go to ArchiveTune"
-        val button2Enabled = context.dataStore[DiscordActivityButton2EnabledKey] ?: true
-
-        val button1UrlSource = context.dataStore[DiscordActivityButton1UrlSourceKey] ?: "songurl"
-        val button1CustomUrl = context.dataStore[DiscordActivityButton1CustomUrlKey] ?: ""
-        val button2UrlSource = context.dataStore[DiscordActivityButton2UrlSourceKey] ?: "custom"
-        val button2CustomUrl = context.dataStore[DiscordActivityButton2CustomUrlKey] ?: "https://github.com/koiverse/ArchiveTune"
-
-        val resolvedButton1Url = resolveUrl(button1UrlSource, song, button1CustomUrl)
-        val resolvedButton2Url = resolveUrl(button2UrlSource, song, button2CustomUrl)
-
-        val buttons = mutableListOf<Pair<String, String>>().apply {
-            if (button1Enabled && button1Label.isNotBlank() && !resolvedButton1Url.isNullOrBlank())
-                add(button1Label to resolvedButton1Url)
-            if (button2Enabled && button2Label.isNotBlank() && !resolvedButton2Url.isNullOrBlank())
-                add(button2Label to resolvedButton2Url)
-        }
-        val finalButtons = buttons.take(2)
-
-        val activityTypePref = context.dataStore[DiscordActivityTypeKey] ?: "LISTENING"
-        val resolvedType = when (activityTypePref.uppercase()) {
-            "PLAYING" -> Type.PLAYING
-            "STREAMING" -> Type.STREAMING
-            "LISTENING" -> Type.LISTENING
-            "WATCHING" -> Type.WATCHING
-            "COMPETING" -> Type.COMPETING
-            else -> Type.LISTENING
-        }
-
-        val largeImageTypePref = context.dataStore[DiscordLargeImageTypeKey] ?: "thumbnail"
-        val largeImageCustomPref = context.dataStore[DiscordLargeImageCustomUrlKey] ?: ""
-        val smallImageTypePref = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
-        val smallImageCustomPref = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
-
-        val resolvedImages = DiscordImageResolver.resolveImagesForSong(context, song)
-        
-        Timber.tag(logtag).d(
-            "Resolved images - thumbnail: %s, artist: %s",
-            resolvedImages.thumbnailResolvedId?.take(40) ?: "null",
-            resolvedImages.artistResolvedId?.take(40) ?: "null"
+        val activityName = sourceValue(
+            pref = namePref,
+            song = song,
+            translatedMap = translatedMap,
+            default = appName,
         )
 
-        val finalLargeImage: RpcImage? = when (largeImageTypePref.lowercase()) {
-            "thumbnail", "song", "album" -> {
-                createRpcImage(resolvedImages.thumbnailResolvedId)
-                    ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
-                    ?: song.song.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
-            }
-            "artist" -> {
-                createRpcImage(resolvedImages.artistResolvedId)
-                    ?: createRpcImage(resolvedImages.artistOriginalUrl)
-                    ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
-            }
-            "appicon" -> RpcImage.ExternalImage(APP_ICON_URL)
-            "custom" -> {
-                val customUrl = largeImageCustomPref.takeIf { it.isNotBlank() }
-                if (customUrl != null) {
-                    RpcImage.ExternalImage(customUrl)
-                } else {
-                    createRpcImage(resolvedImages.thumbnailResolvedId)
-                        ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
-                        ?: song.song.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
-                }
-            }
-            "none", "dontshow" -> null
-            else -> {
-                createRpcImage(resolvedImages.thumbnailResolvedId)
-                    ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
-            }
+        val activityDetails = sourceValue(
+            pref = detailsPref,
+            song = song,
+            translatedMap = translatedMap,
+            default = song.song.title.ifBlank { appName },
+        ).toDiscordText(maxLength = 128, fallback = song.song.title.ifBlank { appName })
+
+        val activityState = sourceValue(
+            pref = statePref,
+            song = song,
+            translatedMap = translatedMap,
+            default = song.artists.joinToString { it.name }.ifBlank { appName },
+        ).toDiscordText(maxLength = 128, fallback = appName)
+
+        val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
+        val resolvedImages = DiscordImageResolver.resolveImagesForSong(context, song)
+        val largeImageType = context.dataStore[DiscordLargeImageTypeKey] ?: "thumbnail"
+        val largeImageCustomUrl = context.dataStore[DiscordLargeImageCustomUrlKey] ?: ""
+        val smallImageType = context.dataStore[DiscordSmallImageTypeKey] ?: "artist"
+        val smallImageCustomUrl = context.dataStore[DiscordSmallImageCustomUrlKey] ?: ""
+
+        val largeImage = when (largeImageType.lowercase()) {
+            "appicon" -> APP_ICON_URL
+            else -> DiscordImageResolver.buildImageUrl(
+                imageType = largeImageType,
+                customUrl = largeImageCustomUrl,
+                resolvedImages = resolvedImages,
+                song = song,
+            )
         }
 
-        val finalSmallImage: RpcImage? = when {
-            isPaused -> RpcImage.ExternalImage(PAUSE_IMAGE_URL)
-            smallImageTypePref.lowercase() in listOf("none", "dontshow") -> null
-            smallImageTypePref.lowercase() == "appicon" -> RpcImage.ExternalImage(APP_ICON_URL)
-            smallImageTypePref.lowercase() == "artist" -> {
-                createRpcImage(resolvedImages.artistResolvedId)
-                    ?: createRpcImage(resolvedImages.artistOriginalUrl)
-                    ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
-            }
-            smallImageTypePref.lowercase() in listOf("thumbnail", "song", "album") -> {
-                createRpcImage(resolvedImages.thumbnailResolvedId)
-                    ?: createRpcImage(resolvedImages.thumbnailOriginalUrl)
-                    ?: song.song.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
-            }
-            smallImageTypePref.lowercase() == "custom" -> {
-                val customUrl = smallImageCustomPref.takeIf { it.isNotBlank() }
-                if (customUrl != null) {
-                    RpcImage.ExternalImage(customUrl)
+        val smallImage = when {
+            isPaused -> PAUSE_IMAGE_URL
+            smallImageType.equals("appicon", ignoreCase = true) -> APP_ICON_URL
+            else -> DiscordImageResolver.buildImageUrl(
+                imageType = smallImageType,
+                customUrl = smallImageCustomUrl,
+                resolvedImages = resolvedImages,
+                song = song,
+            )
+        }
+
+        val largeText = resolveLargeText(song, translatedMap)
+        val smallText = if (isPaused) {
+            context.getString(R.string.discord_paused)
+        } else {
+            resolveSmallText(song, translatedMap, smallImageType, appName)
+        }
+
+        val buttons = resolveButtons(song)
+        val activityType = DiscordActivityType.fromPreference(
+            context.dataStore[DiscordActivityTypeKey] ?: "LISTENING",
+        )
+        val platform = DiscordActivityPlatform.fromPreference(
+            context.dataStore[DiscordActivityPlatformKey] ?: "android",
+        )
+        val status = DiscordOnlineStatus.fromPreference(
+            context.dataStore[DiscordPresenceStatusKey] ?: "online",
+        )
+
+        val timestamps = buildTimestamps(
+            song = song,
+            currentPlaybackTimeMillis = currentPlaybackTimeMillis,
+            isPaused = isPaused,
+            showWhenPaused = showWhenPaused,
+        )
+
+        val activity = DiscordPresenceActivity(
+            applicationId = BuildConfig.DISCORD_APPLICATION_ID_LONG,
+            name = activityName.toDiscordText(maxLength = 128, fallback = appName),
+            type = activityType,
+            details = activityDetails,
+            state = activityState,
+            detailsUrl = baseSongUrl.toDiscordUrl(),
+            assets = DiscordPresenceAssets(
+                largeImage = largeImage.toDiscordUrl(),
+                largeText = largeText.toDiscordText(maxLength = 128),
+                largeUrl = largeImage.toDiscordUrl(),
+                smallImage = smallImage.toDiscordUrl(),
+                smallText = smallText.toDiscordText(maxLength = 128),
+                smallUrl = baseSongUrl.toDiscordUrl(),
+            ),
+            buttons = buttons,
+            timestamps = timestamps,
+            statusDisplayType = DiscordStatusDisplayType.State,
+            supportedPlatforms = platform,
+            onlineStatus = status,
+        )
+
+        DiscordSocialPresenceClient.updatePresence(
+            context = context,
+            accessToken = accessToken,
+            activity = activity,
+        ).getOrThrow()
+
+        Timber.tag(TAG).i(
+            "Updated Discord presence via Social SDK name=%s details=%s state=%s",
+            activityName,
+            activityDetails,
+            activityState,
+        )
+    }
+
+    suspend fun refreshActivity(
+        song: Song,
+        currentPlaybackTimeMillis: Long,
+        isPaused: Boolean = false,
+    ) = runCatching {
+        updateSong(song, currentPlaybackTimeMillis, isPaused).getOrThrow()
+    }
+
+    private suspend fun translateSongFields(song: Song): Map<String, String> {
+        val translatorEnabled = context.dataStore[EnableTranslatorKey] ?: false
+        if (!translatorEnabled) return emptyMap()
+
+        val contextList = (context.dataStore[TranslatorContextsKey] ?: "{song}")
+            .split(",")
+            .map { it.trim() }
+        val targetLang = context.dataStore[TranslatorTargetLangKey] ?: "ENGLISH"
+        val rawMap = mapOf(
+            "{song}" to song.song.title,
+            "{artist}" to song.artists.joinToString { it.name },
+            "{album}" to (song.song.albumName ?: song.album?.title ?: ""),
+        )
+        val translatedMap = mutableMapOf<String, String>()
+
+        runCatching {
+            val translator = Translator()
+            contextList.forEach { key ->
+                val value = rawMap[key]?.takeIf { it.isNotBlank() } ?: return@forEach
+                val cacheKey = "${song.song.id}:$key:$targetLang"
+                val cached = translationCache[cacheKey]
+                if (cached != null) {
+                    translatedMap[key] = cached
                 } else {
-                    createRpcImage(resolvedImages.artistResolvedId)
-                        ?: createRpcImage(resolvedImages.artistOriginalUrl)
-                        ?: song.artists.firstOrNull()?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { RpcImage.ExternalImage(it) }
+                    val translated = runCatching {
+                        translator.translateBlocking(
+                            value,
+                            Language.valueOf(targetLang.uppercase()),
+                        ).translatedText
+                    }.getOrElse {
+                        Timber.tag(TAG).e(it, "Translation failed for %s", key)
+                        value
+                    }
+                    translationCache[cacheKey] = translated
+                    translatedMap[key] = translated
                 }
             }
-            else -> {
-                createRpcImage(resolvedImages.artistResolvedId)
-                    ?: createRpcImage(resolvedImages.artistOriginalUrl)
-            }
+        }.onFailure {
+            Timber.tag(TAG).e(it, "Translator init failed")
         }
-        
-        val largeImageStr = when (finalLargeImage) {
-            is RpcImage.DiscordImage -> "discord:${finalLargeImage.image.take(30)}"
-            is RpcImage.ExternalImage -> "external:${finalLargeImage.image.take(30)}"
-            null -> "null"
-        }
-        val smallImageStr = when (finalSmallImage) {
-            is RpcImage.DiscordImage -> "discord:${finalSmallImage.image.take(30)}"
-            is RpcImage.ExternalImage -> "external:${finalSmallImage.image.take(30)}"
-            null -> "null"
-        }
-        Timber.tag(logtag).d("Final images - large: %s, small: %s", largeImageStr, smallImageStr)
 
-        val largeTextSource = (context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()
-        val resolvedLargeText = when (largeTextSource) {
+        return translatedMap
+    }
+
+    private fun sourceValue(
+        pref: String,
+        song: Song,
+        translatedMap: Map<String, String>,
+        default: String,
+    ): String =
+        when (pref.uppercase()) {
+            "ARTIST" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name ?: default
+            "ALBUM" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title ?: default
+            "SONG" -> translatedMap["{song}"] ?: song.song.title.ifBlank { default }
+            "APP" -> context.getString(R.string.app_name)
+            else -> default
+        }
+
+    private suspend fun resolveLargeText(
+        song: Song,
+        translatedMap: Map<String, String>,
+    ): String? =
+        when ((context.dataStore[DiscordLargeTextSourceKey] ?: "album").lowercase()) {
             "song" -> translatedMap["{song}"] ?: song.song.title
             "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
             "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title ?: song.song.title
@@ -309,125 +291,111 @@ class DiscordRPC(
             else -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
         }
 
-        // Derive small text from small image type, prefer translated values when available
-        val sendSmallText = if (isPaused) {
-            context.getString(R.string.discord_paused)
-        } else {
-            val baseSmallText = when (smallImageTypePref.lowercase()) {
-                "song" -> translatedMap["{song}"] ?: song.song.title
-                "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
-                "thumbnail", "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
-                "appicon", "app" -> context.getString(R.string.app_name)
-                "custom" -> song.artists.firstOrNull()?.name
-                else -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
-            }
-            "$baseSmallText on ArchiveTune"
+    private fun resolveSmallText(
+        song: Song,
+        translatedMap: Map<String, String>,
+        smallImageType: String,
+        appName: String,
+    ): String? {
+        val base = when (smallImageType.lowercase()) {
+            "song" -> translatedMap["{song}"] ?: song.song.title
+            "artist" -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
+            "thumbnail", "album" -> translatedMap["{album}"] ?: song.song.albumName ?: song.album?.title
+            "appicon", "app" -> appName
+            "dontshow", "none" -> null
+            else -> translatedMap["{artist}"] ?: song.artists.firstOrNull()?.name
         }
 
-        val applicationIdToSend = APPLICATION_ID
-
-        val platformPref = context.dataStore[DiscordActivityPlatformKey] ?: "desktop"
-        this.setPlatform(platformPref)
-
-        val hasValidDuration = (song.song.duration ?: -1) > 0
-        val durationMs = if (hasValidDuration) song.song.duration * 1000L else 0L
-        
-        val sendStartTime: Long?
-        val sendEndTime: Long?
-        val sendSince: Long?
-        
-        when {
-            isPaused && showWhenPaused -> {
-                sendStartTime = null
-                sendEndTime = null
-                sendSince = currentTime
-            }
-            isPaused && !showWhenPaused -> {
-                sendStartTime = null
-                sendEndTime = null
-                sendSince = null
-            }
-            !isPaused && hasValidDuration -> {
-                sendStartTime = calculatedStartTime
-                sendEndTime = calculatedStartTime + durationMs
-                sendSince = null
-            }
-            else -> {
-                sendStartTime = null
-                sendEndTime = null
-                sendSince = null
-            }
-        }
-        
-        Timber.tag(logtag).d(
-            "Timestamps - isPaused=%s, showWhenPaused=%s, hasValidDuration=%s, startTime=%s, endTime=%s, since=%s",
-            isPaused, showWhenPaused, hasValidDuration, sendStartTime, sendEndTime, sendSince
-        )
-
-        val safeStatus = when (statusPref.lowercase()) {
-            "online", "idle", "dnd", "invisible" -> statusPref
-            else -> "online"
-        }
-
-        try {
-            // Only include the buttons argument when we actually have buttons to send.
-            if (finalButtons.isNotEmpty()) {
-                this.refreshRPC(
-                    name = activityName.removeSuffix(" Debug"),
-                    details = activityDetails,
-                    state = activityState,
-                    detailsUrl = baseSongUrl,
-                    largeImage = finalLargeImage,
-                    smallImage = finalSmallImage,
-                    largeText = resolvedLargeText ?: "",
-                    smallText = sendSmallText ?: "",
-                    buttons = finalButtons,
-                    type = resolvedType,
-                    statusDisplayType = StatusDisplayType.STATE,
-                    since = sendSince,
-                    startTime = sendStartTime,
-                    endTime = sendEndTime,
-                    applicationId = applicationIdToSend,
-                    status = safeStatus
-                )
-            } else {
-                this.refreshRPC(
-                    name = activityName.removeSuffix(" Debug"),
-                    details = activityDetails,
-                    state = activityState,
-                    detailsUrl = baseSongUrl,
-                    largeImage = finalLargeImage,
-                    smallImage = finalSmallImage,
-                    largeText = resolvedLargeText ?: "",
-                    smallText = sendSmallText ?: "",
-                    type = resolvedType,
-                    statusDisplayType = StatusDisplayType.STATE,
-                    since = sendSince,
-                    startTime = sendStartTime,
-                    endTime = sendEndTime,
-                    applicationId = applicationIdToSend,
-                    status = safeStatus
-                )
-            }
-            Timber.tag(logtag).i("sending presence name=%s details=%s state=%s", activityName, activityDetails, activityState)
-        } catch (ex: Exception) {
-            Timber.tag(logtag).e(ex, "updatePresence failed")
-            throw ex
-        }
+        return base?.let { "$it on $appName" }
     }
 
-    suspend fun refreshActivity(song: Song, currentPlaybackTimeMillis: Long, isPaused: Boolean = false) = runCatching {
-        try {
-            updateSong(song, currentPlaybackTimeMillis, isPaused).getOrThrow()
-        } catch (ex: Exception) {
-            val msg = ex.message ?: ex.toString()
-            Timber.tag("DiscordRPC").e("refreshActivity updateSong failed: %s", msg)
-            moe.koiverse.archivetune.utils.GlobalLog.append(
-                android.util.Log.ERROR,
-                "DiscordRPC",
-                "refreshActivity updateSong failed: $msg\n${ex.stackTraceToString()}"
+    private suspend fun resolveButtons(song: Song): List<DiscordPresenceButton> {
+        val button1Label = context.dataStore[DiscordActivityButton1LabelKey] ?: "Listen on YouTube Music"
+        val button1Enabled = context.dataStore[DiscordActivityButton1EnabledKey] ?: true
+        val button2Label = context.dataStore[DiscordActivityButton2LabelKey] ?: "Go to ArchiveTune"
+        val button2Enabled = context.dataStore[DiscordActivityButton2EnabledKey] ?: true
+        val button1UrlSource = context.dataStore[DiscordActivityButton1UrlSourceKey] ?: "songurl"
+        val button1CustomUrl = context.dataStore[DiscordActivityButton1CustomUrlKey] ?: ""
+        val button2UrlSource = context.dataStore[DiscordActivityButton2UrlSourceKey] ?: "custom"
+        val button2CustomUrl = context.dataStore[DiscordActivityButton2CustomUrlKey]
+            ?: "https://github.com/koiverse/ArchiveTune"
+
+        return buildList {
+            if (button1Enabled) {
+                val url = resolveUrl(button1UrlSource, song, button1CustomUrl)
+                if (button1Label.isNotBlank() && !url.isNullOrBlank()) {
+                    add(DiscordPresenceButton(button1Label.toButtonLabel(), url))
+                }
+            }
+
+            if (button2Enabled) {
+                val url = resolveUrl(button2UrlSource, song, button2CustomUrl)
+                if (button2Label.isNotBlank() && !url.isNullOrBlank()) {
+                    add(DiscordPresenceButton(button2Label.toButtonLabel(), url))
+                }
+            }
+        }.take(2)
+    }
+
+    private fun resolveUrl(source: String, song: Song, custom: String): String? =
+        when (source.lowercase()) {
+            "songurl" -> "https://music.youtube.com/watch?v=${song.song.id}"
+            "artisturl" -> song.artists.firstOrNull()?.id?.let { "https://music.youtube.com/channel/$it" }
+            "albumurl" -> song.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
+            "custom" -> custom.normalizeUrl()
+            else -> null
+        }?.toDiscordUrl()
+
+    private fun buildTimestamps(
+        song: Song,
+        currentPlaybackTimeMillis: Long,
+        isPaused: Boolean,
+        showWhenPaused: Boolean,
+    ): DiscordPresenceTimestamps {
+        if (isPaused && showWhenPaused) {
+            return DiscordPresenceTimestamps(
+                startEpochSeconds = System.currentTimeMillis() / 1000L,
             )
-            throw ex
+        }
+
+        val durationSeconds = song.song.duration.toLong()
+        if (isPaused || durationSeconds <= 0L) {
+            return DiscordPresenceTimestamps()
+        }
+
+        val startMs = System.currentTimeMillis() - currentPlaybackTimeMillis.coerceAtLeast(0L)
+        return DiscordPresenceTimestamps(
+            startEpochSeconds = startMs / 1000L,
+            endEpochSeconds = (startMs + durationSeconds * 1000L) / 1000L,
+        )
+    }
+
+    private fun String.normalizeUrl(): String? {
+        val trimmed = trim()
+        if (trimmed.isBlank()) return null
+        return if (
+            trimmed.startsWith("http://", ignoreCase = true) ||
+            trimmed.startsWith("https://", ignoreCase = true)
+        ) {
+            trimmed
+        } else {
+            "https://$trimmed"
         }
     }
+
+    private fun String?.toDiscordText(
+        maxLength: Int,
+        fallback: String? = null,
+    ): String? {
+        val value = this?.trim().orEmpty().ifBlank { fallback?.trim().orEmpty() }
+        return value
+            .takeIf { it.length >= 2 }
+            ?.take(maxLength)
+    }
+
+    private fun String?.toDiscordUrl(): String? =
+        this?.normalizeUrl()?.take(256)
+
+    private fun String.toButtonLabel(): String =
+        trim().take(32).ifBlank { context.getString(R.string.app_name) }
 }

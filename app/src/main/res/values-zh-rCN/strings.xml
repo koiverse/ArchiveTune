@@ -415,7 +415,7 @@
     <string name="restore_success">备份成功恢复</string>
     <string name="restore_failed">备份恢复失败</string>
     <string name="discord_integration">Discord 集成</string>
-    <string name="discord_information">ArchiveTune 使用 KizzyRPC 库来设置你的 Discord 账号状态。这涉及使用 Discord 网关连接，可能被视为违反 Discord 服务条款。不过，目前尚无已知用户账户因此被暂停的案例，请自行承担风险。ArchiveTune只会提取你的令牌，其他所有内容都存储在本地。</string>
+    <string name="discord_information">ArchiveTune uses the official Discord Social SDK to publish Rich Presence. Login uses Discord OAuth in your browser and stores the resulting access and refresh tokens locally for this integration.</string>
     <string name="options">选项</string>
     <string name="preview">预览</string>
     <string name="scrobbling">Last.fm</string>

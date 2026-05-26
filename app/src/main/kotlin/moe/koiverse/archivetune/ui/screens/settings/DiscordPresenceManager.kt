@@ -21,6 +21,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.discord.DiscordOAuthRepository
+import moe.koiverse.archivetune.discord.DiscordSocialNativeBridge
+import moe.koiverse.archivetune.discord.DiscordSocialPresenceClient
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.utils.DiscordImageResolver
 import timber.log.Timber
@@ -30,6 +33,7 @@ object DiscordPresenceManager {
     private val started = AtomicBoolean(false)
     private var scope: CoroutineScope? = null
     private var job: Job? = null
+    private var callbacksJob: Job? = null
     private var lifecycleObserver: LifecycleEventObserver? = null
     private var rpcInstance: DiscordRPC? = null
     private var rpcToken: String? = null
@@ -71,7 +75,8 @@ object DiscordPresenceManager {
     }
 
     suspend fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
-        if (rpcInstance == null || rpcToken != token) {
+        val activeToken = DiscordOAuthRepository.getValidAccessToken(context) ?: token
+        if (rpcInstance == null || rpcToken != activeToken) {
             try {
                 rpcInstance?.stopActivity()
             } catch (ex: Exception) {
@@ -84,8 +89,8 @@ object DiscordPresenceManager {
                 Timber.tag(logTag).v(ex, "failed to close previous RPC instance")
             }
 
-            rpcInstance = DiscordRPC(context, token)
-            rpcToken = token
+            rpcInstance = DiscordRPC(context.applicationContext, activeToken)
+            rpcToken = activeToken
         }
         return rpcInstance!!
     }
@@ -102,13 +107,14 @@ object DiscordPresenceManager {
     ): Boolean = withContext(Dispatchers.IO) {
         rpcMutex.withLock {
             try {
-                if (token.isBlank()) {
+                val activeToken = DiscordOAuthRepository.getValidAccessToken(context) ?: token
+                if (activeToken.isBlank()) {
                     Timber.tag(logTag).w("updatePresence skipped (token missing)")
                     return@withLock false
                 }
 
                 if (song == null) {
-                    val rpc = getOrCreateRpc(context, token)
+                    val rpc = getOrCreateRpc(context, activeToken)
                     rpc.stopActivity()
                     Timber.tag(logTag).d("cleared presence (no song)")
                     consecutiveFailures = 0
@@ -123,7 +129,7 @@ object DiscordPresenceManager {
                     Timber.tag(logTag).v(e, "image resolution for presence failed or timed out")
                 }
 
-                val rpc = getOrCreateRpc(context, token)
+                val rpc = getOrCreateRpc(context, activeToken)
                 val result = rpc.updateSong(song, positionMs, isPaused)
                 if (result.isSuccess) {
                     consecutiveFailures = 0
@@ -175,6 +181,16 @@ object DiscordPresenceManager {
 
         resetFailureCount()
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        callbacksJob = if (DiscordSocialNativeBridge.isAvailable) {
+            scope!!.launch {
+                while (isActive) {
+                    DiscordSocialPresenceClient.runCallbacks()
+                    delay(1_000L)
+                }
+            }
+        } else {
+            null
+        }
         job = scope!!.launch {
             // Perform an immediate first update (or at the first second of the interval).
             try {
@@ -315,6 +331,8 @@ object DiscordPresenceManager {
         
         job?.cancel()
         job = null
+        callbacksJob?.cancel()
+        callbacksJob = null
         scope?.cancel()
         scope = null
         lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }

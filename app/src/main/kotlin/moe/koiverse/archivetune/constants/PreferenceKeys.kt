@@ -276,6 +276,8 @@ val PauseSearchHistoryKey = booleanPreferencesKey("pauseSearchHistory")
 val DisableScreenshotKey = booleanPreferencesKey("disableScreenshot")
 
 val DiscordTokenKey = stringPreferencesKey("discordToken")
+val DiscordRefreshTokenKey = stringPreferencesKey("discordRefreshToken")
+val DiscordTokenExpiresAtKey = longPreferencesKey("discordTokenExpiresAt")
 val DiscordInfoDismissedKey = booleanPreferencesKey("discordInfoDismissed")
 val DiscordUsernameKey = stringPreferencesKey("discordUsername")
 val DiscordNameKey = stringPreferencesKey("discordName")

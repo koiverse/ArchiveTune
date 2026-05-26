@@ -31,7 +31,7 @@ The app stores data locally to provide playback, library, search, lyrics, sync, 
 | Listening history data | Playback event records with song ID, timestamp, and play time | Listening stats and history-related features |
 | App settings | Language, country, UI settings, audio settings, proxy settings, cache settings, history pause toggles, Together settings | Personalization and feature configuration |
 | Optional account and session data | YouTube account name, email, channel handle, visitor data, data sync ID, cookie, PO token values | Signed-in YouTube and YouTube Music functionality |
-| Optional third-party integration data | Last.fm session and username, ListenBrainz token, Discord token and related profile fields, Together display name, Together client ID, last join link | External integrations you choose to enable |
+| Optional third-party integration data | Last.fm session and username, ListenBrainz token, Discord OAuth access and refresh tokens plus related profile fields, Together display name, Together client ID, last join link | External integrations you choose to enable |
 | Cached files | Streaming cache, download cache, and other app-managed files | Faster playback, offline use, and feature performance |
 
 ## Data the App May Send Off Your Device
@@ -45,7 +45,7 @@ ArchiveTune does not silently forward your data to unrelated services. It only c
 | ArchiveTune canvas service | Song and artist names, album ID, or album URL, plus a bearer token if configured in the app build | When canvas or artwork lookup features are used |
 | Last.fm | Now playing and scrobble metadata, plus your Last.fm session information | When Last.fm scrobbling is enabled |
 | ListenBrainz | Playback history or scrobble metadata and your ListenBrainz token | When ListenBrainz sync is enabled |
-| Discord Rich Presence | Current track, artist, album, images, and configured URLs or labels for presence cards | When Discord Rich Presence is enabled |
+| Discord Rich Presence | Current track, artist, album, images, configured URLs or labels for presence cards, and Discord OAuth tokens required by the official Social SDK | When Discord Rich Presence is enabled |
 | GitHub releases | Update-check requests and cached release metadata used to show new versions | When the app checks for updates |
 | Together | Display name, client ID, session code or keys, playback state, queue metadata, and room actions | When you host or join a Together session |
 

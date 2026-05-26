@@ -5,218 +5,181 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
-
-
-
-
 package moe.koiverse.archivetune.ui.screens.settings
 
-import android.annotation.SuppressLint
-import android.util.Log
-import android.view.View
-import android.view.ViewGroup
-import android.webkit.*
+import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
-import moe.koiverse.archivetune.constants.DiscordTokenKey
+import moe.koiverse.archivetune.discord.DiscordAuthCoordinator
+import moe.koiverse.archivetune.discord.DiscordOAuthRepository
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.utils.backToMain
-import moe.koiverse.archivetune.utils.rememberPreference
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
-@SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscordLoginScreen(navController: NavController) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var discordToken by rememberPreference(DiscordTokenKey, "")
-    var webView by remember { mutableStateOf<WebView?>(null) }
-    var isCompleting by remember { mutableStateOf(false) }
+    var authorizationSession by remember {
+        mutableStateOf(DiscordOAuthRepository.createAuthorizationSession())
+    }
+    var isWaitingForRedirect by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
-    fun completeLogin(token: String) {
-        if (isCompleting) return
-        val trimmed = token.trim()
-        if (trimmed.isEmpty() || trimmed == "null" || trimmed == "error") return
-        isCompleting = true
-        discordToken = trimmed
-        webView?.stopLoading()
-        webView?.loadUrl("about:blank")
-        navController.navigateUp()
+    fun launchAuthorization() {
+        errorMessage = null
+        isWaitingForRedirect = true
+        runCatching {
+            CustomTabsIntent.Builder()
+                .build()
+                .launchUrl(context, authorizationSession.authorizationUri)
+        }.recoverCatching {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, authorizationSession.authorizationUri),
+            )
+        }.onFailure {
+            isWaitingForRedirect = false
+            errorMessage = it.message
+        }
     }
 
-    AndroidView(
-        modifier = Modifier
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
-            .fillMaxSize(),
-        factory = { context ->
-            WebView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-
-                WebView.setWebContentsDebuggingEnabled(true)
-
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.setSupportZoom(true)
-                settings.builtInZoomControls = true
-
-                CookieManager.getInstance().apply {
-                    removeAllCookies(null)
-                    flush()
-                }
-
-                WebStorage.getInstance().deleteAllData()
-
-                addJavascriptInterface(object {
-                    @JavascriptInterface
-                    fun onRetrieveToken(token: String) {
-                        Log.d("DiscordWebView", "Token: $token")
-                        scope.launch(Dispatchers.Main) { completeLogin(token) }
-                    }
-                }, "Android")
-
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView, url: String) {
-                        if (isCompleting) return
-                        if (!url.contains("discord.com")) return
-                        if (url.contains("/login")) return
-
-                        val js = """
-                            (function() {
-                                function cleanToken(t) {
-                                    if (!t) return null;
-                                    try {
-                                        var s = String(t);
-                                        if (s.length >= 2 && s[0] === '"' && s[s.length - 1] === '"') {
-                                            s = s.slice(1, -1);
-                                        }
-                                        return s;
-                                    } catch (e) { return null; }
-                                }
-
-                                function send(t) {
-                                    var s = cleanToken(t);
-                                    if (s && s !== "null" && s !== "error") {
-                                        Android.onRetrieveToken(s);
-                                        return true;
-                                    }
-                                    return false;
-                                }
-
-                                function tryLocalStorage() {
-                                    try {
-                                        return send(window.localStorage.getItem("token") || window.localStorage.token);
-                                    } catch (e) { return false; }
-                                }
-
-                                function tryIframe() {
-                                    try {
-                                        var i = document.createElement('iframe');
-                                        i.style.display = 'none';
-                                        document.body.appendChild(i);
-                                        var alt = i.contentWindow.localStorage.token || i.contentWindow.localStorage.getItem("token");
-                                        return send(alt);
-                                    } catch (e) { return false; }
-                                }
-
-                                function tryWebpack() {
-                                    try {
-                                        var w = window.webpackChunkdiscord_app;
-                                        if (!w || !w.push) return false;
-                                        var token = null;
-                                        w.push([[Math.random()], {}, function(req) {
-                                            try {
-                                                for (var k in req.c) {
-                                                    var m = req.c[k];
-                                                    var exp = m && m.exports && m.exports.default;
-                                                    if (exp && typeof exp.getToken === "function") {
-                                                        token = exp.getToken();
-                                                        break;
-                                                    }
-                                                }
-                                            } catch (e) {}
-                                        }]);
-                                        return send(token);
-                                    } catch (e) { return false; }
-                                }
-
-                                function run() {
-                                    if (tryLocalStorage()) return;
-                                    if (tryWebpack()) return;
-                                    tryIframe();
-                                }
-
-                                run();
-                                setTimeout(run, 1200);
-                                setTimeout(run, 3000);
-                            })();
-                        """.trimIndent()
-
-                        view.evaluateJavascript(js, null)
-                    }
-
-                    override fun shouldOverrideUrlLoading(
-                        view: WebView,
-                        request: WebResourceRequest
-                    ): Boolean {
-                        if (isCompleting) return true
-                        return false
-                    }
-                }
-
-                webChromeClient = object : WebChromeClient() {
-                    override fun onJsAlert(
-                        view: WebView,
-                        url: String,
-                        message: String,
-                        result: JsResult
-                    ): Boolean {
-                        scope.launch(Dispatchers.Main) { completeLogin(message) }
-                        result.confirm()
-                        return true
-                    }
-                }
-
-                webView = this
-                loadUrl("https://discord.com/login")
+    LaunchedEffect(authorizationSession) {
+        DiscordAuthCoordinator.redirects.collectLatest { redirect ->
+            if (redirect.getQueryParameter("state") != authorizationSession.state) {
+                return@collectLatest
+            }
+            isWaitingForRedirect = true
+            DiscordOAuthRepository.completeAuthorization(
+                context = context,
+                session = authorizationSession,
+                redirect = redirect,
+            ).onSuccess {
+                isWaitingForRedirect = false
+                navController.navigateUp()
+            }.onFailure {
+                isWaitingForRedirect = false
+                errorMessage = it.message
+                authorizationSession = DiscordOAuthRepository.createAuthorizationSession()
             }
         }
-    )
+    }
 
-    TopAppBar(
-        title = { Text(stringResource(R.string.action_login)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain
+    BackHandler(enabled = isWaitingForRedirect) {
+        isWaitingForRedirect = false
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.action_login)) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.arrow_back),
+                            contentDescription = null,
+                        )
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.discord),
+                contentDescription = null,
+                modifier = Modifier.size(56.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                text = stringResource(R.string.discord_login_description),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+            )
+
+            errorMessage?.let { message ->
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                enabled = !isWaitingForRedirect,
+                onClick = {
+                    authorizationSession = DiscordOAuthRepository.createAuthorizationSession()
+                    scope.launch { launchAuthorization() }
+                },
+                shapes = ButtonDefaults.shapes(),
             ) {
-                Icon(
-                    painterResource(R.drawable.arrow_back),
-                    contentDescription = null
+                Text(stringResource(R.string.discord_open_authorization))
+            }
+
+            if (isWaitingForRedirect) {
+                Spacer(Modifier.height(24.dp))
+                LinearProgressIndicator()
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.discord_waiting_for_authorization),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
-    )
-
-    BackHandler(enabled = webView?.canGoBack() == true) {
-        webView?.goBack()
     }
 }

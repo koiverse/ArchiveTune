@@ -268,6 +268,8 @@ ArchiveTune belongs to everyone. Help us localize the experience for your region
 Interested in building the project or contributing? ArchiveTune is built on a high-performance Kotlin stack.
 <a href="CONTRIBUTING.md"><b>Read the Build & Contribution Guide →</b></a>
 
+Discord Rich Presence uses Discord's official Social SDK. For local builds, place the official `discord_partner_sdk.aar` from the Discord Developer Portal at `app/libs/discord_partner_sdk.aar`, register `discord-1165706613961789445:/authorize/callback` as the OAuth redirect URL, and enable Public Client or move token exchange behind your backend.
+
 ---
 
 ### ⭐ Support the Project
@@ -283,7 +285,6 @@ ArchiveTune is free and open-source. If it brings you joy, consider supporting i
 
 We stand on the shoulders of open-source giants:
 - **Metrolist** by [Mostafa Alagamy](https://github.com/mostafaalagamy/Metrolist) For Base framework.
-- **Kizzy** by [dead8309](https://github.com/dead8309/Kizzy) For Discord Integration.
 - **SimpMusic** by [maxrave-dev](https://github.com/maxrave-dev/SimpMusic) For Lyrics API Provider.
 - [BetterLyrics](https://better-lyrics.boidu.dev/) For word-by-word Lyrics API Provider & Artwork Provider.
 - [Material Color Utilities](https://github.com/material-foundation/material-color-utilities)

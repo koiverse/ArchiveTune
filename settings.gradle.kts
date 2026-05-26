@@ -40,7 +40,6 @@ include("simpmusic")
 include(":paxsenix")
 include(":betterlyrics")
 include(":unison")
-include(":kizzy")
 include(":canvas")
 include(":shazamkit")
 

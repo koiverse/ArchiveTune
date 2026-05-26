@@ -15,6 +15,16 @@ if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
 
+val discordSocialSdkAar = file("libs/discord_partner_sdk.aar")
+val discordApplicationId =
+    (
+        localProperties.getProperty("DISCORD_APPLICATION_ID")
+            ?: System.getenv("DISCORD_APPLICATION_ID")
+            ?: "1165706613961789445"
+        ).trim()
+val discordApplicationIdLong = discordApplicationId.toLongOrNull() ?: 1165706613961789445L
+val discordRedirectScheme = "discord-$discordApplicationId"
+
 android {
     namespace = "moe.koiverse.archivetune"
     compileSdk = 37
@@ -59,6 +69,16 @@ android {
                     ?: ""
                 ).trim()
         buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
+        buildConfigField("String", "DISCORD_APPLICATION_ID", "\"$discordApplicationId\"")
+        buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
+        buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
+        manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
+
+        externalNativeBuild {
+            cmake {
+                arguments += "-DARCHIVETUNE_ENABLE_DISCORD_SOCIAL_SDK=${if (discordSocialSdkAar.exists()) "ON" else "OFF"}"
+            }
+        }
     }
 
     flavorDimensions += listOf("device", "abi")
@@ -133,6 +153,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        prefab = true
     }
 
     dependenciesInfo {
@@ -166,6 +187,12 @@ android {
             excludes += "META-INF/LICENSE.md"
         }
     }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
+    }
 }
 
 kotlin {
@@ -186,6 +213,7 @@ dependencies {
     implementation(libs.hilt.navigation)
     implementation(libs.datastore)
     implementation(libs.work.runtime)
+    implementation("androidx.browser:browser:1.8.0")
 
     implementation(libs.compose.runtime)
     implementation(libs.compose.foundation)
@@ -249,7 +277,6 @@ dependencies {
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
     implementation(project(":unison"))
-    implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
     implementation(project(":paxsenix"))
     implementation(project(":canvas"))
@@ -277,6 +304,10 @@ dependencies {
     implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-beta02")
     implementation(libs.accompanist.lyrics.ui)
     implementation(libs.accompanist.lyrics.core)
+
+    if (discordSocialSdkAar.exists()) {
+        implementation(files(discordSocialSdkAar))
+    }
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

@@ -434,7 +434,7 @@
     <string name="backup_create_failed">Es konnte kein Backup erstellt werden</string>
     <string name="restore_failed">Sicherung konnte nicht wiederhergestellt werden</string>
     <string name="discord_integration">Discord-Integration</string>
-    <string name="discord_information">ArchiveTune verwendet die KizzyRPC-Bibliothek, um den Status Ihres Discord-Kontos festzulegen. Dies beinhaltet die Verwendung der Discord-Gateway-Verbindung, was als Verstoß gegen die AGB von Discord angesehen werden kann. Es sind jedoch keine Fälle bekannt, in denen Benutzerkonten aus diesem Grund gesperrt wurden. Die Nutzung erfolgt auf eigene Gefahr. ArchiveTune extrahiert nur Ihr Token und alles andere wird lokal gespeichert.</string>
+    <string name="discord_information">ArchiveTune uses the official Discord Social SDK to publish Rich Presence. Login uses Discord OAuth in your browser and stores the resulting access and refresh tokens locally for this integration.</string>
     <string name="dismiss">Zurückweisen</string>
     <string name="options">Optionen</string>
     <string name="preview">Vorschau</string>

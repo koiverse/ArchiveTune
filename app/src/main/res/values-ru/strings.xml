@@ -478,7 +478,7 @@
     <string name="restore_success">Восстановление с резервной копии прошло успешно</string>
     <string name="restore_failed">Не удалось восстановить с резервной копии</string>
     <string name="discord_integration">Интеграция с Discord</string>
-    <string name="discord_information">ArchiveTune использует библиотеку KizzyRPC для установки статуса вашего аккаунта Discord. Для этого используется подключение через Discord Gateway, что может рассматриваться как нарушение условий использования (TOS) Discord. На данный момент случаев блокировки аккаунтов по этой причине не зафиксировано, однако вы используете эту функцию на свой страх и риск. ArchiveTune только извлекает ваш токен, все остальные данные хранятся локально.</string>
+    <string name="discord_information">ArchiveTune uses the official Discord Social SDK to publish Rich Presence. Login uses Discord OAuth in your browser and stores the resulting access and refresh tokens locally for this integration.</string>
     <string name="options">Опции</string>
     <string name="preview">Предпросмотр</string>
     <string name="enable_discord_rpc">Включить Rich Presence</string>

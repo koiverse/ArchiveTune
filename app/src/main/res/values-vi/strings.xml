@@ -518,8 +518,7 @@
     <string name="backup_create_failed">Không thể tạo sao lưu</string>
     <string name="restore_failed">Khôi phục sao lưu thất bại</string>
     <string name="discord_integration">Tích hợp Discord</string>
-    <string name="discord_information">ArchiveTune sử dụng thư viện KizzyRPC để thiết lập trạng thái tài khoản Discord của bạn. Điều này liên quan đến việc sử dụng kết nối Discord Gateway, có thể bị coi là vi phạm TOS của Discord. Tuy nhiên, không có trường hợp nào được biết tài khoản người dùng bị đình chỉ vì lý do này. Sử dụng theo rủi ro của riêng bạn.
-ArchiveTune sẽ chỉ trích xuất token của bạn, và mọi thứ khác được lưu trữ cục bộ.</string>
+    <string name="discord_information">ArchiveTune uses the official Discord Social SDK to publish Rich Presence. Login uses Discord OAuth in your browser and stores the resulting access and refresh tokens locally for this integration.</string>
     <string name="dismiss">Bỏ qua</string>
     <string name="options">Tùy chọn</string>
     <string name="preview">Xem trước</string>

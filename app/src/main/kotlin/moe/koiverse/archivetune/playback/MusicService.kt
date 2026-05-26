@@ -184,7 +184,6 @@ import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.playback.queues.filterExplicit
 import moe.koiverse.archivetune.playback.queues.filterVideo
 import moe.koiverse.archivetune.utils.CoilBitmapLoader
-import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.ui.screens.settings.DiscordPresenceManager
 import moe.koiverse.archivetune.utils.AuthScopedCacheValue
 import moe.koiverse.archivetune.utils.SyncUtils
@@ -526,7 +525,6 @@ class MusicService :
     private var virtualizer: Virtualizer? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
 
-    private var discordRpc: DiscordRPC? = null
     private var lastDiscordUpdateTime = 0L
 
     private var scrobbleManager: moe.koiverse.archivetune.utils.ScrobbleManager? = null
@@ -848,7 +846,7 @@ class MusicService :
             if (song != null && player.playWhenReady && player.playbackState == Player.STATE_READY) {
                 ensurePresenceManager()
             } else {
-                discordRpc?.closeRPC()
+                try { DiscordPresenceManager.stop() } catch (_: Exception) {}
             }
         }
 
@@ -987,25 +985,7 @@ class MusicService :
             .debounce(300)
             .distinctUntilChanged()
             .collectLatest(scope) { (key, enabled) ->
-                val newRpc =
-                    withContext(Dispatchers.IO) {
-                        if (!key.isNullOrBlank() && enabled) {
-                            runCatching { DiscordRPC(this@MusicService, key) }
-                                .onFailure { Timber.tag("MusicService").e(it, "failed to create DiscordRPC client") }
-                                .getOrNull()
-                        } else {
-                            null
-                        }
-                    }
-
-                try {
-                    if (discordRpc?.isRpcRunning() == true) {
-                        withContext(Dispatchers.IO) { discordRpc?.closeRPC() }
-                    }
-                } catch (_: Exception) {}
-                discordRpc = newRpc
-
-                if (discordRpc != null) {
+                if (!key.isNullOrBlank() && enabled) {
                     if (player.playbackState == Player.STATE_READY && player.playWhenReady) {
                         currentSong.value?.let {
                             ensurePresenceManager()
@@ -1013,6 +993,7 @@ class MusicService :
                     }
                 } else {
                     try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+                    lastPresenceToken = null
                 }
             }
 
@@ -1288,7 +1269,7 @@ class MusicService :
             val key: String = dataStore.get(DiscordTokenKey, "")
             if (key.isNullOrBlank()) {
                 if (DiscordPresenceManager.isRunning()) {
-                    Timber.tag("MusicService").d("No Discord token → stopping presence manager")
+                    Timber.tag("MusicService").d("No Discord OAuth session -> stopping presence manager")
                     try { DiscordPresenceManager.stop() } catch (_: Exception) {}
                     lastPresenceToken = null
                 }
@@ -4409,7 +4390,7 @@ class MusicService :
             if (player.playbackState != STATE_IDLE) {
                 player.addMediaItems(mediaItems.drop(1))
             } else {
-                scope.launch { discordRpc?.stopActivity() }
+                try { DiscordPresenceManager.stop() } catch (_: Exception) {}
             }
         }
     }
@@ -5696,10 +5677,6 @@ private fun onMediaItemTransitionInternal() {
             DiscordPresenceManager.stop()
         } catch (_: Exception) {}
         try {
-            discordRpc?.closeRPC()
-        } catch (_: Exception) {}
-        discordRpc = null
-        try {
             connectivityObserver.unregister()
         } catch (_: Exception) {}
         abandonAudioFocus()
@@ -5756,18 +5733,6 @@ private fun onMediaItemTransitionInternal() {
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         // When the user clears the app from Recents, ensure we clear Discord rich presence
-        try {
-            scope.launch {
-                try { discordRpc?.stopActivity() } catch (_: Exception) {}
-            }
-        } catch (_: Exception) {}
-
-        try {
-            if (discordRpc?.isRpcRunning() == true) {
-                try { discordRpc?.closeRPC() } catch (_: Exception) {}
-            }
-        } catch (_: Exception) {}
-        discordRpc = null
         try { DiscordPresenceManager.stop() } catch (_: Exception) {}
         lastPresenceToken = null
 
