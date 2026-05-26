@@ -15,6 +15,8 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -26,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -40,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import coil3.toBitmap
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
@@ -1170,6 +1174,10 @@ fun RichPresence(
 ) {
     val context = LocalContext.current
     val appName = stringResource(R.string.app_name)
+    val artistNameFallback = stringResource(R.string.artist_name)
+    val albumNameFallback = stringResource(R.string.album_name)
+    val songTitleFallback = stringResource(R.string.song_title)
+    val customLargeTextFallback = stringResource(R.string.custom_large_text)
 
     fun resolveUrl(source: String, song: Song?, custom: String): String? {
         return when (source.lowercase()) {
@@ -1183,10 +1191,9 @@ fun RichPresence(
 
     fun previewSourceValue(source: ActivitySource): String {
         return when (source) {
-            ActivitySource.ARTIST -> song?.artists?.firstOrNull()?.name ?: stringResource(R.string.artist_name)
-            ActivitySource.ALBUM -> song?.song?.albumName ?: song?.album?.title ?: stringResource(R.string.album_name)
-            ActivitySource.SONG -> song?.song?.title?.ifBlank { stringResource(R.string.song_title) }
-                ?: stringResource(R.string.song_title)
+            ActivitySource.ARTIST -> song?.artists?.firstOrNull()?.name ?: artistNameFallback
+            ActivitySource.ALBUM -> song?.song?.albumName ?: song?.album?.title ?: albumNameFallback
+            ActivitySource.SONG -> song?.song?.title?.ifBlank { songTitleFallback } ?: songTitleFallback
             ActivitySource.APP -> appName
         }
     }
@@ -1199,7 +1206,7 @@ fun RichPresence(
         "artist" -> previewSourceValue(ActivitySource.ARTIST)
         "album" -> previewSourceValue(ActivitySource.ALBUM)
         "app" -> appName
-        "custom" -> largeTextCustom.ifBlank { stringResource(R.string.custom_large_text) }
+        "custom" -> largeTextCustom.ifBlank { customLargeTextFallback }
         "dontshow" -> null
         else -> previewSourceValue(ActivitySource.ALBUM)
     }
