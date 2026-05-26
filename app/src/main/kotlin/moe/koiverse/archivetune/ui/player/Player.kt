@@ -765,7 +765,7 @@ fun BottomSheetPlayer(
             }
         },
         onDismiss = {
-            playerConnection.service.stopAndClearPlayback()
+            playerConnection.service.stopAndClearPlayback(clearPersistentState = true)
         },
         collapsedContent = {
             MiniPlayer(
