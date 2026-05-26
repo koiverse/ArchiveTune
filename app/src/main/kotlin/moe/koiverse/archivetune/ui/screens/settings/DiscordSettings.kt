@@ -32,11 +32,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.toBitmap
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
@@ -52,6 +56,8 @@ import moe.koiverse.archivetune.ui.component.NumberEditTextPreference
 import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.SwitchPreference
+import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
+import moe.koiverse.archivetune.ui.theme.extractThemeColor
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
@@ -736,6 +742,37 @@ private fun DiscordAccountGroupCard(
     onPrimaryAction: () -> Unit,
     primaryActionEnabled: Boolean,
 ) {
+    val context = LocalContext.current
+    var extractedGlowColor by remember(avatarUrl, isLoggedIn) { mutableStateOf(Color.Transparent) }
+    val avatarGlowColor by animateColorAsState(
+        targetValue = extractedGlowColor,
+        animationSpec = tween(durationMillis = 420),
+        label = "discordAvatarGlow",
+    )
+
+    LaunchedEffect(avatarUrl, isLoggedIn) {
+        if (!isLoggedIn || avatarUrl.isNullOrBlank()) {
+            extractedGlowColor = Color.Transparent
+            return@LaunchedEffect
+        }
+
+        val bitmap = runCatching {
+            context.imageLoader.execute(
+                ImageRequest.Builder(context)
+                    .data(avatarUrl)
+                    .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
+                    .allowHardware(false)
+                    .build(),
+            ).image?.toBitmap()
+        }.getOrNull()
+
+        extractedGlowColor = if (bitmap != null) {
+            withContext(Dispatchers.Default) { bitmap.extractThemeColor() }
+        } else {
+            Color.Transparent
+        }
+    }
+
     val sessionSummary = when (authorizationUiMode) {
         DiscordAuthorizationUiMode.Waiting -> stringResource(R.string.discord_waiting_for_authorization)
         DiscordAuthorizationUiMode.Success -> authorizationMessage ?: stringResource(R.string.discord_authorization_success)
@@ -779,27 +816,39 @@ private fun DiscordAccountGroupCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(
-                    modifier = Modifier.size(88.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+                Box(
+                    modifier = Modifier
+                        .size(88.dp)
+                        .shadow(
+                            elevation = 30.dp,
+                            shape = CircleShape,
+                            clip = false,
+                            ambientColor = avatarGlowColor.copy(alpha = 0.56f),
+                            spotColor = avatarGlowColor.copy(alpha = 0.74f),
+                        ),
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        if (!avatarUrl.isNullOrBlank()) {
-                            AsyncImage(
-                                model = avatarUrl,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape),
-                            )
-                        } else {
-                            Icon(
-                                painter = painterResource(R.drawable.discord),
-                                contentDescription = null,
-                                modifier = Modifier.size(40.dp),
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            if (!avatarUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = avatarUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape),
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(R.drawable.discord),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
                         }
                     }
                 }

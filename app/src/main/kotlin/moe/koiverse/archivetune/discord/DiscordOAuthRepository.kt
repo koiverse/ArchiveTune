@@ -182,9 +182,11 @@ object DiscordOAuthRepository {
             id = userInfo.sub.orEmpty(),
             username = username,
             displayName = displayName,
-            avatarUrl = userInfo.avatar
-                ?.takeIf { it.isNotBlank() }
-                ?.let { avatar -> buildAvatarUrl(userId = userInfo.sub.orEmpty(), avatarHash = avatar) },
+            avatarUrl = buildAvatarUrl(
+                userId = userInfo.sub.orEmpty(),
+                avatarHash = userInfo.avatar,
+                discriminator = userInfo.discriminator,
+            ),
         )
     }
 
@@ -254,14 +256,26 @@ object DiscordOAuthRepository {
 
     private fun buildAvatarUrl(
         userId: String,
-        avatarHash: String,
+        avatarHash: String?,
+        discriminator: String?,
     ): String? {
-        if (userId.isBlank() || avatarHash.isBlank()) {
+        if (userId.isBlank()) {
             return null
         }
 
-        val extension = if (avatarHash.startsWith("a_")) "gif" else "png"
-        return "https://cdn.discordapp.com/avatars/$userId/$avatarHash.$extension?size=256"
+        val normalizedAvatarHash = avatarHash?.takeIf { it.isNotBlank() }
+        if (normalizedAvatarHash != null) {
+            val extension = if (normalizedAvatarHash.startsWith("a_")) "gif" else "png"
+            return "https://cdn.discordapp.com/avatars/$userId/$normalizedAvatarHash.$extension?size=256"
+        }
+
+        val defaultIndex = discriminator
+            ?.toIntOrNull()
+            ?.takeIf { it > 0 }
+            ?.rem(5)
+            ?: userId.toLongOrNull()?.let { ((it shr 22) % 6L).toInt() }
+            ?: 0
+        return "https://cdn.discordapp.com/embed/avatars/$defaultIndex.png"
     }
 
     private fun TokenResponse.toAuthSession(
@@ -369,6 +383,8 @@ object DiscordOAuthRepository {
         val sub: String? = null,
         @SerialName("avatar")
         val avatar: String? = null,
+        @SerialName("discriminator")
+        val discriminator: String? = null,
         @SerialName("preferred_username")
         val preferredUsername: String? = null,
         @SerialName("nickname")
