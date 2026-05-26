@@ -112,6 +112,7 @@ fun DiscordSettings(
     }
     val activityStatusOptions = remember { listOf("online", "dnd", "idle", "streaming") }
     val intervalOptions = remember { listOf("20s", "50s", "1m", "5m", "Custom", "Disabled") }
+    val platformOptions = remember { listOf("desktop", "xbox", "samsung", "ios", "android", "embedded", "ps4", "ps5") }
     val activityOptions = remember {
         listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
     }
@@ -223,6 +224,98 @@ fun DiscordSettings(
         authorizationSession = DiscordOAuthRepository.createAuthorizationSession()
     }
 
+    val (largeImageType, onLargeImageTypeChange) = rememberPreference(
+        key = DiscordLargeImageTypeKey,
+        defaultValue = "thumbnail"
+    )
+    val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
+        key = DiscordLargeImageCustomUrlKey,
+        defaultValue = ""
+    )
+    val (smallImageType, onSmallImageTypeChange) = rememberPreference(
+        key = DiscordSmallImageTypeKey,
+        defaultValue = "artist"
+    )
+    val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
+        key = DiscordSmallImageCustomUrlKey,
+        defaultValue = ""
+    )
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    val (activityStatusSelection, onActivityStatusSelectionChange) = rememberPreference(
+        key = DiscordPresenceStatusKey,
+        defaultValue = "online"
+    )
+    var activityStatusExpanded by remember { mutableStateOf(false) }
+
+    val (intervalSelection, onIntervalSelectionChange) = rememberPreference(
+        key = stringPreferencesKey("discordPresenceIntervalPreset"),
+        defaultValue = "20s"
+    )
+    var intervalExpanded by remember { mutableStateOf(false) }
+
+    val (platformSelection, onPlatformSelectionChange) = rememberPreference(
+        key = DiscordActivityPlatformKey,
+        defaultValue = "android"
+    )
+    var platformExpanded by remember { mutableStateOf(false) }
+
+    val (nameSource, onNameSourceChange) = rememberEnumPreference(
+        key = DiscordActivityNameKey,
+        defaultValue = ActivitySource.APP
+    )
+    val (detailsSource, onDetailsSourceChange) = rememberEnumPreference(
+        key = DiscordActivityDetailsKey,
+        defaultValue = ActivitySource.SONG
+    )
+    val (stateSource, onStateSourceChange) = rememberEnumPreference(
+        key = DiscordActivityStateKey,
+        defaultValue = ActivitySource.ARTIST
+    )
+
+    val (button1Label, onButton1LabelChange) = rememberPreference(
+        key = DiscordActivityButton1LabelKey,
+        defaultValue = "Listen on YouTube Music"
+    )
+    val (button1Enabled, onButton1EnabledChange) = rememberPreference(
+        key = DiscordActivityButton1EnabledKey,
+        defaultValue = true
+    )
+    val (button2Label, onButton2LabelChange) = rememberPreference(
+        key = DiscordActivityButton2LabelKey,
+        defaultValue = "Go to ArchiveTune"
+    )
+    val (button2Enabled, onButton2EnabledChange) = rememberPreference(
+        key = DiscordActivityButton2EnabledKey,
+        defaultValue = true
+    )
+
+    val (activityType, onActivityTypeChange) = rememberPreference(
+        key = DiscordActivityTypeKey,
+        defaultValue = "LISTENING"
+    )
+    var showWhenPaused by rememberPreference(
+        key = DiscordShowWhenPausedKey,
+        defaultValue = false
+    )
+    var activityExpanded by remember { mutableStateOf(false) }
+
+    val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
+        key = DiscordLargeTextSourceKey,
+        defaultValue = "album"
+    )
+    val (largeTextCustom, onLargeTextCustomChange) = rememberPreference(
+        key = DiscordLargeTextCustomKey,
+        defaultValue = ""
+    )
+    var largeImageExpanded by remember { mutableStateOf(false) }
+    var largeTextExpanded by remember { mutableStateOf(false) }
+    var smallImageExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(largeImageType, smallImageType) {
+        ArtworkStorage.removeBySongId(context, song?.song?.id ?: return@LaunchedEffect)
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -325,30 +418,6 @@ fun DiscordSettings(
                 }
             }
 
-        val (largeImageType, onLargeImageTypeChange) = rememberPreference(
-            key = DiscordLargeImageTypeKey,
-            defaultValue = "thumbnail"
-     )
-        val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
-            key = DiscordLargeImageCustomUrlKey,
-            defaultValue = ""
-     )
-        val (smallImageType, onSmallImageTypeChange) = rememberPreference(
-            key = DiscordSmallImageTypeKey,
-            defaultValue = "artist"
-     )
-        val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
-            key = DiscordSmallImageCustomUrlKey,
-            defaultValue = ""
-     )
-
-        // When large/small image selection changes, clear any stored artwork for the current song
-        LaunchedEffect(largeImageType, smallImageType) {
-            ArtworkStorage.removeBySongId(context, song?.song?.id ?: return@LaunchedEffect)
-        }
-
-        var isRefreshing by remember { mutableStateOf(false) }
-
             item {
                 DiscordSettingsPanel(title = stringResource(R.string.options)) {
                     PreferenceEntry(
@@ -396,20 +465,6 @@ fun DiscordSettings(
                 }
             }
 
-        val (activityStatusSelection, onActivityStatusSelectionChange) = rememberPreference(
-            key = DiscordPresenceStatusKey,
-            defaultValue = "online"
-        )
-
-        var activityStatusExpanded by remember { mutableStateOf(false) }
-
-       val (intervalSelection, onIntervalSelectionChange) = rememberPreference(
-           key = stringPreferencesKey("discordPresenceIntervalPreset"),
-           defaultValue = "20s"
-        )
-
-        var intervalExpanded by remember { mutableStateOf(false) }
-
             item {
                 DiscordSettingsPanel(title = stringResource(R.string.discord_connection_settings)) {
                     ExposedDropdownMenuBox(
@@ -428,20 +483,20 @@ fun DiscordSettings(
                             readOnly = true,
                             label = { Text(stringResource(R.string.platform_status)) },
                             trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformExpanded)
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityStatusExpanded)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor()
                                 .padding(horizontal = 13.dp, vertical = 16.dp)
-                                .pointerInput(Unit) { detectTapGestures { platformExpanded = true } },
+                                .pointerInput(Unit) { detectTapGestures { activityStatusExpanded = true } },
                             leadingIcon = { Icon(painterResource(R.drawable.desktop_windows), null) },
                         )
                         ExposedDropdownMenu(
-                            expanded = platformExpanded,
-                            onDismissRequest = { platformExpanded = false },
+                            expanded = activityStatusExpanded,
+                            onDismissRequest = { activityStatusExpanded = false },
                         ) {
-                            platformOptions.forEach { opt ->
+                            activityStatusOptions.forEach { opt ->
                                 DropdownMenuItem(
                                     text = {
                                         Text(
@@ -451,8 +506,8 @@ fun DiscordSettings(
                                         )
                                     },
                                     onClick = {
-                                        onPlatformSelectionChange(opt)
-                                        platformExpanded = false
+                                        onActivityStatusSelectionChange(opt)
+                                        activityStatusExpanded = false
                                     },
                                 )
                             }
@@ -572,66 +627,49 @@ fun DiscordSettings(
                             }
                         }
                     }
+
+                    ExposedDropdownMenuBox(
+                        expanded = platformExpanded,
+                        onExpandedChange = { platformExpanded = it },
+                    ) {
+                        TextField(
+                            value = platformSelection.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.platform_status)) },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformExpanded)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .padding(horizontal = 13.dp, vertical = 16.dp)
+                                .pointerInput(Unit) { detectTapGestures { platformExpanded = true } },
+                            leadingIcon = { Icon(painterResource(R.drawable.desktop_windows), null) },
+                        )
+                        ExposedDropdownMenu(
+                            expanded = platformExpanded,
+                            onDismissRequest = { platformExpanded = false },
+                        ) {
+                            platformOptions.forEach { opt ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            opt.replaceFirstChar {
+                                                if (it.isLowerCase()) it.titlecase() else it.toString()
+                                            },
+                                        )
+                                    },
+                                    onClick = {
+                                        onPlatformSelectionChange(opt)
+                                        platformExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
                 }
             }
-
-        val (nameSource, onNameSourceChange) = rememberEnumPreference(
-            key = DiscordActivityNameKey, defaultValue = ActivitySource.APP
-        )
-        val (detailsSource, onDetailsSourceChange) = rememberEnumPreference(
-            key = DiscordActivityDetailsKey, defaultValue = ActivitySource.SONG
-        )
-        val (stateSource, onStateSourceChange) = rememberEnumPreference(
-            key = DiscordActivityStateKey, defaultValue = ActivitySource.ARTIST
-        )
-
-        ActivitySourceDropdown(
-            title = stringResource(R.string.discord_activity_name),
-            iconRes = R.drawable.text_fields,
-            selected = nameSource,
-            onChange = onNameSourceChange
-        )
-        ActivitySourceDropdown(
-            title = stringResource(R.string.discord_activity_details),
-            iconRes = R.drawable.text_fields,
-            selected = detailsSource,
-            onChange = onDetailsSourceChange
-        )
-        ActivitySourceDropdown(
-            title = stringResource(R.string.discord_activity_state),
-            iconRes = R.drawable.text_fields,
-            selected = stateSource,
-            onChange = onStateSourceChange
-        )
-
-        val (button1Label, onButton1LabelChange) = rememberPreference(
-            key = DiscordActivityButton1LabelKey,
-            defaultValue = "Listen on YouTube Music"
-        )
-        val (button1Enabled, onButton1EnabledChange) = rememberPreference(
-            key = DiscordActivityButton1EnabledKey,
-            defaultValue = true
-        )
-        val (button2Label, onButton2LabelChange) = rememberPreference(
-            key = DiscordActivityButton2LabelKey,
-            defaultValue = "Go to ArchiveTune"
-        )
-        val (button2Enabled, onButton2EnabledChange) = rememberPreference(
-            key = DiscordActivityButton2EnabledKey,
-            defaultValue = true
-        )
-
-        val (activityType, onActivityTypeChange) = rememberPreference(
-            key = DiscordActivityTypeKey,
-            defaultValue = "LISTENING"
-        )
-
-        var showWhenPaused by rememberPreference(
-        key = DiscordShowWhenPausedKey,
-        defaultValue = false
-        )
-
-        var activityExpanded by remember { mutableStateOf(false) }
 
             item {
                 DiscordSettingsPanel(title = stringResource(R.string.discord_activity_content)) {
@@ -698,20 +736,6 @@ fun DiscordSettings(
                     }
                 }
             }
-
-        val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
-            key = DiscordLargeTextSourceKey,
-            defaultValue = "album"
-     )
-        val (largeTextCustom, onLargeTextCustomChange) = rememberPreference(
-            key = DiscordLargeTextCustomKey,
-            defaultValue = ""
-     )
-
-
-            var largeImageExpanded by remember { mutableStateOf(false) }
-            var largeTextExpanded by remember { mutableStateOf(false) }
-            var smallImageExpanded by remember { mutableStateOf(false) }
 
             item {
                 DiscordSettingsPanel(title = stringResource(R.string.discord_image_options)) {
