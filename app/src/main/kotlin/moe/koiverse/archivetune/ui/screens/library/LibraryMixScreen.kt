@@ -103,8 +103,8 @@ import java.text.Collator
 import java.util.Locale
 
 private val LibraryGroupLargeCorner: Dp = 30.dp
-private val LibraryGroupSmallCorner: Dp = 8.dp
-private val LibraryGroupItemSpacing: Dp = 4.dp
+private val LibraryGroupSmallCorner: Dp = 12.dp
+private val LibraryGroupItemSpacing: Dp = 3.dp
 
 private fun librarySegmentedShape(index: Int, count: Int): Shape {
     val large = LibraryGroupLargeCorner
