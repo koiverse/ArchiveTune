@@ -804,10 +804,11 @@ class MusicService :
             val repeatMode = prefs[RepeatModeKey] ?: REPEAT_MODE_OFF
             val volume = (prefs[PlayerVolumeKey] ?: 1f).coerceIn(0f, 1f)
             val offload = prefs[AudioOffload] ?: false
+            val crossfadePrefEnabled = prefs[CrossfadeEnabledKey] ?: false
             withContext(Dispatchers.Main) {
                 player.repeatMode = repeatMode
                 playerVolume.value = volume
-                updateAudioOffload(offload)
+                updateAudioOffload(offload && !crossfadePrefEnabled)
             }
         }
 
@@ -5349,12 +5350,13 @@ private fun onMediaItemTransitionInternal() {
     }
 
     private fun updateAudioOffload(enabled: Boolean) {
+        val effectiveEnabled = enabled && !crossfadeEnabled
         runCatching {
             val builder = player.trackSelectionParameters.buildUpon()
             val audioOffloadPrefsClass = Class.forName("androidx.media3.common.AudioOffloadPreferences")
             val audioOffloadPrefsBuilderClass = Class.forName("androidx.media3.common.AudioOffloadPreferences\$Builder")
 
-            val modeFieldName = if (enabled) "AUDIO_OFFLOAD_MODE_ENABLED" else "AUDIO_OFFLOAD_MODE_DISABLED"
+            val modeFieldName = if (effectiveEnabled) "AUDIO_OFFLOAD_MODE_ENABLED" else "AUDIO_OFFLOAD_MODE_DISABLED"
             val mode = audioOffloadPrefsClass.getField(modeFieldName).getInt(null)
 
             val prefsBuilder = audioOffloadPrefsBuilderClass.getDeclaredConstructor().newInstance()
@@ -5370,7 +5372,7 @@ private fun onMediaItemTransitionInternal() {
                 player.trackSelectionParameters = builder.build()
             }
         }
-        player.setOffloadEnabled(enabled)
+        player.setOffloadEnabled(effectiveEnabled)
     }
 
     private fun updateWakeLock() {
