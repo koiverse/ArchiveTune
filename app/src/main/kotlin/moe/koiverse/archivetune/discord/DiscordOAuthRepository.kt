@@ -26,6 +26,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.constants.DiscordNameKey
+import moe.koiverse.archivetune.constants.DiscordAvatarUrlKey
 import moe.koiverse.archivetune.constants.DiscordRefreshTokenKey
 import moe.koiverse.archivetune.constants.DiscordTokenExpiresAtKey
 import moe.koiverse.archivetune.constants.DiscordTokenKey
@@ -42,6 +43,7 @@ data class DiscordAccount(
     val id: String,
     val username: String,
     val displayName: String,
+    val avatarUrl: String?,
 )
 
 data class DiscordAuthSession(
@@ -180,6 +182,9 @@ object DiscordOAuthRepository {
             id = userInfo.sub.orEmpty(),
             username = username,
             displayName = displayName,
+            avatarUrl = userInfo.avatar
+                ?.takeIf { it.isNotBlank() }
+                ?.let { avatar -> buildAvatarUrl(userId = userInfo.sub.orEmpty(), avatarHash = avatar) },
         )
     }
 
@@ -191,6 +196,7 @@ object DiscordOAuthRepository {
                 prefs.remove(DiscordTokenExpiresAtKey)
                 prefs.remove(DiscordUsernameKey)
                 prefs.remove(DiscordNameKey)
+                prefs.remove(DiscordAvatarUrlKey)
             }
         }
     }
@@ -241,8 +247,21 @@ object DiscordOAuthRepository {
             session.account?.let { account ->
                 prefs[DiscordUsernameKey] = account.username
                 prefs[DiscordNameKey] = account.displayName
+                prefs[DiscordAvatarUrlKey] = account.avatarUrl.orEmpty()
             }
         }
+    }
+
+    private fun buildAvatarUrl(
+        userId: String,
+        avatarHash: String,
+    ): String? {
+        if (userId.isBlank() || avatarHash.isBlank()) {
+            return null
+        }
+
+        val extension = if (avatarHash.startsWith("a_")) "gif" else "png"
+        return "https://cdn.discordapp.com/avatars/$userId/$avatarHash.$extension?size=256"
     }
 
     private fun TokenResponse.toAuthSession(
@@ -348,6 +367,8 @@ object DiscordOAuthRepository {
     private data class UserInfoResponse(
         @SerialName("sub")
         val sub: String? = null,
+        @SerialName("avatar")
+        val avatar: String? = null,
         @SerialName("preferred_username")
         val preferredUsername: String? = null,
         @SerialName("nickname")

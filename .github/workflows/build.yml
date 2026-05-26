@@ -117,7 +117,26 @@ jobs:
           fi
 
       - name: Build Release APK
-        run: ./gradlew ${{ steps.variant.outputs.gradle_task }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_TASK="${{ steps.variant.outputs.gradle_task }}"
+          ABI="${{ matrix.abi }}"
+
+          if [ "$ABI" = "armeabi" ] || [ "$ABI" = "x86" ]; then
+            ./gradlew "$GRADLE_TASK" 2>&1 | python -c '
+import re
+import sys
+
+pattern = re.compile(r"^(WARNING: )?\[CXX5202\] This app only has 32-bit \[(armeabi-v7a|x86)\] native libraries\. Beginning August 1, 2019 Google Play store requires that all apps that include native libraries must provide 64-bit versions\. For more information, visit https://g\.co/64-bit-requirement$")
+
+for line in sys.stdin:
+    if not pattern.match(line.rstrip("\n")):
+        sys.stdout.write(line)
+'
+          else
+            ./gradlew "$GRADLE_TASK"
+          fi
         env:
           PULL_REQUEST: 'false'
           GITHUB_EVENT_NAME: ${{ github.event_name }}

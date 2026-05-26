@@ -43,7 +43,19 @@ jobs:
           fi
 
       - name: Build and Lint Mobile Universal Debug APK
-        run: ./gradlew --console=plain assembleMobileUniversalDebug :app:lintMobileUniversalDebug --warning-mode summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew --console=plain assembleMobileUniversalDebug :app:lintMobileUniversalDebug --warning-mode summary 2>&1 | python -c '
+import re
+import sys
+
+pattern = re.compile(r"^(WARNING: )?\[CXX5202\] This app only has 32-bit \[(armeabi-v7a|x86)\] native libraries\. Beginning August 1, 2019 Google Play store requires that all apps that include native libraries must provide 64-bit versions\. For more information, visit https://g\.co/64-bit-requirement$")
+
+for line in sys.stdin:
+    if not pattern.match(line.rstrip("\n")):
+        sys.stdout.write(line)
+'
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           PULL_REQUEST: "true"

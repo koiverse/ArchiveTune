@@ -415,7 +415,6 @@
     <string name="restore_success">备份成功恢复</string>
     <string name="restore_failed">备份恢复失败</string>
     <string name="discord_integration">Discord 集成</string>
-    <string name="discord_information">ArchiveTune uses the official Discord Social SDK to publish Rich Presence. Login uses Discord OAuth in your browser and stores the resulting access and refresh tokens locally for this integration.</string>
     <string name="options">选项</string>
     <string name="preview">预览</string>
     <string name="scrobbling">Last.fm</string>
