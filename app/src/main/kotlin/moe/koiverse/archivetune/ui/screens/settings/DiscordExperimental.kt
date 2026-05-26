@@ -13,16 +13,11 @@
 
 package moe.koiverse.archivetune.ui.screens.settings
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -30,17 +25,78 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.*
-import moe.koiverse.archivetune.ui.component.ListItem
-import moe.koiverse.archivetune.ui.component.PreferenceEntry
+import moe.koiverse.archivetune.ui.component.EditTextPreference
+import moe.koiverse.archivetune.ui.component.ListPreference
+import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.utils.TranslatorLanguages
 import moe.koiverse.archivetune.utils.rememberPreference
+
+private val DiscordExperimentalButtonUrlOptions =
+    listOf("songurl", "artisturl", "albumurl", "custom")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscordExperimental(
     navController: NavController,
 ) {
+    val context = LocalContext.current
+    val languages = remember(context) { TranslatorLanguages.load(context) }
+    val languageCodes = remember(languages) { languages.map { it.code } }
+    val languageNamesByCode = remember(languages) { languages.associate { it.code to it.name } }
+
+    val (translatorEnabled, onTranslatorEnabledChange) =
+        rememberPreference(key = EnableTranslatorKey, defaultValue = false)
+    val (translatorContexts, onTranslatorContextsChange) =
+        rememberPreference(
+            key = TranslatorContextsKey,
+            defaultValue = "{song}, {artist}, {album}"
+        )
+    val (translatorTargetLang, onTranslatorTargetLangChange) =
+        rememberPreference(key = TranslatorTargetLangKey, defaultValue = "ENGLISH")
+
+    val (button1Label, onButton1LabelChange) =
+        rememberPreference(
+            key = DiscordActivityButton1LabelKey,
+            defaultValue = "Listen on YouTube Music"
+        )
+    val (button1Enabled, onButton1EnabledChange) =
+        rememberPreference(
+            key = DiscordActivityButton1EnabledKey,
+            defaultValue = true
+        )
+    val (button2Label, onButton2LabelChange) =
+        rememberPreference(
+            key = DiscordActivityButton2LabelKey,
+            defaultValue = "Go to ArchiveTune"
+        )
+    val (button2Enabled, onButton2EnabledChange) =
+        rememberPreference(
+            key = DiscordActivityButton2EnabledKey,
+            defaultValue = true
+        )
+
+    val (button1UrlSource, onButton1UrlSourceChange) =
+        rememberPreference(
+            key = DiscordActivityButton1UrlSourceKey,
+            defaultValue = "songurl"
+        )
+    val (button1CustomUrl, onButton1CustomUrlChange) =
+        rememberPreference(
+            key = DiscordActivityButton1CustomUrlKey,
+            defaultValue = ""
+        )
+    val (button2UrlSource, onButton2UrlSourceChange) =
+        rememberPreference(
+            key = DiscordActivityButton2UrlSourceKey,
+            defaultValue = "custom"
+        )
+    val (button2CustomUrl, onButton2CustomUrlChange) =
+        rememberPreference(
+            key = DiscordActivityButton2CustomUrlKey,
+            defaultValue = "https://github.com/koiverse/ArchiveTune"
+        )
+
     Scaffold { inner ->
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
@@ -53,304 +109,144 @@ fun DiscordExperimental(
             )
 
             LazyColumn(
-                modifier = Modifier
-                    .padding(inner.calculateBottomPadding())
-                    .padding(bottom = 80.dp) // extra space for mini player
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    bottom = inner.calculateBottomPadding() + 80.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    Text(
-                        text = stringResource(R.string.translator_options),
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                    )
-
-                    val (translatorEnabled, onTranslatorEnabledChange) =
-                        rememberPreference(key = EnableTranslatorKey, defaultValue = false)
-                    val (translatorContexts, onTranslatorContextsChange) =
-                        rememberPreference(
-                            key = TranslatorContextsKey,
-                            defaultValue = "{song}, {artist}, {album}"
-                        )
-                    val (translatorTargetLang, onTranslatorTargetLangChange) =
-                        rememberPreference(key = TranslatorTargetLangKey, defaultValue = "ENGLISH")
-
-                    SwitchPreference(
-                        title = { Text(stringResource(R.string.enable_translator)) },
-                        description = stringResource(R.string.enable_translator_desc),
-                        icon = { Icon(painterResource(R.drawable.translate), null) },
-                        checked = translatorEnabled,
-                        onCheckedChange = onTranslatorEnabledChange,
-                    )
-
-                    AnimatedVisibility(visible = translatorEnabled) {
-                        Column {
-                            TextField(
-                                value = translatorContexts,
-                                onValueChange = { onTranslatorContextsChange(it) },
-                                label = { Text(stringResource(R.string.context_info)) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                supportingText = {
-                                    Text(stringResource(R.string.translator_info_usage))
-                                }
-                            )
-
-                            var showLangDialog by remember { mutableStateOf(false) }
-                            val context = LocalContext.current
-                            val languages = remember { TranslatorLanguages.load(context) }
-                            val currentLangName =
-                                languages.find { it.code == translatorTargetLang }?.name
-                                    ?: translatorTargetLang
-
-                            PreferenceEntry(
-                                title = { Text(stringResource(R.string.target_language)) },
-                                description = currentLangName,
+                    PreferenceGroup(title = stringResource(R.string.translator_options)) {
+                        item {
+                            SwitchPreference(
+                                title = { Text(stringResource(R.string.enable_translator)) },
+                                description = stringResource(R.string.enable_translator_desc),
                                 icon = { Icon(painterResource(R.drawable.translate), null) },
-                                trailingContent = {
-                                    TextButton(onClick = { showLangDialog = true }, shapes = ButtonDefaults.shapes()) {
-                                        Text(stringResource(R.string.select_dialog))
-                                    }
-                                }
+                                checked = translatorEnabled,
+                                onCheckedChange = onTranslatorEnabledChange,
                             )
+                        }
 
-                            if (showLangDialog) {
-                                AlertDialog(
-                                    onDismissRequest = { showLangDialog = false },
-                                    title = { Text(stringResource(R.string.select_language)) },
-                                    text = {
-                                        LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                                            items(languages) { lang ->
-                                                ListItem(
-                                                    title = lang.name,
-                                                    modifier =
-                                                        Modifier.fillMaxWidth().clickable {
-                                                            onTranslatorTargetLangChange(lang.code)
-                                                            showLangDialog = false
-                                                        },
-                                                    thumbnailContent = {},
-                                                    isActive = (lang.code == translatorTargetLang)
-                                                )
-                                                Divider()
-                                            }
-                                        }
-                                    },
-                                    confirmButton = {
-                                        TextButton(onClick = { showLangDialog = false }, shapes = ButtonDefaults.shapes()) {
-                                            Text(stringResource(R.string.close_dialog))
-                                        }
-                                    }
-                                )
-                            }
+                        item(visible = translatorEnabled) {
+                            EditTextPreference(
+                                title = { Text(stringResource(R.string.context_info)) },
+                                icon = { Icon(painterResource(R.drawable.translate), null) },
+                                value = translatorContexts,
+                                onValueChange = onTranslatorContextsChange,
+                                isInputValid = { true },
+                            )
+                        }
+
+                        item(visible = translatorEnabled) {
+                            ListPreference(
+                                title = { Text(stringResource(R.string.target_language)) },
+                                icon = { Icon(painterResource(R.drawable.translate), null) },
+                                selectedValue = translatorTargetLang,
+                                values = languageCodes,
+                                valueText = { code -> languageNamesByCode[code] ?: code },
+                                onValueSelected = onTranslatorTargetLangChange,
+                            )
                         }
                     }
                 }
 
                 item {
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.discord_button_options),
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                    )
-                }
-
-                item {
-                    val (button1Label, onButton1LabelChange) =
-                        rememberPreference(
-                            key = DiscordActivityButton1LabelKey,
-                            defaultValue = "Listen on YouTube Music"
-                        )
-                    val (button1Enabled, onButton1EnabledChange) =
-                        rememberPreference(
-                            key = DiscordActivityButton1EnabledKey,
-                            defaultValue = true
-                        )
-                    val (button2Label, onButton2LabelChange) =
-                        rememberPreference(
-                            key = DiscordActivityButton2LabelKey,
-                            defaultValue = "Go to ArchiveTune"
-                        )
-                    val (button2Enabled, onButton2EnabledChange) =
-                        rememberPreference(
-                            key = DiscordActivityButton2EnabledKey,
-                            defaultValue = true
-                        )
-
-                    val urlOptions = listOf("songurl", "artisturl", "albumurl", "custom")
-                    val (button1UrlSource, onButton1UrlSourceChange) =
-                        rememberPreference(
-                            key = DiscordActivityButton1UrlSourceKey,
-                            defaultValue = "songurl"
-                        )
-                    val (button1CustomUrl, onButton1CustomUrlChange) =
-                        rememberPreference(
-                            key = DiscordActivityButton1CustomUrlKey,
-                            defaultValue = ""
-                        )
-                    val (button2UrlSource, onButton2UrlSourceChange) =
-                        rememberPreference(
-                            key = DiscordActivityButton2UrlSourceKey,
-                            defaultValue = "custom"
-                        )
-                    val (button2CustomUrl, onButton2CustomUrlChange) =
-                        rememberPreference(
-                            key = DiscordActivityButton2CustomUrlKey,
-                            defaultValue = "https://github.com/koiverse/ArchiveTune"
-                        )
-
-                    PreferenceEntry(
-                        title = { Text(stringResource(R.string.show_button)) },
-                        description = stringResource(R.string.show_button1_description),
-                        icon = { Icon(painterResource(R.drawable.buttons), null) },
-                        trailingContent = {
-                            Switch(
+                    PreferenceGroup(title = stringResource(R.string.discord_button_options)) {
+                        item {
+                            SwitchPreference(
+                                title = { Text(stringResource(R.string.show_button)) },
+                                description = stringResource(R.string.show_button1_description),
+                                icon = { Icon(painterResource(R.drawable.buttons), null) },
                                 checked = button1Enabled,
-                                onCheckedChange = onButton1EnabledChange
+                                onCheckedChange = onButton1EnabledChange,
                             )
                         }
-                    )
 
-                    if (button1Enabled) {
-                        var expanded by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = expanded,
-                            onExpandedChange = { expanded = it }
-                        ) {
-                            TextField(
-                                value = button1UrlSource,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text(stringResource(R.string.discord_activity_button_1_url)) },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                                },
-                                modifier =
-                                    Modifier.fillMaxWidth()
-                                        .menuAnchor()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures { expanded = true }
-                                        }
-                                        .padding(horizontal = 13.dp, vertical = 16.dp),
-                                leadingIcon = { Icon(painterResource(R.drawable.link), null) }
+                        item(visible = button1Enabled) {
+                            ListPreference(
+                                title = { Text(stringResource(R.string.discord_activity_button_1_url)) },
+                                icon = { Icon(painterResource(R.drawable.link), null) },
+                                selectedValue = button1UrlSource,
+                                values = DiscordExperimentalButtonUrlOptions,
+                                valueText = { discordExperimentalButtonUrlSourceLabel(it) },
+                                onValueSelected = onButton1UrlSourceChange,
                             )
-                            ExposedDropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                urlOptions.forEach { opt ->
-                                    val display =
-                                        when (opt) {
-                                            "songurl" -> "Song URL"
-                                            "artisturl" -> "Artist URL"
-                                            "albumurl" -> "Album URL"
-                                            "custom" -> "Custom URL"
-                                            else -> opt
-                                        }
-                                    DropdownMenuItem(
-                                        text = { Text(display) },
-                                        onClick = {
-                                            onButton1UrlSourceChange(opt)
-                                            expanded = false
-                                        }
-                                    )
-                                }
-                            }
                         }
-                        EditablePreference(
-                            title = stringResource(R.string.discord_activity_button1_label),
-                            iconRes = R.drawable.buttons,
-                            value = button1Label,
-                            defaultValue = "Listen on YouTube Music",
-                            onValueChange = onButton1LabelChange
-                        )
-                        if (button1UrlSource == "custom") {
-                            EditablePreference(
-                                title = stringResource(R.string.discord_activity_button1_url),
-                                iconRes = R.drawable.link,
+
+                        item(visible = button1Enabled) {
+                            EditTextPreference(
+                                title = { Text(stringResource(R.string.discord_activity_button1_label)) },
+                                icon = { Icon(painterResource(R.drawable.buttons), null) },
+                                value = button1Label,
+                                onValueChange = onButton1LabelChange,
+                                isInputValid = { true },
+                            )
+                        }
+
+                        item(visible = button1Enabled && button1UrlSource == "custom") {
+                            EditTextPreference(
+                                title = { Text(stringResource(R.string.discord_activity_button1_url)) },
+                                icon = { Icon(painterResource(R.drawable.link), null) },
                                 value = button1CustomUrl,
-                                defaultValue = "",
-                                onValueChange = onButton1CustomUrlChange
+                                onValueChange = onButton1CustomUrlChange,
+                                isInputValid = { true },
                             )
                         }
-                    }
 
-                    PreferenceEntry(
-                        title = { Text(stringResource(R.string.show_button)) },
-                        description = stringResource(R.string.show_button2_description),
-                        icon = { Icon(painterResource(R.drawable.buttons), null) },
-                        trailingContent = {
-                            Switch(
+                        item {
+                            SwitchPreference(
+                                title = { Text(stringResource(R.string.show_button)) },
+                                description = stringResource(R.string.show_button2_description),
+                                icon = { Icon(painterResource(R.drawable.buttons), null) },
                                 checked = button2Enabled,
-                                onCheckedChange = onButton2EnabledChange
+                                onCheckedChange = onButton2EnabledChange,
                             )
                         }
-                    )
 
-                    if (button2Enabled) {
-                        var expanded2 by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = expanded2,
-                            onExpandedChange = { expanded2 = it }
-                        ) {
-                            TextField(
-                                value = button2UrlSource,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text(stringResource(R.string.discord_activity_button_2_url)) },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2)
-                                },
-                                modifier =
-                                    Modifier.fillMaxWidth()
-                                        .menuAnchor()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures { expanded2 = true }
-                                        }
-                                        .padding(horizontal = 13.dp, vertical = 16.dp),
-                                leadingIcon = { Icon(painterResource(R.drawable.link), null) }
+                        item(visible = button2Enabled) {
+                            ListPreference(
+                                title = { Text(stringResource(R.string.discord_activity_button_2_url)) },
+                                icon = { Icon(painterResource(R.drawable.link), null) },
+                                selectedValue = button2UrlSource,
+                                values = DiscordExperimentalButtonUrlOptions,
+                                valueText = { discordExperimentalButtonUrlSourceLabel(it) },
+                                onValueSelected = onButton2UrlSourceChange,
                             )
-                            ExposedDropdownMenu(
-                                expanded = expanded2,
-                                onDismissRequest = { expanded2 = false }
-                            ) {
-                                urlOptions.forEach { opt ->
-                                    val display =
-                                        when (opt) {
-                                            "songurl" -> "Song URL"
-                                            "artisturl" -> "Artist URL"
-                                            "albumurl" -> "Album URL"
-                                            "custom" -> "Custom URL"
-                                            else -> opt
-                                        }
-                                    DropdownMenuItem(
-                                        text = { Text(display) },
-                                        onClick = {
-                                            onButton2UrlSourceChange(opt)
-                                            expanded2 = false
-                                        }
-                                    )
-                                }
-                            }
                         }
-                        EditablePreference(
-                            title = stringResource(R.string.discord_activity_button2_label),
-                            iconRes = R.drawable.buttons,
-                            value = button2Label,
-                            defaultValue = "Go to ArchiveTune",
-                            onValueChange = onButton2LabelChange
-                        )
-                        if (button2UrlSource == "custom") {
-                            EditablePreference(
-                                title = stringResource(R.string.discord_activity_button2_url),
-                                iconRes = R.drawable.link,
+
+                        item(visible = button2Enabled) {
+                            EditTextPreference(
+                                title = { Text(stringResource(R.string.discord_activity_button2_label)) },
+                                icon = { Icon(painterResource(R.drawable.buttons), null) },
+                                value = button2Label,
+                                onValueChange = onButton2LabelChange,
+                                isInputValid = { true },
+                            )
+                        }
+
+                        item(visible = button2Enabled && button2UrlSource == "custom") {
+                            EditTextPreference(
+                                title = { Text(stringResource(R.string.discord_activity_button2_url)) },
+                                icon = { Icon(painterResource(R.drawable.link), null) },
                                 value = button2CustomUrl,
-                                defaultValue = "",
-                                onValueChange = onButton2CustomUrlChange
+                                onValueChange = onButton2CustomUrlChange,
+                                isInputValid = { true },
                             )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun discordExperimentalButtonUrlSourceLabel(value: String): String {
+    return when (value) {
+        "songurl" -> stringResource(R.string.discord_url_source_song)
+        "artisturl" -> stringResource(R.string.discord_url_source_artist)
+        "albumurl" -> stringResource(R.string.discord_url_source_album)
+        "custom" -> stringResource(R.string.discord_url_source_custom)
+        else -> value
     }
 }
