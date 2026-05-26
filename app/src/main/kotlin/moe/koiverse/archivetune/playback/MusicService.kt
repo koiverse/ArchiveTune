@@ -247,6 +247,7 @@ import java.net.UnknownHostException
 import java.time.LocalDateTime
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import kotlin.math.PI
 import kotlin.math.cos
@@ -363,8 +364,13 @@ class MusicService :
     private var currentQueue: Queue = EmptyQueue
     var queueTitle: String? = null
     private val persistentStateLock = Any()
+    private val persistentSaveGeneration = AtomicLong(0L)
     @Volatile
     private var isRestoringPersistentState = false
+    @Volatile
+    private var isHydratingRestoredQueue = false
+    private val restoredQueueHydrationGeneration = AtomicLong(0L)
+    private var restoredQueueBackfillJob: Job? = null
     @Volatile
     private var suppressAutoPlayback = false
     private var lastPresenceToken: String? = null
@@ -1083,12 +1089,14 @@ class MusicService :
                         isRestoringPersistentState = true
                     }
 
+                    var restoredQueue = false
                     try {
                         persistedQueue?.let { queue ->
                             restorePersistentQueue(queue)
+                            restoredQueue = true
                         }
                         persistedPlayerState?.let { playerState ->
-                            restorePersistentPlayerState(playerState)
+                            restorePersistentPlayerState(playerState, restoredQueue)
                         }
                     } finally {
                         isRestoringPersistentState = false
@@ -1098,6 +1106,7 @@ class MusicService :
                 if (error is CancellationException) throw error
                 Timber.tag(TAG).w(error, "Failed to restore persisted queue, clearing data")
                 isRestoringPersistentState = false
+                cancelRestoredQueueHydration()
                 clearPersistedQueueFiles()
             }
             withContext(Dispatchers.Main) {
@@ -1144,7 +1153,18 @@ class MusicService :
         }
     }
 
+    private fun cancelRestoredQueueHydration() {
+        restoredQueueHydrationGeneration.incrementAndGet()
+        restoredQueueBackfillJob?.cancel()
+        restoredQueueBackfillJob = null
+        isHydratingRestoredQueue = false
+    }
+
     private suspend fun restorePersistentQueue(persistedQueue: PersistQueue) {
+        cancelRestoredQueueHydration()
+        val hydrationGeneration = restoredQueueHydrationGeneration.incrementAndGet()
+        isHydratingRestoredQueue = true
+
         val itemQueue = persistedQueue.toQueue()
         val continuationQueue = persistedQueue.toContinuationQueue()
         val hideExplicit = dataStore.get(HideExplicitKey, false)
@@ -1161,6 +1181,9 @@ class MusicService :
 
             val items = initialStatus.items
             if (items.isEmpty()) {
+                if (hydrationGeneration == restoredQueueHydrationGeneration.get()) {
+                    isHydratingRestoredQueue = false
+                }
                 return@withContext
             }
 
@@ -1182,21 +1205,39 @@ class MusicService :
             updateNotification()
 
             if (items.size > initialChunk.size) {
-                scope.launch(SilentHandler) {
-                    delay(2000)
-                    if (!isActive || player.mediaItemCount == 0) return@launch
-                    if (windowStart > 0) {
-                        player.addMediaItems(0, items.subList(0, windowStart))
+                restoredQueueBackfillJob =
+                    scope.launch(SilentHandler) {
+                        try {
+                            delay(2000)
+                            if (!isActive || player.mediaItemCount == 0) return@launch
+                            if (windowStart > 0) {
+                                player.addMediaItems(0, items.subList(0, windowStart))
+                            }
+                            if (windowEnd < items.size) {
+                                player.addMediaItems(items.subList(windowEnd, items.size))
+                            }
+                        } finally {
+                            if (hydrationGeneration == restoredQueueHydrationGeneration.get()) {
+                                isHydratingRestoredQueue = false
+                                restoredQueueBackfillJob = null
+                                if (isActive && dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                                    saveQueueToDisk()
+                                }
+                            }
+                        }
                     }
-                    if (windowEnd < items.size) {
-                        player.addMediaItems(items.subList(windowEnd, items.size))
-                    }
+            } else {
+                if (hydrationGeneration == restoredQueueHydrationGeneration.get()) {
+                    isHydratingRestoredQueue = false
                 }
             }
         }
     }
 
-    private suspend fun restorePersistentPlayerState(playerState: PersistPlayerState) {
+    private suspend fun restorePersistentPlayerState(
+        playerState: PersistPlayerState,
+        restoredQueue: Boolean,
+    ) {
         withContext(Dispatchers.Main) {
             player.repeatMode = playerState.repeatMode
             player.shuffleModeEnabled = playerState.shuffleModeEnabled
@@ -1204,10 +1245,13 @@ class MusicService :
 
             if (player.mediaItemCount > 0) {
                 val index =
-                    if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
-                        playerState.currentMediaItemIndex
-                    } else {
-                        player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
+                    when {
+                        restoredQueue ->
+                            player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
+                        playerState.currentMediaItemIndex in 0 until player.mediaItemCount ->
+                            playerState.currentMediaItemIndex
+                        else ->
+                            player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
                     }
                 player.seekTo(index, playerState.currentPosition.coerceAtLeast(0L))
             }
@@ -2297,6 +2341,7 @@ class MusicService :
             promoteToStartedService()
             ensureStartedAsForeground()
         }
+        cancelRestoredQueueHydration()
         ensureScopesActive()
         cancelCrossfade(resetVolume = true, resetPauseAtEnd = true)
         suppressAutoPlayback = false
@@ -2540,7 +2585,8 @@ class MusicService :
         }
     }
 
-    fun stopAndClearPlayback() {
+    fun stopAndClearPlayback(clearPersistentState: Boolean = false) {
+        cancelRestoredQueueHydration()
         suppressAutoPlayback = true
         cancelCrossfade(resetVolume = true, resetPauseAtEnd = true)
         clearAutomix()
@@ -2554,6 +2600,9 @@ class MusicService :
         abandonAudioFocus()
         closeAudioEffectSession()
         consecutivePlaybackErr = 0
+        if (clearPersistentState) {
+            clearPersistedQueueFiles()
+        }
     }
 
     fun playNext(items: List<MediaItem>) {
@@ -5476,6 +5525,7 @@ private fun onMediaItemTransitionInternal() {
     }
 
     private fun clearPersistedQueueFiles() {
+        persistentSaveGeneration.incrementAndGet()
         synchronized(persistentStateLock) {
             listOf(
                 PERSISTENT_QUEUE_FILE,
@@ -5512,11 +5562,13 @@ private fun onMediaItemTransitionInternal() {
                     fos.fd.sync()
                 }
 
-                if (persistentFile.exists() && !persistentFile.delete()) {
-                    error("Could not replace $fileName")
-                }
                 if (!tempFile.renameTo(persistentFile)) {
-                    error("Could not atomically move $fileName")
+                    if (persistentFile.exists() && !persistentFile.delete()) {
+                        error("Could not replace $fileName")
+                    }
+                    if (!tempFile.renameTo(persistentFile)) {
+                        error("Could not atomically move $fileName")
+                    }
                 }
             }.onFailure {
                 runCatching { tempFile.delete() }
@@ -5571,41 +5623,46 @@ private fun onMediaItemTransitionInternal() {
     }
 
     private suspend fun saveQueueToDisk() {
-        if (isRestoringPersistentState) return
+        val saveGeneration = persistentSaveGeneration.get()
+        val snapshot =
+            withContext(Dispatchers.Main.immediate) {
+                if (
+                    saveGeneration != persistentSaveGeneration.get() ||
+                    isRestoringPersistentState ||
+                    isHydratingRestoredQueue
+                ) {
+                    return@withContext null
+                }
 
-        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
-        if (mediaItemsSnapshot.isEmpty()) return
+                val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
+                if (mediaItemsSnapshot.isEmpty()) return@withContext null
 
-        val currentMediaItemIndex = player.currentMediaItemIndex
-        val currentPosition = player.currentPosition
-        val playWhenReady = player.playWhenReady
-        val repeatMode = player.repeatMode
-        val shuffleModeEnabled = player.shuffleModeEnabled
-        val volume = playerVolume.value
-        val playbackState = player.playbackState
+                val currentMediaItemIndex = player.currentMediaItemIndex
+                val currentPosition = player.currentPosition
+                val persistQueue = currentQueue.toPersistQueue(
+                    title = queueTitle,
+                    items = mediaItemsSnapshot,
+                    mediaItemIndex = currentMediaItemIndex,
+                    position = currentPosition,
+                )
+                val persistPlayerState = PersistPlayerState(
+                    playWhenReady = player.playWhenReady,
+                    repeatMode = player.repeatMode,
+                    shuffleModeEnabled = player.shuffleModeEnabled,
+                    volume = playerVolume.value,
+                    currentPosition = currentPosition,
+                    currentMediaItemIndex = currentMediaItemIndex,
+                    playbackState = player.playbackState,
+                )
+
+                persistQueue to persistPlayerState
+            } ?: return
 
         withContext(Dispatchers.IO) {
-            // Save current queue with proper type information
-            val persistQueue = currentQueue.toPersistQueue(
-                title = queueTitle,
-                items = mediaItemsSnapshot,
-                mediaItemIndex = currentMediaItemIndex,
-                position = currentPosition
-            )
-            
-            // Save player state
-            val persistPlayerState = PersistPlayerState(
-                playWhenReady = playWhenReady,
-                repeatMode = repeatMode,
-                shuffleModeEnabled = shuffleModeEnabled,
-                volume = volume,
-                currentPosition = currentPosition,
-                currentMediaItemIndex = currentMediaItemIndex, // Redundant but part of data class
-                playbackState = playbackState
-            )
-            
-            writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
-            writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
+            if (saveGeneration != persistentSaveGeneration.get()) return@withContext
+            writePersistentObject(PERSISTENT_QUEUE_FILE, snapshot.first)
+            if (saveGeneration != persistentSaveGeneration.get()) return@withContext
+            writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, snapshot.second)
         }
     }
 
