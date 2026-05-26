@@ -94,16 +94,24 @@ enum class DiscordOnlineStatus(val nativeValue: Int) {
 
 enum class DiscordActivityPlatform(val bit: Int) {
     Desktop(1),
+    Xbox(2),
+    Samsung(4),
     Ios(8),
     Android(16),
-    Embedded(32);
+    Embedded(32),
+    Ps4(64),
+    Ps5(128);
 
     companion object {
         fun fromPreference(value: String): Int =
             when (value.lowercase()) {
                 "desktop" -> Desktop.bit
+                "xbox" -> Xbox.bit
+                "samsung" -> Samsung.bit
                 "ios" -> Ios.bit
                 "web", "embedded" -> Embedded.bit
+                "ps4" -> Ps4.bit
+                "ps5" -> Ps5.bit
                 else -> Android.bit
             }
     }
