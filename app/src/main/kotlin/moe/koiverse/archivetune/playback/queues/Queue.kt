@@ -35,20 +35,42 @@ interface Queue {
     ) {
         fun filterExplicit(enabled: Boolean = true) =
             if (enabled) {
-                copy(
-                    items = items.filterExplicit(),
-                )
+                filterItems { it.metadata?.explicit != true }
             } else {
                 this
             }
         fun filterVideo(enabled: Boolean = true) =
             if (enabled) {
-                copy(
-                    items = items.filterVideo(),
-                )
+                filterItems { it.mediaMetadata.extras?.getBoolean(ExtraIsMusicVideo, false) != true }
             } else {
                 this
             }
+
+        private inline fun filterItems(keep: (MediaItem) -> Boolean): Status {
+            if (items.isEmpty()) return this
+
+            val currentIndex = mediaItemIndex.coerceIn(items.indices)
+            var filteredIndex = 0
+            val filteredItems = buildList(items.size) {
+                items.forEachIndexed { index, item ->
+                    if (keep(item)) {
+                        if (index < currentIndex) {
+                            filteredIndex++
+                        }
+                        add(item)
+                    }
+                }
+            }
+
+            if (filteredItems.isEmpty()) {
+                return copy(items = emptyList(), mediaItemIndex = 0)
+            }
+
+            return copy(
+                items = filteredItems,
+                mediaItemIndex = filteredIndex.coerceIn(filteredItems.indices),
+            )
+        }
     }
 }
 
