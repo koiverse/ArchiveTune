@@ -81,6 +81,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
@@ -106,8 +107,14 @@ import androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING
 import androidx.media3.exoplayer.offline.Download.STATE_QUEUED
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
+import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
+import coil3.toBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
+import moe.koiverse.archivetune.ui.theme.extractThemeColor
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.AlbumItem
@@ -926,6 +933,27 @@ fun LibraryPlaylistFeatureCard(
     val subtitleText = playlistCountText(playlist = playlist, autoPlaylist = autoPlaylist)
     val thumbnailSize = LibraryCardThumbnailSize
     val thumbnailShape = RoundedCornerShape(18.dp)
+    val context = LocalContext.current
+    val primaryThumbnailUrl = playlist.thumbnails.getOrNull(0)
+    var extractedGlowColor by remember(primaryThumbnailUrl) { mutableStateOf(Color.Transparent) }
+    val glowColor by animateColorAsState(
+        targetValue = extractedGlowColor,
+        animationSpec = tween(400),
+        label = "playlistItemGlow",
+    )
+    LaunchedEffect(primaryThumbnailUrl) {
+        if (primaryThumbnailUrl == null) return@LaunchedEffect
+        val bitmap = runCatching {
+            context.imageLoader.execute(
+                ImageRequest.Builder(context)
+                    .data(primaryThumbnailUrl)
+                    .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
+                    .allowHardware(false)
+                    .build()
+            ).image?.toBitmap()
+        }.getOrNull() ?: return@LaunchedEffect
+        extractedGlowColor = withContext(Dispatchers.Default) { bitmap.extractThemeColor() }
+    }
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         shape = shape,
@@ -937,19 +965,31 @@ fun LibraryPlaylistFeatureCard(
                 .fillMaxWidth()
                 .padding(12.dp),
         ) {
-            PlaylistThumbnail(
-                thumbnails = playlist.thumbnails,
-                size = thumbnailSize,
-                placeHolder = {
-                    Icon(
-                        painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
-                        contentDescription = null,
-                        tint = LocalContentColor.current.copy(alpha = 0.8f),
-                        modifier = Modifier.size(thumbnailSize / 2),
+            Box(
+                modifier = Modifier
+                    .size(thumbnailSize)
+                    .shadow(
+                        elevation = 16.dp,
+                        shape = thumbnailShape,
+                        clip = false,
+                        ambientColor = glowColor.copy(alpha = 0.5f),
+                        spotColor = glowColor.copy(alpha = 0.72f),
                     )
-                },
-                shape = thumbnailShape,
-            )
+            ) {
+                PlaylistThumbnail(
+                    thumbnails = playlist.thumbnails,
+                    size = thumbnailSize,
+                    placeHolder = {
+                        Icon(
+                            painter = painterResource(playlistPlaceholderIcon(playlist, autoPlaylist)),
+                            contentDescription = null,
+                            tint = LocalContentColor.current.copy(alpha = 0.8f),
+                            modifier = Modifier.size(thumbnailSize / 2),
+                        )
+                    },
+                    shape = thumbnailShape,
+                )
+            }
             Spacer(Modifier.width(16.dp))
             Column(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -995,6 +1035,26 @@ fun LibraryAlbumSpotlightCard(
         album.artists.joinToString { it.name },
         pluralStringResource(R.plurals.n_song, album.album.songCount, album.album.songCount),
     )
+    val context = LocalContext.current
+    var extractedGlowColor by remember(album.album.thumbnailUrl) { mutableStateOf(Color.Transparent) }
+    val glowColor by animateColorAsState(
+        targetValue = extractedGlowColor,
+        animationSpec = tween(400),
+        label = "albumItemGlow",
+    )
+    LaunchedEffect(album.album.thumbnailUrl) {
+        val url = album.album.thumbnailUrl ?: return@LaunchedEffect
+        val bitmap = runCatching {
+            context.imageLoader.execute(
+                ImageRequest.Builder(context)
+                    .data(url)
+                    .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
+                    .allowHardware(false)
+                    .build()
+            ).image?.toBitmap()
+        }.getOrNull() ?: return@LaunchedEffect
+        extractedGlowColor = withContext(Dispatchers.Default) { bitmap.extractThemeColor() }
+    }
 
     Card(
         shape = shape,
@@ -1013,7 +1073,17 @@ fun LibraryAlbumSpotlightCard(
                 .fillMaxWidth()
                 .padding(12.dp),
         ) {
-            Box(modifier = Modifier.size(LibraryCardThumbnailSize)) {
+            Box(
+                modifier = Modifier
+                    .size(LibraryCardThumbnailSize)
+                    .shadow(
+                        elevation = 16.dp,
+                        shape = RoundedCornerShape(18.dp),
+                        clip = false,
+                        ambientColor = glowColor.copy(alpha = 0.5f),
+                        spotColor = glowColor.copy(alpha = 0.72f),
+                    )
+            ) {
                 LocalThumbnail(
                     thumbnailUrl = album.album.thumbnailUrl,
                     isActive = isActive,
@@ -1070,6 +1140,26 @@ fun LibraryArtistSpotlightCard(
     shape: Shape = RoundedCornerShape(26.dp),
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
+    val context = LocalContext.current
+    var extractedGlowColor by remember(artist.artist.thumbnailUrl) { mutableStateOf(Color.Transparent) }
+    val glowColor by animateColorAsState(
+        targetValue = extractedGlowColor,
+        animationSpec = tween(400),
+        label = "artistItemGlow",
+    )
+    LaunchedEffect(artist.artist.thumbnailUrl) {
+        val url = artist.artist.thumbnailUrl ?: return@LaunchedEffect
+        val bitmap = runCatching {
+            context.imageLoader.execute(
+                ImageRequest.Builder(context)
+                    .data(url)
+                    .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
+                    .allowHardware(false)
+                    .build()
+            ).image?.toBitmap()
+        }.getOrNull() ?: return@LaunchedEffect
+        extractedGlowColor = withContext(Dispatchers.Default) { bitmap.extractThemeColor() }
+    }
     Card(
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -1081,13 +1171,25 @@ fun LibraryArtistSpotlightCard(
                 .fillMaxWidth()
                 .padding(12.dp),
         ) {
-            LocalThumbnail(
-                thumbnailUrl = artist.artist.thumbnailUrl,
-                isActive = false,
-                isPlaying = false,
-                shape = CircleShape,
-                modifier = Modifier.size(LibraryCardThumbnailSize),
-            )
+            Box(
+                modifier = Modifier
+                    .size(LibraryCardThumbnailSize)
+                    .shadow(
+                        elevation = 16.dp,
+                        shape = CircleShape,
+                        clip = false,
+                        ambientColor = glowColor.copy(alpha = 0.5f),
+                        spotColor = glowColor.copy(alpha = 0.72f),
+                    )
+            ) {
+                LocalThumbnail(
+                    thumbnailUrl = artist.artist.thumbnailUrl,
+                    isActive = false,
+                    isPlaying = false,
+                    shape = CircleShape,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             Spacer(Modifier.width(16.dp))
             Column(
                 verticalArrangement = Arrangement.spacedBy(6.dp),

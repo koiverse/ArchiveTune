@@ -102,8 +102,8 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.text.Collator
 import java.util.Locale
 
-private val LibraryGroupLargeCorner: Dp = 28.dp
-private val LibraryGroupSmallCorner: Dp = 6.dp
+private val LibraryGroupLargeCorner: Dp = 30.dp
+private val LibraryGroupSmallCorner: Dp = 8.dp
 private val LibraryGroupItemSpacing: Dp = 4.dp
 
 private fun librarySegmentedShape(index: Int, count: Int): Shape {
