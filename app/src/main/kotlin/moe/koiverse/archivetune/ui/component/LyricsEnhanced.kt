@@ -323,7 +323,7 @@ fun LyricsEnhanced(
             )
             if (index in syncedLyrics.lines.indices) {
                 val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
-                listState.animateScrollToItem(index, -(viewportHeight * 0.42f).roundToInt())
+                listState.animateScrollToItem(index, (viewportHeight * 0.42f).roundToInt())
             }
         }
     }
@@ -335,7 +335,7 @@ fun LyricsEnhanced(
         val index = syncedLyrics.getCurrentFirstHighlightLineIndexByTime(focusedPosition())
         if (index !in syncedLyrics.lines.indices) return@LaunchedEffect
         val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
-        listState.scrollToItem(index, -(viewportHeight * 0.42f).roundToInt())
+        listState.scrollToItem(index, (viewportHeight * 0.42f).roundToInt())
     }
 
     BackHandler(enabled = isSelectionModeActive) {
@@ -473,7 +473,7 @@ fun LyricsEnhanced(
                                 )
                                 if (firstIndex in syncedLyrics.lines.indices) {
                                     val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
-                                    listState.animateScrollToItem(firstIndex, -(viewportHeight * 0.42f).roundToInt())
+                                    listState.animateScrollToItem(firstIndex, (viewportHeight * 0.42f).roundToInt())
                                 }
                             }
                         },
