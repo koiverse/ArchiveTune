@@ -23,6 +23,7 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import moe.koiverse.archivetune.db.MusicDatabase
+import moe.koiverse.archivetune.extensions.currentMetadata
 import moe.koiverse.archivetune.extensions.getCurrentQueueIndex
 import moe.koiverse.archivetune.extensions.getQueueWindows
 import moe.koiverse.archivetune.extensions.metadata
