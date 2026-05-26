@@ -1693,7 +1693,7 @@ class MusicService :
         return crossfadePlayer.playbackState == Player.STATE_READY
     }
 
-    private fun finishCrossfade(
+    private suspend fun finishCrossfade(
         target: CrossfadeTarget,
         incomingPlayer: ExoPlayer,
     ) {
@@ -1720,6 +1720,21 @@ class MusicService :
             ignoreNextCrossfadeSeekDiscontinuity = false
         }
         player.playWhenReady = shouldContinuePlayback
+        if (shouldContinuePlayback) {
+            awaitPrimaryCrossfadeHandoffReady(CROSSFADE_HANDOFF_READY_TIMEOUT_MS)
+            val syncedIncomingPosition = incomingPlayer.currentPosition.coerceAtLeast(0L)
+            applyingCrossfadeSeek = true
+            ignoreNextCrossfadeSeekDiscontinuity = true
+            try {
+                player.seekTo(targetIndex, syncedIncomingPosition)
+            } finally {
+                applyingCrossfadeSeek = false
+            }
+            scope.launch {
+                delay(500L)
+                ignoreNextCrossfadeSeekDiscontinuity = false
+            }
+        }
         currentMediaMetadata.value = player.getMediaItemAt(targetIndex).metadata
 
         isCrossfading = false
@@ -1728,6 +1743,20 @@ class MusicService :
         releaseSecondaryCrossfadePlayer()
         applyEffectiveVolume()
         scheduleCrossfade()
+    }
+
+    private suspend fun awaitPrimaryCrossfadeHandoffReady(timeoutMs: Long): Boolean {
+        val deadlineMs = android.os.SystemClock.elapsedRealtime() + timeoutMs
+        while (kotlinx.coroutines.currentCoroutineContext().isActive && android.os.SystemClock.elapsedRealtime() < deadlineMs) {
+            if (player.playbackState == Player.STATE_READY) {
+                return true
+            }
+            if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) {
+                return false
+            }
+            delay(25L)
+        }
+        return player.playbackState == Player.STATE_READY
     }
 
     private fun resolveCrossfadeTargetIndex(target: CrossfadeTarget): Int {
@@ -5977,6 +6006,7 @@ private fun onMediaItemTransitionInternal() {
         const val CROSSFADE_END_GUARD_MS = 150L
         const val CROSSFADE_PREPARE_AHEAD_MS = 15_000L
         const val CROSSFADE_READY_TIMEOUT_MS = 3_000L
+        const val CROSSFADE_HANDOFF_READY_TIMEOUT_MS = 2_000L
         const val CROSSFADE_FRAME_MS = 32L
     }
 }
