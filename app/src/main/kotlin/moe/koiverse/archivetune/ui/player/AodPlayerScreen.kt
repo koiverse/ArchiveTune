@@ -84,6 +84,7 @@ import moe.koiverse.archivetune.constants.AodThumbnailShapeRotationKey
 import moe.koiverse.archivetune.constants.AodThumbnailSizeKey
 import moe.koiverse.archivetune.constants.AodTitleMaxLinesKey
 import moe.koiverse.archivetune.constants.AodVerticalSpacingKey
+import moe.koiverse.archivetune.ui.utils.supportsArtworkGlowShadow
 import moe.koiverse.archivetune.ui.utils.toComposeShape
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -138,6 +139,7 @@ fun AodPlayerScreen(
     val (ambientIntensity) = rememberPreference(AodAmbientIntensityKey, 0.18f)
     val accentColor =
         if (accentStyle == AodAccentStyle.THEME) MaterialTheme.colorScheme.primary else Color.White
+    val supportsArtworkGlowShadow = thumbnailShapeType.supportsArtworkGlowShadow()
     val thumbnailShape = thumbnailShapeType.toComposeShape(
         cornerRadius = thumbnailCornerRadius,
         startAngle = thumbnailShapeRotation,
@@ -203,7 +205,7 @@ fun AodPlayerScreen(
                         .align(Alignment.CenterHorizontally)
                         .size(artworkSize)
                         .then(
-                            if (artworkGlow) {
+                            if (artworkGlow && supportsArtworkGlowShadow) {
                                 Modifier.shadow(
                                     elevation = 28.dp,
                                     shape = thumbnailShape,

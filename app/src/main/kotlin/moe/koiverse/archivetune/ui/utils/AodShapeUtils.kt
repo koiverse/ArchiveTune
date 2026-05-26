@@ -21,6 +21,17 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import moe.koiverse.archivetune.constants.AodThumbnailShape
 
+fun AodThumbnailShape.supportsArtworkGlowShadow(): Boolean =
+    when (this) {
+        AodThumbnailShape.FLOWER,
+        AodThumbnailShape.CLOVER_4,
+        AodThumbnailShape.COOKIE_6,
+        AodThumbnailShape.COOKIE_9,
+        AodThumbnailShape.SUNNY,
+        AodThumbnailShape.SOFT_BURST -> false
+        else -> true
+    }
+
 @Composable
 fun AodThumbnailShape.toComposeShape(
     cornerRadius: Float,

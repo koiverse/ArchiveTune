@@ -89,7 +89,7 @@
     <string name="aod_customize_show_controls">Show controls</string>
     <string name="aod_customize_show_exit_button">Show exit button</string>
     <string name="aod_customize_thumbnail_shape">Thumbnail shape</string>
-    <string name="aod_customize_thumbnail_shape_desc">Uses Material 3 shapes for the AOD artwork mask.</string>
+    <string name="aod_customize_thumbnail_shape_desc">Uses Shapes for the AOD artwork mask.</string>
     <string name="aod_customize_layout">Layout</string>
     <string name="aod_customize_background_style">Background style</string>
     <string name="aod_customize_accent_style">Accent style</string>

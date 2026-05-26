@@ -107,6 +107,7 @@ import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.ui.utils.supportsArtworkGlowShadow
 import moe.koiverse.archivetune.ui.utils.toComposeShape
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -546,6 +547,7 @@ private fun AodPreviewCard(
         AodAccentStyle.MONOCHROME -> Color.White
         AodAccentStyle.THEME -> MaterialTheme.colorScheme.primary
     }
+    val supportsArtworkGlowShadow = settings.thumbnailShape.supportsArtworkGlowShadow()
     val thumbnailShape = settings.thumbnailShape.toComposeShape(
         cornerRadius = settings.thumbnailCornerRadius,
         startAngle = settings.thumbnailShapeRotation,
@@ -616,7 +618,7 @@ private fun AodPreviewCard(
                         PreviewArtwork(
                             shape = thumbnailShape,
                             accentColor = accentColor,
-                            showGlow = settings.artworkGlow,
+                            showGlow = settings.artworkGlow && supportsArtworkGlowShadow,
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
                                 .size(previewArtworkSize),
