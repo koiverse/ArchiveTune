@@ -100,6 +100,9 @@ class PlayerConnection(
         currentMediaItemIndex.value = player.currentMediaItemIndex
         shuffleModeEnabled.value = player.shuffleModeEnabled
         repeatMode.value = player.repeatMode
+        if (player.mediaItemCount > 0 && service.currentMediaMetadata.value == null) {
+            service.currentMediaMetadata.value = player.currentMetadata
+        }
     }
 
     fun playQueue(queue: Queue) {
