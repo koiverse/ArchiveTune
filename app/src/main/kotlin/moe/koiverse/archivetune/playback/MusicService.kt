@@ -44,14 +44,6 @@ import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.appwidget.updateAll
-import androidx.glance.state.PreferencesGlanceStateDefinition
-import coil3.imageLoader
-import coil3.request.ImageRequest
-import coil3.request.SuccessResult
-import coil3.toBitmap
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -263,7 +255,6 @@ import android.app.Notification
 import android.os.Build
 import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
-import coil3.request.allowHardware
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class, UnstableApi::class)
 @AndroidEntryPoint
@@ -529,8 +520,7 @@ class MusicService :
 
     private var scrobbleManager: moe.koiverse.archivetune.utils.ScrobbleManager? = null
 
-    // Widget progress tracking
-    private var widgetProgressJob: Job? = null
+    private lateinit var widgetUpdater: MusicServiceWidgetUpdater
 
     val autoAddedMediaIds: MutableSet<String> = java.util.Collections.synchronizedSet(mutableSetOf())
 
@@ -753,6 +743,11 @@ class MusicService :
                     setOffloadEnabled(false)
                 }
         playerInitialized.value = true
+        widgetUpdater = MusicServiceWidgetUpdater(
+            service = this,
+            player = player,
+            scope = scope,
+        )
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -4430,8 +4425,7 @@ class MusicService :
     val timelineEmpty = player.currentTimeline.isEmpty || player.mediaItemCount == 0 || player.currentMediaItem == null
     currentMediaMetadata.value = if (timelineEmpty) null else (mediaItem?.metadata ?: player.currentMetadata)
 
-    // Update widget state
-    scope.launch(SilentHandler) { pushWidgetState() }
+    widgetUpdater.update()
 
     scrobbleManager?.onSongStop()
 
@@ -4524,11 +4518,8 @@ class MusicService :
         scheduleCrossfade()
     }
 
-    // Update widget when playback state changes
-    scope.launch(SilentHandler) { pushWidgetState() }
-    
-    // Start/stop widget progress tracking
-    updateWidgetProgressTracking()
+    widgetUpdater.update()
+    widgetUpdater.updateProgressTracking()
 
     scope.launch {
         val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
@@ -4590,11 +4581,8 @@ override fun onIsPlayingChanged(isPlaying: Boolean) {
         scheduleCrossfade()
     }
     
-    // Update widget immediately when play/pause happens
-    scope.launch(SilentHandler) { pushWidgetState() }
-    
-    // Start/stop widget progress tracking
-    updateWidgetProgressTracking()
+    widgetUpdater.update()
+    widgetUpdater.updateProgressTracking()
 }
 
 private fun onMediaItemTransitionInternal() {
@@ -5903,126 +5891,7 @@ private fun onMediaItemTransitionInternal() {
     // ── Widget Support ────────────────────────────────────────────────────────────
 
     fun updateWidget() {
-        scope.launch(SilentHandler) { pushWidgetState() }
-    }
-    private suspend fun pushWidgetState() {
-        val mediaItem = player.currentMediaItem
-        val meta = mediaItem?.mediaMetadata
-
-        // Resolve album art to a cached file so we don't pass a Bitmap over IPC
-        val artFile = meta?.artworkUri?.let { cacheAlbumArt(it) }
-        
-        // Extract dominant color from album art for glassmorphism effect
-        val dominantColor = artFile?.let { file ->
-            try {
-                val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
-                val palette = androidx.palette.graphics.Palette.from(bitmap).generate()
-                palette.getDarkVibrantColor(
-                    palette.getDominantColor(android.graphics.Color.DKGRAY)
-                )
-            } catch (e: Exception) {
-                null
-            }
-        }
-
-        // Calculate playback position
-        val position = if (player.duration > 0) {
-            (player.currentPosition.toFloat() / player.duration.toFloat()).coerceIn(0f, 1f)
-        } else 0f
-
-        // updateAppWidgetState writes to the Glance DataStore keyed by GlanceId
-        // Update MusicWidget (horizontal widget with track info)
-        val musicWidgetIds = GlanceAppWidgetManager(this).getGlanceIds(moe.koiverse.archivetune.widget.MusicWidget::class.java)
-        musicWidgetIds.forEach { glanceId ->
-            updateAppWidgetState(this, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-                prefs.toMutablePreferences().apply {
-                    this[moe.koiverse.archivetune.widget.MusicWidgetKeys.TRACK_TITLE] = meta?.title?.toString() ?: "Nothing playing"
-                    this[moe.koiverse.archivetune.widget.MusicWidgetKeys.TRACK_ARTIST] = meta?.artist?.toString() ?: ""
-                    this[moe.koiverse.archivetune.widget.MusicWidgetKeys.IS_PLAYING] = player.isPlaying
-                    this[moe.koiverse.archivetune.widget.MusicWidgetKeys.IS_AVAILABLE] = mediaItem != null
-                    this[moe.koiverse.archivetune.widget.MusicWidgetKeys.PLAYBACK_POSITION] = position
-                    if (artFile != null) this[moe.koiverse.archivetune.widget.MusicWidgetKeys.ART_PATH] = artFile.absolutePath
-                    if (dominantColor != null) this[moe.koiverse.archivetune.widget.MusicWidgetKeys.DOMINANT_COLOR] = dominantColor
-                }
-            }
-            moe.koiverse.archivetune.widget.MusicWidget().update(this, glanceId)
-        }
-        
-        // Update AlbumArtWidget (square widget with album art focus)
-        val albumArtWidgetIds = GlanceAppWidgetManager(this).getGlanceIds(moe.koiverse.archivetune.widget.AlbumArtWidget::class.java)
-        albumArtWidgetIds.forEach { glanceId ->
-            updateAppWidgetState(this, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-                prefs.toMutablePreferences().apply {
-                    this[moe.koiverse.archivetune.widget.MusicWidgetKeys.IS_PLAYING] = player.isPlaying
-                    this[moe.koiverse.archivetune.widget.MusicWidgetKeys.IS_AVAILABLE] = mediaItem != null
-                    if (artFile != null) this[moe.koiverse.archivetune.widget.MusicWidgetKeys.ART_PATH] = artFile.absolutePath
-                    if (dominantColor != null) this[moe.koiverse.archivetune.widget.MusicWidgetKeys.DOMINANT_COLOR] = dominantColor
-                }
-            }
-            moe.koiverse.archivetune.widget.AlbumArtWidget().update(this, glanceId)
-        }
-    }
-
-    private fun updateWidgetProgressTracking() {
-        widgetProgressJob?.cancel()
-        if (player.isPlaying && player.duration > 0) {
-            widgetProgressJob = scope.launch {
-                while (isActive && player.isPlaying) {
-                    val pos = player.currentPosition.toFloat()
-                    val dur = player.duration.takeIf { it > 0 }?.toFloat() ?: 1f
-                    val progress = (pos / dur).coerceIn(0f, 1f)
-                    
-                    // Update only position key — don't call full pushWidgetState() every second
-                    val ids = GlanceAppWidgetManager(this@MusicService).getGlanceIds(moe.koiverse.archivetune.widget.MusicWidget::class.java)
-                    ids.forEach { id ->
-                        updateAppWidgetState(this@MusicService, PreferencesGlanceStateDefinition, id) { p ->
-                            p.toMutablePreferences().apply {
-                                this[moe.koiverse.archivetune.widget.MusicWidgetKeys.PLAYBACK_POSITION] = progress
-                            }
-                        }
-                        moe.koiverse.archivetune.widget.MusicWidget().update(this@MusicService, id)
-                    }
-                    delay(1000)
-                }
-            }
-        }
-    }
-
-    private suspend fun cacheAlbumArt(uri: Uri): java.io.File? {
-        val dest = java.io.File(cacheDir, "widget_art.jpg")
-
-        // Path 1: local content URI (works for local files and some cached streams)
-        if (uri.scheme == "content" || uri.scheme == "file") {
-            return try {
-                contentResolver.openInputStream(uri)?.use { src ->
-                    dest.outputStream().use { dst -> src.copyTo(dst) }
-                }
-                if (dest.exists() && dest.length() > 0) dest else null
-            } catch (e: Exception) { null }
-        }
-
-        // Path 2 & 3: HTTPS — use Coil 3 to load and cache
-        if (uri.scheme == "https" || uri.scheme == "http") {
-            return try {
-                val loader = applicationContext.imageLoader
-                val request = ImageRequest.Builder(applicationContext)
-                    .data(uri.toString())
-                    .allowHardware(false)
-                    .build()
-                val result = loader.execute(request)
-                if (result is SuccessResult) {
-                    val bmp = result.image.toBitmap()
-                    dest.outputStream().use { out ->
-                        bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, out)
-                    }
-                    if (dest.exists() && dest.length() > 0) dest else null
-                } else null
-            } catch (e: Exception) {
-                null
-            }
-        }
-
-        return null
+        widgetUpdater.update()
     }
 
 
