@@ -127,6 +127,7 @@ fun LyricsEnhanced(
     sliderPositionProvider: () -> Long?,
     lyricsSyncOffset: Int,
     modifier: Modifier = Modifier,
+    textColorOverride: Color? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
@@ -162,7 +163,7 @@ fun LyricsEnhanced(
     }
 
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
-    val textColor = if (playerBackground == PlayerBackgroundStyle.DEFAULT)
+    val textColor = textColorOverride ?: if (playerBackground == PlayerBackgroundStyle.DEFAULT)
         MaterialTheme.colorScheme.onBackground
     else
         Color.White

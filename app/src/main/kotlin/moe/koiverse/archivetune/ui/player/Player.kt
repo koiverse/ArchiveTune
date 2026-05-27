@@ -1264,7 +1264,11 @@ fun BottomSheetPlayer(
                     LyricsScreen(
                         mediaMetadata = metadata,
                         onBackClick = { lyricsSheetState.collapseSoft() },
-                        navController = navController
+                        navController = navController,
+                        onQueueClick = {
+                            lyricsSheetState.collapseSoft()
+                            queueSheetState.expandSoft()
+                        },
                     )
                 }
             }
