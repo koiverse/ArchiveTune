@@ -67,7 +67,7 @@ object DiscordAuthCoordinator {
 object DiscordOAuthRepository {
     private const val AUTHORIZATION_ENDPOINT = "https://discord.com/oauth2/authorize"
     private const val TOKEN_ENDPOINT = "https://discord.com/api/oauth2/token"
-    private const val USERINFO_ENDPOINT = "https://discord.com/api/oauth2/userinfo"
+    private const val CURRENT_USER_ENDPOINT = "https://discord.com/api/v10/users/@me"
     private const val REQUEST_TIMEOUT_MS = 12_000
     private const val EXPIRY_SKEW_MS = 60_000L
 
@@ -166,27 +166,31 @@ object DiscordOAuthRepository {
 
     suspend fun fetchAccount(accessToken: String): DiscordAccount = withContext(Dispatchers.IO) {
         val response = getJson(
-            url = USERINFO_ENDPOINT,
+            url = CURRENT_USER_ENDPOINT,
             bearerToken = accessToken,
         )
         val userInfo = json.decodeFromString<UserInfoResponse>(response)
-        val username = userInfo.preferredUsername
-            ?: userInfo.username
+        val userId = userInfo.id
             ?: userInfo.sub
             ?: ""
+        val username = userInfo.preferredUsername
+            ?: userInfo.username
+            ?: userId
         val displayName = userInfo.nickname
             ?: userInfo.globalName
+            ?: userInfo.name
             ?: username
 
         DiscordAccount(
-            id = userInfo.sub.orEmpty(),
+            id = userId,
             username = username,
             displayName = displayName,
-            avatarUrl = buildAvatarUrl(
-                userId = userInfo.sub.orEmpty(),
-                avatarHash = userInfo.avatar,
-                discriminator = userInfo.discriminator,
-            ),
+            avatarUrl = userInfo.picture?.takeIf { it.isNotBlank() }
+                ?: buildAvatarUrl(
+                    userId = userId,
+                    avatarHash = userInfo.avatar,
+                    discriminator = userInfo.discriminator,
+                ),
         )
     }
 
@@ -379,14 +383,20 @@ object DiscordOAuthRepository {
 
     @Serializable
     private data class UserInfoResponse(
+        @SerialName("id")
+        val id: String? = null,
         @SerialName("sub")
         val sub: String? = null,
         @SerialName("avatar")
         val avatar: String? = null,
+        @SerialName("picture")
+        val picture: String? = null,
         @SerialName("discriminator")
         val discriminator: String? = null,
         @SerialName("preferred_username")
         val preferredUsername: String? = null,
+        @SerialName("name")
+        val name: String? = null,
         @SerialName("nickname")
         val nickname: String? = null,
         @SerialName("username")
