@@ -108,6 +108,10 @@ fun DiscordSettings(
     var discordUsername by rememberPreference(DiscordUsernameKey, "")
     var discordName by rememberPreference(DiscordNameKey, "")
     var discordAvatarUrl by rememberPreference(DiscordAvatarUrlKey, "")
+    var authorizedToken by rememberSaveable { mutableStateOf("") }
+    var authorizedUsername by rememberSaveable { mutableStateOf("") }
+    var authorizedName by rememberSaveable { mutableStateOf("") }
+    var authorizedAvatarUrl by rememberSaveable { mutableStateOf("") }
     var showLogoutConfirm by rememberSaveable { mutableStateOf(false) }
     var authorizationSession by remember {
         mutableStateOf(DiscordOAuthRepository.createAuthorizationSession())
@@ -123,6 +127,18 @@ fun DiscordSettings(
 
     LaunchedEffect(discordToken) {
         val token = discordToken
+        if (token.isBlank()) {
+            authorizedToken = ""
+            authorizedUsername = ""
+            authorizedName = ""
+            authorizedAvatarUrl = ""
+            return@LaunchedEffect
+        }
+
+        if (token == authorizedToken) {
+            authorizedToken = ""
+        }
+
         if (token.isNotBlank()) {
             runCatching {
                 DiscordOAuthRepository.fetchAccount(token)
@@ -150,11 +166,15 @@ fun DiscordSettings(
         }
     }
 
-    val isLoggedIn = remember(discordToken) { discordToken.isNotEmpty() }
-    val accountDisplayName = remember(isLoggedIn, discordName, discordUsername, context) {
+    val activeDiscordToken = authorizedToken.ifBlank { discordToken }
+    val activeDiscordUsername = authorizedUsername.ifBlank { discordUsername }
+    val activeDiscordName = authorizedName.ifBlank { discordName }
+    val activeDiscordAvatarUrl = authorizedAvatarUrl.ifBlank { discordAvatarUrl }
+    val isLoggedIn = remember(activeDiscordToken) { activeDiscordToken.isNotBlank() }
+    val accountDisplayName = remember(isLoggedIn, activeDiscordName, activeDiscordUsername, context) {
         when {
-            discordName.isNotBlank() -> discordName
-            discordUsername.isNotBlank() -> discordUsername
+            activeDiscordName.isNotBlank() -> activeDiscordName
+            activeDiscordUsername.isNotBlank() -> activeDiscordUsername
             isLoggedIn -> context.getString(R.string.account)
             else -> context.getString(R.string.not_logged_in)
         }
@@ -193,9 +213,16 @@ fun DiscordSettings(
                 session = authorizationSession,
                 redirect = redirect,
             ).onSuccess { session ->
-                discordUsername = session.account?.username.orEmpty()
-                discordName = session.account?.displayName.orEmpty()
-                discordAvatarUrl = session.account?.avatarUrl.orEmpty()
+                val account = session.account
+                    ?: runCatching { DiscordOAuthRepository.fetchAccount(session.accessToken) }.getOrNull()
+
+                authorizedToken = session.accessToken
+                authorizedUsername = account?.username.orEmpty()
+                authorizedName = account?.displayName.orEmpty()
+                authorizedAvatarUrl = account?.avatarUrl.orEmpty()
+                discordUsername = authorizedUsername
+                discordName = authorizedName
+                discordAvatarUrl = authorizedAvatarUrl
                 authorizationMessage = context.getString(R.string.discord_authorization_success)
                 authorizationUiModeName = DiscordAuthorizationUiMode.Success.name
                 authorizationSession = DiscordOAuthRepository.createAuthorizationSession()
@@ -416,8 +443,8 @@ fun DiscordSettings(
                     item {
                         DiscordAccountGroupCard(
                             displayName = accountDisplayName,
-                            username = discordUsername,
-                            avatarUrl = discordAvatarUrl.takeIf { it.isNotBlank() },
+                            username = activeDiscordUsername,
+                            avatarUrl = activeDiscordAvatarUrl.takeIf { it.isNotBlank() },
                             isLoggedIn = isLoggedIn,
                             authorizationUiMode = authorizationUiMode,
                             authorizationMessage = authorizationMessage,
@@ -709,6 +736,10 @@ fun DiscordSettings(
                             coroutineScope.launch {
                                 DiscordOAuthRepository.clearSession(context)
                             }
+                            authorizedToken = ""
+                            authorizedUsername = ""
+                            authorizedName = ""
+                            authorizedAvatarUrl = ""
                             DiscordPresenceManager.stop()
                             authorizationUiModeName = DiscordAuthorizationUiMode.Idle.name
                             authorizationMessage = null
@@ -753,6 +784,14 @@ private fun DiscordAccountGroupCard(
         animationSpec = tween(durationMillis = 420),
         label = "discordAvatarGlow",
     )
+    val avatarImageRequest = remember(context, avatarUrl) {
+        avatarUrl?.takeIf { it.isNotBlank() }?.let {
+            ImageRequest.Builder(context)
+                .data(it)
+                .size(256, 256)
+                .build()
+        }
+    }
 
     LaunchedEffect(avatarUrl, isLoggedIn) {
         if (!isLoggedIn || avatarUrl.isNullOrBlank()) {
@@ -837,20 +876,20 @@ private fun DiscordAccountGroupCard(
                         color = MaterialTheme.colorScheme.secondaryContainer,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            if (!avatarUrl.isNullOrBlank()) {
+                            Icon(
+                                painter = painterResource(R.drawable.discord),
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+
+                            avatarImageRequest?.let {
                                 AsyncImage(
-                                    model = avatarUrl,
-                                    contentDescription = null,
+                                    model = it,
+                                    contentDescription = displayName,
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(CircleShape),
-                                )
-                            } else {
-                                Icon(
-                                    painter = painterResource(R.drawable.discord),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(40.dp),
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                 )
                             }
                         }
@@ -875,16 +914,6 @@ private fun DiscordAccountGroupCard(
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
-
-                    Text(
-                        text = if (isLoggedIn) {
-                            stringResource(R.string.discord_account_connected)
-                        } else {
-                            stringResource(R.string.discord_authorization_idle)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             }
 
@@ -967,11 +996,6 @@ private fun DiscordAccountGroupCard(
                             text = stringResource(R.string.enable_discord_rpc),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = stringResource(R.string.discord_rpc_summary),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
 
