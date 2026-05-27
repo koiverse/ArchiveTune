@@ -136,9 +136,6 @@ private object RecapTokens {
     val ShareVerticalPadding = 14.dp
 }
 
-private fun Modifier.recapSafeDrawingPadding(enabled: Boolean): Modifier =
-    if (enabled) windowInsetsPadding(WindowInsets.safeDrawing) else this
-
 @Composable
 fun YearInMusicScreen(
     navController: NavController,
@@ -578,7 +575,7 @@ private fun IntroRecapCard(
                     )
                 )
             )
-            .recapSafeDrawingPadding(applySafeContentInsets)
+            .then(if (applySafeContentInsets) Modifier.windowInsetsPadding(WindowInsets.safeDrawing) else Modifier)
             .padding(24.dp),
     ) {
         Box(
@@ -927,7 +924,7 @@ private fun SummaryRecapCard(
                     )
                 )
             )
-            .recapSafeDrawingPadding(applySafeContentInsets)
+            .then(if (applySafeContentInsets) Modifier.windowInsetsPadding(WindowInsets.safeDrawing) else Modifier)
             .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
         SummaryGuideLine(modifier = Modifier.align(Alignment.TopCenter))
@@ -1215,7 +1212,7 @@ private fun RecapCardContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .recapSafeDrawingPadding(applySafeContentInsets)
+            .then(if (applySafeContentInsets) Modifier.windowInsetsPadding(WindowInsets.safeDrawing) else Modifier)
             .padding(24.dp),
         verticalArrangement = verticalArrangement,
     ) {
