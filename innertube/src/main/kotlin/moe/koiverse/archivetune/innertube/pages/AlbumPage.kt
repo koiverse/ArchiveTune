@@ -191,7 +191,7 @@ data class AlbumPage(
                 ?: PageHelper.extractRuns(renderer.flexColumns, "MUSIC_VIDEO").firstOrNull()?.text
                 ?: return null
 
-            val duration = findDuration(renderer) ?: return null
+            val duration = findDuration(renderer)
             val videoId = renderer.playlistItemData?.videoId
                 ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
                 ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
