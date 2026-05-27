@@ -14,13 +14,25 @@
 package moe.koiverse.archivetune.viewmodels
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.exoplayer.offline.Download
+import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.ai.AiServiceConfig
+import moe.koiverse.archivetune.ai.AiTextService
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.constants.AiApiKeyKey
+import moe.koiverse.archivetune.constants.AiApiValidationStatus
+import moe.koiverse.archivetune.constants.AiApiValidationStatusKey
+import moe.koiverse.archivetune.constants.AiCustomEndpointKey
+import moe.koiverse.archivetune.constants.AiCustomModelKey
+import moe.koiverse.archivetune.constants.AiProvider
+import moe.koiverse.archivetune.constants.AiProviderKey
+import moe.koiverse.archivetune.constants.AiSelectedModelKey
 import moe.koiverse.archivetune.constants.AlbumFilter
 import moe.koiverse.archivetune.constants.AlbumFilterKey
 import moe.koiverse.archivetune.constants.AlbumSortDescendingKey
@@ -48,6 +60,8 @@ import moe.koiverse.archivetune.constants.SongSortType
 import moe.koiverse.archivetune.constants.SongSortTypeKey
 import moe.koiverse.archivetune.constants.TopSize
 import moe.koiverse.archivetune.db.MusicDatabase
+import moe.koiverse.archivetune.db.entities.PlaylistEntity
+import moe.koiverse.archivetune.db.entities.PlaylistSongMap
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.filterExplicit
 import moe.koiverse.archivetune.extensions.filterExplicitAlbums
@@ -64,6 +78,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -71,6 +86,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.Collator
 import java.time.Duration
 import java.time.LocalDateTime
@@ -417,12 +434,26 @@ constructor(
 class LibraryMixViewModel
 @Inject
 constructor(
-    @ApplicationContext context: Context,
-    database: MusicDatabase,
+    @ApplicationContext private val context: Context,
+    private val database: MusicDatabase,
     private val syncUtils: SyncUtils,
 ) : ViewModel() {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
+    private val _buildYourMixState = MutableStateFlow<BuildYourMixUiState>(BuildYourMixUiState.Idle)
+    val buildYourMixState = _buildYourMixState.asStateFlow()
+
+    val isBuildYourMixAvailable =
+        context.dataStore.data
+            .map { prefs ->
+                val provider = prefs[AiProviderKey].toEnum(AiProvider.NONE)
+                provider != AiProvider.NONE &&
+                    prefs[AiApiKeyKey].orEmpty().isNotBlank() &&
+                    (provider != AiProvider.CUSTOM || prefs[AiCustomEndpointKey].orEmpty().isNotBlank()) &&
+                    prefs[AiApiValidationStatusKey].toEnum(AiApiValidationStatus.UNKNOWN) != AiApiValidationStatus.FAILED
+            }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     fun syncAllLibrary() {
         if (_isRefreshing.value) return
@@ -437,6 +468,174 @@ constructor(
                 _isRefreshing.value = false
             }
         }
+    }
+
+    fun buildYourMix(
+        basis: BuildYourMixBasis,
+        songCount: Int,
+        manualBasis: String,
+    ) {
+        if (_buildYourMixState.value == BuildYourMixUiState.Loading) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _buildYourMixState.value = BuildYourMixUiState.Loading
+            try {
+                val count = songCount.coerceIn(1, 100)
+                val candidates = mixCandidatesFor(basis = basis, songCount = count)
+                if (candidates.isEmpty()) {
+                    _buildYourMixState.value = BuildYourMixUiState.Error(context.getString(R.string.build_your_mix_empty_library))
+                    return@launch
+                }
+
+                val aiMix = requestAiMix(
+                    config = readAiConfig(),
+                    basis = basis,
+                    songCount = count,
+                    manualBasis = if (basis == BuildYourMixBasis.INPUT_MANUALLY) manualBasis else "",
+                    candidates = candidates,
+                )
+                val playlistId = createGeneratedPlaylist(
+                    title = aiMix.title.ifBlank { basis.defaultTitle() },
+                    songs = aiMix.songs,
+                )
+                _buildYourMixState.value = BuildYourMixUiState.Success(
+                    playlistId = playlistId,
+                    playlistTitle = aiMix.title.ifBlank { basis.defaultTitle() },
+                )
+            } catch (e: Exception) {
+                reportException(e)
+                _buildYourMixState.value = BuildYourMixUiState.Error(
+                    context.getString(R.string.build_your_mix_failed) + ": " + (e.localizedMessage ?: e.toString()),
+                )
+            }
+        }
+    }
+
+    fun resetBuildYourMixState() {
+        _buildYourMixState.value = BuildYourMixUiState.Idle
+    }
+
+    private suspend fun readAiConfig(): AiServiceConfig {
+        val prefs = context.dataStore.data.first()
+        val provider = prefs[AiProviderKey].toEnum(AiProvider.NONE)
+        return AiServiceConfig(
+            provider = provider,
+            apiKey = prefs[AiApiKeyKey].orEmpty(),
+            customEndpoint = prefs[AiCustomEndpointKey].orEmpty(),
+            model = if (provider == AiProvider.CUSTOM) {
+                prefs[AiCustomModelKey].orEmpty()
+            } else {
+                prefs[AiSelectedModelKey].orEmpty()
+            },
+        )
+    }
+
+    private suspend fun mixCandidatesFor(
+        basis: BuildYourMixBasis,
+        songCount: Int,
+    ): List<Song> {
+        val requestedPoolSize = (songCount * 3).coerceIn(100, 250)
+        val primary = when (basis) {
+            BuildYourMixBasis.LISTENING_HISTORY -> database.recentSongs(requestedPoolSize).first()
+            BuildYourMixBasis.AVERAGE_LISTENED -> database
+                .songs(SongSortType.PLAY_TIME, descending = true)
+                .first()
+                .filter { it.song.totalPlayTime > 0L }
+            BuildYourMixBasis.INPUT_MANUALLY -> database.songs(SongSortType.PLAY_TIME, descending = true).first()
+        }
+        val fallback = if (primary.size < songCount) {
+            database.songs(SongSortType.CREATE_DATE, descending = true).first()
+        } else {
+            emptyList()
+        }
+        return (primary + fallback)
+            .distinctBy { it.id }
+            .take(requestedPoolSize)
+    }
+
+    private suspend fun requestAiMix(
+        config: AiServiceConfig,
+        basis: BuildYourMixBasis,
+        songCount: Int,
+        manualBasis: String,
+        candidates: List<Song>,
+    ): GeneratedMix {
+        val candidateById = candidates.associateBy { it.id }
+        val candidatePayload = JSONArray().apply {
+            candidates.forEach { song ->
+                put(
+                    JSONObject()
+                        .put("id", song.id)
+                        .put("title", song.song.title)
+                        .put("artists", song.artists.joinToString(", ") { it.name })
+                        .put("album", song.album?.title ?: song.song.albumName.orEmpty())
+                        .put("totalPlayTimeMs", song.song.totalPlayTime),
+                )
+            }
+        }
+        val response = AiTextService.complete(
+            config = config,
+            systemPrompt = """
+                You are a music curator for ArchiveTune.
+                Build one personal playlist using only the provided candidate song IDs.
+                Return JSON only with this schema: {"title":"short accurate playlist title","songIds":["id"]}.
+                The title must reflect the selected basis and the selected songs.
+                Select up to $songCount songs, avoid duplicates, and prioritize coherence over variety.
+            """.trimIndent(),
+            userPrompt = JSONObject()
+                .put("basis", basis.promptLabel)
+                .put("manualBasis", manualBasis.trim())
+                .put("requestedSongCount", songCount)
+                .put("candidates", candidatePayload)
+                .toString(),
+            temperature = 0.35,
+            maxTokens = 4096,
+        )
+        val json = JSONObject(response.substringAfter('{').substringBeforeLast('}').let { "{$it}" })
+        val selected = json
+            .optJSONArray("songIds")
+            ?.toStringList()
+            .orEmpty()
+            .mapNotNull(candidateById::get)
+            .distinctBy { it.id }
+            .toMutableList()
+        if (selected.size < songCount) {
+            val selectedIds = selected.mapTo(mutableSetOf()) { it.id }
+            candidates.forEach { candidate ->
+                if (selected.size >= songCount) return@forEach
+                if (selectedIds.add(candidate.id)) selected.add(candidate)
+            }
+        }
+        return GeneratedMix(
+            title = json.optString("title").sanitizePlaylistTitle().ifBlank { basis.defaultTitle() },
+            songs = selected.take(songCount),
+        )
+    }
+
+    private suspend fun createGeneratedPlaylist(
+        title: String,
+        songs: List<Song>,
+    ): String {
+        val playlistId = PlaylistEntity.generatePlaylistId()
+        database.withTransaction {
+            val playlistEntity = PlaylistEntity(
+                id = playlistId,
+                name = title,
+                bookmarkedAt = LocalDateTime.now(),
+                customOrder = (maxPlaylistCustomOrder() ?: -1) + 1,
+                isLocal = true,
+            )
+            insert(playlistEntity)
+            songs.forEachIndexed { index, song ->
+                insert(
+                    PlaylistSongMap(
+                        playlistId = playlistId,
+                        songId = song.id,
+                        position = index,
+                    ),
+                )
+            }
+        }
+        return playlistId
     }
     val topValue =
         context.dataStore.data
@@ -507,6 +706,54 @@ constructor(
         }
     }
 }
+
+enum class BuildYourMixBasis(
+    val promptLabel: String,
+) {
+    LISTENING_HISTORY("recent listening history"),
+    AVERAGE_LISTENED("average listened songs"),
+    INPUT_MANUALLY("manual user input"),
+}
+
+fun BuildYourMixBasis.defaultTitle(): String =
+    when (this) {
+        BuildYourMixBasis.LISTENING_HISTORY -> "Listening History Mix"
+        BuildYourMixBasis.AVERAGE_LISTENED -> "Average Listened Mix"
+        BuildYourMixBasis.INPUT_MANUALLY -> "Custom Mix"
+    }
+
+@Immutable
+sealed interface BuildYourMixUiState {
+    data object Idle : BuildYourMixUiState
+    data object Loading : BuildYourMixUiState
+
+    @Immutable
+    data class Success(
+        val playlistId: String,
+        val playlistTitle: String,
+    ) : BuildYourMixUiState
+
+    @Immutable
+    data class Error(
+        val message: String,
+    ) : BuildYourMixUiState
+}
+
+@Immutable
+private data class GeneratedMix(
+    val title: String,
+    val songs: List<Song>,
+)
+
+private fun JSONArray.toStringList(): List<String> =
+    List(length()) { index -> optString(index) }.filter { it.isNotBlank() }
+
+private fun String.sanitizePlaylistTitle(): String =
+    lineSequence()
+        .firstOrNull()
+        .orEmpty()
+        .trim()
+        .take(80)
 
 @HiltViewModel
 class LibraryViewModel

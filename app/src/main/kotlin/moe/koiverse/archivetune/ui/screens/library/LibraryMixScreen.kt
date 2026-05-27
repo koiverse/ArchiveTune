@@ -10,6 +10,8 @@
 package moe.koiverse.archivetune.ui.screens.library
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -29,17 +31,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.unit.Dp
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
@@ -61,7 +64,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -86,6 +92,7 @@ import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistEntity
 import moe.koiverse.archivetune.extensions.move
 import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
+import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.ExpressivePullToRefreshBox
 import moe.koiverse.archivetune.ui.component.LibraryAlbumSpotlightCard
 import moe.koiverse.archivetune.ui.component.LibraryArtistSpotlightCard
@@ -96,11 +103,14 @@ import moe.koiverse.archivetune.ui.menu.AlbumMenu
 import moe.koiverse.archivetune.ui.menu.ArtistMenu
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.viewmodels.BuildYourMixBasis
+import moe.koiverse.archivetune.viewmodels.BuildYourMixUiState
 import moe.koiverse.archivetune.viewmodels.LibraryMixViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.text.Collator
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private val LibraryGroupLargeCorner: Dp = 30.dp
 private val LibraryGroupSmallCorner: Dp = 9.dp
@@ -130,9 +140,15 @@ private fun librarySegmentedShape(index: Int, count: Int): Shape {
 private data class LibraryShortcutEntry(
     val title: String,
     @DrawableRes val iconRes: Int,
-    val route: String,
+    val route: String? = null,
+    val action: LibraryShortcutAction = LibraryShortcutAction.Navigate,
     val accentColor: Color,
 )
+
+private enum class LibraryShortcutAction {
+    Navigate,
+    BuildYourMix,
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -206,6 +222,11 @@ fun LibraryMixScreen(
     val artists by viewModel.artists.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val buildYourMixState by viewModel.buildYourMixState.collectAsState()
+    val isBuildYourMixAvailable by viewModel.isBuildYourMixAvailable.collectAsState()
+    var showBuildYourMixDialog by rememberSaveable { mutableStateOf(false) }
+    var buildYourMixSongCount by rememberSaveable { mutableStateOf(30) }
+    var buildYourMixManualBasis by rememberSaveable { mutableStateOf("") }
 
     val collator = remember {
         Collator.getInstance(Locale.getDefault()).apply {
@@ -237,6 +258,7 @@ fun LibraryMixScreen(
         if (sortDescending) sorted.asReversed() else sorted
     }
 
+    val buildYourMixTitle = stringResource(R.string.build_your_mix_title)
     val shortcuts = buildList {
         if (showLiked) {
             add(
@@ -276,6 +298,16 @@ fun LibraryMixScreen(
                 accentColor = MaterialTheme.colorScheme.primary,
             ),
         )
+        if (isBuildYourMixAvailable) {
+            add(
+                LibraryShortcutEntry(
+                    title = buildYourMixTitle,
+                    iconRes = R.drawable.auto_awesome,
+                    action = LibraryShortcutAction.BuildYourMix,
+                    accentColor = MaterialTheme.colorScheme.tertiary,
+                ),
+            )
+        }
         if (showTop) {
             add(
                 LibraryShortcutEntry(
@@ -356,6 +388,36 @@ fun LibraryMixScreen(
         }
     }
 
+    val buildYourMixSuccess = buildYourMixState as? BuildYourMixUiState.Success
+    LaunchedEffect(buildYourMixSuccess?.playlistId) {
+        buildYourMixSuccess?.let { success ->
+            showBuildYourMixDialog = false
+            navController.navigate("local_playlist/${success.playlistId}")
+            viewModel.resetBuildYourMixState()
+        }
+    }
+
+    if (showBuildYourMixDialog) {
+        BuildYourMixDialog(
+            state = buildYourMixState,
+            songCount = buildYourMixSongCount,
+            manualBasis = buildYourMixManualBasis,
+            onSongCountChange = { buildYourMixSongCount = it },
+            onManualBasisChange = { buildYourMixManualBasis = it },
+            onBuild = { basis ->
+                viewModel.buildYourMix(
+                    basis = basis,
+                    songCount = buildYourMixSongCount,
+                    manualBasis = buildYourMixManualBasis,
+                )
+            },
+            onDismiss = {
+                showBuildYourMixDialog = false
+                viewModel.resetBuildYourMixState()
+            },
+        )
+    }
+
     ExpressivePullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = { if (ytmSync) viewModel.syncAllLibrary() },
@@ -397,7 +459,12 @@ fun LibraryMixScreen(
                 item(key = "shortcuts") {
                     LibraryShortcutGrid(
                         entries = shortcuts,
-                        onClick = navController::navigate,
+                        onClick = { entry ->
+                            when (entry.action) {
+                                LibraryShortcutAction.BuildYourMix -> showBuildYourMixDialog = true
+                                LibraryShortcutAction.Navigate -> entry.route?.let(navController::navigate)
+                            }
+                        },
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
@@ -700,11 +767,177 @@ private fun LibraryControlCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun BuildYourMixDialog(
+    state: BuildYourMixUiState,
+    songCount: Int,
+    manualBasis: String,
+    onSongCountChange: (Int) -> Unit,
+    onManualBasisChange: (String) -> Unit,
+    onBuild: (BuildYourMixBasis) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val isLoading = state == BuildYourMixUiState.Loading
+
+    DefaultDialog(
+        onDismiss = { if (!isLoading) onDismiss() },
+        icon = {
+            Icon(
+                painter = painterResource(R.drawable.auto_awesome),
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+            )
+        },
+        title = {
+            Text(
+                text = stringResource(R.string.build_your_mix_title),
+                textAlign = TextAlign.Center,
+            )
+        },
+        horizontalAlignment = Alignment.Start,
+        contentScrollable = true,
+    ) {
+        Crossfade(
+            targetState = state,
+            label = "BuildYourMixDialogState",
+        ) { targetState ->
+            when (targetState) {
+                BuildYourMixUiState.Loading -> BuildYourMixLoadingContent()
+                else -> BuildYourMixConfigurationContent(
+                    state = targetState,
+                    songCount = songCount,
+                    manualBasis = manualBasis,
+                    onSongCountChange = onSongCountChange,
+                    onManualBasisChange = onManualBasisChange,
+                    onBuild = onBuild,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BuildYourMixConfigurationContent(
+    state: BuildYourMixUiState,
+    songCount: Int,
+    manualBasis: String,
+    onSongCountChange: (Int) -> Unit,
+    onManualBasisChange: (String) -> Unit,
+    onBuild: (BuildYourMixBasis) -> Unit,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = stringResource(R.string.build_your_mix_description),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.build_your_mix_song_count),
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = songCount.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Slider(
+                value = songCount.toFloat(),
+                onValueChange = { onSongCountChange(it.roundToInt().coerceIn(1, 100)) },
+                valueRange = 1f..100f,
+                steps = 98,
+            )
+        }
+        OutlinedTextField(
+            value = manualBasis,
+            onValueChange = onManualBasisChange,
+            label = { Text(stringResource(R.string.build_your_mix_manual_basis)) },
+            placeholder = { Text(stringResource(R.string.build_your_mix_manual_placeholder)) },
+            minLines = 2,
+            maxLines = 4,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (state is BuildYourMixUiState.Error) {
+            Text(
+                text = state.message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            BuildYourMixBasisButton(
+                text = stringResource(R.string.build_your_mix_listening_history),
+                onClick = { onBuild(BuildYourMixBasis.LISTENING_HISTORY) },
+            )
+            BuildYourMixBasisButton(
+                text = stringResource(R.string.build_your_mix_average_listened),
+                onClick = { onBuild(BuildYourMixBasis.AVERAGE_LISTENED) },
+            )
+            BuildYourMixBasisButton(
+                text = stringResource(R.string.build_your_mix_input_manually),
+                onClick = { onBuild(BuildYourMixBasis.INPUT_MANUALLY) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun BuildYourMixBasisButton(
+    text: String,
+    onClick: () -> Unit,
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp),
+    ) {
+        Text(
+            text = text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun BuildYourMixLoadingContent() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        LoadingIndicator(modifier = Modifier.size(48.dp))
+        Text(
+            text = "\"${stringResource(R.string.build_your_mix_loading_quote)}\"",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LibraryShortcutGrid(
     entries: List<LibraryShortcutEntry>,
-    onClick: (String) -> Unit,
+    onClick: (LibraryShortcutEntry) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -723,7 +956,7 @@ private fun LibraryShortcutGrid(
                         accentColor = entry.accentColor,
                         modifier = Modifier
                             .weight(1f)
-                            .combinedClickable(onClick = { onClick(entry.route) }),
+                            .combinedClickable(onClick = { onClick(entry) }),
                     )
                 }
                 if (rowEntries.size == 1) {
