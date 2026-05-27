@@ -15,17 +15,10 @@ import android.content.Intent
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -35,20 +28,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
@@ -88,6 +81,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -131,6 +125,7 @@ import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.YearInMusicUiState
 import moe.koiverse.archivetune.viewmodels.YearInMusicViewModel
+import java.text.NumberFormat
 import kotlin.coroutines.resume
 
 private val RecapBlack = Color(0xFF070707)
@@ -142,6 +137,10 @@ private val RecapCream = Color(0xFFFFF7EF)
 private val RecapYellow = Color(0xFFFFD447)
 private val RecapGreen = Color(0xFF1ED760)
 private val RecapPurple = Color(0xFF8A2CFF)
+private val RecapBlue = Color(0xFF7CB7FF)
+private val RecapPink = Color(0xFFFF8BDE)
+private val RecapLime = Color(0xFFDFFF3E)
+private val RecapInk = Color(0xFF151515)
 private val RecapWhite20 = Color(0x33FFFFFF)
 
 private object RecapTokens {
@@ -151,7 +150,7 @@ private object RecapTokens {
     val ItemRadius = 18.dp
     val CardMaxWidth = 430.dp
     val ChromeTopPadding = 96.dp
-    val ChromeBottomPadding = 104.dp
+    val ChromeBottomPadding = 110.dp
     val ShareVerticalPadding = 14.dp
 }
 
@@ -260,15 +259,11 @@ private fun YearInMusicRecapScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
+                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
                 ),
         )
 
-        AnimatedVisibility(
-            visible = !isShareCaptureMode,
-            enter = fadeIn(),
-            exit = fadeOut(),
-        ) {
+        if (!isShareCaptureMode) {
             TopAppBar(
                 title = {
                     Column {
@@ -315,123 +310,115 @@ private fun YearInMusicRecapScreen(
             )
         }
 
-        AnimatedVisibility(
-            visible = !isShareCaptureMode,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter),
-        ) {
-            RecapProgressIndicator(
-                totalPages = cards.size,
-                currentPage = currentPage,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
-                    )
-                    .padding(top = 72.dp, start = 20.dp, end = 20.dp),
-            )
+        if (!isShareCaptureMode) {
+            Box(modifier = Modifier.align(Alignment.TopCenter)) {
+                RecapProgressIndicator(
+                    totalPages = cards.size,
+                    currentPage = currentPage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(
+                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                        )
+                        .padding(top = 72.dp, start = 20.dp, end = 20.dp),
+                )
+            }
         }
 
-        AnimatedVisibility(
-            visible = !isShareCaptureMode,
-            enter = slideInVertically { it } + fadeIn(),
-            exit = slideOutVertically { it } + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter),
-        ) {
-            RecapNavigationBar(
-                pageLabel = currentCard?.label ?: stringResource(R.string.year_in_music_recap),
-                canGoBack = currentPage > 0,
-                canGoNext = currentPage < cards.lastIndex,
-                onBack = {
-                    coroutineScope.launch {
-                        pagerState.animateScrollToPage((currentPage - 1).coerceAtLeast(0))
-                    }
-                },
-                onNext = {
-                    coroutineScope.launch {
-                        pagerState.animateScrollToPage((currentPage + 1).coerceAtMost(cards.lastIndex))
-                    }
-                },
-                modifier = Modifier
-                    .windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
-                    )
-                    .padding(
-                        start = 16.dp,
-                        end = if (canShare) 108.dp else 16.dp,
-                        bottom = 16.dp,
-                    ),
-            )
-        }
-
-        AnimatedVisibility(
-            visible = canShare,
-            enter = scaleIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
-            exit = scaleOut(animationSpec = tween(150)) + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomEnd),
-        ) {
-            RecapShareButton(
-                isGenerating = isGeneratingImage,
-                onClick = {
-                    if (isGeneratingImage) return@RecapShareButton
-                    isGeneratingImage = true
-                    coroutineScope.launch {
-                        try {
-                            isShareCaptureMode = true
-                            awaitNextPreDraw(view)
-                            awaitNextPreDraw(view)
-
-                            val raw = ComposeToImage.captureViewBitmap(
-                                view = view,
-                                backgroundColor = RecapBlack.toArgb(),
-                            )
-                            val bounds = currentCardBounds
-                            val cardBitmap = if (bounds != null && bounds.width > 0f && bounds.height > 0f) {
-                                ComposeToImage.cropBitmap(
-                                    source = raw,
-                                    left = bounds.left.toInt().coerceAtLeast(0),
-                                    top = bounds.top.toInt().coerceAtLeast(0),
-                                    width = bounds.width.toInt().coerceAtLeast(1),
-                                    height = bounds.height.toInt().coerceAtLeast(1),
-                                )
-                            } else {
-                                raw
-                            }
-                            val fitted = ComposeToImage.fitBitmap(
-                                source = cardBitmap,
-                                targetWidth = 1080,
-                                targetHeight = 1920,
-                                backgroundColor = RecapBlack.toArgb(),
-                            )
-                            val uri = ComposeToImage.saveBitmapAsFile(
-                                context = context,
-                                bitmap = fitted,
-                                fileName = "ArchiveTune_YearInMusic_${content.selectedYear}_${currentPage + 1}",
-                            )
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "image/png"
-                                putExtra(Intent.EXTRA_STREAM, uri)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(
-                                Intent.createChooser(
-                                    shareIntent,
-                                    context.getString(R.string.share_summary),
-                                )
-                            )
-                        } finally {
-                            isShareCaptureMode = false
-                            isGeneratingImage = false
+        if (!isShareCaptureMode) {
+            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+                RecapNavigationBar(
+                    pageLabel = currentCard?.label ?: stringResource(R.string.year_in_music_recap),
+                    canGoBack = currentPage > 0,
+                    canGoNext = currentPage < cards.lastIndex,
+                    onBack = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage((currentPage - 1).coerceAtLeast(0))
                         }
-                    }
-                },
-                modifier = Modifier
-                    .windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
-                    )
-                    .padding(end = 16.dp, bottom = 16.dp),
-            )
+                    },
+                    onNext = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage((currentPage + 1).coerceAtMost(cards.lastIndex))
+                        }
+                    },
+                    modifier = Modifier
+                        .windowInsetsPadding(
+                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+                        )
+                        .padding(
+                            start = 16.dp,
+                            end = if (canShare) 184.dp else 16.dp,
+                            bottom = 16.dp,
+                        ),
+                )
+            }
+        }
+
+        if (canShare) {
+            Box(modifier = Modifier.align(Alignment.BottomEnd)) {
+                RecapShareButton(
+                    isGenerating = isGeneratingImage,
+                    onClick = {
+                        if (isGeneratingImage) return@RecapShareButton
+                        isGeneratingImage = true
+                        coroutineScope.launch {
+                            try {
+                                isShareCaptureMode = true
+                                awaitNextPreDraw(view)
+                                awaitNextPreDraw(view)
+
+                                val raw = ComposeToImage.captureViewBitmap(
+                                    view = view,
+                                    backgroundColor = RecapBlack.toArgb(),
+                                )
+                                val bounds = currentCardBounds
+                                val cardBitmap = if (bounds != null && bounds.width > 0f && bounds.height > 0f) {
+                                    ComposeToImage.cropBitmap(
+                                        source = raw,
+                                        left = bounds.left.toInt().coerceAtLeast(0),
+                                        top = bounds.top.toInt().coerceAtLeast(0),
+                                        width = bounds.width.toInt().coerceAtLeast(1),
+                                        height = bounds.height.toInt().coerceAtLeast(1),
+                                    )
+                                } else {
+                                    raw
+                                }
+                                val fitted = ComposeToImage.fitBitmap(
+                                    source = cardBitmap,
+                                    targetWidth = 1080,
+                                    targetHeight = 1920,
+                                    backgroundColor = RecapBlack.toArgb(),
+                                )
+                                val uri = ComposeToImage.saveBitmapAsFile(
+                                    context = context,
+                                    bitmap = fitted,
+                                    fileName = "ArchiveTune_YearInMusic_${content.selectedYear}_${currentPage + 1}",
+                                )
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "image/png"
+                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(
+                                    Intent.createChooser(
+                                        shareIntent,
+                                        context.getString(R.string.share_summary),
+                                    )
+                                )
+                            } finally {
+                                isShareCaptureMode = false
+                                isGeneratingImage = false
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .windowInsetsPadding(
+                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+                        )
+                        .padding(end = 16.dp, bottom = 16.dp)
+                        .widthIn(max = 168.dp),
+                )
+            }
         }
 
         if (!isShareCaptureMode && isYearPickerOpen) {
@@ -525,9 +512,9 @@ private fun rememberYearInMusicCards(content: YearInMusicUiState.Content): List<
                         year = content.selectedYear,
                         totalListeningTime = content.totalListeningTime,
                         totalSongsPlayed = content.totalSongsPlayed,
-                        topSong = content.topSongsStats.firstOrNull(),
-                        topArtist = content.topArtists.firstOrNull(),
-                        topAlbum = content.topAlbums.firstOrNull(),
+                        topSongs = content.topSongsStats,
+                        topArtists = content.topArtists,
+                        topAlbums = content.topAlbums,
                         label = summaryLabel,
                     )
                 )
@@ -553,7 +540,7 @@ private fun RecapCardPager(
     val topPadding = if (isShareCaptureMode) RecapTokens.ShareVerticalPadding else RecapTokens.ChromeTopPadding
     val bottomPadding = if (isShareCaptureMode) RecapTokens.ShareVerticalPadding else RecapTokens.ChromeBottomPadding
 
-    Box(
+    BoxWithConstraints(
         modifier = modifier.padding(
             start = RecapTokens.ScreenPadding,
             top = topPadding,
@@ -562,15 +549,19 @@ private fun RecapCardPager(
         ),
         contentAlignment = Alignment.Center,
     ) {
+        val availableWidth = if (isExpandedWidth) minOf(maxWidth, RecapTokens.CardMaxWidth) else maxWidth
+        val widthFromHeight = maxHeight * 9f / 16f
+        val cardWidth = minOf(availableWidth, widthFromHeight)
+        val cardHeight = cardWidth * 16f / 9f
         val cardModifier = if (isExpandedWidth) {
             Modifier
                 .widthIn(max = RecapTokens.CardMaxWidth)
-                .fillMaxHeight()
-                .aspectRatio(9f / 16f, matchHeightConstraintsFirst = true)
+                .width(cardWidth)
+                .height(cardHeight)
         } else {
             Modifier
-                .fillMaxHeight()
-                .aspectRatio(9f / 16f, matchHeightConstraintsFirst = true)
+                .width(cardWidth)
+                .height(cardHeight)
         }
 
         HorizontalPager(
@@ -681,7 +672,7 @@ private fun RecapCardFrame(
 private fun EmptyRecapCard(card: YearInMusicRecapCard.Empty) {
     RecapCardContent(
         badge = stringResource(R.string.year_in_music_recap),
-        footer = joinByBullet("ArchiveTune", card.year.toString()),
+        footer = joinByBullet(stringResource(R.string.app_name), card.year.toString()),
         verticalArrangement = Arrangement.Center,
     ) {
         IconBadge(
@@ -710,44 +701,112 @@ private fun EmptyRecapCard(card: YearInMusicRecapCard.Empty) {
 
 @Composable
 private fun IntroRecapCard(card: YearInMusicRecapCard.Intro) {
-    RecapCardContent(
-        badge = stringResource(R.string.year_in_music_recap),
-        footer = joinByBullet("ArchiveTune", card.year.toString()),
-        verticalArrangement = Arrangement.SpaceBetween,
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF56C8F2),
+                        Color(0xFF77D77C),
+                        RecapPink,
+                        Color(0xFFB7B5FF),
+                    )
+                )
+            )
+            .padding(24.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(176.dp)
+                .graphicsLayer {
+                    rotationZ = -18f
+                    translationX = 44f
+                    translationY = 30f
+                }
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFFFFE569), RecapPink, Color(0xFFFF8A42))
+                    )
+                )
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(top = 72.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            repeat(11) { index ->
+                Box(
+                    modifier = Modifier
+                        .width(5.dp)
+                        .height((92 - index * 3).dp)
+                        .background(if (index % 2 == 0) RecapLime else RecapBlue.copy(alpha = 0.76f))
+                )
+            }
+        }
+
+        ArchiveTuneBrand(
+            contentColor = Color.White,
+            modifier = Modifier.align(Alignment.TopStart),
+        )
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 84.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Text(
-                text = stringResource(R.string.year_in_music_intro_title),
-                style = MaterialTheme.typography.displayMedium.copy(fontSize = 48.sp),
+                text = card.year.toString(),
+                style = MaterialTheme.typography.displayLarge.copy(fontSize = 76.sp),
                 fontWeight = FontWeight.Black,
-                color = RecapCream,
-                lineHeight = 46.sp,
+                color = Color.White,
+                lineHeight = 70.sp,
             )
             Text(
-                text = stringResource(R.string.year_in_music_intro_subtitle, card.year),
-                style = MaterialTheme.typography.titleMedium,
-                color = RecapCream.copy(alpha = 0.72f),
+                text = stringResource(R.string.year_in_music_recap_word),
+                style = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
+                fontWeight = FontWeight.Black,
+                color = Color.White,
+                lineHeight = 66.sp,
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(
+            modifier = Modifier.align(Alignment.BottomStart),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
             Text(
-                text = card.year.toString(),
-                style = MaterialTheme.typography.displayLarge.copy(fontSize = 104.sp),
+                text = stringResource(R.string.year_in_music_intro_hero),
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Black,
-                color = RecapCream,
-                lineHeight = 92.sp,
+                color = Color.White,
+                lineHeight = 30.sp,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                HeroMetricTile(
-                    label = stringResource(R.string.year_in_music_minutes_label),
-                    value = makeTimeString(card.totalListeningTime),
-                    modifier = Modifier.weight(1f),
-                )
-                HeroMetricTile(
-                    label = stringResource(R.string.year_in_music_plays_label),
-                    value = card.totalSongsPlayed.toString(),
-                    modifier = Modifier.weight(1f),
+            Text(
+                text = stringResource(R.string.year_in_music_intro_details),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.82f),
+                lineHeight = 19.sp,
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(RecapInk)
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.year_in_music_swipe_begin),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
                 )
             }
         }
@@ -975,91 +1034,293 @@ private fun RankedAlbumsRecapCard(card: YearInMusicRecapCard.RankedAlbums) {
 
 @Composable
 private fun SummaryRecapCard(card: YearInMusicRecapCard.Summary) {
-    RecapCardContent(
-        badge = stringResource(R.string.share_summary),
-        footer = joinByBullet("ArchiveTune", card.year.toString()),
-        verticalArrangement = Arrangement.SpaceBetween,
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF7BA9FF),
+                        Color(0xFFD7E7FF),
+                        Color(0xFFE9B4FF),
+                        Color(0xFFFF6F8F),
+                    )
+                )
+            )
+            .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(RecapCream),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.app_icon_small),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
-                Column {
-                    Text(
-                        text = "ArchiveTune",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = RecapCream,
-                    )
-                    Text(
-                        text = card.year.toString(),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = RecapCream.copy(alpha = 0.68f),
-                    )
-                }
-            }
+        SummaryGuideLine(modifier = Modifier.align(Alignment.TopCenter))
+        SummaryGuideLine(modifier = Modifier.align(Alignment.Center))
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
             Text(
-                text = stringResource(R.string.year_in_music_final_title),
-                style = MaterialTheme.typography.displaySmall,
+                text = "${card.year} ${stringResource(R.string.year_in_music_recap_word)}",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black,
-                color = RecapCream,
-                lineHeight = 42.sp,
+                color = RecapInk,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                SummaryRankColumn(
+                    title = stringResource(R.string.top_artists),
+                    imageData = card.topArtists.firstOrNull()?.thumbnailUrl,
+                    names = card.topArtists.map { it.artist.name },
+                    circularImage = true,
+                    modifier = Modifier.weight(1f),
+                )
+                SummaryRankColumn(
+                    title = stringResource(R.string.top_songs),
+                    imageData = card.topSongs.firstOrNull()?.thumbnailUrl,
+                    names = card.topSongs.map { it.title },
+                    circularImage = false,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.year_in_music_musical_passport).uppercase(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = RecapInk,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PassportStamp(
+                    label = stringResource(R.string.top_artists),
+                    imageData = card.topArtists.firstOrNull()?.thumbnailUrl,
+                    count = card.topArtists.size,
+                )
+                PassportStamp(
+                    label = stringResource(R.string.top_songs),
+                    imageData = card.topSongs.firstOrNull()?.thumbnailUrl,
+                    count = card.topSongs.size,
+                )
+                PassportStamp(
+                    label = stringResource(R.string.albums),
+                    imageData = card.topAlbums.firstOrNull()?.thumbnailUrl,
+                    count = card.topAlbums.size,
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.year_in_music_minutes_label).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    color = RecapInk,
+                )
+                Text(
+                    text = formatListeningMinutes(card.totalListeningTime),
+                    style = MaterialTheme.typography.displaySmall.copy(fontSize = 44.sp),
+                    fontWeight = FontWeight.Black,
+                    color = RecapInk,
+                    lineHeight = 40.sp,
+                )
+                Text(
+                    text = stringResource(R.string.year_in_music_minutes_unit).uppercase(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = RecapInk,
+                )
+            }
+
+            ArchiveTuneBrand(
+                contentColor = RecapInk,
+                modifier = Modifier.align(Alignment.Start),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryRankColumn(
+    title: String,
+    imageData: Any?,
+    names: List<String>,
+    circularImage: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val imageModel = rememberShareSafeImageRequest(imageData)
+    val imageShape = if (circularImage) CircleShape else RoundedCornerShape(14.dp)
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(contentAlignment = Alignment.BottomStart) {
+            AsyncImage(
+                model = imageModel,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(118.dp)
+                    .clip(imageShape)
+                    .background(Color.White.copy(alpha = 0.42f))
+                    .border(
+                        width = 2.dp,
+                        color = Color.White.copy(alpha = 0.72f),
+                        shape = imageShape,
+                    ),
+            )
+            Text(
+                text = title,
+                modifier = Modifier
+                    .graphicsLayer { rotationZ = -4f }
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(RecapLime)
+                    .padding(horizontal = 7.dp, vertical = 2.dp),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = RecapInk,
+                lineHeight = 18.sp,
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                HeroMetricTile(
-                    label = stringResource(R.string.year_in_music_minutes_label),
-                    value = makeTimeString(card.totalListeningTime),
-                    modifier = Modifier.weight(1f),
-                )
-                HeroMetricTile(
-                    label = stringResource(R.string.year_in_music_plays_label),
-                    value = card.totalSongsPlayed.toString(),
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            card.topSong?.let {
-                SummaryHighlightRow(
-                    icon = R.drawable.music_note,
-                    label = stringResource(R.string.year_in_music_top_track),
-                    value = it.title,
-                    color = RecapRed,
-                )
-            }
-            card.topArtist?.let {
-                SummaryHighlightRow(
-                    icon = R.drawable.artist,
-                    label = stringResource(R.string.top_artists),
-                    value = it.artist.name,
-                    color = RecapGreen,
-                )
-            }
-            card.topAlbum?.let {
-                SummaryHighlightRow(
-                    icon = R.drawable.album,
-                    label = stringResource(R.string.albums),
-                    value = it.album.title,
-                    color = RecapYellow,
-                )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            names.take(5).forEachIndexed { index, name ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = (index + 1).toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Black,
+                        color = RecapInk,
+                    )
+                    Text(
+                        text = name,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = RecapInk,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
+}
+
+@Composable
+private fun PassportStamp(
+    label: String,
+    imageData: Any?,
+    count: Int,
+) {
+    val imageModel = rememberShareSafeImageRequest(imageData)
+
+    Column(
+        modifier = Modifier.width(92.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(Color.White.copy(alpha = 0.72f))
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = RecapInk,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        AsyncImage(
+            model = imageModel,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(width = 82.dp, height = 62.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.White.copy(alpha = 0.5f))
+                .border(
+                    width = 2.dp,
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(Color.White, RecapLime, Color.White)
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                ),
+        )
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = RecapInk,
+        )
+    }
+}
+
+@Composable
+private fun SummaryGuideLine(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(64.dp)
+                .height(2.dp)
+                .background(RecapInk.copy(alpha = 0.42f))
+        )
+        Box(
+            modifier = Modifier
+                .width(64.dp)
+                .height(2.dp)
+                .background(RecapInk.copy(alpha = 0.42f))
+        )
+    }
+}
+
+@Composable
+private fun ArchiveTuneBrand(
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Image(
+            painter = painterResource(R.drawable.app_icon_small),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Black,
+            color = contentColor,
+        )
+    }
+}
+
+private fun formatListeningMinutes(duration: Long): String {
+    val minutes = (duration / 60_000L).coerceAtLeast(if (duration > 0L) 1L else 0L)
+    return NumberFormat.getIntegerInstance().format(minutes)
 }
 
 @Composable
@@ -1177,7 +1438,7 @@ private fun RankedAlbumRow(
 ) {
     val imageModel = rememberShareSafeImageRequest(album.thumbnailUrl)
     val artistNames = remember(album.artists) {
-        album.artists.take(2).joinToString(" • ") { it.name }
+        album.artists.take(2).joinToString(" / ") { it.name }
     }
 
     RankedRowContainer {
@@ -1784,9 +2045,9 @@ private sealed interface YearInMusicRecapCard {
         val year: Int,
         val totalListeningTime: Long,
         val totalSongsPlayed: Long,
-        val topSong: SongWithStats?,
-        val topArtist: Artist?,
-        val topAlbum: Album?,
+        val topSongs: List<SongWithStats>,
+        val topArtists: List<Artist>,
+        val topAlbums: List<Album>,
         override val label: String,
     ) : YearInMusicRecapCard {
         override val id: String = "summary_$year"
