@@ -10,6 +10,8 @@ package moe.koiverse.archivetune.playback
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.datastore.preferences.core.MutablePreferences
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -90,7 +92,9 @@ internal class MusicServiceWidgetUpdater(
             val ids = GlanceAppWidgetManager(service).getGlanceIds(target.widgetClass)
             ids.forEach { id ->
                 updateAppWidgetState(service, PreferencesGlanceStateDefinition, id) { prefs ->
-                    prefs[MusicWidgetKeys.PLAYBACK_POSITION] = progress
+                    prefs.toMutableWidgetPreferences().apply {
+                        this[MusicWidgetKeys.PLAYBACK_POSITION] = progress
+                    }
                 }
                 target.widget.update(service, id)
             }
@@ -104,11 +108,24 @@ internal class MusicServiceWidgetUpdater(
         val ids = GlanceAppWidgetManager(service).getGlanceIds(target.widgetClass)
         ids.forEach { id ->
             updateAppWidgetState(service, PreferencesGlanceStateDefinition, id) { prefs ->
-                prefs.writeSnapshot(snapshot)
+                prefs.toMutableWidgetPreferences().apply {
+                    writeSnapshot(snapshot)
+                }
             }
             target.widget.update(service, id)
         }
     }
+
+    private fun Preferences.toMutableWidgetPreferences(): MutablePreferences =
+        mutablePreferencesOf().also { mutable ->
+            this[MusicWidgetKeys.TRACK_TITLE]?.let { mutable[MusicWidgetKeys.TRACK_TITLE] = it }
+            this[MusicWidgetKeys.TRACK_ARTIST]?.let { mutable[MusicWidgetKeys.TRACK_ARTIST] = it }
+            this[MusicWidgetKeys.ART_PATH]?.let { mutable[MusicWidgetKeys.ART_PATH] = it }
+            this[MusicWidgetKeys.IS_PLAYING]?.let { mutable[MusicWidgetKeys.IS_PLAYING] = it }
+            this[MusicWidgetKeys.IS_AVAILABLE]?.let { mutable[MusicWidgetKeys.IS_AVAILABLE] = it }
+            this[MusicWidgetKeys.DOMINANT_COLOR]?.let { mutable[MusicWidgetKeys.DOMINANT_COLOR] = it }
+            this[MusicWidgetKeys.PLAYBACK_POSITION]?.let { mutable[MusicWidgetKeys.PLAYBACK_POSITION] = it }
+        }
 
     private fun MutablePreferences.writeSnapshot(snapshot: WidgetSnapshot) {
         this[MusicWidgetKeys.TRACK_TITLE] = snapshot.title
