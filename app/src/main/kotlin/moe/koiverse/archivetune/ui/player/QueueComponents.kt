@@ -1171,8 +1171,11 @@ fun QueueCollapsedContentV7(
     showCodecOnPlayer: Boolean,
     currentFormat: FormatEntity?,
     textBackgroundColor: Color,
+    sleepTimerEnabled: Boolean,
+    sleepTimerTimeLeft: Long,
     onExpandQueue: () -> Unit,
     onShowLyrics: () -> Unit,
+    onSleepTimerClick: () -> Unit,
     onDeviceClick: () -> Unit,
     deviceName: String,
     modifier: Modifier = Modifier
@@ -1246,6 +1249,41 @@ fun QueueCollapsedContentV7(
                             modifier = Modifier.size(iconSize),
                             tint = textBackgroundColor
                         )
+                    }
+                }
+
+                Surface(
+                    onClick = onSleepTimerClick,
+                    shape = if (sleepTimerEnabled) RoundedCornerShape(20.dp) else CircleShape,
+                    color = textBackgroundColor.copy(alpha = if (sleepTimerEnabled) 0.16f else 0.08f),
+                    modifier = Modifier.height(42.dp)
+                ) {
+                    AnimatedContent(
+                        label = "v7SleepTimer",
+                        targetState = sleepTimerEnabled,
+                    ) { enabled ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(horizontal = if (enabled) 12.dp else 10.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.bedtime),
+                                contentDescription = stringResource(id = R.string.sleep_timer),
+                                modifier = Modifier.size(iconSize),
+                                tint = textBackgroundColor
+                            )
+                            if (enabled) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = makeTimeString(sleepTimerTimeLeft.coerceAtLeast(0L)),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = textBackgroundColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
                     }
                 }
             }

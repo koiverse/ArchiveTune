@@ -509,8 +509,17 @@ fun Queue(
                         showCodecOnPlayer = showCodecOnPlayer,
                         currentFormat = currentFormat,
                         textBackgroundColor = TextBackgroundColor,
+                        sleepTimerEnabled = sleepTimerEnabled,
+                        sleepTimerTimeLeft = sleepTimerTimeLeft,
                         onExpandQueue = { state.expandSoft() },
                         onShowLyrics = onShowLyrics,
+                        onSleepTimerClick = {
+                            if (sleepTimerEnabled) {
+                                playerConnection.service.sleepTimer.clear()
+                            } else {
+                                showSleepTimerDialog = true
+                            }
+                        },
                         onDeviceClick = {
                             val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
                             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
