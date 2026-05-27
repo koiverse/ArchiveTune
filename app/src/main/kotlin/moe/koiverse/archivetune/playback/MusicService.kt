@@ -65,6 +65,7 @@ import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
@@ -77,6 +78,7 @@ import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
@@ -263,7 +265,7 @@ import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
 import coil3.request.allowHardware
 
-@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class, UnstableApi::class)
 @AndroidEntryPoint
 class MusicService :
     MediaLibraryService(),
@@ -734,6 +736,7 @@ class MusicService :
                 .Builder(this)
                 .setMediaSourceFactory(createMediaSourceFactory())
                 .setRenderersFactory(createRenderersFactory())
+                .setLoadControl(createPrimaryLoadControl())
                 .setTrackSelector(DefaultTrackSelector(this, SafeTrackSelectionFactory()))
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
@@ -1601,6 +1604,7 @@ class MusicService :
             .Builder(this)
             .setMediaSourceFactory(createMediaSourceFactory())
             .setRenderersFactory(createRenderersFactory())
+            .setLoadControl(createCrossfadeLoadControl())
             .setTrackSelector(DefaultTrackSelector(this, SafeTrackSelectionFactory()))
             .setHandleAudioBecomingNoisy(false)
             .setWakeMode(C.WAKE_MODE_NETWORK)
@@ -1635,7 +1639,8 @@ class MusicService :
                 player.pauseAtEndOfMediaItems = true
 
                 try {
-                    if (!awaitCrossfadePlayerReady(incomingPlayer, CROSSFADE_READY_TIMEOUT_MS)) {
+                    val requiredBufferedMs = requiredCrossfadeStartBufferMs(durationMs)
+                    if (!awaitCrossfadePlayerReady(incomingPlayer, CROSSFADE_READY_TIMEOUT_MS, requiredBufferedMs)) {
                         cancelCrossfade(resetVolume = true, resetPauseAtEnd = true)
                         scheduleCrossfade()
                         return@launch
@@ -1681,17 +1686,23 @@ class MusicService :
     private suspend fun awaitCrossfadePlayerReady(
         crossfadePlayer: ExoPlayer,
         timeoutMs: Long,
+        minimumBufferedMs: Long,
     ): Boolean {
         val deadlineMs = android.os.SystemClock.elapsedRealtime() + timeoutMs
         while (kotlinx.coroutines.currentCoroutineContext().isActive && android.os.SystemClock.elapsedRealtime() < deadlineMs) {
             when (crossfadePlayer.playbackState) {
-                Player.STATE_READY -> return true
+                Player.STATE_READY -> {
+                    if (hasBufferedForSmoothStart(crossfadePlayer, minimumBufferedMs)) {
+                        return true
+                    }
+                }
                 Player.STATE_IDLE -> crossfadePlayer.prepare()
                 Player.STATE_ENDED -> return false
             }
             delay(50L)
         }
-        return crossfadePlayer.playbackState == Player.STATE_READY
+        return crossfadePlayer.playbackState == Player.STATE_READY &&
+            hasBufferedForSmoothStart(crossfadePlayer, minimumBufferedMs)
     }
 
     private suspend fun finishCrossfade(
@@ -1722,7 +1733,10 @@ class MusicService :
         }
         player.playWhenReady = shouldContinuePlayback
         if (shouldContinuePlayback) {
-            awaitPrimaryCrossfadeHandoffReady(CROSSFADE_HANDOFF_READY_TIMEOUT_MS)
+            awaitPrimaryCrossfadeHandoffReady(
+                timeoutMs = CROSSFADE_HANDOFF_READY_TIMEOUT_MS,
+                minimumBufferedMs = CROSSFADE_HANDOFF_BUFFER_MS,
+            )
             val syncedIncomingPosition = incomingPlayer.currentPosition.coerceAtLeast(0L)
             applyingCrossfadeSeek = true
             ignoreNextCrossfadeSeekDiscontinuity = true
@@ -1731,6 +1745,10 @@ class MusicService :
             } finally {
                 applyingCrossfadeSeek = false
             }
+            awaitPrimaryCrossfadeHandoffReady(
+                timeoutMs = CROSSFADE_HANDOFF_READY_TIMEOUT_MS,
+                minimumBufferedMs = CROSSFADE_HANDOFF_BUFFER_MS,
+            )
             scope.launch {
                 delay(500L)
                 ignoreNextCrossfadeSeekDiscontinuity = false
@@ -1746,10 +1764,13 @@ class MusicService :
         scheduleCrossfade()
     }
 
-    private suspend fun awaitPrimaryCrossfadeHandoffReady(timeoutMs: Long): Boolean {
+    private suspend fun awaitPrimaryCrossfadeHandoffReady(
+        timeoutMs: Long,
+        minimumBufferedMs: Long,
+    ): Boolean {
         val deadlineMs = android.os.SystemClock.elapsedRealtime() + timeoutMs
         while (kotlinx.coroutines.currentCoroutineContext().isActive && android.os.SystemClock.elapsedRealtime() < deadlineMs) {
-            if (player.playbackState == Player.STATE_READY) {
+            if (player.playbackState == Player.STATE_READY && hasBufferedForSmoothStart(player, minimumBufferedMs)) {
                 return true
             }
             if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) {
@@ -1757,7 +1778,37 @@ class MusicService :
             }
             delay(25L)
         }
-        return player.playbackState == Player.STATE_READY
+        return player.playbackState == Player.STATE_READY && hasBufferedForSmoothStart(player, minimumBufferedMs)
+    }
+
+    private fun requiredCrossfadeStartBufferMs(durationMs: Long): Long =
+        (durationMs + CROSSFADE_HANDOFF_BUFFER_MS)
+            .coerceAtLeast(CROSSFADE_MIN_BUFFER_BEFORE_START_MS)
+            .coerceAtMost(CROSSFADE_MAX_BUFFER_BEFORE_START_MS)
+
+    private fun hasBufferedForSmoothStart(
+        targetPlayer: ExoPlayer,
+        minimumBufferedMs: Long,
+    ): Boolean {
+        if (minimumBufferedMs <= 0L) return true
+        if (targetPlayer.currentMediaItem?.localConfiguration?.uri?.shouldBypassPlayerCache() == true) return true
+
+        val duration = targetPlayer.duration
+        val currentPosition = targetPlayer.currentPosition.coerceAtLeast(0L)
+        val remainingDuration =
+            if (duration != C.TIME_UNSET && duration > currentPosition) {
+                duration - currentPosition
+            } else {
+                Long.MAX_VALUE
+            }
+        val requiredBufferedMs = minimumBufferedMs.coerceAtMost(remainingDuration)
+        if (requiredBufferedMs <= 0L) return true
+
+        val bufferedDuration = targetPlayer.totalBufferedDuration.coerceAtLeast(0L)
+        if (bufferedDuration >= requiredBufferedMs) return true
+
+        return duration != C.TIME_UNSET &&
+            targetPlayer.bufferedPosition >= duration - CROSSFADE_END_GUARD_MS
     }
 
     private fun resolveCrossfadeTargetIndex(target: CrossfadeTarget): Int {
@@ -5385,6 +5436,30 @@ private fun onMediaItemTransitionInternal() {
         }
     }
 
+    private fun createPrimaryLoadControl(): DefaultLoadControl =
+        DefaultLoadControl
+            .Builder()
+            .setBufferDurationsMs(
+                PRIMARY_MIN_BUFFER_MS,
+                PRIMARY_MAX_BUFFER_MS,
+                PRIMARY_BUFFER_FOR_PLAYBACK_MS,
+                PRIMARY_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
+            )
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
+
+    private fun createCrossfadeLoadControl(): DefaultLoadControl =
+        DefaultLoadControl
+            .Builder()
+            .setBufferDurationsMs(
+                CROSSFADE_MIN_BUFFER_MS,
+                CROSSFADE_MAX_BUFFER_MS,
+                CROSSFADE_MIN_BUFFER_BEFORE_START_MS.toInt(),
+                CROSSFADE_MIN_BUFFER_BEFORE_START_MS.toInt(),
+            )
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
+
     private fun createRenderersFactory() =
         object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
@@ -6006,9 +6081,18 @@ private fun onMediaItemTransitionInternal() {
         const val MIN_AUDIO_NORMALIZATION_FACTOR = 0.25f
         const val MIN_CROSSFADE_DURATION_MS = 500L
         const val CROSSFADE_END_GUARD_MS = 150L
-        const val CROSSFADE_PREPARE_AHEAD_MS = 15_000L
-        const val CROSSFADE_READY_TIMEOUT_MS = 3_000L
-        const val CROSSFADE_HANDOFF_READY_TIMEOUT_MS = 2_000L
+        const val CROSSFADE_PREPARE_AHEAD_MS = 30_000L
+        const val CROSSFADE_READY_TIMEOUT_MS = 5_000L
+        const val CROSSFADE_HANDOFF_READY_TIMEOUT_MS = 3_000L
+        const val CROSSFADE_HANDOFF_BUFFER_MS = 2_500L
+        const val CROSSFADE_MIN_BUFFER_BEFORE_START_MS = 5_000L
+        const val CROSSFADE_MAX_BUFFER_BEFORE_START_MS = 12_500L
+        const val PRIMARY_MIN_BUFFER_MS = 20_000
+        const val PRIMARY_MAX_BUFFER_MS = 60_000
+        const val PRIMARY_BUFFER_FOR_PLAYBACK_MS = 750
+        const val PRIMARY_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 2_500
+        const val CROSSFADE_MIN_BUFFER_MS = 15_000
+        const val CROSSFADE_MAX_BUFFER_MS = 45_000
         const val CROSSFADE_FRAME_MS = 32L
     }
 }
