@@ -4361,7 +4361,11 @@ class MusicService :
                         }
 
                         is YTPlayerUtils.LoginRequiredForPlaybackException -> {
-                            promptLoginRecovery(mediaId, throwable.targetUrl)
+                            Timber.tag("MusicService").w(
+                                throwable,
+                                "Playback confirmation is required before refreshing remote playback tracking for %s",
+                                mediaId,
+                            )
                         }
 
                         else -> {
@@ -5221,7 +5225,6 @@ private fun onMediaItemTransitionInternal() {
                 }
 
                 is YTPlayerUtils.LoginRequiredForPlaybackException -> {
-                    promptLoginRecovery(mediaId, throwable.targetUrl)
                     throw PlaybackException(
                         getString(R.string.playback_requires_youtube_music_confirmation),
                         throwable,

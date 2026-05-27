@@ -25,20 +25,33 @@ internal enum class PlaybackErrorKind {
     Unknown,
 }
 
+internal enum class PlaybackRecoveryAction {
+    RefreshLogin,
+    OpenYouTubeMusic,
+}
+
 internal data class PlaybackErrorInfo(
     val kind: PlaybackErrorKind,
     val httpCode: Int?,
     val loginRecoveryUrl: String?,
+    val recoveryAction: PlaybackRecoveryAction?,
 )
 
 internal fun PlaybackException.toPlaybackErrorInfo(currentMediaId: String? = null): PlaybackErrorInfo {
     val httpCode = httpStatusCodeOrNull()
     val invalidPlaybackLoginContextUrl = invalidPlaybackLoginContextUrl()
-    val loginRecoveryUrl = invalidPlaybackLoginContextUrl ?: loginRecoveryUrl(currentMediaId)
+    val externalLoginRecoveryUrl = loginRecoveryUrl(currentMediaId)
+    val loginRecoveryUrl = invalidPlaybackLoginContextUrl ?: externalLoginRecoveryUrl
+    val recoveryAction =
+        when {
+            invalidPlaybackLoginContextUrl != null -> PlaybackRecoveryAction.RefreshLogin
+            externalLoginRecoveryUrl != null -> PlaybackRecoveryAction.OpenYouTubeMusic
+            else -> null
+        }
     val kind =
         when {
             invalidPlaybackLoginContextUrl != null -> PlaybackErrorKind.LoginRefreshRequired
-            loginRecoveryUrl != null -> PlaybackErrorKind.ConfirmationRequired
+            externalLoginRecoveryUrl != null -> PlaybackErrorKind.ConfirmationRequired
             errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED -> PlaybackErrorKind.NoInternet
             errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> PlaybackErrorKind.Timeout
             httpCode in setOf(403, 404, 410, 416) -> PlaybackErrorKind.NoStream
@@ -56,6 +69,7 @@ internal fun PlaybackException.toPlaybackErrorInfo(currentMediaId: String? = nul
         kind = kind,
         httpCode = httpCode,
         loginRecoveryUrl = loginRecoveryUrl,
+        recoveryAction = recoveryAction,
     )
 }
 

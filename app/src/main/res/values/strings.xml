@@ -445,6 +445,7 @@
     <string name="playback_requires_youtube_music_confirmation">Confirm playback in YouTube Music, then return to ArchiveTune.</string>
     <string name="playback_login_refresh_required">Refresh YouTube Music login</string>
     <string name="playback_requires_youtube_music_login_refresh">Refresh your YouTube Music login, then return to ArchiveTune.</string>
+    <string name="could_not_open_youtube_music">Could not open YouTube Music</string>
     <string name="content_language">Default content language</string>
     <string name="content_country">Default content country</string>
     <string name="system_default">System default</string>

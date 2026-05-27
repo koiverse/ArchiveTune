@@ -43,6 +43,7 @@ import androidx.media3.common.PlaybackException
 import android.widget.Toast
 import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.utils.openYouTubeMusicUrl
 
 @Composable
 fun PlaybackError(
@@ -61,6 +62,8 @@ fun PlaybackError(
     val copyText = stringResource(R.string.copy)
     val copiedText = stringResource(R.string.copied)
     val openYouTubeMusicText = stringResource(R.string.open_youtube_music)
+    val loginText = stringResource(R.string.login)
+    val couldNotOpenYouTubeMusicText = stringResource(R.string.could_not_open_youtube_music)
     val errorInfo = remember(error, mediaId) { error.toPlaybackErrorInfo(mediaId) }
     val httpCode = errorInfo.httpCode
     val title =
@@ -160,23 +163,28 @@ fun PlaybackError(
                 )
             }
 
-            errorInfo.loginRecoveryUrl?.let { targetUrl ->
+            val recoveryUrl = errorInfo.loginRecoveryUrl
+            val recoveryAction = errorInfo.recoveryAction
+            if (recoveryUrl != null && recoveryAction != null) {
                 Button(
                     onClick = {
-                        val deepLink = Uri.parse("archivetune://login?url=${Uri.encode(targetUrl)}")
-                        val loginIntent =
-                            Intent(Intent.ACTION_VIEW, deepLink, context, MainActivity::class.java).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        when (recoveryAction) {
+                            PlaybackRecoveryAction.RefreshLogin -> {
+                                val deepLink = Uri.parse("archivetune://login?url=${Uri.encode(recoveryUrl)}")
+                                val loginIntent =
+                                    Intent(Intent.ACTION_VIEW, deepLink, context, MainActivity::class.java).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                    }
+                                runCatching { context.startActivity(loginIntent) }
                             }
-                        val fallbackIntent =
-                            Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            PlaybackRecoveryAction.OpenYouTubeMusic -> {
+                                if (!context.openYouTubeMusicUrl(recoveryUrl)) {
+                                    Toast.makeText(context, couldNotOpenYouTubeMusicText, Toast.LENGTH_SHORT).show()
+                                }
                             }
-
-                        runCatching { context.startActivity(loginIntent) }
-                            .recoverCatching { context.startActivity(fallbackIntent) }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors =
@@ -186,7 +194,12 @@ fun PlaybackError(
                         ),
                     shapes = ButtonDefaults.shapes(),
                 ) {
-                    Text(text = openYouTubeMusicText)
+                    Text(
+                        text = when (recoveryAction) {
+                            PlaybackRecoveryAction.RefreshLogin -> loginText
+                            PlaybackRecoveryAction.OpenYouTubeMusic -> openYouTubeMusicText
+                        }
+                    )
                 }
             }
 

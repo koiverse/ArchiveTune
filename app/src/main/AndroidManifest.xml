@@ -29,6 +29,12 @@
         <intent>
             <action android:name="android.media.action.DISPLAY_AUDIO_EFFECT_CONTROL_PANEL" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <package android:name="com.google.android.apps.youtube.music" />
+        <package android:name="com.google.android.youtube" />
         <package android:name="com.google.android.projection.gearhead" />
     </queries>
     <application
