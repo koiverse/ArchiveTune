@@ -215,7 +215,7 @@ private fun YearInMusicRecapScreen(
         pagerState.scrollToPage(0)
     }
 
-    LaunchedEffect(cards.size) {
+    LaunchedEffect(cards) {
         if (pagerState.currentPage > cards.lastIndex) {
             pagerState.scrollToPage(cards.lastIndex.coerceAtLeast(0))
         }
@@ -566,12 +566,16 @@ private fun RecapCardPager(
 
         HorizontalPager(
             state = pagerState,
-            key = { index -> cards[index].id },
+            key = { index -> cards.getOrNull(index)?.id ?: "stale_year_in_music_page_$index" },
             userScrollEnabled = !isShareCaptureMode,
             pageSpacing = 18.dp,
             modifier = Modifier.fillMaxSize(),
         ) { page ->
-            val card = cards[page]
+            val card = cards.getOrNull(page)
+            if (card == null) {
+                Box(modifier = Modifier.fillMaxSize())
+                return@HorizontalPager
+            }
             val canAdvance = !isShareCaptureMode && page == pagerState.currentPage && page < cards.lastIndex
             Box(
                 modifier = Modifier.fillMaxSize(),
