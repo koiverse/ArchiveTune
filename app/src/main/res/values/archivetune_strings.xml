@@ -415,6 +415,7 @@
     <string name="error_no_song_playing">No song is currently playing</string>
     <string name="error_no_similar_songs">No similar songs found</string>
     <string name="error_automix_failed">Failed to load similar songs</string>
+    <string name="top_songs">Top Songs</string>
     <string name="year_in_music">Year in Music</string>
     <string name="total_listening_time">Total Listening Time</string>
     <string name="top_artists">Top Artists</string>
