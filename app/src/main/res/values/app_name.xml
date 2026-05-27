@@ -5,4 +5,7 @@
     <string name="widget_album_art_description">Album art widget with floating playback controls</string>
     <string name="widget_now_playing_card_description">Now playing card with artwork, progress, and playback controls</string>
     <string name="widget_playback_deck_description">Large now playing deck with artwork, progress, and playback controls</string>
+    <string name="widget_playback_capsule_description">Expressive playback capsule with artwork, progress, and play controls</string>
+    <string name="widget_playback_spotlight_description">Artwork spotlight widget with expressive playback controls</string>
+    <string name="widget_playback_command_description">Control-first playback widget with artwork, progress, and skip controls</string>
 </resources>

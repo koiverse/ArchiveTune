@@ -34,7 +34,10 @@ import moe.koiverse.archivetune.widget.AlbumArtWidget
 import moe.koiverse.archivetune.widget.MusicWidget
 import moe.koiverse.archivetune.widget.MusicWidgetKeys
 import moe.koiverse.archivetune.widget.NowPlayingCardWidget
+import moe.koiverse.archivetune.widget.PlaybackCapsuleWidget
+import moe.koiverse.archivetune.widget.PlaybackCommandWidget
 import moe.koiverse.archivetune.widget.PlaybackDeckWidget
+import moe.koiverse.archivetune.widget.PlaybackSpotlightWidget
 import java.io.File
 
 internal class MusicServiceWidgetUpdater(
@@ -199,12 +202,18 @@ internal class MusicServiceWidgetUpdater(
             WidgetTarget(NowPlayingCardWidget::class.java, NowPlayingCardWidget()),
             WidgetTarget(PlaybackDeckWidget::class.java, PlaybackDeckWidget()),
             WidgetTarget(AlbumArtWidget::class.java, AlbumArtWidget()),
+            WidgetTarget(PlaybackCapsuleWidget::class.java, PlaybackCapsuleWidget()),
+            WidgetTarget(PlaybackSpotlightWidget::class.java, PlaybackSpotlightWidget()),
+            WidgetTarget(PlaybackCommandWidget::class.java, PlaybackCommandWidget()),
         )
 
         val progressWidgets = listOf(
             WidgetTarget(MusicWidget::class.java, MusicWidget()),
             WidgetTarget(NowPlayingCardWidget::class.java, NowPlayingCardWidget()),
             WidgetTarget(PlaybackDeckWidget::class.java, PlaybackDeckWidget()),
+            WidgetTarget(PlaybackCapsuleWidget::class.java, PlaybackCapsuleWidget()),
+            WidgetTarget(PlaybackSpotlightWidget::class.java, PlaybackSpotlightWidget()),
+            WidgetTarget(PlaybackCommandWidget::class.java, PlaybackCommandWidget()),
         )
     }
 }
