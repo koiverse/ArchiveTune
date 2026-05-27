@@ -1199,6 +1199,23 @@ interface DatabaseDao {
     @Query("SELECT * FROM event ORDER BY rowId DESC")
     fun events(): Flow<List<EventWithSong>>
 
+    @Transaction
+    @Query(
+        """
+        SELECT song.*
+        FROM song
+        JOIN (
+            SELECT songId, MAX(rowId) AS latestRowId
+            FROM event
+            GROUP BY songId
+            ORDER BY latestRowId DESC
+            LIMIT :limit
+        ) recent ON song.id = recent.songId
+        ORDER BY recent.latestRowId DESC
+        """,
+    )
+    fun recentSongs(limit: Int = 100): Flow<List<Song>>
+
     @Query(
         """
         SELECT CAST(strftime('%H', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS slot,

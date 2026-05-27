@@ -6039,6 +6039,10 @@ private fun onMediaItemTransitionInternal() {
         ): Boolean = (isHostSessionActive && isPlaybackInactive) || stopMusicOnTaskClearEnabled
 
         const val ROOT = "root"
+        const val QUICK_PICKS = "quick_picks"
+        const val RECENT = "recent"
+        const val LIKED = "liked"
+        const val DOWNLOADED = "downloaded"
         const val SONG = "song"
         const val ARTIST = "artist"
         const val ALBUM = "album"
