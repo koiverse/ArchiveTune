@@ -10,6 +10,7 @@ package moe.koiverse.archivetune.playback
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.datastore.preferences.core.MutablePreferences
+import androidx.datastore.preferences.core.toMutablePreferences
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -90,7 +91,9 @@ internal class MusicServiceWidgetUpdater(
             val ids = GlanceAppWidgetManager(service).getGlanceIds(target.widgetClass)
             ids.forEach { id ->
                 updateAppWidgetState(service, PreferencesGlanceStateDefinition, id) { prefs ->
-                    prefs[MusicWidgetKeys.PLAYBACK_POSITION] = progress
+                    prefs.toMutablePreferences().apply {
+                        this[MusicWidgetKeys.PLAYBACK_POSITION] = progress
+                    }
                 }
                 target.widget.update(service, id)
             }
@@ -104,7 +107,9 @@ internal class MusicServiceWidgetUpdater(
         val ids = GlanceAppWidgetManager(service).getGlanceIds(target.widgetClass)
         ids.forEach { id ->
             updateAppWidgetState(service, PreferencesGlanceStateDefinition, id) { prefs ->
-                prefs.writeSnapshot(snapshot)
+                prefs.toMutablePreferences().apply {
+                    writeSnapshot(snapshot)
+                }
             }
             target.widget.update(service, id)
         }
