@@ -75,9 +75,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -100,8 +101,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import androidx.navigation.NavController
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
@@ -119,6 +125,7 @@ import moe.koiverse.archivetune.together.TogetherSessionState
 import moe.koiverse.archivetune.ui.component.IconButton as AtIconButton
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlin.math.floor
 
@@ -130,16 +137,29 @@ fun MusicTogetherScreen(
 ) {
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current
+    val coroutineScope = rememberCoroutineScope()
 
-    val (welcomeShown, setWelcomeShown) = rememberPreference(TogetherWelcomeShownKey, false)
+    val welcomeShown by remember(context) {
+        context.dataStore.data
+            .map<Preferences, Boolean?> { preferences ->
+                preferences[TogetherWelcomeShownKey] ?: false
+            }
+            .distinctUntilChanged()
+    }.collectAsState(initial = null)
     var welcomeDismissedThisSession by rememberSaveable { mutableStateOf(false) }
-    val showWelcome = !welcomeShown && !welcomeDismissedThisSession
+    val showWelcome = welcomeShown == false && !welcomeDismissedThisSession
 
     if (showWelcome) {
         WelcomeDialog(
             onGotIt = { dontShowAgain ->
                 welcomeDismissedThisSession = true
-                if (dontShowAgain) setWelcomeShown(true)
+                if (dontShowAgain) {
+                    coroutineScope.launch {
+                        context.dataStore.edit { preferences ->
+                            preferences[TogetherWelcomeShownKey] = true
+                        }
+                    }
+                }
             },
             onDismiss = { welcomeDismissedThisSession = true },
         )
