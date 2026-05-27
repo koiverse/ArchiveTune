@@ -342,21 +342,6 @@ fun LyricsScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        AppleMusicBottomActions(
-                            onLyricsClick = {
-                                hapticClick()
-                                showLyricsMenu()
-                            },
-                            onQueueClick = onQueueClick?.let { queueClick ->
-                                {
-                                    hapticClick()
-                                    queueClick()
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 14.dp),
-                        )
                     }
                 }
             } else {
@@ -402,22 +387,6 @@ fun LyricsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 40.dp),
-                )
-
-                AppleMusicBottomActions(
-                    onLyricsClick = {
-                        hapticClick()
-                        showLyricsMenu()
-                    },
-                    onQueueClick = onQueueClick?.let { queueClick ->
-                        {
-                            hapticClick()
-                            queueClick()
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 68.dp, vertical = 4.dp),
                 )
             }
         }
@@ -821,56 +790,6 @@ private fun AppleMusicSlider(
         },
         modifier = modifier.height(28.dp),
     )
-}
-
-@Composable
-private fun AppleMusicBottomActions(
-    onLyricsClick: () -> Unit,
-    onQueueClick: (() -> Unit)?,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AppleMusicBottomAction(
-            iconRes = R.drawable.lyrics,
-            contentDescription = stringResource(R.string.lyrics),
-            selected = true,
-            onClick = onLyricsClick,
-        )
-        AppleMusicBottomAction(
-            iconRes = R.drawable.list,
-            contentDescription = stringResource(R.string.queue),
-            selected = false,
-            enabled = onQueueClick != null,
-            onClick = { onQueueClick?.invoke() },
-        )
-    }
-}
-
-@Composable
-private fun AppleMusicBottomAction(
-    iconRes: Int,
-    contentDescription: String?,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.size(48.dp),
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = contentDescription,
-            tint = AppleMusicForeground.copy(alpha = if (selected) 0.9f else 0.58f),
-            modifier = Modifier.size(25.dp),
-        )
-    }
 }
 
 @Composable
