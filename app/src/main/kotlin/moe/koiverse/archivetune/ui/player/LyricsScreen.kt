@@ -13,12 +13,16 @@ import android.content.res.Configuration
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +30,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -64,7 +67,10 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -72,6 +78,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -98,6 +105,7 @@ import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.DisableAnimationsKey
 import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 import moe.koiverse.archivetune.constants.LyricsMode
 import moe.koiverse.archivetune.constants.LyricsModeKey
@@ -122,6 +130,8 @@ private val AppleMusicFallbackGradient = listOf(
 )
 
 private val AppleMusicForeground = Color.White
+private const val LyricsControlsAutoHideDelayMillis = 4_000L
+private const val LyricsControlsFadeDurationMillis = 560
 
 @Suppress("UNUSED_PARAMETER")
 @Composable
@@ -145,6 +155,7 @@ fun LyricsScreen(
     val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
 
     val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
+    val (disableAnimations) = rememberPreference(DisableAnimationsKey, false)
     val lyricsMode by rememberEnumPreference(LyricsModeKey, LyricsMode.ENHANCED)
 
     val hapticClick = remember(enableHapticFeedback, view) {
@@ -262,6 +273,37 @@ fun LyricsScreen(
 
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
     val orientation = LocalConfiguration.current.orientation
+    var controlsVisible by remember(mediaMetadata.id) { mutableStateOf(true) }
+    var controlsInteractionTick by remember(mediaMetadata.id) { mutableIntStateOf(0) }
+
+    LaunchedEffect(mediaMetadata.id, controlsInteractionTick, sliderPosition) {
+        controlsVisible = true
+        if (sliderPosition == null) {
+            delay(LyricsControlsAutoHideDelayMillis)
+            controlsVisible = false
+        }
+    }
+
+    val controlsAlpha by animateFloatAsState(
+        targetValue = if (controlsVisible) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = if (disableAnimations) 0 else LyricsControlsFadeDurationMillis,
+            easing = FastOutSlowInEasing,
+        ),
+        label = "lyrics-controls-alpha",
+    )
+    val revealControlsModifier = Modifier.pointerInput(mediaMetadata.id) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            controlsVisible = true
+            controlsInteractionTick += 1
+        }
+    }
+    val hiddenControlsModifier = if (controlsVisible) {
+        Modifier
+    } else {
+        Modifier.clearAndSetSemantics {}
+    }
 
     BackHandler(onBack = onBackClick)
 
@@ -286,138 +328,137 @@ fun LyricsScreen(
             )
 
             if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                Row(
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(horizontal = 36.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .then(revealControlsModifier),
                 ) {
                     AppleMusicLyricsPane(
                         lyricsMode = lyricsMode,
                         sliderPositionProvider = { sliderPosition },
                         lyricsSyncOffset = lyricsSyncOffset,
                         modifier = Modifier
-                            .weight(1.15f)
-                            .fillMaxHeight()
-                            .padding(end = 32.dp),
+                            .fillMaxSize()
+                            .padding(horizontal = 36.dp, vertical = 8.dp),
                     )
 
-                    Column(
+                    AppleMusicControlCluster(
+                        positionProvider = { positionState.longValue },
+                        durationProvider = { durationState.longValue },
+                        sliderPosition = sliderPosition,
+                        isPlaying = isPlaying,
+                        isLoading = isLoading,
+                        volume = playerVolume,
+                        enabled = controlsVisible,
+                        onPositionChange = { sliderPosition = it },
+                        onPositionChangeFinished = {
+                            sliderPosition?.let {
+                                player.seekTo(it)
+                                positionState.longValue = it
+                            }
+                            sliderPosition = null
+                        },
+                        onVolumeChange = {
+                            playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
+                        },
+                        onPreviousClick = {
+                            hapticClick()
+                            playerConnection.seekToPrevious()
+                        },
+                        onPlayPauseClick = {
+                            hapticClick()
+                            player.togglePlayPause()
+                        },
+                        onNextClick = {
+                            hapticClick()
+                            playerConnection.seekToNext()
+                        },
+                        onLyricsClick = {
+                            hapticClick()
+                            showLyricsMenu()
+                        },
+                        onQueueClick = onQueueClick?.let { queueClick ->
+                            {
+                                hapticClick()
+                                queueClick()
+                            }
+                        },
                         modifier = Modifier
-                            .weight(0.85f)
-                            .widthIn(max = 420.dp),
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        AppleMusicControls(
-                            positionProvider = { positionState.longValue },
-                            durationProvider = { durationState.longValue },
-                            sliderPosition = sliderPosition,
-                            isPlaying = isPlaying,
-                            isLoading = isLoading,
-                            volume = playerVolume,
-                            onPositionChange = { sliderPosition = it },
-                            onPositionChangeFinished = {
-                                sliderPosition?.let {
-                                    player.seekTo(it)
-                                    positionState.longValue = it
-                                }
-                                sliderPosition = null
-                            },
-                            onVolumeChange = {
-                                playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
-                            },
-                            onPreviousClick = {
-                                hapticClick()
-                                playerConnection.seekToPrevious()
-                            },
-                            onPlayPauseClick = {
-                                hapticClick()
-                                player.togglePlayPause()
-                            },
-                            onNextClick = {
-                                hapticClick()
-                                playerConnection.seekToNext()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        AppleMusicBottomActions(
-                            onLyricsClick = {
-                                hapticClick()
-                                showLyricsMenu()
-                            },
-                            onQueueClick = onQueueClick?.let { queueClick ->
-                                {
-                                    hapticClick()
-                                    queueClick()
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 14.dp),
-                        )
-                    }
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 36.dp)
+                            .fillMaxWidth(0.42f)
+                            .widthIn(max = 420.dp)
+                            .graphicsLayer { alpha = controlsAlpha }
+                            .then(hiddenControlsModifier),
+                        bottomActionsTopPadding = 14.dp,
+                    )
                 }
             } else {
-                AppleMusicLyricsPane(
-                    lyricsMode = lyricsMode,
-                    sliderPositionProvider = { sliderPosition },
-                    lyricsSyncOffset = lyricsSyncOffset,
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth(),
-                )
-
-                AppleMusicControls(
-                    positionProvider = { positionState.longValue },
-                    durationProvider = { durationState.longValue },
-                    sliderPosition = sliderPosition,
-                    isPlaying = isPlaying,
-                    isLoading = isLoading,
-                    volume = playerVolume,
-                    onPositionChange = { sliderPosition = it },
-                    onPositionChangeFinished = {
-                        sliderPosition?.let {
-                            player.seekTo(it)
-                            positionState.longValue = it
-                        }
-                        sliderPosition = null
-                    },
-                    onVolumeChange = {
-                        playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
-                    },
-                    onPreviousClick = {
-                        hapticClick()
-                        playerConnection.seekToPrevious()
-                    },
-                    onPlayPauseClick = {
-                        hapticClick()
-                        player.togglePlayPause()
-                    },
-                    onNextClick = {
-                        hapticClick()
-                        playerConnection.seekToNext()
-                    },
-                    modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 40.dp),
-                )
+                        .then(revealControlsModifier),
+                ) {
+                    AppleMusicLyricsPane(
+                        lyricsMode = lyricsMode,
+                        sliderPositionProvider = { sliderPosition },
+                        lyricsSyncOffset = lyricsSyncOffset,
+                        modifier = Modifier.fillMaxSize(),
+                    )
 
-                AppleMusicBottomActions(
-                    onLyricsClick = {
-                        hapticClick()
-                        showLyricsMenu()
-                    },
-                    onQueueClick = onQueueClick?.let { queueClick ->
-                        {
+                    AppleMusicControlCluster(
+                        positionProvider = { positionState.longValue },
+                        durationProvider = { durationState.longValue },
+                        sliderPosition = sliderPosition,
+                        isPlaying = isPlaying,
+                        isLoading = isLoading,
+                        volume = playerVolume,
+                        enabled = controlsVisible,
+                        onPositionChange = { sliderPosition = it },
+                        onPositionChangeFinished = {
+                            sliderPosition?.let {
+                                player.seekTo(it)
+                                positionState.longValue = it
+                            }
+                            sliderPosition = null
+                        },
+                        onVolumeChange = {
+                            playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
+                        },
+                        onPreviousClick = {
                             hapticClick()
-                            queueClick()
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 68.dp, vertical = 4.dp),
-                )
+                            playerConnection.seekToPrevious()
+                        },
+                        onPlayPauseClick = {
+                            hapticClick()
+                            player.togglePlayPause()
+                        },
+                        onNextClick = {
+                            hapticClick()
+                            playerConnection.seekToNext()
+                        },
+                        onLyricsClick = {
+                            hapticClick()
+                            showLyricsMenu()
+                        },
+                        onQueueClick = onQueueClick?.let { queueClick ->
+                            {
+                                hapticClick()
+                                queueClick()
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .graphicsLayer { alpha = controlsAlpha }
+                            .then(hiddenControlsModifier),
+                        controlsHorizontalPadding = 40.dp,
+                        bottomActionsHorizontalPadding = 68.dp,
+                        bottomActionsVerticalPadding = 4.dp,
+                    )
+                }
             }
         }
     }
@@ -626,6 +667,68 @@ private fun AppleMusicLyricsPane(
 }
 
 @Composable
+private fun AppleMusicControlCluster(
+    positionProvider: () -> Long,
+    durationProvider: () -> Long,
+    sliderPosition: Long?,
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    volume: Float,
+    enabled: Boolean,
+    onPositionChange: (Long) -> Unit,
+    onPositionChangeFinished: () -> Unit,
+    onVolumeChange: (Float) -> Unit,
+    onPreviousClick: () -> Unit,
+    onPlayPauseClick: () -> Unit,
+    onNextClick: () -> Unit,
+    onLyricsClick: () -> Unit,
+    onQueueClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    controlsHorizontalPadding: Dp = 0.dp,
+    bottomActionsHorizontalPadding: Dp = 0.dp,
+    bottomActionsTopPadding: Dp = 0.dp,
+    bottomActionsVerticalPadding: Dp = 0.dp,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        AppleMusicControls(
+            positionProvider = positionProvider,
+            durationProvider = durationProvider,
+            sliderPosition = sliderPosition,
+            isPlaying = isPlaying,
+            isLoading = isLoading,
+            volume = volume,
+            enabled = enabled,
+            onPositionChange = onPositionChange,
+            onPositionChangeFinished = onPositionChangeFinished,
+            onVolumeChange = onVolumeChange,
+            onPreviousClick = onPreviousClick,
+            onPlayPauseClick = onPlayPauseClick,
+            onNextClick = onNextClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = controlsHorizontalPadding),
+        )
+        AppleMusicBottomActions(
+            onLyricsClick = onLyricsClick,
+            onQueueClick = onQueueClick,
+            enabled = enabled,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = bottomActionsHorizontalPadding,
+                    top = bottomActionsTopPadding + bottomActionsVerticalPadding,
+                    end = bottomActionsHorizontalPadding,
+                    bottom = bottomActionsVerticalPadding,
+                ),
+        )
+    }
+}
+
+@Composable
 private fun AppleMusicControls(
     positionProvider: () -> Long,
     durationProvider: () -> Long,
@@ -633,6 +736,7 @@ private fun AppleMusicControls(
     isPlaying: Boolean,
     isLoading: Boolean,
     volume: Float,
+    enabled: Boolean,
     onPositionChange: (Long) -> Unit,
     onPositionChangeFinished: () -> Unit,
     onVolumeChange: (Float) -> Unit,
@@ -660,6 +764,7 @@ private fun AppleMusicControls(
             trackHeight = 6.dp,
             onValueChange = { onPositionChange(it.toLong()) },
             onValueChangeFinished = onPositionChangeFinished,
+            enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -693,10 +798,12 @@ private fun AppleMusicControls(
                 contentDescription = stringResource(R.string.widget_previous),
                 iconSize = 44.dp,
                 touchSize = 68.dp,
+                enabled = enabled,
                 onClick = onPreviousClick,
             )
             IconButton(
                 onClick = onPlayPauseClick,
+                enabled = enabled,
                 modifier = Modifier.size(74.dp),
             ) {
                 if (isLoading) {
@@ -722,6 +829,7 @@ private fun AppleMusicControls(
                 contentDescription = stringResource(R.string.next),
                 iconSize = 44.dp,
                 touchSize = 68.dp,
+                enabled = enabled,
                 onClick = onNextClick,
             )
         }
@@ -746,6 +854,7 @@ private fun AppleMusicControls(
                 trackHeight = 8.dp,
                 onValueChange = onVolumeChange,
                 onValueChangeFinished = {},
+                enabled = enabled,
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 16.dp),
@@ -766,11 +875,13 @@ private fun AppleMusicTransportButton(
     contentDescription: String?,
     iconSize: Dp,
     touchSize: Dp,
+    enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     IconButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.size(touchSize),
     ) {
         Icon(
@@ -792,6 +903,7 @@ private fun AppleMusicSlider(
     trackHeight: Dp,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val safeStart = valueRange.start
@@ -809,6 +921,7 @@ private fun AppleMusicSlider(
         valueRange = safeRange,
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
+        enabled = enabled,
         colors = sliderColors,
         thumb = { Spacer(modifier = Modifier.size(0.dp)) },
         track = { sliderState ->
@@ -826,6 +939,7 @@ private fun AppleMusicSlider(
 private fun AppleMusicBottomActions(
     onLyricsClick: () -> Unit,
     onQueueClick: (() -> Unit)?,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -837,13 +951,14 @@ private fun AppleMusicBottomActions(
             iconRes = R.drawable.lyrics,
             contentDescription = stringResource(R.string.lyrics),
             selected = true,
+            enabled = enabled,
             onClick = onLyricsClick,
         )
         AppleMusicBottomAction(
             iconRes = R.drawable.list,
             contentDescription = stringResource(R.string.queue),
             selected = false,
-            enabled = onQueueClick != null,
+            enabled = enabled && onQueueClick != null,
             onClick = { onQueueClick?.invoke() },
         )
     }
