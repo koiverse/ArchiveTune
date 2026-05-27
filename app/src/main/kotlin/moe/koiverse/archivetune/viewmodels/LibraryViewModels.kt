@@ -25,6 +25,7 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.ai.AiServiceConfig
 import moe.koiverse.archivetune.ai.AiTextService
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.constants.AiApiKeyKey
 import moe.koiverse.archivetune.constants.AiApiValidationStatus
 import moe.koiverse.archivetune.constants.AiApiValidationStatusKey
@@ -480,9 +481,32 @@ constructor(
             _buildYourMixState.value = BuildYourMixUiState.Loading
             try {
                 val count = songCount.coerceIn(1, 100)
-                val candidates = mixCandidatesFor(basis = basis, songCount = count)
+                val normalizedManualBasis = manualBasis.trim()
+                if (basis == BuildYourMixBasis.INPUT_MANUALLY && normalizedManualBasis.isBlank()) {
+                    _buildYourMixState.value = BuildYourMixUiState.Error(context.getString(R.string.build_your_mix_manual_required))
+                    return@launch
+                }
+
+                val localCandidates = mixCandidatesFor(
+                    basis = basis,
+                    songCount = count,
+                    manualBasis = normalizedManualBasis,
+                )
+                val candidates = validateSongsWithYtm(
+                    songs = localCandidates,
+                    basis = basis,
+                    manualBasis = normalizedManualBasis,
+                )
                 if (candidates.isEmpty()) {
-                    _buildYourMixState.value = BuildYourMixUiState.Error(context.getString(R.string.build_your_mix_empty_library))
+                    _buildYourMixState.value = BuildYourMixUiState.Error(
+                        context.getString(
+                            if (basis == BuildYourMixBasis.INPUT_MANUALLY) {
+                                R.string.build_your_mix_no_manual_match
+                            } else {
+                                R.string.build_your_mix_empty_library
+                            },
+                        ),
+                    )
                     return@launch
                 }
 
@@ -490,12 +514,31 @@ constructor(
                     config = readAiConfig(),
                     basis = basis,
                     songCount = count,
-                    manualBasis = if (basis == BuildYourMixBasis.INPUT_MANUALLY) manualBasis else "",
+                    manualBasis = if (basis == BuildYourMixBasis.INPUT_MANUALLY) normalizedManualBasis else "",
                     candidates = candidates,
                 )
+                val finalSongs = validateFinalMixSongs(
+                    aiSongs = aiMix.songs,
+                    fallbackCandidates = candidates,
+                    basis = basis,
+                    manualBasis = normalizedManualBasis,
+                    songCount = count,
+                )
+                if (finalSongs.isEmpty()) {
+                    _buildYourMixState.value = BuildYourMixUiState.Error(
+                        context.getString(
+                            if (basis == BuildYourMixBasis.INPUT_MANUALLY) {
+                                R.string.build_your_mix_no_manual_match
+                            } else {
+                                R.string.build_your_mix_empty_library
+                            },
+                        ),
+                    )
+                    return@launch
+                }
                 val playlistId = createGeneratedPlaylist(
                     title = aiMix.title.ifBlank { basis.defaultTitle() },
-                    songs = aiMix.songs,
+                    songs = finalSongs.map { it.song },
                 )
                 _buildYourMixState.value = BuildYourMixUiState.Success(
                     playlistId = playlistId,
@@ -532,17 +575,24 @@ constructor(
     private suspend fun mixCandidatesFor(
         basis: BuildYourMixBasis,
         songCount: Int,
+        manualBasis: String,
     ): List<Song> {
-        val requestedPoolSize = (songCount * 3).coerceIn(100, 250)
+        val requestedPoolSize = (songCount * 2).coerceIn(50, 100)
         val primary = when (basis) {
             BuildYourMixBasis.LISTENING_HISTORY -> database.recentSongs(requestedPoolSize).first()
             BuildYourMixBasis.AVERAGE_LISTENED -> database
                 .songs(SongSortType.PLAY_TIME, descending = true)
                 .first()
                 .filter { it.song.totalPlayTime > 0L }
-            BuildYourMixBasis.INPUT_MANUALLY -> database.songs(SongSortType.PLAY_TIME, descending = true).first()
+            BuildYourMixBasis.INPUT_MANUALLY -> database
+                .songs(SongSortType.CREATE_DATE, descending = true)
+                .first()
+                .asSequence()
+                .filter { it.matchesManualBasis(manualBasis) }
+                .sortedByDescending { it.manualBasisMatchScore(manualBasis) }
+                .toList()
         }
-        val fallback = if (primary.size < songCount) {
+        val fallback = if (primary.size < songCount && basis != BuildYourMixBasis.INPUT_MANUALLY) {
             database.songs(SongSortType.CREATE_DATE, descending = true).first()
         } else {
             emptyList()
@@ -552,23 +602,64 @@ constructor(
             .take(requestedPoolSize)
     }
 
+    private suspend fun validateSongsWithYtm(
+        songs: List<Song>,
+        basis: BuildYourMixBasis,
+        manualBasis: String,
+    ): List<ValidatedMixSong> =
+        buildList {
+            songs.distinctBy { it.id }.forEach { song ->
+                song.validateWithYtm()
+                    ?.takeIf { it.matchesBasis(basis, manualBasis) }
+                    ?.let(::add)
+            }
+        }
+
+    private suspend fun validateFinalMixSongs(
+        aiSongs: List<ValidatedMixSong>,
+        fallbackCandidates: List<ValidatedMixSong>,
+        basis: BuildYourMixBasis,
+        manualBasis: String,
+        songCount: Int,
+    ): List<ValidatedMixSong> {
+        val aiValidated = validateSongsWithYtm(
+            songs = aiSongs.map { it.song },
+            basis = basis,
+            manualBasis = manualBasis,
+        )
+        val selectedIds = aiValidated.mapTo(mutableSetOf()) { it.id }
+        val proposedSongs = buildList {
+            addAll(aiValidated.map { it.song })
+            fallbackCandidates.forEach { candidate ->
+                if (size >= songCount) return@forEach
+                if (selectedIds.add(candidate.id)) add(candidate.song)
+            }
+        }
+        return validateSongsWithYtm(
+            songs = proposedSongs,
+            basis = basis,
+            manualBasis = manualBasis,
+        ).take(songCount)
+    }
+
     private suspend fun requestAiMix(
         config: AiServiceConfig,
         basis: BuildYourMixBasis,
         songCount: Int,
         manualBasis: String,
-        candidates: List<Song>,
+        candidates: List<ValidatedMixSong>,
     ): GeneratedMix {
         val candidateById = candidates.associateBy { it.id }
         val candidatePayload = JSONArray().apply {
-            candidates.forEach { song ->
+            candidates.forEach { candidate ->
                 put(
                     JSONObject()
-                        .put("id", song.id)
-                        .put("title", song.song.title)
-                        .put("artists", song.artists.joinToString(", ") { it.name })
-                        .put("album", song.album?.title ?: song.song.albumName.orEmpty())
-                        .put("totalPlayTimeMs", song.song.totalPlayTime),
+                        .put("id", candidate.id)
+                        .put("title", candidate.ytmTitle)
+                        .put("artists", candidate.ytmArtists.joinToString(", "))
+                        .put("localTitle", candidate.song.song.title)
+                        .put("localArtists", candidate.song.artists.joinToString(", ") { it.name })
+                        .put("totalPlayTimeMs", candidate.song.song.totalPlayTime),
                 )
             }
         }
@@ -579,6 +670,7 @@ constructor(
                 Build one personal playlist using only the provided candidate song IDs.
                 Return JSON only with this schema: {"title":"short accurate playlist title","songIds":["id"]}.
                 The title must reflect the selected basis and the selected songs.
+                For manual user input, only choose songs where the provided artist/title text matches the candidate title or artist.
                 Select up to $songCount songs, avoid duplicates, and prioritize coherence over variety.
             """.trimIndent(),
             userPrompt = JSONObject()
@@ -596,13 +688,14 @@ constructor(
             ?.toStringList()
             .orEmpty()
             .mapNotNull(candidateById::get)
+            .filter { it.matchesBasis(basis, manualBasis) }
             .distinctBy { it.id }
             .toMutableList()
         if (selected.size < songCount) {
             val selectedIds = selected.mapTo(mutableSetOf()) { it.id }
             candidates.forEach { candidate ->
                 if (selected.size >= songCount) return@forEach
-                if (selectedIds.add(candidate.id)) selected.add(candidate)
+                if (candidate.matchesBasis(basis, manualBasis) && selectedIds.add(candidate.id)) selected.add(candidate)
             }
         }
         return GeneratedMix(
@@ -742,8 +835,93 @@ sealed interface BuildYourMixUiState {
 @Immutable
 private data class GeneratedMix(
     val title: String,
-    val songs: List<Song>,
+    val songs: List<ValidatedMixSong>,
 )
+
+@Immutable
+private data class ValidatedMixSong(
+    val song: Song,
+    val ytmTitle: String,
+    val ytmArtists: List<String>,
+) {
+    val id: String
+        get() = song.id
+}
+
+private suspend fun Song.validateWithYtm(): ValidatedMixSong? {
+    val query = ytmValidationQuery()
+    if (query.isBlank()) return null
+    val songs = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG)
+        .getOrNull()
+        ?.items
+        .orEmpty()
+        .filterIsInstance<SongItem>()
+    val match = songs.firstOrNull { it.id == id }
+        ?: songs.firstOrNull { it.matchesLocalIdentity(this) }
+    return match?.let { songItem ->
+        ValidatedMixSong(
+            song = this,
+            ytmTitle = songItem.title,
+            ytmArtists = songItem.artists.map { it.name },
+        )
+    }
+}
+
+private fun Song.ytmValidationQuery(): String =
+    buildString {
+        append(song.title)
+        val artistNames = artists.joinToString(" ") { it.name }
+        if (artistNames.isNotBlank()) {
+            append(' ')
+            append(artistNames)
+        }
+    }.trim()
+
+private fun SongItem.matchesLocalIdentity(song: Song): Boolean =
+    title.matchesComparableTitle(song.song.title) && artists.matchesAnyLocalArtist(song)
+
+private fun String.matchesComparableTitle(other: String): Boolean {
+    val self = normalizedForMixMatch()
+    val target = other.normalizedForMixMatch()
+    return self.isNotBlank() &&
+        target.isNotBlank() &&
+        (self == target || (self.length > 3 && target.contains(self)) || (target.length > 3 && self.contains(target)))
+}
+
+private fun List<moe.koiverse.archivetune.innertube.models.Artist>.matchesAnyLocalArtist(song: Song): Boolean {
+    val remoteArtists = map { it.name.normalizedForMixMatch() }.filter { it.isNotBlank() }
+    val localArtists = song.artists.map { it.name.normalizedForMixMatch() }.filter { it.isNotBlank() }
+    if (remoteArtists.isEmpty() || localArtists.isEmpty()) return false
+    return localArtists.any { localArtist ->
+        remoteArtists.any { remoteArtist ->
+            localArtist == remoteArtist ||
+                (localArtist.length > 3 && remoteArtist.contains(localArtist)) ||
+                (remoteArtist.length > 3 && localArtist.contains(remoteArtist))
+        }
+    }
+}
+
+private fun ValidatedMixSong.matchesBasis(
+    basis: BuildYourMixBasis,
+    manualBasis: String,
+): Boolean =
+    basis != BuildYourMixBasis.INPUT_MANUALLY || matchesManualBasis(manualBasis)
+
+private fun ValidatedMixSong.matchesManualBasis(manualBasis: String): Boolean {
+    val searchable = manualSearchableText()
+    val phrases = manualBasis.manualSearchPhrases()
+    if (phrases.isEmpty()) return false
+    if (phrases.any { searchable.contains(it) }) return true
+    val tokens = manualBasis.manualSearchTokens()
+    return tokens.isNotEmpty() && tokens.all(searchable::contains)
+}
+
+private fun ValidatedMixSong.manualSearchableText(): String =
+    buildString {
+        append(ytmTitle)
+        append(' ')
+        append(ytmArtists.joinToString(" "))
+    }.normalizedForMixMatch()
 
 private fun JSONArray.toStringList(): List<String> =
     List(length()) { index -> optString(index) }.filter { it.isNotBlank() }
@@ -754,6 +932,57 @@ private fun String.sanitizePlaylistTitle(): String =
         .orEmpty()
         .trim()
         .take(80)
+
+private fun Song.matchesManualBasis(manualBasis: String): Boolean {
+    val searchable = manualSearchableText()
+    val phrases = manualBasis.manualSearchPhrases()
+    if (phrases.isEmpty()) return false
+    if (phrases.any { searchable.contains(it) }) return true
+    val tokens = manualBasis.manualSearchTokens()
+    return tokens.isNotEmpty() && tokens.all(searchable::contains)
+}
+
+private fun Song.manualBasisMatchScore(manualBasis: String): Int {
+    val title = song.title.normalizedForMixMatch()
+    val artist = artists.joinToString(" ") { it.name }.normalizedForMixMatch()
+    val searchable = "$title $artist".trim()
+    val phraseScore = manualBasis.manualSearchPhrases().sumOf { phrase ->
+        when {
+            artist.contains(phrase) -> 80 + phrase.length
+            title.contains(phrase) -> 60 + phrase.length
+            searchable.contains(phrase) -> 40 + phrase.length
+            else -> 0
+        }
+    }
+    val tokenScore = manualBasis.manualSearchTokens().sumOf { token ->
+        (if (artist.contains(token)) 10 else 0) +
+            (if (title.contains(token)) 8 else 0)
+    }
+    return phraseScore + tokenScore
+}
+
+private fun Song.manualSearchableText(): String =
+    buildString {
+        append(song.title)
+        append(' ')
+        append(artists.joinToString(" ") { it.name })
+    }.normalizedForMixMatch()
+
+private fun String.manualSearchPhrases(): List<String> =
+    split(Regex("[,;\\n]+"))
+        .map { it.normalizedForMixMatch() }
+        .filter { it.length > 1 }
+
+private fun String.manualSearchTokens(): List<String> =
+    normalizedForMixMatch()
+        .split(' ')
+        .filter { it.length > 1 }
+
+private fun String.normalizedForMixMatch(): String =
+    lowercase(Locale.getDefault())
+        .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+        .trim()
+        .replace(Regex("\\s+"), " ")
 
 @HiltViewModel
 class LibraryViewModel

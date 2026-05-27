@@ -70,10 +70,13 @@
     <string name="build_your_mix_listening_history">Listening History</string>
     <string name="build_your_mix_average_listened">Average Listened</string>
     <string name="build_your_mix_input_manually">Input Manually</string>
+    <string name="build_your_mix_create">Build mix</string>
     <string name="build_your_mix_manual_basis">Manual basis</string>
-    <string name="build_your_mix_manual_placeholder">Describe the mood, artists, genre, moment, or energy</string>
+    <string name="build_your_mix_manual_placeholder">Type an artist or song title, like Alan Walker</string>
     <string name="build_your_mix_loading_quote">Building Your Mix, It Will Take Time...</string>
     <string name="build_your_mix_empty_library">No library songs are available to build a mix.</string>
+    <string name="build_your_mix_manual_required">Enter an artist or song title first.</string>
+    <string name="build_your_mix_no_manual_match">No library songs matched that artist or title.</string>
     <string name="build_your_mix_failed">Failed to build your mix</string>
     <!-- Artist screen -->
     <string name="from_your_library">From your library</string>
