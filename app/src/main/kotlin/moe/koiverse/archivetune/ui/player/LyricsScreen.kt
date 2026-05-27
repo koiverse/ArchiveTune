@@ -20,6 +20,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -689,42 +690,54 @@ private fun AppleMusicControlCluster(
     bottomActionsTopPadding: Dp = 0.dp,
     bottomActionsVerticalPadding: Dp = 0.dp,
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+    val surfaceShape = RoundedCornerShape(30.dp)
+
+    Box(
+        modifier = modifier
+            .clip(surfaceShape)
+            .background(AppleMusicForeground.copy(alpha = 0.08f), surfaceShape)
+            .background(Color.Black.copy(alpha = 0.26f), surfaceShape)
+            .border(1.dp, AppleMusicForeground.copy(alpha = 0.12f), surfaceShape)
     ) {
-        AppleMusicControls(
-            positionProvider = positionProvider,
-            durationProvider = durationProvider,
-            sliderPosition = sliderPosition,
-            isPlaying = isPlaying,
-            isLoading = isLoading,
-            volume = volume,
-            enabled = enabled,
-            onPositionChange = onPositionChange,
-            onPositionChangeFinished = onPositionChangeFinished,
-            onVolumeChange = onVolumeChange,
-            onPreviousClick = onPreviousClick,
-            onPlayPauseClick = onPlayPauseClick,
-            onNextClick = onNextClick,
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = controlsHorizontalPadding),
-        )
-        AppleMusicBottomActions(
-            onLyricsClick = onLyricsClick,
-            onQueueClick = onQueueClick,
-            enabled = enabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = bottomActionsHorizontalPadding,
-                    top = bottomActionsTopPadding + bottomActionsVerticalPadding,
-                    end = bottomActionsHorizontalPadding,
-                    bottom = bottomActionsVerticalPadding,
-                ),
-        )
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            AppleMusicControls(
+                positionProvider = positionProvider,
+                durationProvider = durationProvider,
+                sliderPosition = sliderPosition,
+                isPlaying = isPlaying,
+                isLoading = isLoading,
+                volume = volume,
+                enabled = enabled,
+                onPositionChange = onPositionChange,
+                onPositionChangeFinished = onPositionChangeFinished,
+                onVolumeChange = onVolumeChange,
+                onPreviousClick = onPreviousClick,
+                onPlayPauseClick = onPlayPauseClick,
+                onNextClick = onNextClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = controlsHorizontalPadding),
+            )
+            AppleMusicBottomActions(
+                onLyricsClick = onLyricsClick,
+                onQueueClick = onQueueClick,
+                enabled = enabled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = bottomActionsHorizontalPadding,
+                        top = bottomActionsTopPadding + bottomActionsVerticalPadding,
+                        end = bottomActionsHorizontalPadding,
+                        bottom = bottomActionsVerticalPadding,
+                    ),
+            )
+        }
     }
 }
 
