@@ -11,15 +11,22 @@
 
 package moe.koiverse.archivetune.viewmodels
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.db.MusicDatabase
+import moe.koiverse.archivetune.db.entities.Album
+import moe.koiverse.archivetune.db.entities.Artist
+import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.db.entities.SongWithStats
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -37,13 +44,13 @@ constructor(
     val database: MusicDatabase,
 ) : ViewModel() {
 
-    val selectedYear = MutableStateFlow(LocalDateTime.now().year)
+    private val selectedYear = MutableStateFlow(LocalDateTime.now().year)
 
-    val firstEvent = database
+    private val firstEvent = database
         .firstEvent()
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-    val availableYears = firstEvent.map { event ->
+    private val availableYears = firstEvent.map { event ->
         val startYear = event?.event?.timestamp?.year ?: LocalDateTime.now().year
         val currentYear = LocalDateTime.now().year
         (currentYear downTo startYear).toList()
@@ -61,7 +68,7 @@ constructor(
             .toEpochMilli()
     }
 
-    val topSongsStats = selectedYear.flatMapLatest { year ->
+    private val topSongsStats = selectedYear.flatMapLatest { year ->
         database.mostPlayedSongsStats(
             fromTimeStamp = getYearStartTimestamp(year),
             limit = 5,
@@ -69,7 +76,7 @@ constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val topSongs = selectedYear.flatMapLatest { year ->
+    private val topSongs = selectedYear.flatMapLatest { year ->
         database.mostPlayedSongs(
             fromTimeStamp = getYearStartTimestamp(year),
             limit = 5,
@@ -77,7 +84,7 @@ constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val topArtists = selectedYear.flatMapLatest { year ->
+    private val topArtists = selectedYear.flatMapLatest { year ->
         database.mostPlayedArtists(
             fromTimeStamp = getYearStartTimestamp(year),
             limit = 5,
@@ -87,7 +94,7 @@ constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val topAlbums = selectedYear.flatMapLatest { year ->
+    private val topAlbums = selectedYear.flatMapLatest { year ->
         database.mostPlayedAlbums(
             fromTimeStamp = getYearStartTimestamp(year),
             limit = 5,
@@ -95,13 +102,49 @@ constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val totalListeningTime = topSongsStats.map { songs ->
-        songs.sumOf { stat -> stat.timeListened ?: 0L }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, 0L)
+    private val recapData = combine(
+        topSongsStats,
+        topSongs,
+        topArtists,
+        topAlbums,
+    ) { songStats, songs, artists, albums ->
+        YearInMusicRecapData(
+            topSongsStats = songStats,
+            topSongs = songs,
+            topArtists = artists,
+            topAlbums = albums,
+            totalListeningTime = songStats.sumOf { stat -> stat.timeListened ?: 0L },
+            totalSongsPlayed = songStats.sumOf { stat -> stat.songCountListened.toLong() },
+        )
+    }
 
-    val totalSongsPlayed = topSongsStats.map { songs ->
-        songs.sumOf { stat -> stat.songCountListened.toLong() }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, 0L)
+    val uiState: StateFlow<YearInMusicUiState> = combine(
+        selectedYear,
+        availableYears,
+        recapData,
+    ) { year, years, data ->
+        YearInMusicUiState.Content(
+            selectedYear = year,
+            availableYears = years,
+            topSongsStats = data.topSongsStats,
+            topSongs = data.topSongs,
+            topArtists = data.topArtists,
+            topAlbums = data.topAlbums,
+            totalListeningTime = data.totalListeningTime,
+            totalSongsPlayed = data.totalSongsPlayed,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = YearInMusicUiState.Content(
+            selectedYear = LocalDateTime.now().year,
+            availableYears = listOf(LocalDateTime.now().year),
+        ),
+    )
+
+    fun selectYear(year: Int) {
+        selectedYear.value = year
+    }
 
     init {
         viewModelScope.launch {
@@ -145,5 +188,35 @@ constructor(
                     }
             }
         }
+    }
+}
+
+@Immutable
+private data class YearInMusicRecapData(
+    val totalListeningTime: Long,
+    val totalSongsPlayed: Long,
+    val topSongsStats: List<SongWithStats>,
+    val topSongs: List<Song>,
+    val topArtists: List<Artist>,
+    val topAlbums: List<Album>,
+)
+
+sealed interface YearInMusicUiState {
+    val selectedYear: Int
+    val availableYears: List<Int>
+
+    @Immutable
+    data class Content(
+        override val selectedYear: Int,
+        override val availableYears: List<Int>,
+        val totalListeningTime: Long = 0L,
+        val totalSongsPlayed: Long = 0L,
+        val topSongsStats: List<SongWithStats> = emptyList(),
+        val topSongs: List<Song> = emptyList(),
+        val topArtists: List<Artist> = emptyList(),
+        val topAlbums: List<Album> = emptyList(),
+    ) : YearInMusicUiState {
+        val hasData: Boolean
+            get() = topSongsStats.isNotEmpty() || topArtists.isNotEmpty() || topAlbums.isNotEmpty()
     }
 }

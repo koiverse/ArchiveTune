@@ -212,13 +212,10 @@
     <string name="settings_section_system">النظام وحول</string>
     <string name="similar_content">محتوى مشابه</string>
     <string name="year_in_music">عامك الموسيقي</string>
-    <string name="your_year_in_music">عامك الموسيقي لعام %d</string>
     <string name="total_listening_time">إجمالي وقت الاستماع</string>
-    <string name="top_songs">أفضل الأغاني</string>
     <string name="top_artists">أفضل الفنانين</string>
     <string name="share_summary">ملخص المشاركة</string>
     <string name="no_listening_data">لا توجد بيانات استماع لهذا العام</string>
-    <string name="played">تم الاستماع</string>
     <string name="custom_theme">سمة مخصصة</string>
     <string name="import_theme">استيراد سمة</string>
     <string name="export_theme">تصدير سمة</string>

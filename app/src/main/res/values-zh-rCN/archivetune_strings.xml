@@ -164,11 +164,9 @@
     <string name="similar_content">类似内容</string>
     <string name="year_in_music">一年里的音乐</string>
     <string name="total_listening_time">总收听时间</string>
-    <string name="top_songs">热门歌曲</string>
     <string name="top_artists">热门艺术家</string>
     <string name="share_summary">分享摘要</string>
     <string name="no_listening_data">没有收听数据</string>
-    <string name="played">已播放</string>
     <string name="custom_theme">自定义主题</string>
     <string name="import_theme">导入主题</string>
     <string name="export_theme">导出主题</string>
@@ -239,7 +237,6 @@
     <plurals name="seconds">
         <item quantity="other">%d 秒</item>
     </plurals>
-    <string name="your_year_in_music">您的 %d 年度音乐回忆</string>
     <string name="theme_editor_title">%1$s 颜色</string>
     <string name="backup_step_copying_file">正在复制%1$s</string>
     <string name="restore_step_restoring_file">正在恢复%1$s</string>

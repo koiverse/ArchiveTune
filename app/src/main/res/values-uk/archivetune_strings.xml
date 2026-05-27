@@ -246,13 +246,10 @@
     <string name="error_no_similar_songs">Не знайдено схожих пісень</string>
     <string name="error_automix_failed">Не вдалося завантажити схожі пісні</string>
     <string name="year_in_music">Рік у музиці</string>
-    <string name="your_year_in_music">Ваш %d рік у музиці</string>
     <string name="total_listening_time">Загальний час прослуховування</string>
-    <string name="top_songs">Топ пісень</string>
     <string name="top_artists">Топ виконавців</string>
     <string name="share_summary">Поділитися коротким оглядом</string>
     <string name="no_listening_data">Даних про прослуховування за цей рік немає</string>
-    <string name="played">відтворено</string>
     <string name="custom_theme">Власна тема</string>
     <string name="import_theme">Імпортувати тему</string>
     <string name="export_theme">Експортувати тему</string>

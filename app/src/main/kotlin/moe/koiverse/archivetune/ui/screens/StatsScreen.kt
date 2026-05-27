@@ -570,7 +570,7 @@ fun StatsScreen(
                     onLongClick = {},
                 ) {
                     Icon(
-                        painterResource(R.drawable.calendar_today),
+                        painterResource(R.drawable.auto_awesome),
                         contentDescription = stringResource(R.string.year_in_music),
                     )
                 }

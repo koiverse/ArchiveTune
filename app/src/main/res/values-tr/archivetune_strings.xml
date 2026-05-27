@@ -200,13 +200,10 @@
     <string name="settings_section_system">Sistem &amp; Hakkında</string>
     <string name="similar_content">Benzer içerik</string>
     <string name="year_in_music">Müzik Yılı</string>
-    <string name="your_year_in_music">Müzikte %d Yılınız</string>
     <string name="total_listening_time">Toplam Dinleme Süresi</string>
-    <string name="top_songs">En Popüler Şarkılar</string>
     <string name="top_artists">En İyi Sanatçılar</string>
     <string name="share_summary">Özeti Paylaş</string>
     <string name="no_listening_data">Bu yıl için dinleme verisi yok</string>
-    <string name="played">oynandı</string>
     <string name="custom_theme">Özel Tema</string>
     <string name="import_theme">Temayı İçe Aktar</string>
     <string name="export_theme">İhracat Teması</string>

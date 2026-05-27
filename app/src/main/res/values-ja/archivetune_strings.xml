@@ -343,13 +343,10 @@
     <string name="error_no_similar_songs">似たような曲は見つかりませんでした</string>
     <string name="error_automix_failed">類似した曲の読み込みに失敗しました</string>
     <string name="year_in_music">音楽の一年</string>
-    <string name="your_year_in_music">あなたの %d 年間の音楽活動</string>
     <string name="total_listening_time">合計リスニング時間</string>
-    <string name="top_songs">トップソング</string>
     <string name="top_artists">トップアーティスト</string>
     <string name="share_summary">シェアの概要</string>
     <string name="no_listening_data">今年の聴取データはありません</string>
-    <string name="played">遊んだ</string>
     <string name="stats_favourite_artist">あなたの好きなアーティスト</string>
     <string name="stats_favourite_song">あなたのお気に入りの曲</string>
     <string name="stats_total_time_listened">合計聴取時間</string>

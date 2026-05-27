@@ -343,13 +343,10 @@
     <string name="error_no_similar_songs">비슷한 노래가 없습니다.</string>
     <string name="error_automix_failed">유사한 노래를 로드하지 못했습니다.</string>
     <string name="year_in_music">음악의 해</string>
-    <string name="your_year_in_music">귀하의 음악 경력은 %d년입니다</string>
     <string name="total_listening_time">총 청취 시간</string>
-    <string name="top_songs">인기곡</string>
     <string name="top_artists">톱 아티스트</string>
     <string name="share_summary">공유 요약</string>
     <string name="no_listening_data">올해 청취 데이터가 없습니다.</string>
-    <string name="played">연주했다</string>
     <string name="stats_favourite_artist">좋아하는 아티스트</string>
     <string name="stats_favourite_song">당신이 가장 좋아하는 노래</string>
     <string name="stats_total_time_listened">총 청취 시간</string>

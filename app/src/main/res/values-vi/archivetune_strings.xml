@@ -194,13 +194,10 @@
     <string name="settings_section_system">Hệ thống &amp; Giới thiệu</string>
     <string name="similar_content">Nội dung tương tự</string>
     <string name="year_in_music">Năm trong Âm nhạc</string>
-    <string name="your_year_in_music">Năm %d của bạn trong Âm nhạc</string>
     <string name="total_listening_time">Tổng Thời gian Nghe</string>
-    <string name="top_songs">Bài hát Hàng đầu</string>
     <string name="top_artists">Nghệ sĩ Hàng đầu</string>
     <string name="share_summary">Chia sẻ Tóm tắt</string>
     <string name="no_listening_data">Không có dữ liệu nghe cho năm này</string>
-    <string name="played">đã phát</string>
     <string name="custom_theme">Giao diện Tùy chỉnh</string>
     <string name="import_theme">Nhập Giao diện</string>
     <string name="export_theme">Xuất Giao diện</string>

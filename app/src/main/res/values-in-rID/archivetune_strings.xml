@@ -343,13 +343,10 @@
     <string name="error_no_similar_songs">Tidak ada lagu serupa yang ditemukan</string>
     <string name="error_automix_failed">Gagal memuat lagu serupa</string>
     <string name="year_in_music">Setahun di Musik</string>
-    <string name="your_year_in_music">%d Tahun Musik Anda</string>
     <string name="total_listening_time">Total Waktu Mendengarkan</string>
-    <string name="top_songs">Lagu Teratas</string>
     <string name="top_artists">Artis Teratas</string>
     <string name="share_summary">Bagikan Ringkasan</string>
     <string name="no_listening_data">Tidak ada data pendengaran untuk tahun ini</string>
-    <string name="played">dimainkan</string>
     <string name="stats_favourite_artist">Artis Favorit Anda</string>
     <string name="stats_favourite_song">Lagu Favorit Anda</string>
     <string name="stats_total_time_listened">Total Waktu Mendengarkan</string>

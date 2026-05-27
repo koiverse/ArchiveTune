@@ -207,13 +207,10 @@
     <string name="settings_section_system">Система и информация о программе</string>
     <string name="similar_content">Похожий контент</string>
     <string name="year_in_music">Год в Музыке</string>
-    <string name="your_year_in_music">Твой %d год в Музыке</string>
     <string name="total_listening_time">Общее время прослушивания</string>
-    <string name="top_songs">Топ песен</string>
     <string name="top_artists">Топ Исполнителей</string>
     <string name="share_summary">Поделиться сводкой</string>
     <string name="no_listening_data">Данных о прослушивании за этот год нет</string>
-    <string name="played">воспроизведено</string>
     <string name="custom_theme">Своя тема</string>
     <string name="import_theme">Импортировать тему</string>
     <string name="export_theme">Экспортировать тему</string>

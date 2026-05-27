@@ -191,13 +191,10 @@
     <string name="settings_section_system">Sistema &amp; Sobre</string>
     <string name="similar_content">Conteúdo Semelhante</string>
     <string name="year_in_music">Um Ano na Música</string>
-    <string name="your_year_in_music">Seu %d na Música</string>
     <string name="total_listening_time">Tempo Total de Escuta</string>
-    <string name="top_songs">Músicas Populares</string>
     <string name="top_artists">Artistas Populares</string>
     <string name="share_summary">Compartilhar Sumário</string>
     <string name="no_listening_data">Não há dados de escuta para este ano</string>
-    <string name="played">tocadas</string>
     <string name="custom_theme">Tema Personalizado</string>
     <string name="import_theme">Importar Tema</string>
     <string name="export_theme">Exportar Tema</string>

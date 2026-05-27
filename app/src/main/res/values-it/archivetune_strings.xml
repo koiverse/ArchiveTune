@@ -203,13 +203,10 @@
     <string name="settings_section_system">Sistema e Informazioni</string>
     <string name="similar_content">Contenuti simili</string>
     <string name="year_in_music">Il tuo anno in Music</string>
-    <string name="your_year_in_music">Il tuo %d anno in Music</string>
     <string name="total_listening_time">Tempo di ascolto totale</string>
-    <string name="top_songs">Brani più ascoltati</string>
     <string name="top_artists">Artisti più ascoltati</string>
     <string name="share_summary">Condividi riepilogo</string>
     <string name="no_listening_data">Nessun dato di ascolto per quest\'anno</string>
-    <string name="played">riprodotto</string>
     <string name="custom_theme">Tema personalizzato</string>
     <string name="import_theme">Importa tema</string>
     <string name="export_theme">Esporta tema</string>
