@@ -57,6 +57,8 @@ class InnerTube {
         gl = Locale.getDefault().country,
         hl = Locale.getDefault().toLanguageTag()
     )
+    private val queueLocale = YouTubeLocale(gl = "US", hl = "en")
+
     @Volatile
     private var authState: PlaybackAuthState = PlaybackAuthState.EMPTY
 
@@ -404,7 +406,7 @@ class InnerTube {
             ytClient(client, setLogin = true)
             setBody(
                 NextBody(
-                    context = client.toContext(locale, visitorData, dataSyncId),
+                    context = client.toContext(queueLocale, visitorData, dataSyncId),
                     videoId = videoId,
                     playlistId = playlistId,
                     playlistSetVideoId = playlistSetVideoId,
