@@ -32,12 +32,14 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -133,6 +135,9 @@ private object RecapTokens {
     val ItemRadius = 18.dp
     val ShareVerticalPadding = 14.dp
 }
+
+private fun Modifier.recapSafeDrawingPadding(enabled: Boolean): Modifier =
+    if (enabled) windowInsetsPadding(WindowInsets.safeDrawing) else this
 
 @Composable
 fun YearInMusicScreen(
@@ -239,10 +244,7 @@ private fun YearInMusicRecapScreen(
                 }
             },
             modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
-                ),
+                .fillMaxSize(),
         )
 
         if (canShare) {
@@ -431,6 +433,7 @@ private fun RecapCardPager(
         val canAdvance = !isShareCaptureMode && page == pagerState.currentPage && page < cards.lastIndex
         RecapCardFrame(
             card = card,
+            applySafeContentInsets = !isShareCaptureMode,
             onCardClick = {
                 if (canAdvance) {
                     coroutineScope.launch {
@@ -455,6 +458,7 @@ private fun RecapCardPager(
 @Composable
 private fun RecapCardFrame(
     card: YearInMusicRecapCard,
+    applySafeContentInsets: Boolean,
     onCardClick: () -> Unit,
     canAdvance: Boolean,
     onTopSongLongClick: (Song) -> Unit,
@@ -485,31 +489,52 @@ private fun RecapCardFrame(
             RecapNoiseOverlay(modifier = Modifier.fillMaxSize())
 
             when (card) {
-                is YearInMusicRecapCard.Empty -> EmptyRecapCard(card)
-                is YearInMusicRecapCard.Intro -> IntroRecapCard(card)
-                is YearInMusicRecapCard.Totals -> TotalsRecapCard(card)
+                is YearInMusicRecapCard.Empty -> EmptyRecapCard(
+                    card = card,
+                    applySafeContentInsets = applySafeContentInsets,
+                )
+                is YearInMusicRecapCard.Intro -> IntroRecapCard(
+                    card = card,
+                    applySafeContentInsets = applySafeContentInsets,
+                )
+                is YearInMusicRecapCard.Totals -> TotalsRecapCard(
+                    card = card,
+                    applySafeContentInsets = applySafeContentInsets,
+                )
                 is YearInMusicRecapCard.TopSong -> TopSongRecapCard(
                     card = card,
+                    applySafeContentInsets = applySafeContentInsets,
                     onClick = onCardClick,
                     onLongClick = { card.originalSong?.let(onTopSongLongClick) },
                 )
                 is YearInMusicRecapCard.RankedArtists -> RankedArtistsRecapCard(
                     card = card,
+                    applySafeContentInsets = applySafeContentInsets,
                     onArtistLongClick = onTopArtistLongClick,
                 )
-                is YearInMusicRecapCard.RankedAlbums -> RankedAlbumsRecapCard(card)
-                is YearInMusicRecapCard.Summary -> SummaryRecapCard(card)
+                is YearInMusicRecapCard.RankedAlbums -> RankedAlbumsRecapCard(
+                    card = card,
+                    applySafeContentInsets = applySafeContentInsets,
+                )
+                is YearInMusicRecapCard.Summary -> SummaryRecapCard(
+                    card = card,
+                    applySafeContentInsets = applySafeContentInsets,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun EmptyRecapCard(card: YearInMusicRecapCard.Empty) {
+private fun EmptyRecapCard(
+    card: YearInMusicRecapCard.Empty,
+    applySafeContentInsets: Boolean,
+) {
     RecapCardContent(
         badge = stringResource(R.string.year_in_music_recap),
         footer = joinByBullet(stringResource(R.string.app_name), card.year.toString()),
         verticalArrangement = Arrangement.Center,
+        applySafeContentInsets = applySafeContentInsets,
     ) {
         IconBadge(
             icon = R.drawable.stats,
@@ -536,7 +561,10 @@ private fun EmptyRecapCard(card: YearInMusicRecapCard.Empty) {
 }
 
 @Composable
-private fun IntroRecapCard(card: YearInMusicRecapCard.Intro) {
+private fun IntroRecapCard(
+    card: YearInMusicRecapCard.Intro,
+    applySafeContentInsets: Boolean,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -550,6 +578,7 @@ private fun IntroRecapCard(card: YearInMusicRecapCard.Intro) {
                     )
                 )
             )
+            .recapSafeDrawingPadding(applySafeContentInsets)
             .padding(24.dp),
     ) {
         Box(
@@ -650,11 +679,15 @@ private fun IntroRecapCard(card: YearInMusicRecapCard.Intro) {
 }
 
 @Composable
-private fun TotalsRecapCard(card: YearInMusicRecapCard.Totals) {
+private fun TotalsRecapCard(
+    card: YearInMusicRecapCard.Totals,
+    applySafeContentInsets: Boolean,
+) {
     RecapCardContent(
         badge = stringResource(R.string.total_listening_time),
         footer = stringResource(R.string.year_in_music_totals_title),
         verticalArrangement = Arrangement.SpaceBetween,
+        applySafeContentInsets = applySafeContentInsets,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
@@ -704,6 +737,7 @@ private fun TotalsRecapCard(card: YearInMusicRecapCard.Totals) {
 @Composable
 private fun TopSongRecapCard(
     card: YearInMusicRecapCard.TopSong,
+    applySafeContentInsets: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -742,6 +776,7 @@ private fun TopSongRecapCard(
             badge = "#1 ${stringResource(R.string.year_in_music_top_track)}",
             footer = stringResource(R.string.year_in_music_top_pick),
             verticalArrangement = Arrangement.SpaceBetween,
+            applySafeContentInsets = applySafeContentInsets,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 AsyncImage(
@@ -792,12 +827,14 @@ private fun TopSongRecapCard(
 @Composable
 private fun RankedArtistsRecapCard(
     card: YearInMusicRecapCard.RankedArtists,
+    applySafeContentInsets: Boolean,
     onArtistLongClick: (Artist) -> Unit,
 ) {
     RecapCardContent(
         badge = stringResource(R.string.top_artists),
         footer = stringResource(R.string.year_in_music_ranked_artists),
         verticalArrangement = Arrangement.SpaceBetween,
+        applySafeContentInsets = applySafeContentInsets,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
@@ -833,11 +870,15 @@ private fun RankedArtistsRecapCard(
 }
 
 @Composable
-private fun RankedAlbumsRecapCard(card: YearInMusicRecapCard.RankedAlbums) {
+private fun RankedAlbumsRecapCard(
+    card: YearInMusicRecapCard.RankedAlbums,
+    applySafeContentInsets: Boolean,
+) {
     RecapCardContent(
         badge = stringResource(R.string.albums),
         footer = stringResource(R.string.year_in_music_ranked_albums),
         verticalArrangement = Arrangement.SpaceBetween,
+        applySafeContentInsets = applySafeContentInsets,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
@@ -869,7 +910,10 @@ private fun RankedAlbumsRecapCard(card: YearInMusicRecapCard.RankedAlbums) {
 }
 
 @Composable
-private fun SummaryRecapCard(card: YearInMusicRecapCard.Summary) {
+private fun SummaryRecapCard(
+    card: YearInMusicRecapCard.Summary,
+    applySafeContentInsets: Boolean,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -883,6 +927,7 @@ private fun SummaryRecapCard(card: YearInMusicRecapCard.Summary) {
                     )
                 )
             )
+            .recapSafeDrawingPadding(applySafeContentInsets)
             .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
         SummaryGuideLine(modifier = Modifier.align(Alignment.TopCenter))
@@ -1164,11 +1209,13 @@ private fun RecapCardContent(
     badge: String,
     footer: String,
     verticalArrangement: Arrangement.Vertical,
+    applySafeContentInsets: Boolean,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .recapSafeDrawingPadding(applySafeContentInsets)
             .padding(24.dp),
         verticalArrangement = verticalArrangement,
     ) {
