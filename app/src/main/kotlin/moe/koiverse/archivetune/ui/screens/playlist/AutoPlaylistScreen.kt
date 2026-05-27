@@ -41,7 +41,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -61,7 +61,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -96,11 +95,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastSumBy
 import androidx.compose.ui.zIndex
-import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
-import androidx.media3.exoplayer.offline.DownloadRequest
-import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
@@ -123,7 +119,6 @@ import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
-import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.DraggableScrollbar
@@ -135,8 +130,13 @@ import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.ui.menu.SelectionSongMenu
 import moe.koiverse.archivetune.ui.menu.SongMenu
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
+import moe.koiverse.archivetune.ui.utils.HeaderDownloadItem
+import moe.koiverse.archivetune.ui.utils.HeaderDownloadState
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.ui.utils.headerDownloadState
+import moe.koiverse.archivetune.ui.utils.sendAddMissingDownloads
+import moe.koiverse.archivetune.ui.utils.sendRemoveDownloads
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
@@ -211,7 +211,8 @@ fun AutoPlaylistScreen(
     val (sortDescending, onSortDescendingChange) = rememberPreference(AutoPlaylistSongSortDescendingKey, true)
 
     val downloadUtil = LocalDownloadUtil.current
-    var downloadState by remember { mutableIntStateOf(Download.STATE_STOPPED) }
+    var downloads by remember { mutableStateOf<Map<String, Download>>(emptyMap()) }
+    var downloadState by remember { mutableStateOf<HeaderDownloadState>(HeaderDownloadState.None) }
 
     LaunchedEffect(Unit) {
         if (ytmSync) {
@@ -226,21 +227,15 @@ fun AutoPlaylistScreen(
             clear()
             songs?.let { addAll(it) }
         }
-        if (songs?.isEmpty() == true) return@LaunchedEffect
-        downloadUtil.downloads.collect { downloads ->
-            downloadState =
-                if (songs?.all { downloads[it.song.id]?.state == Download.STATE_COMPLETED } == true) {
-                    Download.STATE_COMPLETED
-                } else if (songs?.all {
-                        downloads[it.song.id]?.state == Download.STATE_QUEUED ||
-                                downloads[it.song.id]?.state == Download.STATE_DOWNLOADING ||
-                                downloads[it.song.id]?.state == Download.STATE_COMPLETED
-                    } == true
-                ) {
-                    Download.STATE_DOWNLOADING
-                } else {
-                    Download.STATE_STOPPED
-                }
+        val songIds = songs?.map { it.song.id }.orEmpty()
+        if (songIds.isEmpty()) {
+            downloads = emptyMap()
+            downloadState = HeaderDownloadState.None
+            return@LaunchedEffect
+        }
+        downloadUtil.downloads.collect { currentDownloads ->
+            downloads = currentDownloads
+            downloadState = headerDownloadState(songIds, currentDownloads)
         }
     }
 
@@ -267,14 +262,10 @@ fun AutoPlaylistScreen(
                 TextButton(
                     onClick = {
                         showRemoveDownloadDialog = false
-                        songs!!.forEach { song ->
-                            DownloadService.sendRemoveDownload(
-                                context,
-                                ExoDownloadService::class.java,
-                                song.song.id,
-                                false,
-                            )
-                        }
+                        sendRemoveDownloads(
+                            context = context,
+                            songIds = songs.orEmpty().map { it.song.id },
+                        )
                     },
                     shapes = ButtonDefaults.shapes(),
                 ) {
@@ -587,40 +578,23 @@ fun AutoPlaylistScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     ToggleButton(
-                                        checked = downloadState == Download.STATE_COMPLETED,
+                                        checked = downloadState == HeaderDownloadState.Completed,
                                         onCheckedChange = {
                                             when (downloadState) {
-                                                Download.STATE_COMPLETED -> {
+                                                HeaderDownloadState.Completed -> {
                                                     showRemoveDownloadDialog = true
                                                 }
-                                                Download.STATE_DOWNLOADING -> {
-                                                    songs!!.forEach { song ->
-                                                        DownloadService.sendRemoveDownload(
-                                                            context,
-                                                            ExoDownloadService::class.java,
-                                                            song.song.id,
-                                                            false,
-                                                        )
-                                                    }
-                                                }
                                                 else -> {
-                                                    songs!!.forEach { song ->
-                                                        val downloadRequest =
-                                                            DownloadRequest
-                                                                .Builder(
-                                                                    song.song.id,
-                                                                    song.song.id.toUri(),
-                                                                )
-                                                                .setCustomCacheKey(song.song.id)
-                                                                .setData(song.song.title.toByteArray())
-                                                                .build()
-                                                        DownloadService.sendAddDownload(
-                                                            context,
-                                                            ExoDownloadService::class.java,
-                                                            downloadRequest,
-                                                            false,
-                                                        )
-                                                    }
+                                                    sendAddMissingDownloads(
+                                                        context = context,
+                                                        songs = songs.orEmpty().map {
+                                                            HeaderDownloadItem(
+                                                                id = it.song.id,
+                                                                title = it.song.title,
+                                                            )
+                                                        },
+                                                        downloads = downloads,
+                                                    )
                                                 }
                                             }
                                         },
@@ -633,17 +607,21 @@ fun AutoPlaylistScreen(
                                             checkedContentColor = MaterialTheme.colorScheme.primary,
                                         ),
                                     ) {
-                                        when (downloadState) {
-                                            Download.STATE_COMPLETED -> {
+                                        val state = downloadState
+                                        when (state) {
+                                            HeaderDownloadState.Completed -> {
                                                 Icon(
                                                     painter = painterResource(R.drawable.offline),
                                                     contentDescription = null,
                                                     modifier = Modifier.size(24.dp)
                                                 )
                                             }
-                                            Download.STATE_DOWNLOADING -> {
-                                                CircularWavyProgressIndicator(
-                                                    modifier = Modifier.size(24.dp)
+                                            is HeaderDownloadState.Partial -> {
+                                                CircularProgressIndicator(
+                                                    progress = { state.progress },
+                                                    modifier = Modifier.size(24.dp),
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    strokeWidth = 2.dp,
                                                 )
                                             }
                                             else -> {

@@ -39,7 +39,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -88,11 +88,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
-import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
-import androidx.media3.exoplayer.offline.DownloadRequest
-import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
@@ -113,7 +110,6 @@ import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.extensions.togglePlayPause
-import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.LocalAlbumRadio
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalMenuState
@@ -129,8 +125,13 @@ import moe.koiverse.archivetune.ui.menu.SelectionSongMenu
 import moe.koiverse.archivetune.ui.menu.SongMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeAlbumMenu
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
+import moe.koiverse.archivetune.ui.utils.HeaderDownloadItem
+import moe.koiverse.archivetune.ui.utils.HeaderDownloadState
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.ui.utils.headerDownloadState
+import moe.koiverse.archivetune.ui.utils.sendAddMissingDownloads
+import moe.koiverse.archivetune.ui.utils.sendRemoveDownloads
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.AlbumUiState
@@ -224,25 +225,19 @@ fun AlbumScreen(
     }
 
     val downloadUtil = LocalDownloadUtil.current
-    var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
+    var downloads by remember { mutableStateOf<Map<String, Download>>(emptyMap()) }
+    var downloadState by remember { mutableStateOf<HeaderDownloadState>(HeaderDownloadState.None) }
 
     LaunchedEffect(albumWithSongs) {
-        val songs = albumWithSongs?.songs?.map { it.id }
-        if (songs.isNullOrEmpty()) return@LaunchedEffect
-        downloadUtil.downloads.collect { downloads ->
-            downloadState =
-                if (songs.all { downloads[it]?.state == Download.STATE_COMPLETED }) {
-                    Download.STATE_COMPLETED
-                } else if (songs.all {
-                        downloads[it]?.state == Download.STATE_QUEUED ||
-                                downloads[it]?.state == Download.STATE_DOWNLOADING ||
-                                downloads[it]?.state == Download.STATE_COMPLETED
-                    }
-                ) {
-                    Download.STATE_DOWNLOADING
-                } else {
-                    Download.STATE_STOPPED
-                }
+        val songIds = albumWithSongs?.songs?.map { it.id }.orEmpty()
+        if (songIds.isEmpty()) {
+            downloads = emptyMap()
+            downloadState = HeaderDownloadState.None
+            return@LaunchedEffect
+        }
+        downloadUtil.downloads.collect { currentDownloads ->
+            downloads = currentDownloads
+            downloadState = headerDownloadState(songIds, currentDownloads)
         }
     }
 
@@ -594,44 +589,24 @@ fun AlbumScreen(
                             }
 
                             ToggleButton(
-                                checked = downloadState == Download.STATE_COMPLETED,
+                                checked = downloadState == HeaderDownloadState.Completed,
                                 onCheckedChange = {
                                     when (downloadState) {
-                                        Download.STATE_COMPLETED -> {
-                                            albumWithSongs.songs.forEach { song ->
-                                                DownloadService.sendRemoveDownload(
-                                                    context,
-                                                    ExoDownloadService::class.java,
-                                                    song.id,
-                                                    false,
-                                                )
-                                            }
-                                        }
-                                        Download.STATE_DOWNLOADING -> {
-                                            albumWithSongs.songs.forEach { song ->
-                                                DownloadService.sendRemoveDownload(
-                                                    context,
-                                                    ExoDownloadService::class.java,
-                                                    song.id,
-                                                    false,
-                                                )
-                                            }
-                                        }
+                                        HeaderDownloadState.Completed -> sendRemoveDownloads(
+                                            context = context,
+                                            songIds = albumWithSongs.songs.map { it.id },
+                                        )
                                         else -> {
-                                            albumWithSongs.songs.forEach { song ->
-                                                val downloadRequest =
-                                                    DownloadRequest
-                                                        .Builder(song.id, song.id.toUri())
-                                                        .setCustomCacheKey(song.id)
-                                                        .setData(song.song.title.toByteArray())
-                                                        .build()
-                                                DownloadService.sendAddDownload(
-                                                    context,
-                                                    ExoDownloadService::class.java,
-                                                    downloadRequest,
-                                                    false,
-                                                )
-                                            }
+                                            sendAddMissingDownloads(
+                                                context = context,
+                                                songs = albumWithSongs.songs.map {
+                                                    HeaderDownloadItem(
+                                                        id = it.id,
+                                                        title = it.song.title,
+                                                    )
+                                                },
+                                                downloads = downloads,
+                                            )
                                         }
                                     }
                                 },
@@ -644,18 +619,21 @@ fun AlbumScreen(
                                     checkedContentColor = MaterialTheme.colorScheme.primary,
                                 ),
                             ) {
-                                when (downloadState) {
-                                    Download.STATE_COMPLETED -> {
+                                val state = downloadState
+                                when (state) {
+                                    HeaderDownloadState.Completed -> {
                                         Icon(
                                             painter = painterResource(R.drawable.offline),
                                             contentDescription = null,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
-                                    Download.STATE_DOWNLOADING -> {
-                                        CircularWavyProgressIndicator(
+                                    is HeaderDownloadState.Partial -> {
+                                        CircularProgressIndicator(
+                                            progress = { state.progress },
                                             modifier = Modifier.size(24.dp),
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.primary,
+                                            strokeWidth = 2.dp,
                                         )
                                     }
                                     else -> {
