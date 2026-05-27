@@ -10,9 +10,11 @@
 package moe.koiverse.archivetune.ui.screens.library
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
@@ -41,11 +43,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -227,6 +230,7 @@ fun LibraryMixScreen(
     var showBuildYourMixDialog by rememberSaveable { mutableStateOf(false) }
     var buildYourMixSongCount by rememberSaveable { mutableStateOf(30) }
     var buildYourMixManualBasis by rememberSaveable { mutableStateOf("") }
+    var buildYourMixBasis by rememberSaveable { mutableStateOf(BuildYourMixBasis.LISTENING_HISTORY) }
 
     val collator = remember {
         Collator.getInstance(Locale.getDefault()).apply {
@@ -400,13 +404,15 @@ fun LibraryMixScreen(
     if (showBuildYourMixDialog) {
         BuildYourMixDialog(
             state = buildYourMixState,
+            selectedBasis = buildYourMixBasis,
             songCount = buildYourMixSongCount,
             manualBasis = buildYourMixManualBasis,
+            onBasisChange = { buildYourMixBasis = it },
             onSongCountChange = { buildYourMixSongCount = it },
             onManualBasisChange = { buildYourMixManualBasis = it },
-            onBuild = { basis ->
+            onBuild = {
                 viewModel.buildYourMix(
-                    basis = basis,
+                    basis = buildYourMixBasis,
                     songCount = buildYourMixSongCount,
                     manualBasis = buildYourMixManualBasis,
                 )
@@ -771,11 +777,13 @@ private fun LibraryControlCard(
 @Composable
 private fun BuildYourMixDialog(
     state: BuildYourMixUiState,
+    selectedBasis: BuildYourMixBasis,
     songCount: Int,
     manualBasis: String,
+    onBasisChange: (BuildYourMixBasis) -> Unit,
     onSongCountChange: (Int) -> Unit,
     onManualBasisChange: (String) -> Unit,
-    onBuild: (BuildYourMixBasis) -> Unit,
+    onBuild: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val isLoading = state == BuildYourMixUiState.Loading
@@ -806,8 +814,10 @@ private fun BuildYourMixDialog(
                 BuildYourMixUiState.Loading -> BuildYourMixLoadingContent()
                 else -> BuildYourMixConfigurationContent(
                     state = targetState,
+                    selectedBasis = selectedBasis,
                     songCount = songCount,
                     manualBasis = manualBasis,
+                    onBasisChange = onBasisChange,
                     onSongCountChange = onSongCountChange,
                     onManualBasisChange = onManualBasisChange,
                     onBuild = onBuild,
@@ -820,14 +830,16 @@ private fun BuildYourMixDialog(
 @Composable
 private fun BuildYourMixConfigurationContent(
     state: BuildYourMixUiState,
+    selectedBasis: BuildYourMixBasis,
     songCount: Int,
     manualBasis: String,
+    onBasisChange: (BuildYourMixBasis) -> Unit,
     onSongCountChange: (Int) -> Unit,
     onManualBasisChange: (String) -> Unit,
-    onBuild: (BuildYourMixBasis) -> Unit,
+    onBuild: () -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
@@ -835,6 +847,37 @@ private fun BuildYourMixConfigurationContent(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            BuildYourMixBasisOption(
+                selected = selectedBasis == BuildYourMixBasis.LISTENING_HISTORY,
+                text = stringResource(R.string.build_your_mix_listening_history),
+                onClick = { onBasisChange(BuildYourMixBasis.LISTENING_HISTORY) },
+            )
+            BuildYourMixBasisOption(
+                selected = selectedBasis == BuildYourMixBasis.AVERAGE_LISTENED,
+                text = stringResource(R.string.build_your_mix_average_listened),
+                onClick = { onBasisChange(BuildYourMixBasis.AVERAGE_LISTENED) },
+            )
+            BuildYourMixBasisOption(
+                selected = selectedBasis == BuildYourMixBasis.INPUT_MANUALLY,
+                text = stringResource(R.string.build_your_mix_input_manually),
+                onClick = { onBasisChange(BuildYourMixBasis.INPUT_MANUALLY) },
+            )
+        }
+        AnimatedVisibility(visible = selectedBasis == BuildYourMixBasis.INPUT_MANUALLY) {
+            TextField(
+                value = manualBasis,
+                onValueChange = onManualBasisChange,
+                label = { Text(stringResource(R.string.build_your_mix_manual_basis)) },
+                placeholder = { Text(stringResource(R.string.build_your_mix_manual_placeholder)) },
+                minLines = 2,
+                maxLines = 4,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -859,15 +902,6 @@ private fun BuildYourMixConfigurationContent(
                 steps = 98,
             )
         }
-        OutlinedTextField(
-            value = manualBasis,
-            onValueChange = onManualBasisChange,
-            label = { Text(stringResource(R.string.build_your_mix_manual_basis)) },
-            placeholder = { Text(stringResource(R.string.build_your_mix_manual_placeholder)) },
-            minLines = 2,
-            maxLines = 4,
-            modifier = Modifier.fillMaxWidth(),
-        )
         if (state is BuildYourMixUiState.Error) {
             Text(
                 text = state.message,
@@ -875,39 +909,35 @@ private fun BuildYourMixConfigurationContent(
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        FilledTonalButton(
+            onClick = onBuild,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            BuildYourMixBasisButton(
-                text = stringResource(R.string.build_your_mix_listening_history),
-                onClick = { onBuild(BuildYourMixBasis.LISTENING_HISTORY) },
-            )
-            BuildYourMixBasisButton(
-                text = stringResource(R.string.build_your_mix_average_listened),
-                onClick = { onBuild(BuildYourMixBasis.AVERAGE_LISTENED) },
-            )
-            BuildYourMixBasisButton(
-                text = stringResource(R.string.build_your_mix_input_manually),
-                onClick = { onBuild(BuildYourMixBasis.INPUT_MANUALLY) },
-            )
+            Text(text = stringResource(R.string.build_your_mix_create))
         }
     }
 }
 
 @Composable
-private fun BuildYourMixBasisButton(
+private fun BuildYourMixBasisOption(
+    selected: Boolean,
     text: String,
     onClick: () -> Unit,
 ) {
-    FilledTonalButton(
-        onClick = onClick,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 48.dp),
+            .heightIn(min = 48.dp)
+            .clickable(onClick = onClick),
     ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+        )
         Text(
             text = text,
+            style = MaterialTheme.typography.bodyLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
