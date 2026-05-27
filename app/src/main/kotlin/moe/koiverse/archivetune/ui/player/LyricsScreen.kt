@@ -627,7 +627,7 @@ private fun AppleMusicControls(
             valueRange = 0f..safeDuration.toFloat(),
             activeColor = AppleMusicForeground.copy(alpha = 0.94f),
             inactiveColor = AppleMusicForeground.copy(alpha = 0.28f),
-            trackHeight = 6.dp,
+            trackHeight = 8.dp,
             onValueChange = { onPositionChange(it.toLong()) },
             onValueChangeFinished = onPositionChangeFinished,
             modifier = Modifier.fillMaxWidth(),
@@ -699,7 +699,7 @@ private fun AppleMusicControls(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 26.dp),
+                .padding(top = 26.dp, bottom = 15.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
