@@ -920,6 +920,9 @@ fun LibraryPinnedCollectionTile(
 }
 
 private val LibraryCardThumbnailSize = 72.dp
+private val LibraryCardGlowElevation = 34.dp
+private const val LibraryCardGlowAmbientAlpha = 0.82f
+private const val LibraryCardGlowSpotAlpha = 0.96f
 
 @Composable
 fun LibraryPlaylistFeatureCard(
@@ -968,11 +971,11 @@ fun LibraryPlaylistFeatureCard(
                 modifier = Modifier
                     .size(thumbnailSize)
                     .shadow(
-                        elevation = 25.dp,
+                        elevation = LibraryCardGlowElevation,
                         shape = thumbnailShape,
                         clip = false,
-                        ambientColor = glowColor.copy(alpha = 0.5f),
-                        spotColor = glowColor.copy(alpha = 0.72f),
+                        ambientColor = glowColor.copy(alpha = LibraryCardGlowAmbientAlpha),
+                        spotColor = glowColor.copy(alpha = LibraryCardGlowSpotAlpha),
                     )
             ) {
                 PlaylistThumbnail(
@@ -1076,11 +1079,11 @@ fun LibraryAlbumSpotlightCard(
                 modifier = Modifier
                     .size(LibraryCardThumbnailSize)
                     .shadow(
-                        elevation = 25.dp,
+                        elevation = LibraryCardGlowElevation,
                         shape = RoundedCornerShape(18.dp),
                         clip = false,
-                        ambientColor = glowColor.copy(alpha = 0.5f),
-                        spotColor = glowColor.copy(alpha = 0.72f),
+                        ambientColor = glowColor.copy(alpha = LibraryCardGlowAmbientAlpha),
+                        spotColor = glowColor.copy(alpha = LibraryCardGlowSpotAlpha),
                     )
             ) {
                 LocalThumbnail(
@@ -1174,11 +1177,11 @@ fun LibraryArtistSpotlightCard(
                 modifier = Modifier
                     .size(LibraryCardThumbnailSize)
                     .shadow(
-                        elevation = 25.dp,
+                        elevation = LibraryCardGlowElevation,
                         shape = CircleShape,
                         clip = false,
-                        ambientColor = glowColor.copy(alpha = 0.5f),
-                        spotColor = glowColor.copy(alpha = 0.72f),
+                        ambientColor = glowColor.copy(alpha = LibraryCardGlowAmbientAlpha),
+                        spotColor = glowColor.copy(alpha = LibraryCardGlowSpotAlpha),
                     )
             ) {
                 LocalThumbnail(
