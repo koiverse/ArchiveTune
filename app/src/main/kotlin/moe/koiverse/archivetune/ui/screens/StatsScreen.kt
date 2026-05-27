@@ -21,6 +21,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,22 +41,27 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -146,6 +152,12 @@ fun StatsScreen(
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
     val currentDate = remember { LocalDateTime.now() }
+    var isYearPickerOpen by remember { mutableStateOf(false) }
+
+    val availableYears = remember(currentDate, firstEvent) {
+        val startYear = firstEvent?.event?.timestamp?.year ?: currentDate.year
+        (currentDate.year downTo startYear).toList()
+    }
 
     val weeklyDates = remember(currentDate, firstEvent) {
         val first = firstEvent ?: return@remember emptyList<Pair<Int, String>>()
@@ -566,7 +578,7 @@ fun StatsScreen(
             },
             actions = {
                 IconButton(
-                    onClick = { navController.navigate("year_in_music") },
+                    onClick = { isYearPickerOpen = true },
                     onLongClick = {},
                 ) {
                     Icon(
@@ -580,7 +592,75 @@ fun StatsScreen(
                 scrolledContainerColor = Color.Transparent,
             ),
         )
+
+        if (isYearPickerOpen) {
+            StatsYearPickerDialog(
+                availableYears = availableYears,
+                selectedYear = currentDate.year,
+                onSelectYear = { year ->
+                    isYearPickerOpen = false
+                    navController.navigate("year_in_music?year=$year")
+                },
+                onDismiss = { isYearPickerOpen = false },
+            )
+        }
     }
+}
+
+@Composable
+private fun StatsYearPickerDialog(
+    availableYears: List<Int>,
+    selectedYear: Int,
+    onSelectYear: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.year_in_music),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(
+                    items = availableYears,
+                    key = { year -> year },
+                    contentType = { "year_chip" },
+                ) { year ->
+                    val isSelected = year == selectedYear
+                    Text(
+                        text = year.toString(),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                }
+                            )
+                            .clickable { onSelectYear(year) }
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.dismiss))
+            }
+        },
+    )
 }
 
 @Composable

@@ -15,7 +15,6 @@ import android.content.Intent
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -28,7 +27,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -44,27 +42,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -101,7 +90,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.window.core.layout.WindowSizeClass
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -114,11 +102,9 @@ import moe.koiverse.archivetune.db.entities.Album
 import moe.koiverse.archivetune.db.entities.Artist
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.db.entities.SongWithStats
-import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.menu.ArtistMenu
 import moe.koiverse.archivetune.ui.menu.SongMenu
-import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.ComposeToImage
 import moe.koiverse.archivetune.utils.joinByBullet
 import moe.koiverse.archivetune.utils.makeTimeString
@@ -129,7 +115,6 @@ import java.text.NumberFormat
 import kotlin.coroutines.resume
 
 private val RecapBlack = Color(0xFF070707)
-private val RecapSurface = Color(0xFF121212)
 private val RecapSurfaceHigh = Color(0xFF1D1D1D)
 private val RecapRed = Color(0xFFFF0033)
 private val RecapRedDeep = Color(0xFFB60024)
@@ -141,27 +126,23 @@ private val RecapBlue = Color(0xFF7CB7FF)
 private val RecapPink = Color(0xFFFF8BDE)
 private val RecapLime = Color(0xFFDFFF3E)
 private val RecapInk = Color(0xFF151515)
-private val RecapWhite20 = Color(0x33FFFFFF)
 
 private object RecapTokens {
-    val ScreenPadding = 16.dp
-    val CardRadius = 32.dp
     val SectionRadius = 24.dp
     val ItemRadius = 18.dp
-    val CardMaxWidth = 430.dp
-    val ChromeTopPadding = 96.dp
-    val ChromeBottomPadding = 110.dp
     val ShareVerticalPadding = 14.dp
 }
 
 @Composable
 fun YearInMusicScreen(
     navController: NavController,
+    initialYear: Int? = null,
     viewModel: YearInMusicViewModel = hiltViewModel(),
 ) {
     YearInMusicRoute(
         navController = navController,
         viewModel = viewModel,
+        initialYear = initialYear,
     )
 }
 
@@ -169,22 +150,26 @@ fun YearInMusicScreen(
 private fun YearInMusicRoute(
     navController: NavController,
     viewModel: YearInMusicViewModel,
+    initialYear: Int?,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(initialYear) {
+        if (initialYear != null) {
+            viewModel.selectYear(initialYear)
+        }
+    }
 
     YearInMusicRecapScreen(
         navController = navController,
         uiState = uiState,
-        onYearSelected = viewModel::selectYear,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun YearInMusicRecapScreen(
     navController: NavController,
     uiState: YearInMusicUiState,
-    onYearSelected: (Int) -> Unit,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -194,7 +179,6 @@ private fun YearInMusicRecapScreen(
     val content = uiState as YearInMusicUiState.Content
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
-    var isYearPickerOpen by remember { mutableStateOf(false) }
     var isGeneratingImage by remember { mutableStateOf(false) }
     var isShareCaptureMode by remember { mutableStateOf(false) }
     var currentCardBounds by remember { mutableStateOf<Rect?>(null) }
@@ -204,11 +188,8 @@ private fun YearInMusicRecapScreen(
     val currentPage by remember(cards, pagerState) {
         derivedStateOf { pagerState.currentPage.coerceIn(0, cards.lastIndex.coerceAtLeast(0)) }
     }
-    val currentCard by remember(cards, currentPage) {
-        derivedStateOf { cards.getOrNull(currentPage) }
-    }
-    val canShare by remember(content, isShareCaptureMode, currentCard) {
-        derivedStateOf { content.hasData && !isShareCaptureMode && currentCard != null }
+    val canShare by remember(content, isShareCaptureMode, cards, currentPage) {
+        derivedStateOf { content.hasData && !isShareCaptureMode && cards.getOrNull(currentPage) != null }
     }
 
     LaunchedEffect(content.selectedYear) {
@@ -262,97 +243,6 @@ private fun YearInMusicRecapScreen(
                     LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
                 ),
         )
-
-        if (!isShareCaptureMode) {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.year_in_music),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = RecapCream,
-                        )
-                        Text(
-                            text = currentCard?.label ?: stringResource(R.string.year_in_music_recap),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = RecapCream.copy(alpha = 0.68f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = null,
-                            tint = RecapCream,
-                        )
-                    }
-                },
-                actions = {
-                    RecapYearChip(
-                        year = content.selectedYear,
-                        onClick = { isYearPickerOpen = true },
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent,
-                ),
-                modifier = Modifier.windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-                ),
-            )
-        }
-
-        if (!isShareCaptureMode) {
-            Box(modifier = Modifier.align(Alignment.TopCenter)) {
-                RecapProgressIndicator(
-                    totalPages = cards.size,
-                    currentPage = currentPage,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(
-                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
-                        )
-                        .padding(top = 72.dp, start = 20.dp, end = 20.dp),
-                )
-            }
-        }
-
-        if (!isShareCaptureMode) {
-            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-                RecapNavigationBar(
-                    pageLabel = currentCard?.label ?: stringResource(R.string.year_in_music_recap),
-                    canGoBack = currentPage > 0,
-                    canGoNext = currentPage < cards.lastIndex,
-                    onBack = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage((currentPage - 1).coerceAtLeast(0))
-                        }
-                    },
-                    onNext = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage((currentPage + 1).coerceAtMost(cards.lastIndex))
-                        }
-                    },
-                    modifier = Modifier
-                        .windowInsetsPadding(
-                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
-                        )
-                        .padding(
-                            start = 16.dp,
-                            end = if (canShare) 184.dp else 16.dp,
-                            bottom = 16.dp,
-                        ),
-                )
-            }
-        }
 
         if (canShare) {
             Box(modifier = Modifier.align(Alignment.BottomEnd)) {
@@ -421,17 +311,6 @@ private fun YearInMusicRecapScreen(
             }
         }
 
-        if (!isShareCaptureMode && isYearPickerOpen) {
-            RecapYearPickerDialog(
-                availableYears = content.availableYears,
-                selectedYear = content.selectedYear,
-                onSelectYear = { year ->
-                    onYearSelected(year)
-                    isYearPickerOpen = false
-                },
-                onDismiss = { isYearPickerOpen = false },
-            )
-        }
     }
 }
 
@@ -535,72 +414,40 @@ private fun RecapCardPager(
     modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
-    val isExpandedWidth = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
-    val topPadding = if (isShareCaptureMode) RecapTokens.ShareVerticalPadding else RecapTokens.ChromeTopPadding
-    val bottomPadding = if (isShareCaptureMode) RecapTokens.ShareVerticalPadding else RecapTokens.ChromeBottomPadding
+    val verticalPadding = if (isShareCaptureMode) RecapTokens.ShareVerticalPadding else 0.dp
 
-    BoxWithConstraints(
-        modifier = modifier.padding(
-            start = RecapTokens.ScreenPadding,
-            top = topPadding,
-            end = RecapTokens.ScreenPadding,
-            bottom = bottomPadding,
-        ),
-        contentAlignment = Alignment.Center,
-    ) {
-        val availableWidth = if (isExpandedWidth) minOf(maxWidth, RecapTokens.CardMaxWidth) else maxWidth
-        val widthFromHeight = maxHeight * 9f / 16f
-        val cardWidth = minOf(availableWidth, widthFromHeight)
-        val cardHeight = cardWidth * 16f / 9f
-        val cardModifier = if (isExpandedWidth) {
-            Modifier
-                .widthIn(max = RecapTokens.CardMaxWidth)
-                .width(cardWidth)
-                .height(cardHeight)
-        } else {
-            Modifier
-                .width(cardWidth)
-                .height(cardHeight)
+    HorizontalPager(
+        state = pagerState,
+        key = { index -> cards.getOrNull(index)?.id ?: "stale_year_in_music_page_$index" },
+        userScrollEnabled = !isShareCaptureMode,
+        modifier = modifier.padding(vertical = verticalPadding),
+    ) { page ->
+        val card = cards.getOrNull(page)
+        if (card == null) {
+            Box(modifier = Modifier.fillMaxSize())
+            return@HorizontalPager
         }
-
-        HorizontalPager(
-            state = pagerState,
-            key = { index -> cards.getOrNull(index)?.id ?: "stale_year_in_music_page_$index" },
-            userScrollEnabled = !isShareCaptureMode,
-            pageSpacing = 18.dp,
-            modifier = Modifier.fillMaxSize(),
-        ) { page ->
-            val card = cards.getOrNull(page)
-            if (card == null) {
-                Box(modifier = Modifier.fillMaxSize())
-                return@HorizontalPager
-            }
-            val canAdvance = !isShareCaptureMode && page == pagerState.currentPage && page < cards.lastIndex
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                RecapCardFrame(
-                    card = card,
-                    onCardClick = {
-                        if (canAdvance) {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(page + 1)
-                            }
-                        }
-                    },
-                    canAdvance = canAdvance,
-                    onTopSongLongClick = onTopSongLongClick,
-                    onTopArtistLongClick = onTopArtistLongClick,
-                    modifier = cardModifier.onGloballyPositioned { coordinates ->
-                        if (page == pagerState.currentPage) {
-                            onCardBoundsChanged(coordinates.boundsInRoot())
-                        }
-                    },
-                )
-            }
-        }
+        val canAdvance = !isShareCaptureMode && page == pagerState.currentPage && page < cards.lastIndex
+        RecapCardFrame(
+            card = card,
+            onCardClick = {
+                if (canAdvance) {
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(page + 1)
+                    }
+                }
+            },
+            canAdvance = canAdvance,
+            onTopSongLongClick = onTopSongLongClick,
+            onTopArtistLongClick = onTopArtistLongClick,
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coordinates ->
+                    if (page == pagerState.currentPage) {
+                        onCardBoundsChanged(coordinates.boundsInRoot())
+                    }
+                },
+        )
     }
 }
 
@@ -626,24 +473,8 @@ private fun RecapCardFrame(
     }
 
     Surface(
-        modifier = modifier
-            .clickable(enabled = canAdvance, onClick = onCardClick)
-            .clip(RoundedCornerShape(RecapTokens.CardRadius))
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        RecapCream.copy(alpha = 0.34f),
-                        Color.Transparent,
-                        RecapRed.copy(alpha = 0.38f),
-                    )
-                ),
-                shape = RoundedCornerShape(RecapTokens.CardRadius),
-            ),
-        shape = RoundedCornerShape(RecapTokens.CardRadius),
+        modifier = modifier.clickable(enabled = canAdvance, onClick = onCardClick),
         color = RecapBlack,
-        tonalElevation = 6.dp,
-        shadowElevation = 18.dp,
     ) {
         Box(
             modifier = Modifier
@@ -1715,152 +1546,6 @@ private fun RecapNoiseOverlay(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun RecapProgressIndicator(
-    totalPages: Int,
-    currentPage: Int,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        repeat(totalPages) { index ->
-            val progress by animateFloatAsState(
-                targetValue = if (index <= currentPage) 1f else 0f,
-                animationSpec = tween(250),
-                label = "recapProgress",
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(RecapCream.copy(alpha = 0.18f)),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progress)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(RecapRed, RecapYellow)
-                            )
-                        )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecapNavigationBar(
-    pageLabel: String,
-    canGoBack: Boolean,
-    canGoNext: Boolean,
-    onBack: () -> Unit,
-    onNext: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        color = RecapSurface.copy(alpha = 0.92f),
-        tonalElevation = 4.dp,
-        shadowElevation = 10.dp,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            IconButton(
-                onClick = onBack,
-                onLongClick = {},
-                enabled = canGoBack,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.skip_previous),
-                    contentDescription = null,
-                    tint = if (canGoBack) RecapCream else RecapCream.copy(alpha = 0.32f),
-                )
-            }
-
-            Text(
-                text = pageLabel,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = RecapCream,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(if (canGoNext) RecapRed else RecapWhite20)
-                    .clickable(enabled = canGoNext, onClick = onNext)
-                    .padding(start = 14.dp, top = 10.dp, end = 12.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.next),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Black,
-                    color = RecapCream,
-                )
-                Icon(
-                    painter = painterResource(R.drawable.skip_next),
-                    contentDescription = null,
-                    tint = RecapCream,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecapYearChip(
-    year: Int,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .padding(end = 8.dp)
-            .clip(RoundedCornerShape(999.dp))
-            .background(RecapCream.copy(alpha = 0.12f))
-            .border(
-                width = 1.dp,
-                color = RecapCream.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(999.dp),
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = year.toString(),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Black,
-            color = RecapCream,
-        )
-        Icon(
-            painter = painterResource(R.drawable.expand_more),
-            contentDescription = null,
-            tint = RecapCream.copy(alpha = 0.72f),
-            modifier = Modifier.size(16.dp),
-        )
-    }
-}
-
-@Composable
 private fun RecapShareButton(
     isGenerating: Boolean,
     onClick: () -> Unit,
@@ -1896,67 +1581,6 @@ private fun RecapShareButton(
                 text = stringResource(R.string.year_in_music_current_card),
                 fontWeight = FontWeight.Black,
             )
-        },
-    )
-}
-
-@Composable
-private fun RecapYearPickerDialog(
-    availableYears: List<Int>,
-    selectedYear: Int,
-    onSelectYear: (Int) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = RecapSurface,
-        titleContentColor = RecapCream,
-        textContentColor = RecapCream,
-        title = {
-            Text(
-                text = stringResource(R.string.year_in_music),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-            )
-        },
-        text = {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(
-                    items = availableYears,
-                    key = { year -> "year_$year" },
-                    contentType = { "year_chip" },
-                ) { year ->
-                    val selected = year == selectedYear
-                    Text(
-                        text = year.toString(),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(if (selected) RecapRed else RecapCream.copy(alpha = 0.12f))
-                            .border(
-                                width = 1.dp,
-                                color = if (selected) RecapRed else RecapCream.copy(alpha = 0.16f),
-                                shape = RoundedCornerShape(18.dp),
-                            )
-                            .clickable { onSelectYear(year) }
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = RecapCream,
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onDismiss,
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(
-                    text = stringResource(R.string.dismiss),
-                    color = RecapRed,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
         },
     )
 }

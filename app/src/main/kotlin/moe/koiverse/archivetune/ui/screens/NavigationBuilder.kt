@@ -135,8 +135,20 @@ fun NavGraphBuilder.navigationBuilder(
     ) {
         ViewNewsScreen(navController)
     }
-    composable("year_in_music") {
-        YearInMusicScreen(navController)
+    composable(
+        route = "year_in_music?year={year}",
+        arguments = listOf(
+            navArgument("year") {
+                type = NavType.IntType
+                defaultValue = -1
+            }
+        ),
+    ) { backStackEntry ->
+        val selectedYear = backStackEntry.arguments?.getInt("year")?.takeIf { it > 0 }
+        YearInMusicScreen(
+            navController = navController,
+            initialYear = selectedYear,
+        )
     }
     composable(MusicRecognitionRoute) {
         MusicRecognitionScreen(navController)

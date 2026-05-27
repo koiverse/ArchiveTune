@@ -719,7 +719,7 @@ class MainActivity : ComponentActivity() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val (previousTab) = rememberSaveable { mutableStateOf("home") }
                     val currentRoute = navBackStackEntry?.destination?.route
-                    val isYearInMusicScreen = currentRoute == "year_in_music"
+                    val isYearInMusicScreen = currentRoute?.startsWith("year_in_music") == true
 
                     val navigationItems = remember(isTvDevice) {
                         if (isTvDevice) Screens.TvMainScreens else Screens.MainScreens

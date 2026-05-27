@@ -128,6 +128,7 @@ fun LyricsEnhanced(
     lyricsSyncOffset: Int,
     modifier: Modifier = Modifier,
     textColorOverride: Color? = null,
+    lyricsLineBlurOverride: Boolean? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
@@ -138,7 +139,7 @@ fun LyricsEnhanced(
 
     val (lyricsClick) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
-    val (lyricsLineBlur) = rememberPreference(LyricsLineBlurKey, defaultValue = true)
+    val (lyricsLineBlurPreference) = rememberPreference(LyricsLineBlurKey, defaultValue = true)
     val (romanizeChinese) = rememberPreference(LyricsRomanizeChineseKey, defaultValue = true)
     val (romanizeHindi) = rememberPreference(LyricsRomanizeHindiKey, defaultValue = true)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
@@ -167,6 +168,7 @@ fun LyricsEnhanced(
         MaterialTheme.colorScheme.onBackground
     else
         Color.White
+    val lyricsLineBlur = lyricsLineBlurOverride ?: lyricsLineBlurPreference
 
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedLineStarts = remember { mutableStateListOf<Int>() }

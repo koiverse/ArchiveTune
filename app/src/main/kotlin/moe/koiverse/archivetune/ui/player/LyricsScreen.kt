@@ -359,30 +359,14 @@ fun LyricsScreen(
                     }
                 }
             } else {
-                Box(
+                AppleMusicLyricsPane(
+                    lyricsMode = lyricsMode,
+                    sliderPositionProvider = { sliderPosition },
+                    lyricsSyncOffset = lyricsSyncOffset,
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                ) {
-                    AppleMusicLyricsPane(
-                        lyricsMode = lyricsMode,
-                        sliderPositionProvider = { sliderPosition },
-                        lyricsSyncOffset = lyricsSyncOffset,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(top = 18.dp, bottom = 12.dp),
-                    )
-                    AppleMusicVocalControl(
-                        onClick = {
-                            hapticClick()
-                            showLyricsMenu()
-                        },
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 14.dp),
-                    )
-                }
+                        .fillMaxWidth(),
+                )
 
                 AppleMusicControls(
                     positionProvider = { positionState.longValue },
@@ -630,67 +614,15 @@ private fun AppleMusicLyricsPane(
     lyricsSyncOffset: Int,
     modifier: Modifier = Modifier,
 ) {
-    val topFadeBrush = remember {
-        Brush.verticalGradient(
-            listOf(
-                Color.Black.copy(alpha = 0.08f),
-                Color.Transparent,
-            ),
-        )
-    }
-
-    Box(modifier = modifier) {
-        LyricsContent(
-            lyricsMode = lyricsMode,
-            sliderPositionProvider = sliderPositionProvider,
-            lyricsSyncOffset = lyricsSyncOffset,
-            textColor = AppleMusicForeground,
-            modifier = Modifier.fillMaxSize(),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(42.dp)
-                .align(Alignment.TopCenter)
-                .background(topFadeBrush),
-        )
-    }
-}
-
-@Composable
-private fun AppleMusicVocalControl(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
+    LyricsContent(
+        lyricsMode = lyricsMode,
+        sliderPositionProvider = sliderPositionProvider,
+        lyricsSyncOffset = lyricsSyncOffset,
         modifier = modifier
-            .width(66.dp)
-            .height(142.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(AppleMusicForeground.copy(alpha = 0.24f)),
-    ) {
-        Spacer(modifier = Modifier.weight(1f))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .background(AppleMusicForeground.copy(alpha = 0.94f))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(bounded = true),
-                    role = Role.Button,
-                    onClick = onClick,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.mic),
-                contentDescription = stringResource(R.string.more_options),
-                tint = AppleMusicFallbackGradient.first(),
-                modifier = Modifier.size(30.dp),
-            )
-        }
-    }
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        textColor = AppleMusicForeground,
+    )
 }
 
 @Composable
@@ -811,7 +743,7 @@ private fun AppleMusicControls(
                 valueRange = 0f..1f,
                 activeColor = AppleMusicForeground.copy(alpha = 0.88f),
                 inactiveColor = AppleMusicForeground.copy(alpha = 0.24f),
-                trackHeight = 5.dp,
+                trackHeight = 8.dp,
                 onValueChange = onVolumeChange,
                 onValueChangeFinished = {},
                 modifier = Modifier
@@ -954,12 +886,14 @@ private fun LyricsContent(
             lyricsSyncOffset = lyricsSyncOffset,
             modifier = modifier,
             textColorOverride = textColor,
+            lyricsLineBlurOverride = false,
         )
         LyricsMode.ENHANCED -> LyricsEnhanced(
             sliderPositionProvider = sliderPositionProvider,
             lyricsSyncOffset = lyricsSyncOffset,
             modifier = modifier,
             textColorOverride = textColor,
+            lyricsLineBlurOverride = false,
         )
     }
 }
