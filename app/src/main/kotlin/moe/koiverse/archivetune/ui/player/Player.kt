@@ -615,6 +615,10 @@ fun BottomSheetPlayer(
     val dynamicQueuePeekHeight =
         if (playerDesignStyle == PlayerDesignStyle.V5) {
             0.dp
+        } else if (playerDesignStyle == PlayerDesignStyle.V9) {
+            88.dp +
+                (if (showCodecOnPlayer) 24.dp else 0.dp) +
+                (if (sleepTimerEnabled) 42.dp else 0.dp)
         } else if (showCodecOnPlayer) {
             88.dp
         } else {
@@ -1091,6 +1095,39 @@ fun BottomSheetPlayer(
                             )
                         }
                     }
+                } else if (playerDesignStyle == PlayerDesignStyle.V9) {
+                    enrichedMetadata?.let { metadata ->
+                        V9PlayerContent(
+                            mediaMetadata = metadata,
+                            playbackState = playbackState,
+                            isPlaying = isPlaying,
+                            isLoading = isLoading,
+                            canSkipPrevious = canSkipPrevious,
+                            canSkipNext = canSkipNext,
+                            sliderPosition = sliderPosition,
+                            position = position,
+                            duration = duration,
+                            playerConnection = playerConnection,
+                            textBackgroundColor = TextBackgroundColor,
+                            textButtonColor = textButtonColor,
+                            iconButtonColor = iconButtonColor,
+                            onCollapseClick = { state.collapseSoft() },
+                            onQueueClick = { queueSheetState.expandSoft() },
+                            onLyricsClick = { lyricsSheetState.expandSoft() },
+                            onSliderValueChange = onSliderValueChange,
+                            onSliderValueChangeFinished = onSliderValueChangeFinished,
+                            landscape = true,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(bottom = queueSheetState.collapsedBound)
+                                .windowInsetsPadding(
+                                    WindowInsets.systemBars.only(
+                                        WindowInsetsSides.Top + WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                                    )
+                                )
+                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                        )
+                    }
                 } else {
                     Row(
                         modifier =
@@ -1282,6 +1319,38 @@ fun BottomSheetPlayer(
                                     .nestedScroll(state.preUpPostDownNestedScrollConnection),
                             )
                         }
+                    }
+                } else if (playerDesignStyle == PlayerDesignStyle.V9) {
+                    enrichedMetadata?.let { metadata ->
+                        V9PlayerContent(
+                            mediaMetadata = metadata,
+                            playbackState = playbackState,
+                            isPlaying = isPlaying,
+                            isLoading = isLoading,
+                            canSkipPrevious = canSkipPrevious,
+                            canSkipNext = canSkipNext,
+                            sliderPosition = sliderPosition,
+                            position = position,
+                            duration = duration,
+                            playerConnection = playerConnection,
+                            textBackgroundColor = TextBackgroundColor,
+                            textButtonColor = textButtonColor,
+                            iconButtonColor = iconButtonColor,
+                            onCollapseClick = { state.collapseSoft() },
+                            onQueueClick = { queueSheetState.expandSoft() },
+                            onLyricsClick = { lyricsSheetState.expandSoft() },
+                            onSliderValueChange = onSliderValueChange,
+                            onSliderValueChangeFinished = onSliderValueChangeFinished,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(bottom = queueSheetState.collapsedBound)
+                                .windowInsetsPadding(
+                                    WindowInsets.systemBars.only(
+                                        WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                                    )
+                                )
+                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                        )
                     }
                 } else {
                     Column(

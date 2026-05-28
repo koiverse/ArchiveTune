@@ -498,6 +498,51 @@ fun Queue(
                     )
                 }
 
+                PlayerDesignStyle.V9 -> {
+                    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
+                    QueueCollapsedContentV9(
+                        showCodecOnPlayer = showCodecOnPlayer,
+                        currentFormat = currentFormat,
+                        textBackgroundColor = TextBackgroundColor,
+                        sleepTimerEnabled = sleepTimerEnabled,
+                        sleepTimerTimeLeft = sleepTimerTimeLeft,
+                        shuffleModeEnabled = shuffleModeEnabled,
+                        repeatMode = repeatMode,
+                        onShuffleClick = {
+                            playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
+                        },
+                        onRepeatModeClick = { playerConnection.player.toggleRepeatMode() },
+                        onMenuClick = {
+                            menuState.show {
+                                PlayerMenu(
+                                    mediaMetadata = mediaMetadata,
+                                    navController = navController,
+                                    playerBottomSheetState = playerBottomSheetState,
+                                    isQueueTrigger = true,
+                                    onRemoveFromQueue = {
+                                        currentWindow?.let { onRemoveWithUndo(it) }
+                                    },
+                                    onShowDetailsDialog = {
+                                        mediaMetadata?.id?.let {
+                                            bottomSheetPageState.show {
+                                                ShowMediaInfo(it)
+                                            }
+                                        }
+                                    },
+                                    onDismiss = menuState::dismiss
+                                )
+                            }
+                        },
+                        onSleepTimerClick = {
+                            if (sleepTimerEnabled) {
+                                playerConnection.service.sleepTimer.clear()
+                            } else {
+                                showSleepTimerDialog = true
+                            }
+                        },
+                    )
+                }
+
                 PlayerDesignStyle.V7, PlayerDesignStyle.V8 -> {
                     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager }
                     val activeDevice = remember(audioManager) {
