@@ -29,7 +29,7 @@ data class SpotifyPlaylistOwner(
  */
 @Serializable
 data class SpotifyPlaylistTracksRef(
-    val total: Int = 0,
+    val total: Int? = null,
     val href: String? = null,
 )
 

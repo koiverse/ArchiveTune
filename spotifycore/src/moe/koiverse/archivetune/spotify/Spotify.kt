@@ -641,10 +641,19 @@ object Spotify {
                 displayName = ownerData?.str("name"),
                 uri = ownerData?.str("uri"),
             ),
-            tracks = SpotifyPlaylistTracksRef(total = data.obj("content")?.int("totalCount") ?: 0),
+            tracks = SpotifyPlaylistTracksRef(total = parsePlaylistTrackCount(data)),
             uri = playlistUri,
         )
     }
+
+    private fun parsePlaylistTrackCount(data: JsonObject): Int? =
+        data.obj("content")?.int("totalCount")
+            ?: data.obj("contents")?.int("totalCount")
+            ?: data.obj("tracks")?.int("totalCount")
+            ?: data.obj("tracksV2")?.int("totalCount")
+            ?: data.int("totalCount")
+            ?: data.int("trackCount")
+            ?: data.int("numTracks")
 
     private fun parseFolderWrapper(wrapper: JsonObject): moe.koiverse.archivetune.spotify.models.SpotifyLibraryFolder? {
         val uri = wrapper.str("_uri") ?: return null
@@ -779,7 +788,7 @@ object Spotify {
                         displayName = ownerData?.str("name"),
                         uri = ownerUri.ifEmpty { null },
                     ),
-                tracks = SpotifyPlaylistTracksRef(total = playlist.obj("content")?.int("totalCount") ?: 0),
+                tracks = SpotifyPlaylistTracksRef(total = parsePlaylistTrackCount(playlist)),
                 collaborative = (playlist.obj("members")?.arr("items")?.size ?: 0) > 1,
             )
         }

@@ -12,6 +12,7 @@ package moe.koiverse.archivetune.ui.screens.settings
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -33,6 +34,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -309,6 +311,7 @@ fun BackupAndRestore(
         SpotifyLoginSheet(
             onDismiss = { showSpotifyLogin = false },
             onCookiesCaptured = { spDc, spKey ->
+                showSpotifyLogin = false
                 spotifyImportViewModel.connectWithCookies(spDc = spDc, spKey = spKey)
             },
         )
@@ -711,7 +714,7 @@ private fun SectionHeader(
     description: String,
 ) {
     Column(
-        modifier = Modifier.padding(horizontal = 4.dp),
+        modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(
@@ -849,6 +852,7 @@ private fun SpotifySourcePickerSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
+        modifier = Modifier.fillMaxHeight(),
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
@@ -857,6 +861,7 @@ private fun SpotifySourcePickerSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -895,7 +900,7 @@ private fun SpotifySourcePickerSheet(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 520.dp),
+                    .weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 6.dp),
             ) {
@@ -1034,6 +1039,7 @@ private fun SpotifyLoginSheet(
     }
 
     ModalBottomSheet(
+        modifier = Modifier.fillMaxHeight(),
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
@@ -1042,6 +1048,7 @@ private fun SpotifyLoginSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -1059,7 +1066,7 @@ private fun SpotifyLoginSheet(
             AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(620.dp)
+                    .weight(1f)
                     .clip(MaterialTheme.shapes.large),
                 factory = { context ->
                     WebView(context).apply {
@@ -1072,15 +1079,32 @@ private fun SpotifyLoginSheet(
                         settings.builtInZoomControls = true
                         settings.displayZoomControls = false
                         webViewClient = object : WebViewClient() {
-                            override fun onPageFinished(view: WebView, url: String?) {
-                                if (captured) return
+                            private fun captureCookies(url: String?): Boolean {
+                                if (captured) return true
                                 val cookies = readSpotifyCookies(cookieManager, url)
                                 val spDc = cookies["sp_dc"].orEmpty()
-                                if (spDc.isNotBlank()) {
-                                    captured = true
-                                    cookieManager.flush()
-                                    onCookiesCaptured(spDc, cookies["sp_key"].orEmpty())
-                                }
+                                if (spDc.isBlank()) return false
+                                captured = true
+                                cookieManager.flush()
+                                onCookiesCaptured(spDc, cookies["sp_key"].orEmpty())
+                                return true
+                            }
+
+                            override fun shouldOverrideUrlLoading(
+                                view: WebView,
+                                request: WebResourceRequest,
+                            ): Boolean = captureCookies(request.url?.toString())
+
+                            override fun onPageStarted(
+                                view: WebView,
+                                url: String?,
+                                favicon: android.graphics.Bitmap?,
+                            ) {
+                                captureCookies(url)
+                            }
+
+                            override fun onPageFinished(view: WebView, url: String?) {
+                                captureCookies(url)
                             }
                         }
                         webView = this

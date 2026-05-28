@@ -39,6 +39,7 @@ import moe.koiverse.archivetune.spotify.Spotify
 import moe.koiverse.archivetune.spotify.SpotifyAuth
 import moe.koiverse.archivetune.spotify.SpotifyMapper
 import moe.koiverse.archivetune.spotify.models.SpotifyPlaylist
+import moe.koiverse.archivetune.spotify.models.SpotifyPlaylistTracksRef
 import moe.koiverse.archivetune.spotify.models.SpotifyTrack
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.reportException
@@ -270,13 +271,47 @@ class SpotifyImportRepository @Inject constructor(
                 Spotify.myPlaylists(limit = limit, offset = offset).getOrThrow()
             }
             if (page.items.isEmpty()) break
-            playlists += page.items
+            playlists += enrichPlaylistTrackCounts(page.items)
             offset += page.items.size
             if (offset >= page.total || page.items.size < limit) break
         }
 
         return playlists
     }
+
+    private suspend fun enrichPlaylistTrackCounts(playlists: List<SpotifyPlaylist>): List<SpotifyPlaylist> =
+        coroutineScope {
+            val semaphore = Semaphore(MAX_CONCURRENT_SPOTIFY_COUNT_REQUESTS)
+            playlists.map { playlist ->
+                async {
+                    if (playlist.tracks?.total != null) {
+                        playlist
+                    } else {
+                        semaphore.withPermit {
+                            playlistTrackCount(playlist.id)
+                                ?.let { count -> playlist.copy(tracks = SpotifyPlaylistTracksRef(total = count)) }
+                                ?: playlist
+                        }
+                    }
+                }
+            }.awaitAll()
+        }
+
+    private suspend fun playlistTrackCount(playlistId: String): Int? =
+        try {
+            spotifyCallWithTokenRetry {
+                Spotify.playlistTracks(
+                    playlistId = playlistId,
+                    limit = 1,
+                    offset = 0,
+                ).getOrThrow()
+            }.total
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            reportException(error)
+            null
+        }
 
     private suspend fun fetchAllTracks(source: SpotifyImportSource): List<SpotifyTrack> {
         val tracks = ArrayList<SpotifyTrack>()
@@ -487,6 +522,7 @@ class SpotifyImportRepository @Inject constructor(
 
     companion object {
         private const val MAX_CONCURRENT_MATCHES = 4
+        private const val MAX_CONCURRENT_SPOTIFY_COUNT_REQUESTS = 4
         private const val TOKEN_EXPIRY_GRACE_MS = 60_000L
     }
 }
