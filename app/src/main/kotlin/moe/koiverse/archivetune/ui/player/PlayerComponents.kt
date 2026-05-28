@@ -2055,15 +2055,15 @@ private fun V8PortraitContent(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val contentPadding = if (maxWidth < 380.dp) 24.dp else 32.dp
+        val contentPadding = if (maxWidth < 380.dp) 22.dp else 24.dp
         val compactHeight = maxHeight < 760.dp
         val artworkSize = (maxWidth - contentPadding * 2)
-            .coerceAtMost(if (compactHeight) 300.dp else 360.dp)
-            .coerceAtMost(maxHeight * if (compactHeight) 0.34f else 0.42f)
+            .coerceAtMost(if (compactHeight) 330.dp else 420.dp)
+            .coerceAtMost(maxHeight * if (compactHeight) 0.38f else 0.48f)
         val headerTop = if (compactHeight) 6.dp else 14.dp
-        val headerToArtwork = if (compactHeight) 18.dp else 36.dp
-        val artworkToMetadata = if (compactHeight) 18.dp else 36.dp
-        val controlsGap = if (compactHeight) 14.dp else 24.dp
+        val headerToArtwork = if (compactHeight) 14.dp else 28.dp
+        val artworkToMetadata = if (compactHeight) 16.dp else 28.dp
+        val controlsGap = if (compactHeight) 12.dp else 18.dp
 
         Column(
             modifier = Modifier
@@ -2110,7 +2110,7 @@ private fun V8PortraitContent(
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
             )
 
-            Spacer(Modifier.height(if (compactHeight) 14.dp else 24.dp))
+            Spacer(Modifier.height(if (compactHeight) 10.dp else 18.dp))
 
             V8TransportControls(
                 playbackState = playbackState,
@@ -2133,7 +2133,7 @@ private fun V8PortraitContent(
                 onVolumeChange = onVolumeChange,
             )
 
-            Spacer(Modifier.height(if (compactHeight) 12.dp else 20.dp))
+            Spacer(Modifier.height(if (compactHeight) 10.dp else 16.dp))
         }
     }
 }
@@ -2260,7 +2260,7 @@ private fun V8Header(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLarge,
             color = foreground,
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -2269,7 +2269,7 @@ private fun V8Header(
         )
         Text(
             text = subtitle,
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             color = secondaryForeground,
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -2317,7 +2317,7 @@ private fun V8MetadataActions(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = foreground,
                 maxLines = 1,
@@ -2326,7 +2326,7 @@ private fun V8MetadataActions(
             )
             Text(
                 text = artists,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = foreground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -2343,7 +2343,7 @@ private fun V8MetadataActions(
                 contentDescription = stringResource(R.string.more_options),
                 foreground = foreground,
                 containerColor = foreground.copy(alpha = 0.16f),
-                iconSize = 32.dp,
+                iconSize = 24.dp,
                 onClick = onMenuClick,
             )
             V8ActionButton(
@@ -2351,7 +2351,7 @@ private fun V8MetadataActions(
                 contentDescription = stringResource(R.string.action_like),
                 foreground = foreground,
                 containerColor = foreground.copy(alpha = 0.16f),
-                iconSize = 34.dp,
+                iconSize = 26.dp,
                 onClick = onToggleLike,
             )
         }
@@ -2371,7 +2371,7 @@ private fun V8ActionButton(
         onClick = onClick,
         shape = CircleShape,
         color = containerColor,
-        modifier = Modifier.size(64.dp),
+        modifier = Modifier.size(48.dp),
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -2420,7 +2420,7 @@ private fun V8PlaybackProgress(
         ) {
             Text(
                 text = makeTimeString(sliderPosition ?: position),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.labelMedium,
                 color = foreground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -2436,7 +2436,7 @@ private fun V8PlaybackProgress(
 
             Text(
                 text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.labelMedium,
                 color = foreground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -2473,7 +2473,7 @@ private fun V8QualityChip(
             )
             Text(
                 text = stringResource(R.string.audio_quality_high).uppercase(),
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelSmall,
                 color = foreground.copy(alpha = 0.72f),
                 maxLines = 1,
             )
@@ -2505,8 +2505,8 @@ private fun V8TransportControls(
             contentDescription = stringResource(R.string.widget_previous),
             foreground = foreground,
             enabled = canSkipPrevious,
-            touchSize = 82.dp,
-            iconSize = 58.dp,
+            touchSize = 64.dp,
+            iconSize = 44.dp,
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onPreviousClick()
@@ -2520,7 +2520,7 @@ private fun V8TransportControls(
             },
             shape = CircleShape,
             color = Color.Transparent,
-            modifier = Modifier.size(92.dp),
+            modifier = Modifier.size(72.dp),
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -2528,7 +2528,7 @@ private fun V8TransportControls(
             ) {
                 if (isLoading) {
                     CircularWavyProgressIndicator(
-                        modifier = Modifier.size(54.dp),
+                        modifier = Modifier.size(44.dp),
                         color = foreground,
                     )
                 } else {
@@ -2546,7 +2546,7 @@ private fun V8TransportControls(
                             stringResource(R.string.play)
                         },
                         tint = foreground,
-                        modifier = Modifier.size(64.dp),
+                        modifier = Modifier.size(52.dp),
                     )
                 }
             }
@@ -2557,8 +2557,8 @@ private fun V8TransportControls(
             contentDescription = stringResource(R.string.next),
             foreground = foreground,
             enabled = canSkipNext,
-            touchSize = 82.dp,
-            iconSize = 58.dp,
+            touchSize = 64.dp,
+            iconSize = 44.dp,
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onNextClick()
@@ -3020,7 +3020,7 @@ private fun V9Header(
                 contentDescription = stringResource(R.string.lyrics),
                 containerColor = containerColor,
                 iconColor = iconColor,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 onClick = onLyricsClick,
             )
             V9HeaderButton(
