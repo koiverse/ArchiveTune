@@ -131,7 +131,7 @@ class SpotifyImportRepository @Inject constructor(
                 add(
                     SpotifyImportSource.LikedSongs(
                         title = context.getString(R.string.spotify_liked_songs),
-                        totalTracks = likedSongs.total,
+                        trackCount = likedSongs.total,
                     ),
                 )
                 playlists.forEach { playlist ->
