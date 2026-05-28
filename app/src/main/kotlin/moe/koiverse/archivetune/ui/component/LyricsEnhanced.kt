@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -32,12 +33,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,11 +45,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -84,9 +83,10 @@ import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.LyricsClickKey
@@ -114,6 +114,7 @@ import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val LRC_LEAD_MS = 300L
@@ -121,6 +122,11 @@ private const val TTML_LEAD_MS = 0L
 private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private const val MANUAL_SCROLL_DEBOUNCE_MS = 50L
+private const val LYRIC_FOCUS_ANCHOR_RATIO = 0.42f
+private const val LYRIC_FOCUS_TOP_GUARD_RATIO = 0.18f
+private const val LYRIC_FOCUS_BOTTOM_GUARD_RATIO = 0.24f
+private const val LYRIC_FOCUS_MIN_SCROLL_PX = 6
+private const val LYRIC_FOCUS_ANIMATED_DISTANCE = 12
 
 @Composable
 fun LyricsEnhanced(
@@ -133,7 +139,6 @@ fun LyricsEnhanced(
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
@@ -179,7 +184,14 @@ fun LyricsEnhanced(
     var showShareImageDialog by remember { mutableStateOf(false) }
 
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
-    val lyrics = currentLyrics?.lyrics
+    val lyrics = remember(currentLyrics, mediaMetadata?.id) {
+        currentLyrics
+            ?.takeIf { lyricsEntity -> lyricsEntity.id == mediaMetadata?.id }
+            ?.lyrics
+    }
+    val lyricsSessionKey = remember(mediaMetadata?.id, lyrics) {
+        mediaMetadata?.id.orEmpty() to lyrics
+    }
 
     val isSynced = remember(lyrics) { lyrics != null && (lyrics!!.startsWith("[") || isTtml(lyrics!!)) }
     val isTtmlFormat = remember(lyrics) { lyrics != null && isTtml(lyrics!!) }
@@ -246,7 +258,17 @@ fun LyricsEnhanced(
     }
     var isManualScrolling by remember { mutableStateOf(false) }
     var lastManualScrollTime by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(player) {
+    val listState = key(lyricsSessionKey) { rememberLazyListState() }
+
+    LaunchedEffect(lyricsSessionKey) {
+        playbackPositionMs.longValue = player.currentPosition.coerceAtLeast(0L)
+        isManualScrolling = false
+        lastManualScrollTime = 0L
+        isSelectionModeActive = false
+        selectedLineStarts.clear()
+    }
+
+    LaunchedEffect(player, lyricsSessionKey) {
         var wasSliderActive = false
         while (isActive) {
             val sliderPosition = latestSliderPositionProvider.value()
@@ -267,7 +289,7 @@ fun LyricsEnhanced(
         }
     }
 
-    val currentPosition: () -> Int = remember {
+    val playbackSyncPosition: () -> Int = remember {
         {
             (
                 playbackPositionMs.longValue +
@@ -279,13 +301,11 @@ fun LyricsEnhanced(
                 .toInt()
         }
     }
-    val focusedPosition: () -> Int = remember(syncedLyrics) {
+    val lineFocusPosition: () -> Int = remember(syncedLyrics) {
         {
-            syncedLyrics.positionForStableLineFocus(currentPosition())
+            syncedLyrics.positionForStableLineFocus(playbackSyncPosition())
         }
     }
-
-    val listState = rememberLazyListState()
 
     val nestedScrollConnection = remember {
         var lastUserScrollEventMs = 0L
@@ -307,8 +327,7 @@ fun LyricsEnhanced(
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                if (!isSelectionModeActive) {
-                    isManualScrolling = true
+                if (!isSelectionModeActive && isManualScrolling) {
                     lastManualScrollTime = System.currentTimeMillis()
                 }
                 return Velocity.Zero
@@ -320,25 +339,39 @@ fun LyricsEnhanced(
         if (isManualScrolling) {
             delay(MANUAL_SCROLL_TIMEOUT_MS)
             isManualScrolling = false
-        } else if (lastManualScrollTime > 0L && syncedLyrics.lines.isNotEmpty() && !isSelectionModeActive) {
-            val index = syncedLyrics.getCurrentFirstHighlightLineIndexByTime(
-                syncedLyrics.positionForStableLineFocus(currentPosition())
-            )
-            if (index in syncedLyrics.lines.indices) {
-                val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
-                listState.animateScrollToItem(index, (viewportHeight * 0.42f).roundToInt())
-            }
         }
     }
 
-    LaunchedEffect(syncedLyrics, isSynced) {
+    LaunchedEffect(lyricsSessionKey, syncedLyrics, isSynced) {
         if (!isSynced || syncedLyrics.lines.isEmpty()) return@LaunchedEffect
-        if (isManualScrolling) return@LaunchedEffect
-        snapshotFlow { listState.layoutInfo.viewportEndOffset > 0 }.first { it }
-        val index = syncedLyrics.getCurrentFirstHighlightLineIndexByTime(focusedPosition())
-        if (index !in syncedLyrics.lines.indices) return@LaunchedEffect
-        val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
-        listState.scrollToItem(index, (viewportHeight * 0.42f).roundToInt())
+        snapshotFlow {
+            listState.layoutInfo.viewportEndOffset > listState.layoutInfo.viewportStartOffset
+        }.first { it }
+
+        var forceNextScroll = true
+        snapshotFlow {
+            if (isManualScrolling || isSelectionModeActive) {
+                null
+            } else {
+                syncedLyrics
+                    .getCurrentFirstHighlightLineIndexByTime(lineFocusPosition())
+                    .takeIf { index -> index in syncedLyrics.lines.indices }
+            }
+        }
+            .distinctUntilChanged()
+            .collectLatest { index ->
+                if (index == null) {
+                    forceNextScroll = true
+                    return@collectLatest
+                }
+
+                listState.scrollLyricIntoFocus(
+                    index = index,
+                    animateToNearbyItem = !forceNextScroll,
+                    force = forceNextScroll,
+                )
+                forceNextScroll = false
+            }
     }
 
     BackHandler(enabled = isSelectionModeActive) {
@@ -419,75 +452,51 @@ fun LyricsEnhanced(
                 ) {
                     val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
 
-                    KaraokeLyricsView(
-                        listState = listState,
-                        lyrics = syncedLyrics,
-                        currentPosition = focusedPosition,
-                        onLineClicked = { line ->
-                            if (isSelectionModeActive) {
-                                val start = line.start
-                                if (selectedLineStarts.contains(start)) {
-                                    selectedLineStarts.remove(start)
-                                    if (selectedLineStarts.isEmpty()) isSelectionModeActive = false
-                                } else if (selectedLineStarts.size < maxSelectionLimit) {
-                                    selectedLineStarts.add(start)
-                                } else {
-                                    showMaxSelectionToast = true
+                    key(lyricsSessionKey) {
+                        KaraokeLyricsView(
+                            listState = listState,
+                            lyrics = syncedLyrics,
+                            currentPosition = playbackSyncPosition,
+                            onLineClicked = { line ->
+                                if (isSelectionModeActive) {
+                                    val start = line.start
+                                    if (selectedLineStarts.contains(start)) {
+                                        selectedLineStarts.remove(start)
+                                        if (selectedLineStarts.isEmpty()) isSelectionModeActive = false
+                                    } else if (selectedLineStarts.size < maxSelectionLimit) {
+                                        selectedLineStarts.add(start)
+                                    } else {
+                                        showMaxSelectionToast = true
+                                    }
+                                } else if (lyricsClick && isSynced && line.start > 0) {
+                                    player.seekTo(line.start.toLong())
                                 }
-                            } else if (lyricsClick && isSynced && line.start > 0) {
-                                player.seekTo(line.start.toLong())
-                            }
-                        },
-                        onLinePressed = { line ->
-                            if (!isSelectionModeActive) {
-                                isSelectionModeActive = true
-                                if (!selectedLineStarts.contains(line.start)) {
-                                    selectedLineStarts.add(line.start)
+                            },
+                            onLinePressed = { line ->
+                                if (!isSelectionModeActive) {
+                                    isSelectionModeActive = true
+                                    if (!selectedLineStarts.contains(line.start)) {
+                                        selectedLineStarts.add(line.start)
+                                    }
+                                } else if (!selectedLineStarts.contains(line.start)) {
+                                    if (selectedLineStarts.size < maxSelectionLimit) {
+                                        selectedLineStarts.add(line.start)
+                                    } else {
+                                        showMaxSelectionToast = true
+                                    }
                                 }
-                            } else if (!selectedLineStarts.contains(line.start)) {
-                                if (selectedLineStarts.size < maxSelectionLimit) {
-                                    selectedLineStarts.add(line.start)
-                                } else {
-                                    showMaxSelectionToast = true
-                                }
-                            }
-                        },
-                        textColor = textColor,
-                        normalLineTextStyle = normalTextStyle,
-                        accompanimentLineTextStyle = accompanimentTextStyle,
-                        phoneticTextStyle = phoneticTextStyle,
-                        blendMode = BlendMode.SrcOver,
-                        useBlurEffect = lyricsLineBlur,
-                        showTranslation = true,
-                        showPhonetic = romanizationPreferences.isEnabled,
-                        offset = lyricsViewportOffset,
-                        keepAliveZone = 72.dp,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-
-                if (isManualScrolling && isSynced) {
-                    FilledTonalButton(
-                        onClick = {
-                            isManualScrolling = false
-                            scope.launch {
-                                val firstIndex = syncedLyrics.getCurrentFirstHighlightLineIndexByTime(
-                                    focusedPosition()
-                                )
-                                if (firstIndex in syncedLyrics.lines.indices) {
-                                    val viewportHeight = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
-                                    listState.animateScrollToItem(firstIndex, (viewportHeight * 0.42f).roundToInt())
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 16.dp),
-                        shapes = ButtonDefaults.shapes(),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.resume_autoscroll),
-                            style = MaterialTheme.typography.labelLarge,
+                            },
+                            textColor = textColor,
+                            normalLineTextStyle = normalTextStyle,
+                            accompanimentLineTextStyle = accompanimentTextStyle,
+                            phoneticTextStyle = phoneticTextStyle,
+                            blendMode = BlendMode.SrcOver,
+                            useBlurEffect = lyricsLineBlur,
+                            showTranslation = true,
+                            showPhonetic = romanizationPreferences.isEnabled,
+                            offset = lyricsViewportOffset,
+                            keepAliveZone = 72.dp,
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
@@ -673,6 +682,46 @@ fun LyricsEnhanced(
             payload = LyricsSharePayload(lyricsText, songTitle, artists),
             onDismissRequest = { showShareImageDialog = false },
         )
+    }
+}
+
+private suspend fun LazyListState.scrollLyricIntoFocus(
+    index: Int,
+    animateToNearbyItem: Boolean,
+    force: Boolean,
+) {
+    val itemCount = layoutInfo.totalItemsCount
+    if (itemCount == 0) return
+
+    val targetIndex = index.coerceIn(0, itemCount - 1)
+    var itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { item -> item.index == targetIndex }
+    if (itemInfo == null) {
+        val distance = abs(targetIndex - firstVisibleItemIndex)
+        if (animateToNearbyItem && distance <= LYRIC_FOCUS_ANIMATED_DISTANCE) {
+            animateScrollToItem(targetIndex)
+        } else {
+            scrollToItem(targetIndex)
+        }
+        withFrameNanos { }
+        itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { item -> item.index == targetIndex }
+    }
+
+    itemInfo ?: return
+
+    val viewportStart = layoutInfo.viewportStartOffset
+    val viewportEnd = layoutInfo.viewportEndOffset
+    val viewportHeight = viewportEnd - viewportStart
+    if (viewportHeight <= 0) return
+
+    val itemCenter = itemInfo.offset + itemInfo.size / 2
+    val topGuard = viewportStart + (viewportHeight * LYRIC_FOCUS_TOP_GUARD_RATIO).roundToInt()
+    val bottomGuard = viewportEnd - (viewportHeight * LYRIC_FOCUS_BOTTOM_GUARD_RATIO).roundToInt()
+    if (!force && itemCenter in topGuard..bottomGuard) return
+
+    val targetCenter = viewportStart + (viewportHeight * LYRIC_FOCUS_ANCHOR_RATIO).roundToInt()
+    val scrollDelta = itemCenter - targetCenter
+    if (abs(scrollDelta) > LYRIC_FOCUS_MIN_SCROLL_PX) {
+        animateScrollBy(scrollDelta.toFloat())
     }
 }
 
