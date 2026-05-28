@@ -281,6 +281,7 @@ dependencies {
     implementation(project(":paxsenix"))
     implementation(project(":canvas"))
     implementation(project(":shazamkit"))
+    implementation(project(":spotifycore"))
     implementation("com.materialkolor:material-kolor:5.0.0-alpha07")
     implementation(libs.compose.cloudy)
 

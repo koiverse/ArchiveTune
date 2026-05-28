@@ -707,6 +707,12 @@ class BackupRestoreViewModel @Inject constructor(
             "discordName",
             "proxyUsername",
             "proxyPassword",
+            "spotify_sp_dc",
+            "spotify_sp_key",
+            "spotify_access_token",
+            "spotify_access_token_expires_at",
+            "spotify_account_name",
+            "spotify_account_avatar_url",
         )
     }
 }

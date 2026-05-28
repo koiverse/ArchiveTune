@@ -5,25 +5,28 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
-
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.screens.settings
 
+import android.annotation.SuppressLint
+import android.net.Uri
+import android.webkit.CookieManager
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,34 +35,40 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.ripple
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -71,26 +80,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.entities.Song
+import moe.koiverse.archivetune.spotify.SpotifyAuth
+import moe.koiverse.archivetune.spotifyimport.SpotifyImportSourceType
+import moe.koiverse.archivetune.spotifyimport.SpotifyImportSourceUi
+import moe.koiverse.archivetune.spotifyimport.SpotifyImportSummaryUi
+import moe.koiverse.archivetune.spotifyimport.SpotifyImportUiState
+import moe.koiverse.archivetune.spotifyimport.SpotifyImportViewModel
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.menu.AddToPlaylistDialogOnline
@@ -98,18 +113,8 @@ import moe.koiverse.archivetune.ui.menu.LoadingScreen
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.viewmodels.BackupCategory
 import moe.koiverse.archivetune.viewmodels.BackupRestoreViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.floor
-
-private val CardShape = RoundedCornerShape(28.dp)
-private val InnerTileShape = RoundedCornerShape(22.dp)
-private val HeroIconSize = 72.dp
-private val QuickTileIconSize = 48.dp
-private val RowIconSize = 42.dp
-private const val PressScale = 0.96f
 
 private val CSV_MIME_TYPES =
     arrayOf(
@@ -130,31 +135,25 @@ fun BackupAndRestore(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
     viewModel: BackupRestoreViewModel = hiltViewModel(),
+    spotifyImportViewModel: SpotifyImportViewModel = hiltViewModel(),
 ) {
-    var importedTitle by remember { mutableStateOf("") }
     val importedSongs = remember { mutableStateListOf<Song>() }
-    var showChoosePlaylistDialogOnline by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var isProgressStarted by rememberSaveable {
-        mutableStateOf(false)
-    }
-
+    var showChoosePlaylistDialogOnline by rememberSaveable { mutableStateOf(false) }
+    var isProgressStarted by rememberSaveable { mutableStateOf(false) }
     var progressStatus by remember { mutableStateOf("") }
-
-    var progressPercentage by rememberSaveable {
-        mutableIntStateOf(0)
-    }
-
+    var progressPercentage by rememberSaveable { mutableIntStateOf(0) }
     var showBackupOptionsDialog by rememberSaveable { mutableStateOf(false) }
     var showRestoreOptionsDialog by rememberSaveable { mutableStateOf(false) }
+    var showSpotifyLogin by rememberSaveable { mutableStateOf(false) }
+    var showSpotifySources by rememberSaveable { mutableStateOf(false) }
     var pendingBackupCategories by remember { mutableStateOf(BackupCategory.entries.toSet()) }
     var pendingRestoreCategories by remember { mutableStateOf(BackupCategory.entries.toSet()) }
 
-    val backupRestoreProgress by viewModel.backupRestoreProgress.collectAsState()
+    val backupRestoreProgress by viewModel.backupRestoreProgress.collectAsStateWithLifecycle()
+    val spotifyState by spotifyImportViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
     val backupLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
             if (uri != null) {
@@ -174,22 +173,27 @@ fun BackupAndRestore(
                 val result = viewModel.importPlaylistFromCsv(context, uri)
                 importedSongs.clear()
                 importedSongs.addAll(result)
-
                 if (importedSongs.isNotEmpty()) {
                     showChoosePlaylistDialogOnline = true
                 }
             }
         }
-    val importM3uLauncherOnline = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        coroutineScope.launch {
-            val result = viewModel.loadM3UOnline(context, uri)
-            importedSongs.clear()
-            importedSongs.addAll(result)
-
-            if (importedSongs.isNotEmpty()) {
-                showChoosePlaylistDialogOnline = true
+    val importM3uLauncherOnline =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            coroutineScope.launch {
+                val result = viewModel.loadM3UOnline(context, uri)
+                importedSongs.clear()
+                importedSongs.addAll(result)
+                if (importedSongs.isNotEmpty()) {
+                    showChoosePlaylistDialogOnline = true
+                }
             }
+        }
+
+    LaunchedEffect(spotifyState.isAuthenticated) {
+        if (spotifyState.isAuthenticated) {
+            showSpotifyLogin = false
         }
     }
 
@@ -238,26 +242,32 @@ fun BackupAndRestore(
                     ),
                 ),
             contentPadding = PaddingValues(
-                start = 16.dp,
+                start = SettingsDimensions.ScreenHorizontalPadding,
                 top = innerPadding.calculateTopPadding() + 8.dp,
-                end = 16.dp,
+                end = SettingsDimensions.ScreenHorizontalPadding,
                 bottom = 32.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(SettingsDimensions.SectionSpacing),
         ) {
-            item {
-                BackupRestoreHeroCard()
-            }
-
-            item {
-                ActionTilesRow(
+            item(key = "data_safety", contentType = "settings_section") {
+                DataSafetySection(
                     onBackupClick = { showBackupOptionsDialog = true },
                     onRestoreClick = { showRestoreOptionsDialog = true },
                 )
             }
 
-            item {
-                ImportSectionCard(
+            item(key = "spotify_import", contentType = "settings_section") {
+                SpotifyImportSection(
+                    state = spotifyState,
+                    onConnectClick = { showSpotifyLogin = true },
+                    onRefreshClick = spotifyImportViewModel::loadSources,
+                    onSelectClick = { showSpotifySources = true },
+                    onImportClick = spotifyImportViewModel::importSelectedSources,
+                )
+            }
+
+            item(key = "file_import", contentType = "settings_section") {
+                FileImportSection(
                     onImportM3u = { importM3uLauncherOnline.launch(arrayOf("audio/*")) },
                     onImportCsv = { importPlaylistFromCsv.launch(CSV_MIME_TYPES) },
                 )
@@ -274,7 +284,7 @@ fun BackupAndRestore(
                 showBackupOptionsDialog = false
                 val formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
                 backupLauncher.launch(
-                    "${context.getString(R.string.app_name)}_${LocalDateTime.now().format(formatter)}.backup"
+                    "${context.getString(R.string.app_name)}_${LocalDateTime.now().format(formatter)}.backup",
                 )
             },
             onDismiss = { showBackupOptionsDialog = false },
@@ -294,20 +304,56 @@ fun BackupAndRestore(
         )
     }
 
+    if (showSpotifyLogin) {
+        SpotifyLoginSheet(
+            onDismiss = { showSpotifyLogin = false },
+            onCookiesCaptured = { spDc, spKey ->
+                spotifyImportViewModel.connectWithCookies(spDc = spDc, spKey = spKey)
+            },
+        )
+    }
+
+    if (showSpotifySources && spotifyState.isAuthenticated) {
+        SpotifySourcePickerSheet(
+            state = spotifyState,
+            onDismiss = { showSpotifySources = false },
+            onToggleSource = spotifyImportViewModel::toggleSource,
+            onSelectAll = spotifyImportViewModel::selectAllSources,
+            onClearSelection = spotifyImportViewModel::clearSelection,
+            onImport = {
+                showSpotifySources = false
+                spotifyImportViewModel.importSelectedSources()
+            },
+        )
+    }
+
+    spotifyState.summary?.let { summary ->
+        SpotifyImportSummaryDialog(
+            summary = summary,
+            onDismiss = spotifyImportViewModel::dismissSummary,
+        )
+    }
+
+    spotifyState.errorMessage?.let { error ->
+        SpotifyErrorDialog(
+            message = error,
+            onDismiss = spotifyImportViewModel::dismissError,
+        )
+    }
+
     AddToPlaylistDialogOnline(
         isVisible = showChoosePlaylistDialogOnline,
         allowSyncing = false,
-        initialTextFieldValue = importedTitle,
         songs = importedSongs,
         onDismiss = { showChoosePlaylistDialogOnline = false },
-        onProgressStart = { newVal -> isProgressStarted = newVal },
-        onPercentageChange = { newPercentage -> progressPercentage = newPercentage },
-        onStatusChange = { progressStatus = it }
+        onProgressStart = { isProgressStarted = it },
+        onPercentageChange = { progressPercentage = it },
+        onStatusChange = { progressStatus = it },
     )
 
     LaunchedEffect(progressPercentage, isProgressStarted) {
         if (isProgressStarted && progressPercentage == 99) {
-            delay(10000)
+            delay(10_000)
             if (progressPercentage == 99) {
                 isProgressStarted = false
                 progressPercentage = 0
@@ -315,252 +361,299 @@ fun BackupAndRestore(
         }
     }
 
+    val spotifyProgress = spotifyState.progress
+    val spotifyProgressTitle = stringResource(R.string.spotify_import_in_progress)
+    val spotifyProgressStep =
+        spotifyProgress?.let {
+            stringResource(
+                R.string.spotify_import_progress_step,
+                it.sourceTitle,
+                it.completedSources,
+                it.totalSources,
+                it.matchedTracks,
+                it.totalTracks,
+            )
+        }
+
     LoadingScreen(
-        isVisible = backupRestoreProgress != null || isProgressStarted,
-        value = backupRestoreProgress?.percent ?: progressPercentage,
-        title = backupRestoreProgress?.title,
-        stepText = backupRestoreProgress?.step ?: progressStatus,
+        isVisible = backupRestoreProgress != null || isProgressStarted || spotifyProgress != null,
+        value = backupRestoreProgress?.percent ?: spotifyProgress?.percent ?: progressPercentage,
+        title = backupRestoreProgress?.title ?: if (spotifyProgress != null) spotifyProgressTitle else null,
+        stepText = backupRestoreProgress?.step ?: spotifyProgressStep ?: progressStatus,
         indeterminate = backupRestoreProgress?.indeterminate ?: false,
     )
 }
 
 @Composable
-private fun BackupRestoreHeroCard() {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) PressScale else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessHigh),
-        label = "heroScale",
-    )
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer { scaleX = scale; scaleY = scale },
-        shape = CardShape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
-                            MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0f),
-                        ),
-                    ),
-                )
-                .padding(horizontal = 24.dp, vertical = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(HeroIconSize)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
-                            ),
-                        ),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.backup),
-                    contentDescription = null,
-                    modifier = Modifier.size(34.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.backup_restore),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-
-                Text(
-                    text = ".backup  ·  .m3u  ·  .csv",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
-                )
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FormatLabel(text = ".backup", color = MaterialTheme.colorScheme.primaryContainer)
-                FormatLabel(text = ".m3u", color = MaterialTheme.colorScheme.tertiaryContainer)
-                FormatLabel(text = ".csv", color = MaterialTheme.colorScheme.secondaryContainer)
-            }
-        }
-    }
-}
-
-@Composable
-private fun FormatLabel(
-    text: String,
-    color: Color,
-) {
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = color.copy(alpha = 0.65f),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            maxLines = 1,
-        )
-    }
-}
-
-@Composable
-private fun ActionTilesRow(
+private fun DataSafetySection(
     onBackupClick: () -> Unit,
     onRestoreClick: () -> Unit,
 ) {
-    Row(
+    SectionHeader(
+        title = stringResource(R.string.backup_data_safety),
+        description = stringResource(R.string.backup_data_safety_desc),
+    )
+
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        ActionTile(
-            modifier = Modifier.weight(1f),
-            icon = painterResource(R.drawable.backup),
-            label = stringResource(R.string.action_backup),
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            onClick = onBackupClick,
-        )
-        ActionTile(
-            modifier = Modifier.weight(1f),
-            icon = painterResource(R.drawable.restore),
-            label = stringResource(R.string.action_restore),
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            onClick = onRestoreClick,
-        )
-    }
-}
-
-@Composable
-private fun ActionTile(
-    modifier: Modifier = Modifier,
-    icon: Painter,
-    label: String,
-    containerColor: Color,
-    contentColor: Color,
-    onClick: () -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessHigh),
-        label = "tileScale",
-    )
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed) 0.dp else 1.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessHigh),
-        label = "tileElevation",
-    )
-
-    Surface(
-        modifier = modifier.graphicsLayer { scaleX = scale; scaleY = scale },
-        shape = InnerTileShape,
-        color = containerColor,
-        tonalElevation = elevation,
-        onClick = onClick,
-        interactionSource = interactionSource,
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = contentColor.copy(alpha = 0.12f),
-                modifier = Modifier.size(QuickTileIconSize),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Icon(
-                        painter = icon,
-                        contentDescription = null,
-                        tint = contentColor,
-                        modifier = Modifier.size(24.dp),
+                IconBubble(
+                    icon = painterResource(R.drawable.backup),
+                    containerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    size = 56.dp,
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.backup_restore),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = stringResource(R.string.backup_data_formats),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = contentColor,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Button(
+                    onClick = onBackupClick,
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        contentColor = MaterialTheme.colorScheme.primaryContainer,
+                    ),
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(
+                        text = stringResource(R.string.action_backup),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                OutlinedButton(
+                    onClick = onRestoreClick,
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(
+                        text = stringResource(R.string.action_restore),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ImportSectionCard(
+private fun SpotifyImportSection(
+    state: SpotifyImportUiState,
+    onConnectClick: () -> Unit,
+    onRefreshClick: () -> Unit,
+    onSelectClick: () -> Unit,
+    onImportClick: () -> Unit,
+) {
+    SectionHeader(
+        title = stringResource(R.string.spotify_import_title),
+        description = stringResource(R.string.spotify_import_desc),
+    )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                AccountAvatar(
+                    isAuthenticated = state.isAuthenticated,
+                    accountAvatarUrl = state.accountAvatarUrl,
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = if (state.isAuthenticated && state.accountName.isNotBlank()) {
+                            stringResource(R.string.spotify_connected_as, state.accountName)
+                        } else {
+                            stringResource(R.string.spotify_account)
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = when {
+                            state.isLoading -> stringResource(R.string.spotify_loading_library)
+                            state.isAuthenticated -> stringResource(R.string.spotify_selected_count, state.selectedSourceIds.size)
+                            else -> stringResource(R.string.spotify_not_connected)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                AnimatedVisibility(visible = state.isLoading) {
+                    CircularWavyProgressIndicator(
+                        modifier = Modifier.size(28.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
+            Crossfade(
+                targetState = state.isAuthenticated,
+                label = "spotifyAuthContent",
+            ) { isAuthenticated ->
+                if (isAuthenticated) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (state.hasSources) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                MetricChip(
+                                    text = stringResource(R.string.spotify_available_count, state.sources.size),
+                                    modifier = Modifier.weight(1f),
+                                )
+                                MetricChip(
+                                    text = stringResource(R.string.spotify_selected_count, state.selectedSourceIds.size),
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        } else if (!state.isLoading) {
+                            Text(
+                                text = stringResource(R.string.spotify_no_sources),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            FilledTonalButton(
+                                onClick = onSelectClick,
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                enabled = state.hasSources && state.progress == null,
+                                shapes = ButtonDefaults.shapes(),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.spotify_select_sources),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            Button(
+                                onClick = onImportClick,
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                enabled = state.canImport,
+                                shapes = ButtonDefaults.shapes(),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.spotify_import_selected),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+
+                        TextButton(
+                            onClick = onRefreshClick,
+                            enabled = !state.isLoading && state.progress == null,
+                            shapes = ButtonDefaults.shapes(),
+                        ) {
+                            Text(stringResource(R.string.spotify_refresh))
+                        }
+                    }
+                } else {
+                    Button(
+                        onClick = onConnectClick,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(stringResource(R.string.spotify_connect))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FileImportSection(
     onImportM3u: () -> Unit,
     onImportCsv: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.import_playlist),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 6.dp),
-        )
+    SectionHeader(
+        title = stringResource(R.string.import_from_file),
+        description = stringResource(R.string.import_from_file_desc),
+    )
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = CardShape,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 6.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(vertical = 4.dp),
-            ) {
-                ImportActionRow(
-                    icon = painterResource(R.drawable.playlist_import),
-                    title = stringResource(R.string.import_online),
-                    subtitle = "audio/*",
-                    onClick = onImportM3u,
-                )
-
-                SectionDivider()
-
-                ImportActionRow(
-                    icon = painterResource(R.drawable.playlist_add),
-                    title = stringResource(R.string.import_csv),
-                    subtitle = "text/csv",
-                    onClick = onImportCsv,
-                )
-            }
+            ImportActionRow(
+                icon = painterResource(R.drawable.playlist_import),
+                title = stringResource(R.string.import_online),
+                subtitle = stringResource(R.string.import_m3u_format),
+                onClick = onImportM3u,
+            )
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 76.dp, end = 18.dp),
+                thickness = SettingsDimensions.DividerThickness,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f),
+            )
+            ImportActionRow(
+                icon = painterResource(R.drawable.playlist_add),
+                title = stringResource(R.string.import_csv),
+                subtitle = stringResource(R.string.import_csv_format),
+                onClick = onImportCsv,
+            )
         }
     }
 }
@@ -572,95 +665,538 @@ private fun ImportActionRow(
     subtitle: String,
     onClick: () -> Unit,
 ) {
+    PressableRow(
+        onClick = onClick,
+        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+    ) {
+        IconBubble(
+            icon = icon,
+            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            contentColor = MaterialTheme.colorScheme.primary,
+            size = 44.dp,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Icon(
+            painter = painterResource(R.drawable.arrow_forward),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    description: String,
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun PressableRow(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable Row.() -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessHigh),
-        label = "rowScale",
+        targetValue = if (isPressed) SettingsAnimations.PressScale else 1f,
+        animationSpec = SettingsAnimations.pressSpring(),
+        label = "pressableRowScale",
     )
 
-    Box(
-        modifier = Modifier
+    Row(
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(InnerTileShape)
+            .clip(MaterialTheme.shapes.large)
+            .focusable()
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(),
+                indication = null,
                 onClick = onClick,
-            ),
+            )
+            .heightIn(min = 72.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun IconBubble(
+    icon: Painter,
+    containerColor: Color,
+    contentColor: Color,
+    size: androidx.compose.ui.unit.Dp,
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(MaterialTheme.shapes.large)
+            .background(containerColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(size * 0.48f),
+        )
+    }
+}
+
+@Composable
+private fun MetricChip(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
+}
+
+@Composable
+private fun AccountAvatar(
+    isAuthenticated: Boolean,
+    accountAvatarUrl: String?,
+) {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.secondaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isAuthenticated && !accountAvatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = accountAvatarUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Icon(
+                painter = painterResource(if (isAuthenticated) R.drawable.account else R.drawable.login),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(26.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpotifySourcePickerSheet(
+    state: SpotifyImportUiState,
+    onDismiss: () -> Unit,
+    onToggleSource: (String) -> Unit,
+    onSelectAll: () -> Unit,
+    onClearSelection: () -> Unit,
+    onImport: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.spotify_select_sources),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = stringResource(R.string.spotify_selected_count, state.selectedSourceIds.size),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                TextButton(
+                    onClick = onClearSelection,
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(R.string.spotify_clear_selection))
+                }
+                TextButton(
+                    onClick = onSelectAll,
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(R.string.spotify_select_all))
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(bottom = 6.dp),
+            ) {
+                items(
+                    items = state.sources,
+                    key = { it.id },
+                    contentType = { it.type },
+                ) { source ->
+                    SpotifySourceRow(
+                        source = source,
+                        selected = source.id in state.selectedSourceIds,
+                        onClick = { onToggleSource(source.id) },
+                    )
+                }
+            }
+
+            Button(
+                onClick = onImport,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                enabled = state.canImport,
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(stringResource(R.string.spotify_import_selected))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpotifySourceRow(
+    source: SpotifyImportSourceUi,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val subtitle = when {
+        source.subtitle.isNotBlank() -> source.subtitle
+        source.type == SpotifyImportSourceType.LIKED_SONGS -> stringResource(R.string.spotify_liked_songs_desc)
+        else -> stringResource(R.string.spotify_account)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = if (selected) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerLow
+        },
+        onClick = onClick,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 76.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            ExpressiveRowIcon(
-                icon = icon,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-
+            SpotifySourceThumbnail(source)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = title,
+                    text = source.title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = subtitle,
+                    text = source.trackCount?.let { stringResource(R.string.spotify_track_count, it) } ?: subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-
-            Icon(
-                painter = painterResource(R.drawable.arrow_forward),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+            Checkbox(
+                checked = selected,
+                onCheckedChange = { onClick() },
             )
         }
     }
 }
 
 @Composable
-private fun ExpressiveRowIcon(
-    icon: Painter,
-    tint: Color,
-) {
-    Surface(
-        modifier = Modifier.size(RowIconSize),
-        shape = RoundedCornerShape(14.dp),
-        color = tint.copy(alpha = 0.10f),
+private fun SpotifySourceThumbnail(source: SpotifyImportSourceUi) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Icon(
-                painter = icon,
+        if (!source.thumbnailUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = source.thumbnailUrl,
                 contentDescription = null,
-                modifier = Modifier.size(22.dp),
-                tint = tint,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Icon(
+                painter = painterResource(
+                    if (source.type == SpotifyImportSourceType.LIKED_SONGS) {
+                        R.drawable.favorite
+                    } else {
+                        R.drawable.playlist_play
+                    },
+                ),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp),
             )
         }
     }
 }
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun SectionDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(start = 78.dp, end = 20.dp),
-        thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+private fun SpotifyLoginSheet(
+    onDismiss: () -> Unit,
+    onCookiesCaptured: (spDc: String, spKey: String) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var webView by remember { mutableStateOf<WebView?>(null) }
+    var captured by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            webView?.stopLoading()
+            webView?.loadUrl("about:blank")
+            webView?.destroy()
+            webView = null
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.spotify_login_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = stringResource(R.string.spotify_waiting_for_login),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(620.dp)
+                    .clip(MaterialTheme.shapes.large),
+                factory = { context ->
+                    WebView(context).apply {
+                        val cookieManager = CookieManager.getInstance()
+                        cookieManager.setAcceptCookie(true)
+                        cookieManager.setAcceptThirdPartyCookies(this, true)
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        settings.setSupportZoom(true)
+                        settings.builtInZoomControls = true
+                        settings.displayZoomControls = false
+                        webViewClient = object : WebViewClient() {
+                            override fun onPageFinished(view: WebView, url: String?) {
+                                if (captured) return
+                                val cookies = readSpotifyCookies(cookieManager, url)
+                                val spDc = cookies["sp_dc"].orEmpty()
+                                if (spDc.isNotBlank()) {
+                                    captured = true
+                                    cookieManager.flush()
+                                    onCookiesCaptured(spDc, cookies["sp_key"].orEmpty())
+                                }
+                            }
+                        }
+                        webView = this
+                        loadUrl(SpotifyAuth.LOGIN_URL)
+                    }
+                },
+                update = { view ->
+                    webView = view
+                },
+            )
+        }
+    }
+}
+
+private fun readSpotifyCookies(
+    cookieManager: CookieManager,
+    currentUrl: String?,
+): Map<String, String> {
+    val urls = linkedSetOf(
+        "https://open.spotify.com",
+        "https://accounts.spotify.com",
+        "https://spotify.com",
     )
+    currentUrl?.toSpotifyCookieOrigin()?.let(urls::add)
+    val cookies = linkedMapOf<String, String>()
+    cookieManager.flush()
+    urls.forEach { url ->
+        cookieManager.getCookie(url)
+            ?.split(";")
+            ?.map(String::trim)
+            ?.filter(String::isNotBlank)
+            ?.forEach { part ->
+                val separator = part.indexOf('=')
+                if (separator <= 0) return@forEach
+                val key = part.substring(0, separator).trim()
+                val value = part.substring(separator + 1).trim()
+                if (key.isNotBlank()) {
+                    cookies[key] = value
+                }
+            }
+    }
+    return cookies
+}
+
+private fun String.toSpotifyCookieOrigin(): String? {
+    val uri = runCatching { Uri.parse(this) }.getOrNull() ?: return null
+    val host = uri.host?.lowercase() ?: return null
+    if (host != "spotify.com" && !host.endsWith(".spotify.com")) return null
+    val scheme = uri.scheme
+        ?.takeIf { it.equals("https", ignoreCase = true) || it.equals("http", ignoreCase = true) }
+        ?: "https"
+    return "$scheme://$host"
+}
+
+@Composable
+private fun SpotifyImportSummaryDialog(
+    summary: SpotifyImportSummaryUi,
+    onDismiss: () -> Unit,
+) {
+    DefaultDialog(
+        onDismiss = onDismiss,
+        title = { Text(stringResource(R.string.spotify_import_complete)) },
+        buttons = {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                Text(stringResource(android.R.string.ok))
+            }
+        },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = stringResource(
+                    R.string.spotify_import_summary,
+                    summary.sourceCount,
+                    summary.importedTracks,
+                    summary.failedTracks,
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            summary.sources.forEach { source ->
+                Text(
+                    text = stringResource(
+                        R.string.spotify_source_summary,
+                        source.title,
+                        source.importedTracks,
+                        source.totalTracks,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpotifyErrorDialog(
+    message: String,
+    onDismiss: () -> Unit,
+) {
+    DefaultDialog(
+        onDismiss = onDismiss,
+        title = { Text(stringResource(R.string.import_failed)) },
+        buttons = {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                Text(stringResource(android.R.string.ok))
+            }
+        },
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable
@@ -671,12 +1207,6 @@ private fun BackupOptionsDialog(
     onDismiss: () -> Unit,
 ) {
     var selected by remember { mutableStateOf(BackupCategory.entries.toSet()) }
-    val density = LocalDensity.current
-    val cbStrokeWidthPx = remember(density) { with(density) { floor(CheckboxDefaults.StrokeWidth.toPx()) } }
-    val cbCheckmarkStroke = remember(cbStrokeWidthPx) {
-        Stroke(width = cbStrokeWidthPx, cap = StrokeCap.Round, join = StrokeJoin.Round)
-    }
-    val cbOutlineStroke = remember(cbStrokeWidthPx) { Stroke(width = cbStrokeWidthPx) }
 
     DefaultDialog(
         onDismiss = onDismiss,
@@ -712,62 +1242,55 @@ private fun BackupOptionsDialog(
                 BackupCategory.ACCOUNT -> R.drawable.account
                 BackupCategory.SETTINGS -> R.drawable.settings
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(),
-                    ) {
-                        selected = if (isChecked) selected - category else selected + category
-                    }
-                    .padding(horizontal = 4.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = Color.Transparent,
+                onClick = {
+                    selected = if (isChecked) selected - category else selected + category
+                },
             ) {
-                Surface(
-                    modifier = Modifier.size(40.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 72.dp)
+                        .padding(horizontal = 4.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            painter = painterResource(iconRes),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    IconBubble(
+                        icon = painterResource(iconRes),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        size = 40.dp,
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = stringResource(labelRes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = stringResource(descRes),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = stringResource(labelRes),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = stringResource(descRes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                    Checkbox(
+                        checked = isChecked,
+                        onCheckedChange = { checked ->
+                            selected = if (checked) selected + category else selected - category
+                        },
                     )
                 }
-                Checkbox(
-                    checked = isChecked,
-                    onCheckedChange = { checked ->
-                        selected = if (checked) selected + category else selected - category
-                    },
-                    checkmarkStroke = cbCheckmarkStroke,
-                    outlineStroke = cbOutlineStroke,
-                )
             }
         }
         Spacer(Modifier.height(4.dp))
