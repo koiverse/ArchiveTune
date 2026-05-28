@@ -43,8 +43,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -60,6 +62,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
@@ -92,6 +95,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -698,6 +702,8 @@ fun PlayerTopActions(
                 }
             }
         }
+
+        PlayerDesignStyle.V8 -> Unit
     }
 }
 
@@ -1731,6 +1737,8 @@ fun PlayerPlaybackControls(
                 }
             }
         }
+
+        PlayerDesignStyle.V8 -> Unit
     }
 }
 
@@ -1890,6 +1898,783 @@ fun PlayerControlsContent(
         currentSongLiked = currentSongLiked
     )
 }
+
+@Composable
+fun V8PlayerContent(
+    mediaMetadata: MediaMetadata,
+    queueTitle: String?,
+    playbackState: Int,
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    currentSongLiked: Boolean,
+    sliderPosition: Long?,
+    position: Long,
+    duration: Long,
+    volume: Float,
+    playerConnection: PlayerConnection,
+    navController: NavController,
+    state: BottomSheetState,
+    menuState: MenuState,
+    bottomSheetPageState: BottomSheetPageState,
+    currentFormat: FormatEntity?,
+    onSliderValueChange: (Long) -> Unit,
+    onSliderValueChangeFinished: () -> Unit,
+    onVolumeChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    landscape: Boolean = false,
+) {
+    val foreground = Color.White
+    val secondaryForeground = foreground.copy(alpha = 0.72f)
+    val artworkUrl = mediaMetadata.thumbnailUrl?.highRes()
+    val subtitle = queueTitle ?: mediaMetadata.album?.title.orEmpty()
+    val artists = remember(mediaMetadata.artists) {
+        mediaMetadata.artists.joinToString(", ") { it.name }
+    }
+    val onMenuClick = {
+        menuState.show {
+            PlayerMenu(
+                mediaMetadata = mediaMetadata,
+                navController = navController,
+                playerBottomSheetState = state,
+                onShowDetailsDialog = {
+                    bottomSheetPageState.show {
+                        ShowMediaInfo(mediaMetadata.id)
+                    }
+                },
+                onDismiss = menuState::dismiss
+            )
+        }
+    }
+
+    if (landscape) {
+        V8LandscapeContent(
+            mediaMetadata = mediaMetadata,
+            subtitle = subtitle,
+            artists = artists,
+            artworkUrl = artworkUrl,
+            playbackState = playbackState,
+            isPlaying = isPlaying,
+            isLoading = isLoading,
+            canSkipPrevious = canSkipPrevious,
+            canSkipNext = canSkipNext,
+            currentSongLiked = currentSongLiked,
+            sliderPosition = sliderPosition,
+            position = position,
+            duration = duration,
+            volume = volume,
+            currentFormat = currentFormat,
+            foreground = foreground,
+            secondaryForeground = secondaryForeground,
+            onMenuClick = onMenuClick,
+            onToggleLike = playerConnection::toggleLike,
+            onPreviousClick = playerConnection::seekToPrevious,
+            onNextClick = playerConnection::seekToNext,
+            onPlayPauseClick = {
+                if (playbackState == STATE_ENDED) {
+                    playerConnection.player.seekTo(0, 0)
+                    playerConnection.player.playWhenReady = true
+                } else {
+                    playerConnection.player.togglePlayPause()
+                }
+            },
+            onSliderValueChange = onSliderValueChange,
+            onSliderValueChangeFinished = onSliderValueChangeFinished,
+            onVolumeChange = onVolumeChange,
+            modifier = modifier,
+        )
+    } else {
+        V8PortraitContent(
+            mediaMetadata = mediaMetadata,
+            subtitle = subtitle,
+            artists = artists,
+            artworkUrl = artworkUrl,
+            playbackState = playbackState,
+            isPlaying = isPlaying,
+            isLoading = isLoading,
+            canSkipPrevious = canSkipPrevious,
+            canSkipNext = canSkipNext,
+            currentSongLiked = currentSongLiked,
+            sliderPosition = sliderPosition,
+            position = position,
+            duration = duration,
+            volume = volume,
+            currentFormat = currentFormat,
+            foreground = foreground,
+            secondaryForeground = secondaryForeground,
+            onMenuClick = onMenuClick,
+            onToggleLike = playerConnection::toggleLike,
+            onPreviousClick = playerConnection::seekToPrevious,
+            onNextClick = playerConnection::seekToNext,
+            onPlayPauseClick = {
+                if (playbackState == STATE_ENDED) {
+                    playerConnection.player.seekTo(0, 0)
+                    playerConnection.player.playWhenReady = true
+                } else {
+                    playerConnection.player.togglePlayPause()
+                }
+            },
+            onSliderValueChange = onSliderValueChange,
+            onSliderValueChangeFinished = onSliderValueChangeFinished,
+            onVolumeChange = onVolumeChange,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun V8PortraitContent(
+    mediaMetadata: MediaMetadata,
+    subtitle: String,
+    artists: String,
+    artworkUrl: String?,
+    playbackState: Int,
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    currentSongLiked: Boolean,
+    sliderPosition: Long?,
+    position: Long,
+    duration: Long,
+    volume: Float,
+    currentFormat: FormatEntity?,
+    foreground: Color,
+    secondaryForeground: Color,
+    onMenuClick: () -> Unit,
+    onToggleLike: () -> Unit,
+    onPreviousClick: () -> Unit,
+    onNextClick: () -> Unit,
+    onPlayPauseClick: () -> Unit,
+    onSliderValueChange: (Long) -> Unit,
+    onSliderValueChangeFinished: () -> Unit,
+    onVolumeChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val contentPadding = if (maxWidth < 380.dp) 24.dp else 32.dp
+        val compactHeight = maxHeight < 760.dp
+        val artworkSize = (maxWidth - contentPadding * 2)
+            .coerceAtMost(if (compactHeight) 300.dp else 360.dp)
+            .coerceAtMost(maxHeight * if (compactHeight) 0.34f else 0.42f)
+        val headerTop = if (compactHeight) 6.dp else 14.dp
+        val headerToArtwork = if (compactHeight) 18.dp else 36.dp
+        val artworkToMetadata = if (compactHeight) 18.dp else 36.dp
+        val controlsGap = if (compactHeight) 14.dp else 24.dp
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = contentPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.height(headerTop))
+
+            V8Header(
+                title = stringResource(R.string.now_playing),
+                subtitle = subtitle,
+                foreground = foreground,
+                secondaryForeground = secondaryForeground,
+            )
+
+            Spacer(Modifier.height(headerToArtwork))
+
+            V8Artwork(
+                artworkUrl = artworkUrl,
+                size = artworkSize,
+            )
+
+            Spacer(Modifier.height(artworkToMetadata))
+
+            V8MetadataActions(
+                title = mediaMetadata.title,
+                artists = artists,
+                liked = currentSongLiked,
+                foreground = foreground,
+                onMenuClick = onMenuClick,
+                onToggleLike = onToggleLike,
+            )
+
+            Spacer(Modifier.height(controlsGap))
+
+            V8PlaybackProgress(
+                sliderPosition = sliderPosition,
+                position = position,
+                duration = duration,
+                currentFormat = currentFormat,
+                foreground = foreground,
+                onSliderValueChange = onSliderValueChange,
+                onSliderValueChangeFinished = onSliderValueChangeFinished,
+            )
+
+            Spacer(Modifier.height(if (compactHeight) 14.dp else 24.dp))
+
+            V8TransportControls(
+                playbackState = playbackState,
+                isPlaying = isPlaying,
+                isLoading = isLoading,
+                canSkipPrevious = canSkipPrevious,
+                canSkipNext = canSkipNext,
+                foreground = foreground,
+                onPreviousClick = onPreviousClick,
+                onPlayPauseClick = onPlayPauseClick,
+                onNextClick = onNextClick,
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            V8VolumeControls(
+                volume = volume,
+                foreground = foreground,
+                secondaryForeground = secondaryForeground,
+                onVolumeChange = onVolumeChange,
+            )
+
+            Spacer(Modifier.height(if (compactHeight) 12.dp else 20.dp))
+        }
+    }
+}
+
+@Composable
+private fun V8LandscapeContent(
+    mediaMetadata: MediaMetadata,
+    subtitle: String,
+    artists: String,
+    artworkUrl: String?,
+    playbackState: Int,
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    currentSongLiked: Boolean,
+    sliderPosition: Long?,
+    position: Long,
+    duration: Long,
+    volume: Float,
+    currentFormat: FormatEntity?,
+    foreground: Color,
+    secondaryForeground: Color,
+    onMenuClick: () -> Unit,
+    onToggleLike: () -> Unit,
+    onPreviousClick: () -> Unit,
+    onNextClick: () -> Unit,
+    onPlayPauseClick: () -> Unit,
+    onSliderValueChange: (Long) -> Unit,
+    onSliderValueChangeFinished: () -> Unit,
+    onVolumeChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val artworkSize = (maxHeight - 48.dp).coerceAtMost(maxWidth * 0.36f)
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 36.dp, vertical = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(36.dp),
+        ) {
+            V8Artwork(
+                artworkUrl = artworkUrl,
+                size = artworkSize,
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .heightIn(min = 320.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                V8Header(
+                    title = stringResource(R.string.now_playing),
+                    subtitle = subtitle,
+                    foreground = foreground,
+                    secondaryForeground = secondaryForeground,
+                )
+
+                Spacer(Modifier.height(22.dp))
+
+                V8MetadataActions(
+                    title = mediaMetadata.title,
+                    artists = artists,
+                    liked = currentSongLiked,
+                    foreground = foreground,
+                    onMenuClick = onMenuClick,
+                    onToggleLike = onToggleLike,
+                )
+
+                Spacer(Modifier.height(18.dp))
+
+                V8PlaybackProgress(
+                    sliderPosition = sliderPosition,
+                    position = position,
+                    duration = duration,
+                    currentFormat = currentFormat,
+                    foreground = foreground,
+                    onSliderValueChange = onSliderValueChange,
+                    onSliderValueChangeFinished = onSliderValueChangeFinished,
+                )
+
+                Spacer(Modifier.height(18.dp))
+
+                V8TransportControls(
+                    playbackState = playbackState,
+                    isPlaying = isPlaying,
+                    isLoading = isLoading,
+                    canSkipPrevious = canSkipPrevious,
+                    canSkipNext = canSkipNext,
+                    foreground = foreground,
+                    onPreviousClick = onPreviousClick,
+                    onPlayPauseClick = onPlayPauseClick,
+                    onNextClick = onNextClick,
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                V8VolumeControls(
+                    volume = volume,
+                    foreground = foreground,
+                    secondaryForeground = secondaryForeground,
+                    onVolumeChange = onVolumeChange,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun V8Header(
+    title: String,
+    subtitle: String,
+    foreground: Color,
+    secondaryForeground: Color,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = foreground,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.titleLarge,
+            color = secondaryForeground,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .basicMarquee(),
+        )
+    }
+}
+
+@Composable
+private fun V8Artwork(
+    artworkUrl: String?,
+    size: androidx.compose.ui.unit.Dp,
+) {
+    AsyncImage(
+        model = artworkUrl,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.White.copy(alpha = 0.08f)),
+    )
+}
+
+@Composable
+private fun V8MetadataActions(
+    title: String,
+    artists: String,
+    liked: Boolean,
+    foreground: Color,
+    onMenuClick: () -> Unit,
+    onToggleLike: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = foreground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.basicMarquee(),
+            )
+            Text(
+                text = artists,
+                style = MaterialTheme.typography.titleLarge,
+                color = foreground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.basicMarquee(),
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            V8ActionButton(
+                iconRes = R.drawable.more_vert,
+                contentDescription = stringResource(R.string.more_options),
+                foreground = foreground,
+                containerColor = foreground.copy(alpha = 0.16f),
+                iconSize = 32.dp,
+                onClick = onMenuClick,
+            )
+            V8ActionButton(
+                iconRes = if (liked) R.drawable.favorite else R.drawable.favorite_border,
+                contentDescription = stringResource(R.string.action_like),
+                foreground = foreground,
+                containerColor = foreground.copy(alpha = 0.16f),
+                iconSize = 34.dp,
+                onClick = onToggleLike,
+            )
+        }
+    }
+}
+
+@Composable
+private fun V8ActionButton(
+    iconRes: Int,
+    contentDescription: String,
+    foreground: Color,
+    containerColor: Color,
+    iconSize: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = containerColor,
+        modifier = Modifier.size(64.dp),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = contentDescription,
+                tint = foreground,
+                modifier = Modifier.size(iconSize),
+            )
+        }
+    }
+}
+
+@Composable
+private fun V8PlaybackProgress(
+    sliderPosition: Long?,
+    position: Long,
+    duration: Long,
+    currentFormat: FormatEntity?,
+    foreground: Color,
+    onSliderValueChange: (Long) -> Unit,
+    onSliderValueChangeFinished: () -> Unit,
+) {
+    val safeDuration = if (duration <= 0L || duration == C.TIME_UNSET) 0f else duration.toFloat()
+    val safeValue = (sliderPosition ?: position).toFloat().coerceIn(0f, safeDuration.coerceAtLeast(0f))
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        V8FlatSlider(
+            value = safeValue,
+            valueRange = 0f..safeDuration.coerceAtLeast(0f),
+            activeColor = foreground.copy(alpha = 0.88f),
+            inactiveColor = foreground.copy(alpha = 0.32f),
+            trackHeight = 9.dp,
+            onValueChange = { onSliderValueChange(it.toLong()) },
+            onValueChangeFinished = onSliderValueChangeFinished,
+            enabled = safeDuration > 0f,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        ) {
+            Text(
+                text = makeTimeString(sliderPosition ?: position),
+                style = MaterialTheme.typography.titleMedium,
+                color = foreground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.align(Alignment.CenterStart),
+            )
+
+            if (currentFormat != null) {
+                V8QualityChip(
+                    foreground = foreground,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
+
+            Text(
+                text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "",
+                style = MaterialTheme.typography.titleMedium,
+                color = foreground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.align(Alignment.CenterEnd),
+            )
+        }
+    }
+}
+
+@Composable
+private fun V8QualityChip(
+    foreground: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = foreground.copy(alpha = 0.1f),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = foreground.copy(alpha = 0.13f),
+        ),
+        modifier = modifier,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.graphic_eq),
+                contentDescription = null,
+                tint = foreground.copy(alpha = 0.72f),
+                modifier = Modifier.size(15.dp),
+            )
+            Text(
+                text = stringResource(R.string.audio_quality_high).uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                color = foreground.copy(alpha = 0.72f),
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun V8TransportControls(
+    playbackState: Int,
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    foreground: Color,
+    onPreviousClick: () -> Unit,
+    onPlayPauseClick: () -> Unit,
+    onNextClick: () -> Unit,
+) {
+    val haptic = LocalHapticFeedback.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        V8TransportButton(
+            iconRes = R.drawable.skip_previous,
+            contentDescription = stringResource(R.string.widget_previous),
+            foreground = foreground,
+            enabled = canSkipPrevious,
+            touchSize = 82.dp,
+            iconSize = 58.dp,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onPreviousClick()
+            },
+        )
+
+        Surface(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onPlayPauseClick()
+            },
+            shape = CircleShape,
+            color = Color.Transparent,
+            modifier = Modifier.size(92.dp),
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isLoading) {
+                    CircularWavyProgressIndicator(
+                        modifier = Modifier.size(54.dp),
+                        color = foreground,
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(
+                            when {
+                                playbackState == STATE_ENDED -> R.drawable.replay
+                                isPlaying -> R.drawable.pause
+                                else -> R.drawable.play
+                            }
+                        ),
+                        contentDescription = if (isPlaying) {
+                            stringResource(R.string.widget_pause)
+                        } else {
+                            stringResource(R.string.play)
+                        },
+                        tint = foreground,
+                        modifier = Modifier.size(64.dp),
+                    )
+                }
+            }
+        }
+
+        V8TransportButton(
+            iconRes = R.drawable.skip_next,
+            contentDescription = stringResource(R.string.next),
+            foreground = foreground,
+            enabled = canSkipNext,
+            touchSize = 82.dp,
+            iconSize = 58.dp,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onNextClick()
+            },
+        )
+    }
+}
+
+@Composable
+private fun V8TransportButton(
+    iconRes: Int,
+    contentDescription: String,
+    foreground: Color,
+    enabled: Boolean,
+    touchSize: androidx.compose.ui.unit.Dp,
+    iconSize: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CircleShape,
+        color = Color.Transparent,
+        modifier = Modifier.size(touchSize),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = contentDescription,
+                tint = foreground.copy(alpha = if (enabled) 1f else 0.4f),
+                modifier = Modifier.size(iconSize),
+            )
+        }
+    }
+}
+
+@Composable
+private fun V8VolumeControls(
+    volume: Float,
+    foreground: Color,
+    secondaryForeground: Color,
+    onVolumeChange: (Float) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.volume_off),
+            contentDescription = stringResource(R.string.minimum_volume),
+            tint = secondaryForeground,
+            modifier = Modifier.size(22.dp),
+        )
+        V8FlatSlider(
+            value = volume.coerceIn(0f, 1f),
+            valueRange = 0f..1f,
+            activeColor = foreground.copy(alpha = 0.86f),
+            inactiveColor = foreground.copy(alpha = 0.24f),
+            trackHeight = 8.dp,
+            onValueChange = { onVolumeChange(it.coerceIn(0f, 1f)) },
+            onValueChangeFinished = {},
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 18.dp),
+        )
+        Icon(
+            painter = painterResource(R.drawable.volume_up),
+            contentDescription = stringResource(R.string.maximum_volume),
+            tint = secondaryForeground,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun V8FlatSlider(
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    activeColor: Color,
+    inactiveColor: Color,
+    trackHeight: androidx.compose.ui.unit.Dp,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val safeEnd = valueRange.endInclusive.coerceAtLeast(valueRange.start + 1f)
+    val safeRange = valueRange.start..safeEnd
+    val colors = SliderDefaults.colors(
+        activeTrackColor = activeColor,
+        activeTickColor = activeColor,
+        thumbColor = Color.Transparent,
+        inactiveTrackColor = inactiveColor,
+    )
+
+    Slider(
+        value = value.coerceIn(safeRange),
+        valueRange = safeRange,
+        onValueChange = onValueChange,
+        onValueChangeFinished = onValueChangeFinished,
+        enabled = enabled,
+        colors = colors,
+        thumb = { Spacer(modifier = Modifier.size(0.dp)) },
+        track = { sliderState ->
+            PlayerSliderTrack(
+                sliderState = sliderState,
+                colors = colors,
+                trackHeight = trackHeight,
+            )
+        },
+        modifier = modifier.height(30.dp),
+    )
+}
+
 @Composable
 fun PlayerBackground(
     playerBackground: PlayerBackgroundStyle,

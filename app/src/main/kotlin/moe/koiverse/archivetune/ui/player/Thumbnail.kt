@@ -520,6 +520,7 @@ fun Thumbnail(
                             val shouldAnimateCanvas =
                                 archiveTuneCanvasEnabled &&
                                     playerDesignStyle != PlayerDesignStyle.V7 &&
+                                    playerDesignStyle != PlayerDesignStyle.V8 &&
                                     item.mediaId.isNotBlank() &&
                                     item.mediaId == currentMediaItem?.mediaId
                             var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
@@ -651,7 +652,8 @@ fun Thumbnail(
                                         
                                         val shouldCropArtwork =
                                             cropThumbnailToSquare &&
-                                                playerDesignStyle != PlayerDesignStyle.V7
+                                                playerDesignStyle != PlayerDesignStyle.V7 &&
+                                                playerDesignStyle != PlayerDesignStyle.V8
 
                                         AsyncImage(
                                             model = item.metadata?.thumbnailUrl?.highRes()

@@ -87,6 +87,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawBehind
@@ -221,6 +222,7 @@ private const val V7BackdropBlurHeightFraction = 0.54f // The height of the blur
 private const val V7BackdropMinArtworkSizePx = 1_024
 private const val V7BackdropMaxArtworkSizePx = 2_048
 private const val V7BackdropOverscanFactor = 1.15f
+private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -300,6 +302,7 @@ fun BottomSheetPlayer(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val currentSongLiked = currentSong?.song?.liked == true
+    val queueTitle by playerConnection.queueTitle.collectAsState()
     val currentFormat by playerConnection.currentFormat.collectAsState(initial = null)
     val queueWindows by playerConnection.queueWindows.collectAsState()
     val currentWindowIndex by playerConnection.currentWindowIndex.collectAsState()
@@ -423,7 +426,7 @@ fun BottomSheetPlayer(
     val changeBound = state.expandedBound / 3
 
     val TextBackgroundColor =
-        if (playerDesignStyle == PlayerDesignStyle.V7) Color.White
+        if (playerDesignStyle == PlayerDesignStyle.V7 || playerDesignStyle == PlayerDesignStyle.V8) Color.White
         else when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
             PlayerBackgroundStyle.BLUR -> Color.White
@@ -436,7 +439,7 @@ fun BottomSheetPlayer(
         }
 
     val icBackgroundColor =
-        if (playerDesignStyle == PlayerDesignStyle.V7) Color.Black
+        if (playerDesignStyle == PlayerDesignStyle.V7 || playerDesignStyle == PlayerDesignStyle.V8) Color.Black
         else when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
             PlayerBackgroundStyle.BLUR -> Color.Black
@@ -455,7 +458,11 @@ fun BottomSheetPlayer(
             MaterialTheme.colorScheme.onSecondary
         )
     }.let { (tb, ib) ->
-        if (playerDesignStyle == PlayerDesignStyle.V7) Pair(Color.White, Color.Black) else Pair(tb, ib)
+        if (playerDesignStyle == PlayerDesignStyle.V7 || playerDesignStyle == PlayerDesignStyle.V8) {
+            Pair(Color.White, Color.Black)
+        } else {
+            Pair(tb, ib)
+        }
     }
 
     val download by LocalDownloadUtil.current.getDownload(mediaMetadata?.id ?: "")
@@ -718,7 +725,7 @@ fun BottomSheetPlayer(
                 else -> false
             }
         },
-        backgroundColor = if (playerDesignStyle == PlayerDesignStyle.V7) {
+        backgroundColor = if (playerDesignStyle == PlayerDesignStyle.V7 || playerDesignStyle == PlayerDesignStyle.V8) {
             val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
                 .coerceIn(0f, 1f)
             val fadeProgress = if (progress < 0.2f) {
@@ -910,7 +917,12 @@ fun BottomSheetPlayer(
             )
         }
 
-        if (!state.isCollapsed && !aodModeEnabled && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.V7) {
+        if (!state.isCollapsed &&
+            !aodModeEnabled &&
+            playerDesignStyle != PlayerDesignStyle.V5 &&
+            playerDesignStyle != PlayerDesignStyle.V7 &&
+            playerDesignStyle != PlayerDesignStyle.V8
+        ) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -1031,6 +1043,52 @@ fun BottomSheetPlayer(
                             }
 
                             Spacer(Modifier.height(16.dp))
+                        }
+                    }
+                } else if (playerDesignStyle == PlayerDesignStyle.V8) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        V8PlayerBackdrop(
+                            thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                        )
+
+                        enrichedMetadata?.let { metadata ->
+                            V8PlayerContent(
+                                mediaMetadata = metadata,
+                                queueTitle = queueTitle,
+                                playbackState = playbackState,
+                                isPlaying = isPlaying,
+                                isLoading = isLoading,
+                                canSkipPrevious = canSkipPrevious,
+                                canSkipNext = canSkipNext,
+                                currentSongLiked = currentSongLiked,
+                                sliderPosition = sliderPosition,
+                                position = position,
+                                duration = duration,
+                                volume = playerVolume.value,
+                                playerConnection = playerConnection,
+                                navController = navController,
+                                state = state,
+                                menuState = menuState,
+                                bottomSheetPageState = bottomSheetPageState,
+                                currentFormat = currentFormat,
+                                onSliderValueChange = onSliderValueChange,
+                                onSliderValueChangeFinished = onSliderValueChangeFinished,
+                                onVolumeChange = {
+                                    playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
+                                },
+                                landscape = true,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(bottom = queueSheetState.collapsedBound)
+                                    .windowInsetsPadding(
+                                        WindowInsets.systemBars.only(
+                                            WindowInsetsSides.Top + WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                                        )
+                                    )
+                                    .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                            )
                         }
                     }
                 } else {
@@ -1180,6 +1238,51 @@ fun BottomSheetPlayer(
                             Spacer(Modifier.height(24.dp))
                         }
                     }
+                } else if (playerDesignStyle == PlayerDesignStyle.V8) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        V8PlayerBackdrop(
+                            thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                        )
+
+                        enrichedMetadata?.let { metadata ->
+                            V8PlayerContent(
+                                mediaMetadata = metadata,
+                                queueTitle = queueTitle,
+                                playbackState = playbackState,
+                                isPlaying = isPlaying,
+                                isLoading = isLoading,
+                                canSkipPrevious = canSkipPrevious,
+                                canSkipNext = canSkipNext,
+                                currentSongLiked = currentSongLiked,
+                                sliderPosition = sliderPosition,
+                                position = position,
+                                duration = duration,
+                                volume = playerVolume.value,
+                                playerConnection = playerConnection,
+                                navController = navController,
+                                state = state,
+                                menuState = menuState,
+                                bottomSheetPageState = bottomSheetPageState,
+                                currentFormat = currentFormat,
+                                onSliderValueChange = onSliderValueChange,
+                                onSliderValueChangeFinished = onSliderValueChangeFinished,
+                                onVolumeChange = {
+                                    playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
+                                },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(bottom = queueSheetState.collapsedBound)
+                                    .windowInsetsPadding(
+                                        WindowInsets.systemBars.only(
+                                            WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                                        )
+                                    )
+                                    .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                            )
+                        }
+                    }
                 } else {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1301,6 +1404,44 @@ fun BottomSheetPlayer(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun V8PlayerBackdrop(
+    thumbnailUrl: String?,
+    modifier: Modifier = Modifier,
+) {
+    val backdropModel = remember(thumbnailUrl) {
+        thumbnailUrl?.resize(V8BackdropArtworkSizePx, V8BackdropArtworkSizePx)
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black),
+    ) {
+        if (backdropModel != null) {
+            AsyncImage(
+                model = backdropModel,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(44.dp)
+                    .graphicsLayer {
+                        scaleX = 1.16f
+                        scaleY = 1.16f
+                        alpha = 0.66f
+                    },
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.52f)),
+        )
     }
 }
 
