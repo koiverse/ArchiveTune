@@ -19,6 +19,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +36,7 @@ class SpotifyImportViewModel @Inject constructor(
     val uiState: StateFlow<SpotifyImportUiState> = _uiState.asStateFlow()
 
     private var sources: List<SpotifyImportSource> = emptyList()
+    private var importJob: Job? = null
 
     init {
         restoreSession()
@@ -177,25 +179,27 @@ class SpotifyImportViewModel @Inject constructor(
 
     fun importSelectedSources() {
         val selectedIds = uiState.value.selectedSourceIds
-        if (selectedIds.isEmpty() || uiState.value.progress != null) return
+        if (selectedIds.isEmpty() || importJob?.isActive == true || uiState.value.progress != null) return
         val selectedSources = sources.filter { it.id in selectedIds }
         if (selectedSources.isEmpty()) return
 
-        viewModelScope.launch(Dispatchers.IO) {
+        val job = viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(summary = null, errorMessage = null) }
-            runCatching {
-                repository.importSources(selectedSources) { progress ->
-                    _uiState.update { it.copy(progress = progress) }
-                }
-            }.onSuccess { summary ->
+            try {
+                val summary =
+                    repository.importSources(selectedSources) { progress ->
+                        _uiState.update { it.copy(progress = progress) }
+                    }
                 _uiState.update {
                     it.copy(
                         progress = null,
                         summary = summary,
                     )
                 }
-            }.onFailure { error ->
-                if (error is CancellationException) throw error
+            } catch (error: CancellationException) {
+                _uiState.update { it.copy(progress = null) }
+                throw error
+            } catch (error: Throwable) {
                 reportException(error)
                 _uiState.update {
                     it.copy(
@@ -203,8 +207,19 @@ class SpotifyImportViewModel @Inject constructor(
                         errorMessage = error.message,
                     )
                 }
+            } finally {
+                if (importJob === coroutineContext[Job]) {
+                    importJob = null
+                }
             }
         }
+        importJob = job
+    }
+
+    fun cancelImport() {
+        importJob?.cancel()
+        importJob = null
+        _uiState.update { it.copy(progress = null) }
     }
 
     fun dismissSummary() {

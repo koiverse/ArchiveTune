@@ -361,6 +361,7 @@ fun BackupAndRestore(
 
     val spotifyProgress = spotifyState.progress
     val spotifyProgressTitle = stringResource(R.string.spotify_import_in_progress)
+    val spotifyCancelLabel = if (spotifyProgress != null) stringResource(android.R.string.cancel) else null
     val spotifyProgressStep =
         spotifyProgress?.let {
             stringResource(
@@ -379,6 +380,8 @@ fun BackupAndRestore(
         title = backupRestoreProgress?.title ?: if (spotifyProgress != null) spotifyProgressTitle else null,
         stepText = backupRestoreProgress?.step ?: spotifyProgressStep ?: progressStatus,
         indeterminate = backupRestoreProgress?.indeterminate ?: false,
+        cancelLabel = spotifyCancelLabel,
+        onCancel = if (spotifyProgress != null) spotifyImportViewModel::cancelImport else null,
     )
 }
 
