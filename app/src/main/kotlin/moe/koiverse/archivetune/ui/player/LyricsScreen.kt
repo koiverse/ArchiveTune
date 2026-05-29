@@ -101,6 +101,7 @@ import coil3.toBitmap
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalDatabase
@@ -165,16 +166,21 @@ fun LyricsScreen(
             }
         }
     }
+    val lyricsHelper = remember(context) {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            moe.koiverse.archivetune.di.LyricsHelperEntryPoint::class.java,
+        ).lyricsHelper()
+    }
 
     LaunchedEffect(mediaMetadata.id, currentLyrics?.lyrics) {
         if (currentLyrics != null) return@LaunchedEffect
-        delay(500)
         try {
-            val entryPoint = EntryPointAccessors.fromApplication(
-                context.applicationContext,
-                moe.koiverse.archivetune.di.LyricsHelperEntryPoint::class.java,
-            )
-            val lyricsHelper = entryPoint.lyricsHelper()
+            val existingLyrics = withContext(Dispatchers.IO) {
+                database.lyrics(mediaMetadata.id).first()
+            }
+            if (existingLyrics != null) return@LaunchedEffect
+
             val lyrics = withContext(Dispatchers.IO) {
                 lyricsHelper.getLyrics(mediaMetadata)
             }
