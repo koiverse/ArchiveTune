@@ -118,6 +118,20 @@ class SpotifyImportRepository @Inject constructor(
             )
         }
 
+    suspend fun logout() {
+        withContext(Dispatchers.IO) {
+            context.dataStore.edit { prefs ->
+                prefs.remove(SpotifySpDcKey)
+                prefs.remove(SpotifySpKeyKey)
+                prefs.remove(SpotifyAccessTokenKey)
+                prefs.remove(SpotifyAccessTokenExpiresAtKey)
+                prefs.remove(SpotifyAccountNameKey)
+                prefs.remove(SpotifyAccountAvatarUrlKey)
+            }
+            Spotify.accessToken = null
+        }
+    }
+
     suspend fun loadSources(): List<SpotifyImportSource> =
         withContext(Dispatchers.IO) {
             ensureAuthenticated()

@@ -146,6 +146,28 @@ class SpotifyImportViewModel @Inject constructor(
         _uiState.update { it.copy(selectedSourceIds = emptySet()) }
     }
 
+    fun logout() {
+        if (uiState.value.progress != null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            runCatching { repository.logout() }
+                .onSuccess {
+                    sources = emptyList()
+                    _uiState.update { SpotifyImportUiState() }
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    reportException(error)
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message,
+                        )
+                    }
+                }
+        }
+    }
+
     fun importSelectedSources() {
         val selectedIds = uiState.value.selectedSourceIds
         if (selectedIds.isEmpty() || uiState.value.progress != null) return
