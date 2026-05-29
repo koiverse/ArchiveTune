@@ -82,7 +82,9 @@ import moe.koiverse.archivetune.innertube.pages.SearchSummaryPage
 import moe.koiverse.archivetune.innertube.utils.PoTokenGenerator
 import moe.koiverse.archivetune.innertube.proxy.RotatingProxyClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -106,6 +108,10 @@ import kotlin.random.Random
  * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
  */
 object YouTube {
+    private const val BROWSE_ID_EXPLORE = "FEmusic_explore"
+    private const val BROWSE_ID_NEW_RELEASE_ALBUMS = "FEmusic_new_releases_albums"
+    private const val BROWSE_ID_MOODS_AND_GENRES = "FEmusic_moods_and_genres"
+
     private val innerTube = InnerTube()
     private val mutableAuthState = MutableStateFlow(PlaybackAuthState.EMPTY)
 
@@ -768,15 +774,15 @@ object YouTube {
     }
 
     suspend fun explore(): Result<ExplorePage> = runCatching {
-        val response = innerTube.browse(WEB_REMIX, browseId = "FEmusic_explore").body<BrowseResponse>()
+        val response = innerTube.browse(WEB_REMIX, browseId = BROWSE_ID_EXPLORE).body<BrowseResponse>()
         ExplorePage(
             newReleaseAlbums = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.find {
-                it.musicCarouselShelfRenderer?.header?.musicCarouselShelfBasicHeaderRenderer?.moreContentButton?.buttonRenderer?.navigationEndpoint?.browseEndpoint?.browseId == "FEmusic_new_releases_albums"
+                it.musicCarouselShelfRenderer?.header?.musicCarouselShelfBasicHeaderRenderer?.moreContentButton?.buttonRenderer?.navigationEndpoint?.browseEndpoint?.browseId == BROWSE_ID_NEW_RELEASE_ALBUMS
             }?.musicCarouselShelfRenderer?.contents
                 ?.mapNotNull { it.musicTwoRowItemRenderer }
                 ?.mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer).orEmpty(),
             moodAndGenres = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.find {
-                it.musicCarouselShelfRenderer?.header?.musicCarouselShelfBasicHeaderRenderer?.moreContentButton?.buttonRenderer?.navigationEndpoint?.browseEndpoint?.browseId == "FEmusic_moods_and_genres"
+                it.musicCarouselShelfRenderer?.header?.musicCarouselShelfBasicHeaderRenderer?.moreContentButton?.buttonRenderer?.navigationEndpoint?.browseEndpoint?.browseId == BROWSE_ID_MOODS_AND_GENRES
             }?.musicCarouselShelfRenderer?.contents
                 ?.mapNotNull { it.musicNavigationButtonRenderer }
                 ?.mapNotNull(MoodAndGenres.Companion::fromMusicNavigationButtonRenderer)
@@ -785,9 +791,23 @@ object YouTube {
     }
 
     suspend fun newReleaseAlbums(): Result<List<AlbumItem>> = runCatching {
-        val response = innerTube.browse(WEB_REMIX, browseId = "FEmusic_new_releases_albums").body<BrowseResponse>()
+        try {
+            val directAlbums = newReleaseAlbumsFromBrowsePage()
+            if (directAlbums.isNotEmpty()) return@runCatching directAlbums
+        } catch (throwable: Throwable) {
+            if (!throwable.isBrowsePageUnavailable()) throw throwable
+        }
+        explore().getOrThrow().newReleaseAlbums
+    }
+
+    private suspend fun newReleaseAlbumsFromBrowsePage(): List<AlbumItem> {
+        val response = innerTube.browse(WEB_REMIX, browseId = BROWSE_ID_NEW_RELEASE_ALBUMS).body<BrowseResponse>()
+        return response.newReleaseAlbumItems()
+    }
+
+    private fun BrowseResponse.newReleaseAlbumItems(): List<AlbumItem> {
         val contents =
-            response.contents
+            this.contents
                 ?.singleColumnBrowseResultsRenderer
                 ?.tabs
                 ?.firstOrNull()
@@ -795,34 +815,49 @@ object YouTube {
                 ?.content
                 ?.sectionListRenderer
                 ?.contents
-                .orEmpty()
+                ?: this.contents
+                    ?.sectionListRenderer
+                    ?.contents
+                ?: continuationContents
+                    ?.sectionListContinuation
+                    ?.contents
+                ?: emptyList()
 
-        contents
+        return contents
             .asSequence()
             .flatMap { content ->
-                when {
-                    content.gridRenderer?.items != null -> {
-                        content.gridRenderer.items
-                            .asSequence()
-                            .mapNotNull { it.musicTwoRowItemRenderer }
-                            .mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer)
-                    }
-
-                    content.musicCarouselShelfRenderer?.contents != null -> {
-                        content.musicCarouselShelfRenderer.contents
-                            .asSequence()
-                            .mapNotNull { it.musicTwoRowItemRenderer }
-                            .mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer)
-                    }
-
-                    else -> emptySequence()
+                sequence {
+                    content.gridRenderer
+                        ?.items
+                        ?.asSequence()
+                        ?.mapNotNull { it.musicTwoRowItemRenderer }
+                        ?.forEach { yield(it) }
+                    content.musicCarouselShelfRenderer
+                        ?.contents
+                        ?.asSequence()
+                        ?.mapNotNull { it.musicTwoRowItemRenderer }
+                        ?.forEach { yield(it) }
+                    content.itemSectionRenderer
+                        ?.contents
+                        ?.asSequence()
+                        ?.mapNotNull { it.gridRenderer }
+                        ?.flatMap { it.items.asSequence() }
+                        ?.mapNotNull { it.musicTwoRowItemRenderer }
+                        ?.forEach { yield(it) }
                 }
             }
+            .mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer)
             .toList()
     }
 
+    private fun Throwable.isBrowsePageUnavailable(): Boolean {
+        val exception = this as? ClientRequestException ?: return false
+        return exception.response.status == HttpStatusCode.NotFound ||
+            exception.response.status == HttpStatusCode.BadRequest
+    }
+
     suspend fun moodAndGenres(): Result<List<MoodAndGenres>> = runCatching {
-        val response = innerTube.browse(WEB_REMIX, browseId = "FEmusic_moods_and_genres").body<BrowseResponse>()
+        val response = innerTube.browse(WEB_REMIX, browseId = BROWSE_ID_MOODS_AND_GENRES).body<BrowseResponse>()
         response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents!!
             .mapNotNull(MoodAndGenres.Companion::fromSectionListRendererContent)
     }
