@@ -5934,6 +5934,12 @@ private fun onMediaItemTransitionInternal() {
         ): Boolean = (isHostSessionActive && isPlaybackInactive) || stopMusicOnTaskClearEnabled
 
         const val ROOT = "root"
+        const val HOME = "home"
+        const val HOME_QUICK_PICKS = "home_quick_picks"
+        const val HOME_FORGOTTEN_FAVORITES = "home_forgotten_favorites"
+        const val HOME_KEEP_LISTENING = "home_keep_listening"
+        const val HOME_SUGGESTED_SONGS = "home_suggested_songs"
+        const val HOME_MIXES_AND_RADIOS = "home_mixes_and_radios"
         const val QUICK_PICKS = "quick_picks"
         const val RECENT = "recent"
         const val LIKED = "liked"
@@ -5942,6 +5948,7 @@ private fun onMediaItemTransitionInternal() {
         const val ARTIST = "artist"
         const val ALBUM = "album"
         const val PLAYLIST = "playlist"
+        const val ONLINE_PLAYLIST = "online_playlist"
 
         private const val TAG = "MusicService"
         const val CHANNEL_ID = "music_channel_01"

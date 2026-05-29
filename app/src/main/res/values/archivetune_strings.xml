@@ -368,6 +368,10 @@
     <string name="playlist_private_desc">You don\'t have access to this playlist.</string>
     <string name="empty_playlist">Empty Playlist</string>
     <string name="empty_playlist_desc">This playlist doesn\'t contain any songs</string>
+    <string name="android_auto_suggested_songs">Suggested songs</string>
+    <string name="android_auto_mixes_and_radios">Mixes and radios</string>
+    <string name="android_auto_sort_playlist">Sort playlist</string>
+    <string name="android_auto_sort_option_format">%1$s - %2$s</string>
     <string name="empty_album">Empty Album</string>
     <string name="empty_album_desc">This album doesn\'t contain any songs</string>
     <plurals name="seconds">
