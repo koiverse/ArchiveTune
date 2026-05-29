@@ -396,7 +396,7 @@
     <string name="new_library_design_description">Aktifkan desain pustaka baru (mungkin tidak stabil)</string>
     <string name="archivetune_canvas">Kanvas ArchiveTune</string>
     <string name="archivetune_canvas_desc">Menganimasikan sampul album saat diputar (Didukung oleh BetterLyrics)</string>
-    <string name="archivetune_canvas_v7_desc">Tidak tersedia dengan gaya pemain Immersive</string>
+    <string name="archivetune_canvas_v7_desc">Tidak tersedia dengan gaya pemutar Immersive</string>
     <string name="show_button1_description">Alihkan visibilitas tombol 1 di Discord Rich Presence</string>
     <string name="show_button2_description">Alihkan visibilitas tombol 2 di Discord Rich Presence</string>
     <string name="discord_activity_type">Jenis aktivitas</string>
@@ -409,7 +409,7 @@
     <string name="blur_intensity">Intensitas blur</string>
     <string name="blur_intensity_value">%1$d dp</string>
     <string name="customize_navigation_tabs">Sesuaikan tab navigasi</string>
-    <string name="player">Pemain</string>
+    <string name="player">Pemutar</string>
     <string name="player_text_alignment">Perataan teks pemutar</string>
     <string name="lyrics_text_position">Posisi teks lirik</string>
     <string name="sided">Bersisi</string>
@@ -463,15 +463,15 @@
     <string name="internet">Internet</string>
     <string name="internet_warning_title">Keamanan &amp; Peringatan Penggunaan</string>
     <string name="internet_warning_doh">DNS melalui HTTPS hanya berfungsi jika negara Anda memblokir YouTube. Jika YouTube secara aktif memblokir wilayah Anda, pertimbangkan untuk menggunakan Proxy atau VPN.</string>
-    <string name="internet_warning_proxy">Harap hanya menggunakan Proxy yang Anda yakini aman. Proxy Gratis memang nyaman tetapi tidak selalu aman, jadi berhati-hatilah. Anda telah diperingatkan, dan kami tidak bertanggung jawab atas keamanan Anda.</string>
+    <string name="internet_warning_proxy">Harap hanya menggunakan Proksi yang Anda yakini aman. Proksi Gratis memang nyaman tetapi tidak selalu aman, jadi berhati-hatilah. Anda telah diperingatkan, dan kami tidak bertanggung jawab atas keamanan Anda.</string>
     <string name="dns_over_https">DNS melalui HTTPS</string>
     <string name="dns_over_https_desc">Gunakan DNS melalui HTTPS (DoH) untuk menyelesaikan nama host</string>
     <string name="dns_provider">Penyedia DNS</string>
     <string name="dns_custom_url">URL DNS DoH Khusus</string>
-    <string name="proxy_type">Jenis proxy</string>
+    <string name="proxy_type">Jenis proksi</string>
     <string name="proxy_host">Host proksi (IP)</string>
     <string name="proxy_port">Port proksi</string>
-    <string name="proxy_auth">Otorisasi Proxy (opsional)</string>
+    <string name="proxy_auth">Otorisasi Proksi (opsional)</string>
     <string name="proxy_username">Nama pengguna</string>
     <string name="proxy_password">Kata sandi</string>
     <string name="test_proxy_connection">Uji koneksi proksi</string>
@@ -496,6 +496,8 @@
     <string name="audio_quality_auto">Otomatis</string>
     <string name="audio_quality_high">Tinggi</string>
     <string name="audio_quality_low">Rendah</string>
+    <string name="low_data_mode_title">Mode Hemat Data</string>
+    <string name="low_data_mode_description">Mengurangi penggunaan data seluler dengan menggunakan streaming berkualitas rendah dan menonaktifkan cache pemutaran, kanvas, serta pramuat lirik latar belakang pada jaringan terukur</string>
     <string name="queue">Antrean</string>
     <string name="persistent_queue">Antrean persisten</string>
     <string name="persistent_queue_desc">Pulihkan antrean terakhir Anda saat aplikasi dimulai</string>
@@ -709,8 +711,8 @@
     <string name="close_dialog">Tutup</string>
     <string name="select_dialog">Pilih</string>
     <string name="support_github">Bintangi ArchiveTune!</string>
-    <string name="support_development_title">Mendukung pengembangan</string>
-    <string name="support_development_message">Hai! Saya Koiverse, pengembang ArchiveTune. Jika ArchiveTune mendapat tempat dalam pendengaran harian Anda, Anda dapat membantu memajukannya dengan menyumbang atau membintangi proyek ini di GitHub. Terima kasih telah mendukung pekerjaan di balik aplikasi.</string>
+    <string name="support_development_title">Dukung pengembangan</string>
+    <string name="support_development_message">Halo! Saya Koiverse, pengembang ArchiveTune. Jika ArchiveTune telah menemani aktivitas mendengarkan musikmu sehari-hari, kamu bisa membantu agar proyek ini terus berkembang dengan cara berdonasi atau memberikan bintang (star) pada proyek ini di GitHub. Terima kasih telah mendukung proses pengembangan di balik aplikasi ini.</string>
     <string name="support_development_donate">Donasi untuk mendukung pembangunan</string>
     <string name="support_development_star">Bintangi di GitHub</string>
     <string name="later">Nanti</string>
@@ -764,13 +766,13 @@
     <string name="unknown_bitrate">Kecepatan bit tidak diketahui</string>
     <string name="sample_rate_label">Sample Rate</string>
     <string name="unknown_sample_rate">Sample rate tidak diketahui</string>
-    <string name="content_length_label">Panjang Konten</string>
+    <string name="content_length_label">Ukuran Konten</string>
     <string name="unknown_content_length">Panjang konten tidak diketahui</string>
     <string name="format_label">Format</string>
     <string name="loading_format">Memuat format…</string>
     <string name="buffer_health_label">Kesehatan Buffer</string>
     <string name="playback_speed_label">Kecepatan Pemutaran</string>
-    <string name="state_label">Negara</string>
+    <string name="state_label">Status</string>
     <string name="media_id_label">ID media</string>
     <string name="status_active">AKTIF</string>
     <string name="status_inactive">TIDAK AKTIF</string>
@@ -846,7 +848,7 @@
     <!-- Playlist Suggestions -->
     <string name="you_might_like">Anda mungkin menyukai</string>
     <string name="refresh_suggestions">Segarkan saran</string>
-    <string name="you_might_like_source">Sumber \"Anda mungkin menyukai\"</string>
+    <string name="you_might_like_source">Sumber \'Anda mungkin menyukai\'</string>
     <string name="playlist_suggestion_source_title">Judul playlist</string>
     <string name="playlist_suggestion_source_content">Konten playlist</string>
     <string name="playlist_suggestion_source_both">Judul dan konten playlist</string>
@@ -919,7 +921,7 @@
     <string name="web_client_po_token">Token PO Klien Web</string>
     <string name="web_client_po_token_desc">Aktifkan pembuatan token PO untuk klien pemain berbasis web</string>
     <string name="po_token_gvs">Token PO (GVS)</string>
-    <string name="po_token_player">Token PO (Pemain)</string>
+    <string name="po_token_player">Token PO (Pemutar)</string>
     <string name="visitor_data">Data Pengunjung</string>
     <string name="supported_clients">Klien yang Didukung</string>
     <string name="generated_tokens">Token yang Dihasilkan</string>
