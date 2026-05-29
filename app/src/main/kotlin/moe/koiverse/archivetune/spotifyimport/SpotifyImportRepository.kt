@@ -48,6 +48,7 @@ import moe.koiverse.archivetune.spotify.SpotifyMapper
 import moe.koiverse.archivetune.spotify.models.SpotifyPlaylist
 import moe.koiverse.archivetune.spotify.models.SpotifyPlaylistTracksRef
 import moe.koiverse.archivetune.spotify.models.SpotifyTrack
+import moe.koiverse.archivetune.utils.clearWebAuthSession
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.reportException
 import java.time.LocalDateTime
@@ -136,6 +137,8 @@ class SpotifyImportRepository @Inject constructor(
                 prefs.remove(SpotifyAccountAvatarUrlKey)
             }
             Spotify.accessToken = null
+            runCatching { clearWebAuthSession(context) }
+                .onFailure(::reportException)
         }
     }
 
