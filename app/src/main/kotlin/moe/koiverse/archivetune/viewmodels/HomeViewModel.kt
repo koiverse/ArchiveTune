@@ -117,6 +117,22 @@ class HomeViewModel @Inject constructor(
     private fun List<Song>.toQuickPickSample(): List<Song> =
         distinctBy { it.id }.shuffled().take(20)
 
+    private fun List<Song>.hasSameSongIdsAs(other: List<Song>): Boolean {
+        if (size != other.size) return false
+
+        val ids = HashSet<String>(size)
+        for (song in this) {
+            ids += song.id
+        }
+        for (song in other) {
+            if (!ids.remove(song.id)) return false
+        }
+        return ids.isEmpty()
+    }
+
+    private fun Flow<List<Song>>.distinctUntilSongIdsChanged(): Flow<List<Song>> =
+        distinctUntilChanged { old, new -> old.hasSameSongIdsAs(new) }
+
     private fun updateAllLocalItems() {
         allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
             .filter { it is Song || it is Album }
@@ -132,17 +148,26 @@ class HomeViewModel @Inject constructor(
         return database.allSongs().first().toQuickPickSample()
     }
 
-    private suspend fun lastListenQuickPicks(
-        lastSongId: String?,
-        fallback: List<Song>,
-    ): List<Song> {
-        if (!lastSongId.isNullOrBlank() && database.hasRelatedSongs(lastSongId)) {
-            val relatedSongs = database.getRelatedSongs(lastSongId).first().toQuickPickSample()
-            if (relatedSongs.isNotEmpty()) return relatedSongs
-        }
+    private fun lastListenQuickPicksFlow(): Flow<List<Song>> =
+        database.lastEventSongId()
+            .distinctUntilChanged()
+            .flatMapLatest { lastSongId ->
+                flow {
+                    if (!lastSongId.isNullOrBlank() && database.hasRelatedSongs(lastSongId)) {
+                        val relatedSongs = database.getRelatedSongs(lastSongId).first().toQuickPickSample()
+                        if (relatedSongs.isNotEmpty()) {
+                            emit(relatedSongs)
+                            return@flow
+                        }
+                    }
 
-        return quickPicksWithFallback(fallback)
-    }
+                    emitAll(
+                        database.quickPicks()
+                            .distinctUntilSongIdsChanged()
+                            .map { songs -> quickPicksWithFallback(songs) }
+                    )
+                }
+            }
 
     private fun observeQuickPicks() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -150,17 +175,10 @@ class HomeViewModel @Inject constructor(
                 .flatMapLatest { mode ->
                     when (mode) {
                         QuickPicks.QUICK_PICKS -> database.quickPicks()
+                            .distinctUntilSongIdsChanged()
                             .map { songs -> quickPicksWithFallback(songs) }
 
-                        QuickPicks.LAST_LISTEN -> combine(
-                            database.events(),
-                            database.quickPicks(),
-                        ) { events, fallback ->
-                            lastListenQuickPicks(
-                                lastSongId = events.firstOrNull()?.song?.id,
-                                fallback = fallback,
-                            )
-                        }
+                        QuickPicks.LAST_LISTEN -> lastListenQuickPicksFlow()
 
                         QuickPicks.DONT_SHOW -> flowOf(null)
                     }
