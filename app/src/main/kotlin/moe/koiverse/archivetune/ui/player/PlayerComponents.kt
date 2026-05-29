@@ -2802,15 +2802,39 @@ private fun V9PortraitContent(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val horizontalPadding = if (maxWidth < 380.dp) 16.dp else 20.dp
-        val compactHeight = maxHeight < 760.dp
-        val artworkSize = (maxWidth - horizontalPadding * 2)
-            .coerceAtMost(maxWidth - horizontalPadding * 2)
-            .coerceAtMost(maxHeight * if (compactHeight) 0.4f else 0.46f)
-            .coerceAtLeast(236.dp)
-        val headerGap = if (compactHeight) 22.dp else 34.dp
-        val metadataGap = if (compactHeight) 26.dp else 34.dp
-        val controlsGap = if (compactHeight) 20.dp else 30.dp
+    val horizontalPadding = if (maxWidth < 380.dp) 16.dp else 20.dp
+    val compactHeight = maxHeight < 760.dp
+    val veryCompactHeight = maxHeight < 700.dp
+
+    val artworkMinSize = when {
+        veryCompactHeight -> 200.dp
+        compactHeight -> 216.dp
+        else -> 236.dp
+    }
+    val artworkHeightLimit = maxHeight * when {
+        veryCompactHeight -> 0.32f
+        compactHeight -> 0.35f
+        else -> 0.40f
+    }
+    val artworkSize = (maxWidth - horizontalPadding * 2)
+        .coerceAtMost(artworkHeightLimit)
+        .coerceAtLeast(artworkMinSize)
+
+    val headerGap = when {
+        veryCompactHeight -> 14.dp
+        compactHeight -> 18.dp
+        else -> 26.dp
+    }
+    val metadataGap = when {
+        veryCompactHeight -> 16.dp
+        compactHeight -> 20.dp
+        else -> 26.dp
+    }
+    val controlsGap = when {
+        veryCompactHeight -> 12.dp
+        compactHeight -> 16.dp
+        else -> 22.dp
+    }
 
         Column(
             modifier = Modifier
