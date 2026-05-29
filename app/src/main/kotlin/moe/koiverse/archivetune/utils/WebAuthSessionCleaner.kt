@@ -21,6 +21,10 @@ import android.webkit.CookieManager
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 
 fun clearPlaybackWebAuthSession(context: Context) {
     clearWebAuthStorage(context)
@@ -28,6 +32,23 @@ fun clearPlaybackWebAuthSession(context: Context) {
     cookieManager.removeSessionCookies(null)
     cookieManager.removeAllCookies(null)
     cookieManager.flush()
+}
+
+suspend fun clearWebAuthSession(context: Context) {
+    withContext(Dispatchers.Main.immediate) {
+        clearWebAuthStorage(context)
+        val cookieManager = CookieManager.getInstance()
+        suspendCancellableCoroutine<Unit> { continuation ->
+            cookieManager.removeSessionCookies {
+                cookieManager.removeAllCookies {
+                    cookieManager.flush()
+                    if (continuation.isActive) {
+                        continuation.resume(Unit)
+                    }
+                }
+            }
+        }
+    }
 }
 
 fun resetAuthWebViewSession(
