@@ -85,6 +85,14 @@ fun buildSettingsGroups(
                         onClick = { navController.navigate("settings/privacy") },
                     ),
                     SettingsItem(
+                        key = "lyrics",
+                        icon = painterResource(R.drawable.lyrics),
+                        title = stringResource(R.string.lyrics),
+                        subtitle = stringResource(R.string.settings_lyrics_subtitle),
+                        accentColor = MaterialTheme.colorScheme.secondary,
+                        onClick = { navController.navigate("settings/lyrics") },
+                    ),
+                    SettingsItem(
                         key = "integration",
                         icon = painterResource(R.drawable.auto_awesome),
                         title = stringResource(R.string.integration),
@@ -108,14 +116,6 @@ fun buildSettingsGroups(
                         accentColor = MaterialTheme.colorScheme.primary,
                         onClick = { navController.navigate("settings/backup_restore") },
                     ),
-                    SettingsItem(
-                        key = "developer_options",
-                        icon = painterResource(R.drawable.experiment),
-                        title = stringResource(R.string.settings_developer_options_title),
-                        subtitle = stringResource(R.string.settings_developer_options_subtitle),
-                        accentColor = MaterialTheme.colorScheme.tertiary,
-                        onClick = { navController.navigate("settings/misc") },
-                    ),
                 ),
             ),
         )
@@ -124,16 +124,6 @@ fun buildSettingsGroups(
             SettingsGroup(
                 title = stringResource(R.string.settings_section_player_content),
                 items = buildList {
-                    add(
-                        SettingsItem(
-                            key = "lyrics",
-                            icon = painterResource(R.drawable.lyrics),
-                            title = stringResource(R.string.lyrics),
-                            subtitle = stringResource(R.string.settings_lyrics_subtitle),
-                            accentColor = MaterialTheme.colorScheme.secondary,
-                            onClick = { navController.navigate("settings/lyrics") },
-                        ),
-                    )
                     add(
                         SettingsItem(
                             key = "content",
@@ -173,6 +163,16 @@ fun buildSettingsGroups(
                             accentColor = MaterialTheme.colorScheme.primary,
                             onClick = { navController.navigate("settings/storage") },
                         ),
+                    )
+                    add(
+                        SettingsItem(
+                            key = "developer_options",
+                            icon = painterResource(R.drawable.experiment),
+                            title = stringResource(R.string.settings_developer_options_title),
+                            subtitle = stringResource(R.string.settings_developer_options_subtitle),
+                            accentColor = MaterialTheme.colorScheme.tertiary,
+                            onClick = { navController.navigate("settings/misc") },
+                       ),
                     )
                     if (isAndroid12OrLater) {
                         add(
