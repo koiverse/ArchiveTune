@@ -965,6 +965,7 @@ class MusicService :
             context = this,
             database = database,
             networkConnectivity = connectivityObserver,
+            lyricsHelper = lyricsHelper,
         )
 
         dataStore.data
