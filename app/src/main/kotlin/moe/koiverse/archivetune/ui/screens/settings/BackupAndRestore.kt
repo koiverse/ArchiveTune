@@ -110,6 +110,7 @@ import moe.koiverse.archivetune.ui.component.PreferenceGroupScope
 import moe.koiverse.archivetune.ui.menu.AddToPlaylistDialogOnline
 import moe.koiverse.archivetune.ui.menu.LoadingScreen
 import moe.koiverse.archivetune.ui.utils.backToMain
+import moe.koiverse.archivetune.utils.resetAuthWebViewSession
 import moe.koiverse.archivetune.viewmodels.BackupCategory
 import moe.koiverse.archivetune.viewmodels.BackupRestoreViewModel
 import java.time.LocalDateTime
@@ -801,7 +802,9 @@ private fun SpotifyLoginSheet(
                             }
                         }
                         webView = this
-                        loadUrl(SpotifyAuth.LOGIN_URL)
+                        resetAuthWebViewSession(context, this) {
+                            loadUrl(SpotifyAuth.LOGIN_URL)
+                        }
                     }
                 },
                 update = { view ->
