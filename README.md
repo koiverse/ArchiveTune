@@ -268,8 +268,6 @@ ArchiveTune belongs to everyone. Help us localize the experience for your region
 Interested in building the project or contributing? ArchiveTune is built on a high-performance Kotlin stack.
 <a href="CONTRIBUTING.md"><b>Read the Build & Contribution Guide →</b></a>
 
-Discord Rich Presence uses Discord's official Social SDK. For local builds, place the official `discord_partner_sdk.aar` from the Discord Developer Portal at `app/libs/discord_partner_sdk.aar`, register `discord-1165706613961789445:/authorize/callback` as the OAuth redirect URL, and enable Public Client or move token exchange behind your backend.
-
 ---
 
 ### ⭐ Support the Project
