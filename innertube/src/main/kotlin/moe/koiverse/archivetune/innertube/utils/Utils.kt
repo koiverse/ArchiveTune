@@ -5,13 +5,6 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
-/*
- * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
- * GPL-3.0 License | Contributors: see git history
- * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
- */
-
 
 
 
@@ -125,19 +118,48 @@ fun parseCookieString(cookie: String): Map<String, String> =
         .toMap()
 
 fun String.parseTime(): Int? {
-    try {
-        val parts = split(":").map { it.toInt() }
-        if (parts.size == 2) {
-            return parts[0] * 60 + parts[1]
+    val normalized =
+        buildString(length) {
+            for (char in this@parseTime) {
+                val digit = Character.digit(char, 10)
+                when {
+                    digit >= 0 -> append(digit)
+                    char.isDurationSeparator() -> append(':')
+                    char.isIgnorableDurationChar() -> Unit
+                    else -> return null
+                }
+            }
         }
-        if (parts.size == 3) {
-            return parts[0] * 3600 + parts[1] * 60 + parts[2]
-        }
-    } catch (e: Exception) {
-        return null
+
+    val parts = normalized.split(':')
+    if (parts.any { it.isBlank() || it.length > 3 }) return null
+    if (parts.size !in 2..3) return null
+    if (parts.drop(1).any { it.length !in 1..2 }) return null
+
+    val values = parts.map { it.toIntOrNull() ?: return null }
+    if (values.drop(1).any { it !in 0..59 }) return null
+
+    return when (values.size) {
+        2 -> values[0] * 60 + values[1]
+        3 -> values[0] * 3600 + values[1] * 60 + values[2]
+        else -> null
     }
-    return null
 }
+
+private fun Char.isDurationSeparator(): Boolean =
+    this == ':' ||
+        this == '.' ||
+        this == ',' ||
+        this == '：' ||
+        this == '．' ||
+        this == '﹕' ||
+        this == '꞉' ||
+        this == '∶' ||
+        this == '٫'
+
+private fun Char.isIgnorableDurationChar(): Boolean =
+    isWhitespace() ||
+        Character.getType(this) == Character.FORMAT.toInt()
 
 fun isPrivateId(browseId: String): Boolean {
     return browseId.contains("privately")
