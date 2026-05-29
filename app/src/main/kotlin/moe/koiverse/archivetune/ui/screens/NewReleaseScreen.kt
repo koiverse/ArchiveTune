@@ -190,7 +190,7 @@ fun NewReleaseScreen(
                     )
                 }
 
-                is NewReleaseUiState.Error -> {
+                NewReleaseUiState.Error -> {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -207,20 +207,18 @@ fun NewReleaseScreen(
                             )
                             Spacer(Modifier.height(16.dp))
                             Text(
-                                text = stringResource(R.string.error_unknown),
+                                text = "New releases are temporarily unavailable",
                                 style = MaterialTheme.typography.titleLarge,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center,
                             )
-                            state.throwable?.message?.let { errorMessage ->
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    text = errorMessage,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = "ArchiveTune could not load this YouTube Music section. Try again later.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
                             Spacer(Modifier.height(24.dp))
                             Button(
                                 onClick = viewModel::retry,
