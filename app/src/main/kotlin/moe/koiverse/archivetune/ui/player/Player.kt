@@ -28,6 +28,9 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -1420,30 +1423,17 @@ fun BottomSheetPlayer(
             pureBlack = pureBlack,
         )
 
-        // Lyrics overlay with fade transition
         mediaMetadata?.let { metadata ->
-            AnimatedVisibility(
+            AppleMusicLyricsTransition(
                 visible = isLyricsScreenVisible,
-                enter = fadeIn(tween(300)),
-                exit = fadeOut(tween(220)),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface)
-                ) {
-                    LyricsScreen(
-                        mediaMetadata = metadata,
-                        onBackClick = { isLyricsScreenVisible = false },
-                        navController = navController,
-                        onQueueClick = {
-                            isLyricsScreenVisible = false
-                            queueSheetState.expandSoft()
-                        },
-                    )
-                }
-            }
+                mediaMetadata = metadata,
+                navController = navController,
+                onDismiss = { isLyricsScreenVisible = false },
+                onQueueClick = {
+                    isLyricsScreenVisible = false
+                    queueSheetState.expandSoft()
+                },
+            )
         }
 
         AnimatedVisibility(
@@ -1470,6 +1460,62 @@ fun BottomSheetPlayer(
                     onSeek = { sliderPosition = it },
                     onSeekFinished = onSliderValueChangeFinished,
                     onExit = { playerConnection.aodModeEnabled.value = false },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppleMusicLyricsTransition(
+    visible: Boolean,
+    mediaMetadata: MediaMetadata,
+    navController: NavController,
+    onDismiss: () -> Unit,
+    onQueueClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val progress by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = 0.82f,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "appleMusicLyricsTransition",
+    )
+
+    val boundedProgress = progress.coerceIn(0f, 1f)
+
+    if (visible || boundedProgress > 0.001f) {
+        val scaleX = 0.92f + (0.08f * boundedProgress)
+        val scaleY = 0.78f + (0.22f * boundedProgress)
+        val alpha = (0.2f + (0.8f * boundedProgress)).coerceIn(0f, 1f)
+        val cornerRadius = 32.dp * (1f - boundedProgress)
+
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .graphicsLayer { this.alpha = boundedProgress }
+                .background(Color.Black.copy(alpha = 0.24f * boundedProgress)),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                        this.scaleX = scaleX
+                        this.scaleY = scaleY
+                        this.alpha = alpha
+                        translationY = size.height * 0.16f * (1f - boundedProgress)
+                    }
+                    .clip(RoundedCornerShape(cornerRadius))
+                    .background(MaterialTheme.colorScheme.surface),
+            ) {
+                LyricsScreen(
+                    mediaMetadata = mediaMetadata,
+                    onBackClick = onDismiss,
+                    navController = navController,
+                    onQueueClick = onQueueClick,
                 )
             }
         }
