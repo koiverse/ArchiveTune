@@ -1550,6 +1550,7 @@ constructor(
             )
         }
 
+    @JvmName("mediaItemsToMediaItemsWithStartPosition")
     private fun List<MediaItem>.toMediaItemsWithStartPosition(
         selectedMediaId: String?,
         startPositionMs: Long,
@@ -1704,6 +1705,7 @@ constructor(
                     .build(),
             ).build()
 
+    @JvmName("songsToMediaItemsWithStartPosition")
     private fun List<Song>.toMediaItemsWithStartPosition(
         selectedSongId: String?,
         startPositionMs: Long,
