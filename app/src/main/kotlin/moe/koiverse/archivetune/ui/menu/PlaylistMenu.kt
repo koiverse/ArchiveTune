@@ -20,6 +20,7 @@ package moe.koiverse.archivetune.ui.menu
 
 import android.content.Intent
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -69,11 +70,14 @@ import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.LocalDatabase
 import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerConnection
+import moe.koiverse.archivetune.LocalSyncUtils
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.db.entities.Playlist
 import moe.koiverse.archivetune.db.entities.PlaylistSong
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.constants.SpeedDialSongIdsKey
+import moe.koiverse.archivetune.extensions.isSyncEnabled
+import moe.koiverse.archivetune.extensions.isUserLoggedIn
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.playback.ExoDownloadService
 import moe.koiverse.archivetune.playback.queues.ListQueue
@@ -110,6 +114,7 @@ fun PlaylistMenu(
     val database = LocalDatabase.current
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
+    val syncUtils = LocalSyncUtils.current
     val dbPlaylist by database.playlist(playlist.id).collectAsState(initial = playlist)
     val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
     val speedDialPins = remember(speedDialSongIds) { parseSpeedDialPins(speedDialSongIds) }
@@ -138,6 +143,64 @@ fun PlaylistMenu(
     }
 
     val editable: Boolean = playlist.playlist.isEditable == true
+
+    fun syncPlaylistToYouTube() {
+        onDismiss()
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                if (!context.isSyncEnabled()) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            context.getString(
+                                if (context.isUserLoggedIn()) {
+                                    R.string.sync_disabled
+                                } else {
+                                    R.string.not_logged_in_youtube
+                                },
+                            ),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                    return@launch
+                }
+
+                val browseId = playlist.playlist.browseId ?: YouTube.createPlaylist(playlist.playlist.name).getOrThrow()
+                if (playlist.playlist.browseId == null) {
+                    songs.forEach { song ->
+                        YouTube.addToPlaylist(browseId, song.id).getOrThrow()
+                    }
+                    database.query {
+                        update(
+                            playlist.playlist.copy(
+                                browseId = browseId,
+                                lastUpdateTime = LocalDateTime.now(),
+                                remoteSongCount = songs.size,
+                            ),
+                        )
+                    }
+                } else {
+                    syncUtils.syncPlaylistNow(browseId, playlist.id)
+                }
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.playlist_synced),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.error_unknown),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
+        }
+    }
 
     LaunchedEffect(songs) {
         if (songs.isEmpty()) return@LaunchedEffect
@@ -665,6 +728,25 @@ fun PlaylistMenu(
 
             item {
                 MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(R.string.sync_playlist)) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.sync),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            syncPlaylistToYouTube()
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+
+                    HorizontalDivider(
+                        modifier = dividerModifier,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
                     ListItem(
                         headlineContent = {
                             Text(
