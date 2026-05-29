@@ -296,7 +296,8 @@ fun QuickPicksSection(
             ) {
                 items(
                     items = distinctQuickPicks,
-                    key = { it.id }
+                    key = { it.id },
+                    contentType = { "quick_pick_song" },
                 ) { song ->
                     SongListItem(
                         song = song,

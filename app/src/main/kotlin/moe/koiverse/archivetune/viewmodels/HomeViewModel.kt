@@ -76,7 +76,7 @@ class HomeViewModel @Inject constructor(
     val isLoading = MutableStateFlow(false)
     private val isInitialLoadComplete = MutableStateFlow(false)
 
-    private val quickPicksEnum = context.dataStore.data.map {
+    private val quickPicksMode = context.dataStore.data.map {
         it[QuickPicksKey].toEnum(QuickPicks.QUICK_PICKS)
     }.distinctUntilChanged()
 
@@ -114,11 +114,65 @@ class HomeViewModel @Inject constructor(
         return chips?.filterNot { it.title.contains("podcasts", ignoreCase = true) }
     }
 
-    private suspend fun getQuickPicks(){
-        when (quickPicksEnum.first()) {
-            QuickPicks.QUICK_PICKS -> quickPicks.value = database.quickPicks().first().shuffled().take(20)
-            QuickPicks.LAST_LISTEN -> songLoad()
-            QuickPicks.DONT_SHOW -> quickPicks.value = null
+    private fun List<Song>.toQuickPickSample(): List<Song> =
+        distinctBy { it.id }.shuffled().take(20)
+
+    private fun updateAllLocalItems() {
+        allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
+            .filter { it is Song || it is Album }
+    }
+
+    private suspend fun quickPicksWithFallback(primary: List<Song>): List<Song> {
+        val primaryPicks = primary.toQuickPickSample()
+        if (primaryPicks.isNotEmpty()) return primaryPicks
+
+        val recentPicks = database.recentSongs(limit = 60).first().toQuickPickSample()
+        if (recentPicks.isNotEmpty()) return recentPicks
+
+        return database.allSongs().first().toQuickPickSample()
+    }
+
+    private suspend fun lastListenQuickPicks(
+        lastSongId: String?,
+        fallback: List<Song>,
+    ): List<Song> {
+        if (!lastSongId.isNullOrBlank() && database.hasRelatedSongs(lastSongId)) {
+            val relatedSongs = database.getRelatedSongs(lastSongId).first().toQuickPickSample()
+            if (relatedSongs.isNotEmpty()) return relatedSongs
+        }
+
+        return quickPicksWithFallback(fallback)
+    }
+
+    private fun observeQuickPicks() {
+        viewModelScope.launch(Dispatchers.IO) {
+            quickPicksMode
+                .flatMapLatest { mode ->
+                    when (mode) {
+                        QuickPicks.QUICK_PICKS -> database.quickPicks()
+                            .map { songs -> quickPicksWithFallback(songs) }
+
+                        QuickPicks.LAST_LISTEN -> combine(
+                            database.events(),
+                            database.quickPicks(),
+                        ) { events, fallback ->
+                            lastListenQuickPicks(
+                                lastSongId = events.firstOrNull()?.song?.id,
+                                fallback = fallback,
+                            )
+                        }
+
+                        QuickPicks.DONT_SHOW -> flowOf(null)
+                    }
+                }
+                .catch { throwable ->
+                    reportException(throwable)
+                    emit(quickPicksWithFallback(emptyList()))
+                }
+                .collect { picks ->
+                    quickPicks.value = picks
+                    updateAllLocalItems()
+                }
         }
     }
 
@@ -159,7 +213,6 @@ class HomeViewModel @Inject constructor(
                 val hideVideo = context.dataStore.get(HideVideoKey, false)
                 val fromTimeStamp = System.currentTimeMillis() - 86400000 * 7 * 2
 
-                launch { getQuickPicks() }
                 launch { loadSpeedDialItems() }
                 launch { forgottenFavorites.value = database.forgottenFavorites().first().shuffled().take(20) }
                 
@@ -217,8 +270,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
-                .filter { it is Song || it is Album }
+            updateAllLocalItems()
 
             viewModelScope.launch(Dispatchers.IO) {
                 loadSimilarRecommendations()
@@ -278,16 +330,6 @@ class HomeViewModel @Inject constructor(
         
         allYtItems.value = similarRecommendations.value?.flatMap { it.items }.orEmpty() +
                 homePage.value?.sections?.flatMap { it.items }.orEmpty()
-    }
-
-    private suspend fun songLoad() {
-        val song = database.events().first().firstOrNull()?.song
-        if (song != null) {
-            if (database.hasRelatedSongs(song.id)) {
-                val relatedSongs = database.getRelatedSongs(song.id).first().shuffled().take(20)
-                quickPicks.value = relatedSongs
-            }
-        }
     }
 
     private fun clearAccountData() {
@@ -456,6 +498,8 @@ class HomeViewModel @Inject constructor(
     }
 
     init {
+        observeQuickPicks()
+
         viewModelScope.launch(Dispatchers.IO) {
             load()
         }

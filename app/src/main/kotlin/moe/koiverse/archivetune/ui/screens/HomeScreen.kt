@@ -305,7 +305,10 @@ fun HomeScreen(
                     }
                 */
 
-                    item {
+                    item(
+                        key = "home_quick_picks",
+                        contentType = "quick_picks",
+                    ) {
                         QuickPicksSection(
                             quickPicks = picks,
                             mediaMetadata = mediaMetadata,
