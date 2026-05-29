@@ -72,6 +72,7 @@
 <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_6.jpg" alt="Album" width="30%" />
 <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_7.jpg" alt="Player" width="30%" />
 <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_8.jpg" alt="Settings" width="30%" />
+<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_9.jpg" alt="Settings" width="30%" />
 
 </div>
 
@@ -87,6 +88,7 @@
       <div align="left">
         <h3>Playback</h3>
         <ul>
+          <li>Multiple account support with quick switching</li>
           <li>Ad-free playback with background listening</li>
           <li>Your playlists, liked songs, and subscriptions appear after sign-in</li>
           <li>Support local file and local song playback
@@ -123,6 +125,7 @@
       <div align="left">
         <h3>Sync &amp; Social</h3>
         <ul>
+          <li>Import playlist from spotify</li>
           <li>YouTube Music account integration</li>
           <li>Last.fm scrobbling</li>
           <li>ListenBrainz history sync</li>
@@ -138,6 +141,8 @@
         <ul>
           <li>Material 3 design language</li>
           <li>Album-art powered dynamic colors</li>
+          <li>Up to 9 different player styles</li>
+          <li>Up to 8 different player background styles</li>
           <li>Responsive layouts for different screen sizes</li>
           <li>Clean browsing, player, artist, album, and lyrics views</li>
         </ul>
@@ -148,6 +153,7 @@
         <h3>Customization</h3>
         <ul>
           <li>Deep playback and interface settings</li>
+          <li>Dynamic color theming options</li>
           <li>Gesture customization</li>
           <li>Animation and layout tuning</li>
           <li>Flexible controls to shape the app around your workflow</li>
