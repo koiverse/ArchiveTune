@@ -22,7 +22,7 @@
   <p align="center">
     <a href="https://archivetune.koiiverse.cloud"><b>Official Website</b></a> •
     <a href="#features"><b>Features</b></a> •
-    <a href="PRIVACY.md"><b>Privacy</b></a> •
+    <a href="https://archivetune.koiiverse.cloud/privacy"><b>Privacy</b></a> •
     <a href="#download-now"><b>Download</b></a> •
     <a href="#screenshots"><b>Screenshots</b></a> •
     <a href="https://github.com/koiverse/ArchiveTune/issues/new/choose"><b>Support</b></a>
