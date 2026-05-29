@@ -642,21 +642,18 @@ fun BottomSheetPlayer(
         initialAnchor = 0
     )
     
-    val lyricsSheetState = rememberBottomSheetState(
-        dismissedBound = 0.dp,
-        expandedBound = state.expandedBound,
-        collapsedBound = 0.dp,
-        initialAnchor = 1
-    )
+    var isLyricsScreenVisible by rememberSaveable {
+        mutableStateOf(false)
+    }
 
     BackHandler(
         enabled =
-        (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) ||
+        isLyricsScreenVisible ||
             (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
             (!state.isCollapsed && !state.isDismissed)
     ) {
         when {
-            !lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed -> lyricsSheetState.collapseSoft()
+            isLyricsScreenVisible -> isLyricsScreenVisible = false
             !queueSheetState.isCollapsed && !queueSheetState.isDismissed -> queueSheetState.collapseSoft()
             !state.isCollapsed && !state.isDismissed -> state.collapseSoft()
         }
@@ -1122,7 +1119,7 @@ fun BottomSheetPlayer(
                             iconButtonColor = iconButtonColor,
                             onCollapseClick = { state.collapseSoft() },
                             onQueueClick = { queueSheetState.expandSoft() },
-                            onLyricsClick = { lyricsSheetState.expandSoft() },
+                            onLyricsClick = { isLyricsScreenVisible = true },
                             onSliderValueChange = onSliderValueChange,
                             onSliderValueChangeFinished = onSliderValueChangeFinished,
                             landscape = true,
@@ -1347,7 +1344,7 @@ fun BottomSheetPlayer(
                             iconButtonColor = iconButtonColor,
                             onCollapseClick = { state.collapseSoft() },
                             onQueueClick = { queueSheetState.expandSoft() },
-                            onLyricsClick = { lyricsSheetState.expandSoft() },
+                            onLyricsClick = { isLyricsScreenVisible = true },
                             onSliderValueChange = onSliderValueChange,
                             onSliderValueChangeFinished = onSliderValueChangeFinished,
                             modifier = Modifier
@@ -1419,35 +1416,29 @@ fun BottomSheetPlayer(
             TextBackgroundColor = TextBackgroundColor,
             textButtonColor = textButtonColor,
             iconButtonColor = iconButtonColor,
-            onShowLyrics = { lyricsSheetState.expandSoft() },
+            onShowLyrics = { isLyricsScreenVisible = true },
             pureBlack = pureBlack,
         )
 
-        // Lyrics BottomSheet - separate from Queue
+        // Lyrics overlay with fade transition
         mediaMetadata?.let { metadata ->
-            BottomSheet(
-                state = lyricsSheetState,
-                backgroundColor = Color.Unspecified,
-                onDismiss = { /* Optional dismiss action */ },
-                collapsedContent = {
-                    // Empty collapsed content - fully hidden when collapsed
-                }
+            AnimatedVisibility(
+                visible = isLyricsScreenVisible,
+                enter = fadeIn(tween(300)),
+                exit = fadeOut(tween(220)),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            MaterialTheme.colorScheme.surface.copy(
-                                alpha = lyricsSheetState.progress.coerceIn(0f, 1f)
-                            )
-                        )
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
                     LyricsScreen(
                         mediaMetadata = metadata,
-                        onBackClick = { lyricsSheetState.collapseSoft() },
+                        onBackClick = { isLyricsScreenVisible = false },
                         navController = navController,
                         onQueueClick = {
-                            lyricsSheetState.collapseSoft()
+                            isLyricsScreenVisible = false
                             queueSheetState.expandSoft()
                         },
                     )
