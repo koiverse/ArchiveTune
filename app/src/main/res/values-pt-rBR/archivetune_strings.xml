@@ -41,7 +41,6 @@
     <string name="added_to_play_next">Adicionado ao próximo</string>
     <string name="added_to_queue">Adicionado à fila</string>
     <string name="remove_from_cache">Remover do cache</string>
-    <string name="copy_link">Copiar link</string>
     <string name="select">Selecionar tudo</string>
     <string name="manage_tags">Gerenciar tags</string>
     <string name="add_tag">Adicionar tag</string>
