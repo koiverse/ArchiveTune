@@ -777,7 +777,6 @@
     <string name="update_notification_title">업데이트 가능</string>
     <string name="update_notification_text">이제 ArchiveTune %s을(를) 사용할 수 있습니다</string>
     <string name="download">다운로드</string>
-
     <string name="permissions_title">ArchiveTune이 가장 잘 작동하도록 허용</string>
     <string name="permissions_subtitle">우리는 귀하의 음악을 안정적으로 재생하고 관리하기 위해 몇 가지 권한을 사용합니다. 시스템 설정에서 언제든지 변경할 수 있습니다.</string>
     <string name="permission_storage_title">저장소 접근</string>
@@ -797,7 +796,6 @@
     <string name="playlist_suggestion_source_title">재생목록 제목</string>
     <string name="playlist_suggestion_source_content">재생목록 콘텐츠</string>
     <string name="playlist_suggestion_source_both">재생목록 제목 및 콘텐츠</string>
-
     <string name="music_together">아카이브Tune Music Together</string>
     <string name="together_display_name">표시 이름</string>
     <string name="together_display_name_placeholder">당신의 이름</string>
@@ -844,7 +842,6 @@
     <string name="loading">로드 중</string>
     <string name="connecting">Connecting…</string>
     <string name="copy_link">링크 복사</string>
-
     <string name="together_host_section">호스트</string>
     <string name="together_join_section">가입</string>
     <string name="together_status">상태</string>
@@ -853,7 +850,6 @@
     <string name="together_joining">세션 참여 중</string>
     <string name="together_connected">연결됨</string>
     <string name="together_error_state">오류</string>
-
     <string name="got_it">알았어요</string>
     <string name="together_dont_show_again">다시 표시하지 않음</string>
     <string name="together_welcome_title">ArchiveTune Music Together에 오신 것을 환영합니다.</string>
@@ -864,7 +860,6 @@
     <string name="together_welcome_join_body">공유 링크를 열거나 코드를 입력하고 참여를 탭하세요. 대기열과 재생은 호스트를 따릅니다.</string>
     <string name="together_welcome_permissions_title">권한 및 안전</string>
     <string name="together_welcome_permissions_body">호스트는 게스트가 노래를 추가하거나, 재생을 제어하거나, 참가 승인을 요구할 수 있는지 결정할 수 있습니다.</string>
-
     <string name="po_token_generation">PO 토큰 생성</string>
     <string name="po_token_generation_subtitle">웹 클라이언트 PO 토큰 생성 및 관리</string>
     <string name="web_client_po_token">웹 클라이언트 PO 토큰</string>

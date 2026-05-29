@@ -30,8 +30,8 @@
     <string name="most_played_artists">Artistas más escuchados</string>
     <string name="most_played_albums">Álbumes más reproducidos</string>
     <string name="search">Buscar</string>
-    <string name="search_yt_music">Buscar en YouTube Music…</string>
-    <string name="search_library">Buscar en biblioteca…</string>
+    <string name="search_yt_music">Buscar en YouTube Music</string>
+    <string name="search_library">Buscar en la biblioteca</string>
     <string name="filter_library">Biblioteca</string>
     <string name="filter_liked">Me gustan</string>
     <string name="filter_downloaded">Descargado</string>
@@ -828,4 +828,21 @@
     <string name="support_development_donate">Haz una donación para apoyar el desarrollo</string>
     <string name="support_development_star">Marcar como favorito en GitHub</string>
     <string name="later">Más tarde</string>
+    <string name="build_your_mix_title">Crea tu mezcla</string>
+    <string name="build_your_mix_description">¿Cómo deberíamos preparar esta mezcla para ti?</string>
+    <string name="build_your_mix_song_count">¿Cuántas canciones te gustaría obtener?</string>
+    <string name="build_your_mix_listening_history">Historial de escucha</string>
+    <string name="build_your_mix_average_listened">Promedio de escucha</string>
+    <string name="build_your_mix_input_manually">Entrada manual</string>
+    <string name="build_your_mix_create">Haz tu mezcla</string>
+    <string name="build_your_mix_manual_basis">Manual básico</string>
+    <string name="build_your_mix_manual_placeholder">Escribe el nombre de un artista o el título de una canción, como Alan Walker</string>
+    <string name="build_your_mix_loading_quote">Creando tu mezcla, nos llevará un tiempo...</string>
+    <string name="build_your_mix_empty_library">No hay canciones en la biblioteca para crear una mezcla.</string>
+    <string name="build_your_mix_manual_required">Introduce primero el nombre del artista o el título de la canción.</string>
+    <string name="build_your_mix_no_manual_match">No se encontró ninguna canción en la biblioteca que coincidiera con ese artista o título.</string>
+    <string name="build_your_mix_failed">No se pudo crear la mezcla</string>
+    <string name="widget_pause">Pausar</string>
+    <string name="widget_previous">Anterior</string>
+    <string name="widget_tap_to_open">Toca para abrir ArchiveTune</string>
 </resources>

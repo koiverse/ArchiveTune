@@ -777,7 +777,6 @@
     <string name="update_notification_title">利用可能なアップデート</string>
     <string name="update_notification_text">ArchiveTune %s が利用可能になりました</string>
     <string name="download">ダウンロード</string>
-
     <string name="permissions_title">ArchiveTune が最適に動作するようにします</string>
     <string name="permissions_subtitle">音楽を確実に再生および管理するために、いくつかの権限を使用します。これらはシステム設定でいつでも変更できます。</string>
     <string name="permission_storage_title">ストレージアクセス</string>
@@ -797,7 +796,6 @@
     <string name="playlist_suggestion_source_title">プレイリストのタイトル</string>
     <string name="playlist_suggestion_source_content">プレイリストの内容</string>
     <string name="playlist_suggestion_source_both">プレイリストのタイトルと内容</string>
-
     <string name="music_together">アーカイブ一緒に音楽をチューニング</string>
     <string name="together_display_name">表示名</string>
     <string name="together_display_name_placeholder">あなたの名前</string>
@@ -844,7 +842,6 @@
     <string name="loading">読み込み中</string>
     <string name="connecting">Connecting…</string>
     <string name="copy_link">リンクをコピー</string>
-
     <string name="together_host_section">ホスト</string>
     <string name="together_join_section">参加する</string>
     <string name="together_status">ステータス</string>
@@ -853,7 +850,6 @@
     <string name="together_joining">セッションに参加する</string>
     <string name="together_connected">接続済み</string>
     <string name="together_error_state">エラー</string>
-
     <string name="got_it">わかりました</string>
     <string name="together_dont_show_again">これを二度と表示しないでください</string>
     <string name="together_welcome_title">ArchiveTune Music Together へようこそ</string>
@@ -864,7 +860,6 @@
     <string name="together_welcome_join_body">共有リンクを開くか、コードを入力して「参加」をタップします。キューと再生はホストに従います。</string>
     <string name="together_welcome_permissions_title">許可と安全性</string>
     <string name="together_welcome_permissions_body">ホストは、ゲストが曲を追加できるか、再生を制御できるか、または参加に承認を必要とするかを決定できます。</string>
-
     <string name="po_token_generation">POトークンの生成</string>
     <string name="po_token_generation_subtitle">Web クライアント PO トークンの生成と管理</string>
     <string name="web_client_po_token">WebクライアントPOトークン</string>

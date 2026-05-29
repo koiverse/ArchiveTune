@@ -364,42 +364,33 @@
     <string name="day_thu">목</string>
     <string name="day_fri">금</string>
     <string name="day_sat">토요일</string>
-
     <string name="custom_theme">맞춤 테마</string>
     <string name="import_theme">테마 가져오기</string>
     <string name="export_theme">테마 내보내기</string>
-
     <string name="palette_custom">맞춤</string>
-
     <string name="theme_creator_title">테마 크리에이터</string>
     <string name="theme_creator_subtitle">색상을 조정하고 결과를 미리 본 다음 내보내거나 가져옵니다.</string>
-
     <string name="theme_meta_title">테마 세부정보</string>
     <string name="theme_name_optional">이름(선택사항)</string>
     <string name="theme_apply_button">테마 적용</string>
-
     <string name="theme_applied">테마 적용됨</string>
     <string name="theme_export_success">테마를 내보냈습니다.</string>
     <string name="theme_export_failed">내보내기 실패</string>
     <string name="theme_import_success">가져온 테마</string>
     <string name="theme_import_failed">가져오기 실패</string>
     <string name="theme_import_failed_title">테마를 가져올 수 없습니다</string>
-
     <string name="theme_seed_colors">씨앗 색상</string>
     <string name="theme_seed_primary">기본</string>
     <string name="theme_seed_secondary">보조</string>
     <string name="theme_seed_tertiary">3차</string>
     <string name="theme_seed_neutral">중립</string>
-
     <string name="theme_editor_title">%1$s 색상</string>
     <string name="theme_editor_hex">16진수</string>
     <string name="theme_editor_hex_input">16진수 값(#RRGGBB 또는 #AARRGGBB)</string>
     <string name="theme_presets_title">사전 설정</string>
-
     <string name="theme_preview_trackline">프리미엄 미리보기 카드</string>
     <string name="theme_preview_primary_action">기본 작업</string>
     <string name="theme_preview_secondary_action">보조 액션</string>
-
     <string name="copy">복사</string>
     <string name="backup_in_progress">백업 진행 중</string>
     <string name="restore_in_progress">복원 진행 중</string>

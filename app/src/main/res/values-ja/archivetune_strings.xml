@@ -364,42 +364,33 @@
     <string name="day_thu">木</string>
     <string name="day_fri">金</string>
     <string name="day_sat">土</string>
-
     <string name="custom_theme">カスタムテーマ</string>
     <string name="import_theme">テーマのインポート</string>
     <string name="export_theme">テーマのエクスポート</string>
-
     <string name="palette_custom">カスタム</string>
-
     <string name="theme_creator_title">テーマクリエーター</string>
     <string name="theme_creator_subtitle">カラーを調整し、結果をプレビューして、エクスポートまたはインポートします。</string>
-
     <string name="theme_meta_title">テーマの詳細</string>
     <string name="theme_name_optional">名前 (オプション)</string>
     <string name="theme_apply_button">テーマの適用</string>
-
     <string name="theme_applied">適用されたテーマ</string>
     <string name="theme_export_success">テーマがエクスポートされました</string>
     <string name="theme_export_failed">エクスポートに失敗しました</string>
     <string name="theme_import_success">インポートされたテーマ</string>
     <string name="theme_import_failed">インポートに失敗しました</string>
     <string name="theme_import_failed_title">テーマをインポートできません</string>
-
     <string name="theme_seed_colors">シードカラー</string>
     <string name="theme_seed_primary">プライマリー</string>
     <string name="theme_seed_secondary">二次</string>
     <string name="theme_seed_tertiary">三次</string>
     <string name="theme_seed_neutral">ニュートラル</string>
-
     <string name="theme_editor_title">%1$s 色</string>
     <string name="theme_editor_hex">16進数</string>
     <string name="theme_editor_hex_input">16 進値 (#RRGGBB または #AARRGGBB)</string>
     <string name="theme_presets_title">プリセット</string>
-
     <string name="theme_preview_trackline">プレミアム プレビュー カード</string>
     <string name="theme_preview_primary_action">主なアクション</string>
     <string name="theme_preview_secondary_action">二次アクション</string>
-
     <string name="copy">コピー</string>
     <string name="backup_in_progress">バックアップ中です</string>
     <string name="restore_in_progress">復元中です</string>
