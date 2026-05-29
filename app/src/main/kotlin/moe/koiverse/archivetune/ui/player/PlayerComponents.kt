@@ -2802,12 +2802,12 @@ private fun V9PortraitContent(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val horizontalPadding = if (maxWidth < 380.dp) 22.dp else 28.dp
+        val horizontalPadding = if (maxWidth < 380.dp) 16.dp else 20.dp
         val compactHeight = maxHeight < 760.dp
-        val artworkSize = (maxWidth * if (compactHeight) 0.66f else 0.7f)
+        val artworkSize = (maxWidth - horizontalPadding * 2)
             .coerceAtMost(maxWidth - horizontalPadding * 2)
-            .coerceAtMost(maxHeight * if (compactHeight) 0.34f else 0.38f)
-            .coerceAtLeast(220.dp)
+            .coerceAtMost(maxHeight * if (compactHeight) 0.4f else 0.46f)
+            .coerceAtLeast(236.dp)
         val headerGap = if (compactHeight) 22.dp else 34.dp
         val metadataGap = if (compactHeight) 26.dp else 34.dp
         val controlsGap = if (compactHeight) 20.dp else 30.dp
@@ -2908,16 +2908,16 @@ private fun V9LandscapeContent(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val artworkSize = (maxHeight * 0.68f)
-            .coerceAtMost(maxWidth * 0.36f)
-            .coerceAtLeast(220.dp)
+        val artworkSize = (maxHeight * 0.74f)
+            .coerceAtMost(maxWidth * 0.4f)
+            .coerceAtLeast(236.dp)
 
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 36.dp, vertical = 20.dp),
+                .padding(horizontal = 28.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(34.dp),
+            horizontalArrangement = Arrangement.spacedBy(26.dp),
         ) {
             V9Artwork(
                 artworkUrl = artworkUrl,
