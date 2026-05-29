@@ -1424,7 +1424,7 @@ fun BottomSheetPlayer(
         )
 
         mediaMetadata?.let { metadata ->
-            AppleMusicLyricsTransition(
+            MikoLyricsTransition(
                 visible = isLyricsScreenVisible,
                 mediaMetadata = metadata,
                 navController = navController,
@@ -1467,7 +1467,7 @@ fun BottomSheetPlayer(
 }
 
 @Composable
-private fun AppleMusicLyricsTransition(
+private fun MikoLyricsTransition(
     visible: Boolean,
     mediaMetadata: MediaMetadata,
     navController: NavController,
@@ -1481,7 +1481,7 @@ private fun AppleMusicLyricsTransition(
             dampingRatio = 0.82f,
             stiffness = Spring.StiffnessMediumLow,
         ),
-        label = "appleMusicLyricsTransition",
+        label = "mikoLyricsTransition",
     )
 
     val boundedProgress = progress.coerceIn(0f, 1f)
