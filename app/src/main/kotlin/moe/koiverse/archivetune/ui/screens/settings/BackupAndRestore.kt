@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -76,7 +77,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -87,6 +90,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
@@ -124,6 +128,8 @@ private val CSV_MIME_TYPES =
         "text/*",
         "application/octet-stream",
     )
+
+private val SpotifyAccountIconSize = 44.dp
 
 @Composable
 fun BackupAndRestore(
@@ -423,7 +429,7 @@ private fun PreferenceGroupScope.spotifyImportPreferences(
                 state.hasSources -> stringResource(R.string.spotify_available_count, state.sources.size)
                 else -> stringResource(R.string.spotify_no_sources)
             },
-            icon = { Icon(painterResource(R.drawable.spotify_icon), null) },
+            icon = { SpotifyAccountIcon(avatarUrl = state.accountAvatarUrl) },
             trailingContent = {
                 AnimatedVisibility(visible = state.isLoading) {
                     CircularWavyProgressIndicator(
@@ -478,6 +484,49 @@ private fun PreferenceGroupScope.spotifyImportPreferences(
             onClick = onLogoutClick,
             isEnabled = !state.isLoading && state.progress == null,
         )
+    }
+}
+
+@Composable
+private fun SpotifyAccountIcon(avatarUrl: String?) {
+    val context = LocalContext.current
+    val requestSize = with(LocalDensity.current) { SpotifyAccountIconSize.roundToPx() }
+    val accountIcon = painterResource(R.drawable.spotify_icon)
+    val imageRequest = remember(context, avatarUrl, requestSize) {
+        avatarUrl
+            ?.takeIf(String::isNotBlank)
+            ?.let {
+                ImageRequest.Builder(context)
+                    .data(it)
+                    .size(requestSize)
+                    .build()
+            }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (imageRequest != null) {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = null,
+                placeholder = accountIcon,
+                error = accountIcon,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Icon(
+                painter = accountIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(24.dp),
+            )
+        }
     }
 }
 
