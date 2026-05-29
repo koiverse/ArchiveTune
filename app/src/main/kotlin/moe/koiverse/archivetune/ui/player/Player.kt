@@ -142,7 +142,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalView
 import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
-import moe.koiverse.archivetune.utils.rememberPreference
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
@@ -211,6 +210,7 @@ import moe.koiverse.archivetune.ui.utils.ShowMediaInfo
 import moe.koiverse.archivetune.ui.utils.resize
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberEnumPreference
+import moe.koiverse.archivetune.utils.rememberLowDataModeActive
 import moe.koiverse.archivetune.utils.rememberPreference
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import kotlinx.coroutines.Dispatchers
@@ -323,6 +323,7 @@ fun BottomSheetPlayer(
     val aodModeEnabled by playerConnection.aodModeEnabled.collectAsStateWithLifecycle()
     val (thumbnailCornerRadius) = rememberPreference(ThumbnailCornerRadiusKey, defaultValue = 8f)
     val archiveTuneCanvasEnabled by rememberPreference(ArchiveTuneCanvasKey, false)
+    val lowDataModeActive = rememberLowDataModeActive()
     val (maxCanvasCacheSize, _) = rememberPreference(
         key = MaxCanvasCacheSizeKey,
         defaultValue = 256,
@@ -847,6 +848,7 @@ fun BottomSheetPlayer(
             }
         val shouldUseV7Canvas =
             archiveTuneCanvasEnabled &&
+                !lowDataModeActive &&
                 playerDesignStyle == PlayerDesignStyle.V7 &&
                 !aodModeEnabled
         var v7CanvasArtwork by remember(mediaMetadata?.id) {

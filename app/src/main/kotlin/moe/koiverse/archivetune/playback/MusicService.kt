@@ -105,6 +105,7 @@ import moe.koiverse.archivetune.MainActivity
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AudioNormalizationKey
 import moe.koiverse.archivetune.constants.AudioOffload
+import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.CrossfadeDurationKey
 import moe.koiverse.archivetune.constants.CrossfadeEnabledKey
 import moe.koiverse.archivetune.constants.CrossfadeGaplessKey
@@ -195,6 +196,7 @@ import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.utils.get
 import moe.koiverse.archivetune.utils.getAsync
 import moe.koiverse.archivetune.utils.isInternetAvailable
+import moe.koiverse.archivetune.utils.isLowDataModeActive
 import moe.koiverse.archivetune.utils.isLocalMediaId
 import moe.koiverse.archivetune.utils.getPresenceIntervalMillis
 import moe.koiverse.archivetune.utils.retryWithoutPlaybackLoginContext
@@ -5075,16 +5077,28 @@ private fun onMediaItemTransitionInternal() {
         }
     }
 
+    private fun createPlayerCacheDataSourceFactory(cacheWriteEnabled: Boolean): CacheDataSource.Factory =
+        CacheDataSource
+            .Factory()
+            .setCache(playerCache)
+            .setUpstreamDataSourceFactory(createResolvedUpstreamDataSourceFactory())
+            .apply {
+                if (!cacheWriteEnabled) {
+                    setCacheWriteDataSinkFactory(null)
+                }
+            }
+            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+
     private fun createCacheDataSource(): CacheDataSource.Factory =
         CacheDataSource
             .Factory()
             .setCache(downloadCache)
             .setUpstreamDataSourceFactory(
-                CacheDataSource
-                    .Factory()
-                    .setCache(playerCache)
-                    .setUpstreamDataSourceFactory(createResolvedUpstreamDataSourceFactory())
-                    .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+                DataSource.Factory {
+                    createPlayerCacheDataSourceFactory(
+                        cacheWriteEnabled = !isLowDataModeActive(),
+                    ).createDataSource()
+                }
             ).setCacheWriteDataSinkFactory(null)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
@@ -5177,8 +5191,10 @@ private fun onMediaItemTransitionInternal() {
             return dataSpec
         }
 
+        val lowDataModeActive = isLowDataModeActive()
         val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
         playbackUrlCache[mediaId]
+            ?.takeUnless { lowDataModeActive }
             ?.takeIf {
                 it.isValidFor(
                     authFingerprint = authFingerprint,
@@ -5203,9 +5219,10 @@ private fun onMediaItemTransitionInternal() {
             retryWithoutPlaybackLoginContext {
                 YTPlayerUtils.playerResponseForPlayback(
                     mediaId,
-                    audioQuality = audioQuality,
+                    audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
                     connectivityManager = connectivityManager,
                     preferredStreamClient = preferredStreamClient,
+                    networkMetered = lowDataModeActive,
                 )
             }
         }.getOrElse { throwable ->
@@ -5287,12 +5304,14 @@ private fun onMediaItemTransitionInternal() {
 
         val trackingExpiryMs = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
 
-        playbackUrlCache[mediaId] =
-            AuthScopedCacheValue(
-                url = streamUrl,
-                expiresAtMs = trackingExpiryMs,
-                authFingerprint = nonNullPlayback.authFingerprint,
-            )
+        if (!lowDataModeActive) {
+            playbackUrlCache[mediaId] =
+                AuthScopedCacheValue(
+                    url = streamUrl,
+                    expiresAtMs = trackingExpiryMs,
+                    authFingerprint = nonNullPlayback.authFingerprint,
+                )
+        }
         val resolvedDataSpec = dataSpec.withUri(streamUrl.toUri())
         val length =
             resolveStreamChunkLength(

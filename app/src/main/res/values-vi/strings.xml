@@ -427,8 +427,6 @@
     <string name="audio_quality_auto">Tự động</string>
     <string name="audio_quality_high">Cao</string>
     <string name="audio_quality_low">Thấp</string>
-    <string name="network_metered_title">Coi mạng là có giới hạn</string>
-    <string name="network_metered_description">Khi được bật, ứng dụng sẽ ưu tiên luồng chất lượng thấp hơn trên mạng có giới hạn</string>
     <string name="queue">Hàng đợi</string>
     <string name="persistent_queue">Hàng đợi liên tục</string>
     <string name="persistent_queue_desc">Khôi phục hàng đợi cuối cùng của bạn khi ứng dụng khởi động</string>

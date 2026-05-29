@@ -496,8 +496,6 @@
     <string name="audio_quality_auto">Otomatis</string>
     <string name="audio_quality_high">Tinggi</string>
     <string name="audio_quality_low">Rendah</string>
-    <string name="network_metered_title">Perlakukan jaringan sebagai jaringan terukur</string>
-    <string name="network_metered_description">Jika diaktifkan, aplikasi akan memilih streaming berkualitas lebih rendah di jaringan terukur</string>
     <string name="queue">Antrean</string>
     <string name="persistent_queue">Antrean persisten</string>
     <string name="persistent_queue_desc">Pulihkan antrean terakhir Anda saat aplikasi dimulai</string>

@@ -392,8 +392,6 @@
     <string name="audio_quality_auto">Otomatik</string>
     <string name="audio_quality_high">Yüksek</string>
     <string name="audio_quality_low">Düşük</string>
-    <string name="network_metered_title">Ağı ölçülü olarak değerlendir</string>
-    <string name="network_metered_description">Etkinleştirildiğinde uygulama, ölçülü ağlarda daha düşük kaliteli akışları tercih eder</string>
     <string name="queue">Sıra</string>
     <string name="persistent_queue">Kalıcı kuyruk</string>
     <string name="persistent_queue_desc">Uygulama başladığında son sıranızı geri yükleyin</string>

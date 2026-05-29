@@ -361,8 +361,6 @@
     <string name="audio_quality_auto">Automático</string>
     <string name="audio_quality_high">Alto</string>
     <string name="audio_quality_low">Baixo</string>
-    <string name="network_metered_title">Tratar a rede como tarifada</string>
-    <string name="network_metered_description">Quando ativada, a aplicação dará preferência a transmissões de qualidade inferior em redes com tarifação limitada</string>
     <string name="queue">Fila</string>
     <string name="persistent_queue">Fila persistente</string>
     <string name="persistent_queue_desc">Restaure sua última fila quando o aplicativo iniciar</string>

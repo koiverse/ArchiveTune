@@ -33,7 +33,6 @@ import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
-import moe.koiverse.archivetune.constants.NetworkMeteredKey
 import moe.koiverse.archivetune.constants.PlayerStreamClient
 import moe.koiverse.archivetune.constants.PlayerStreamClientKey
 import moe.koiverse.archivetune.db.MusicDatabase
@@ -45,9 +44,9 @@ import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.utils.AuthScopedCacheValue
 import moe.koiverse.archivetune.utils.StreamClientUtils
 import moe.koiverse.archivetune.utils.YTPlayerUtils
-import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.enumPreference
 import moe.koiverse.archivetune.utils.get
+import moe.koiverse.archivetune.utils.isLowDataModeActive
 import moe.koiverse.archivetune.utils.retryWithoutPlaybackLoginContext
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -156,8 +155,10 @@ constructor(
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {
                 return@Factory dataSpec
             }
+            val lowDataModeActive = context.isLowDataModeActive()
             val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
             songUrlCache[mediaId]
+                ?.takeUnless { lowDataModeActive }
                 ?.takeIf {
                     it.isValidFor(
                         authFingerprint = authFingerprint,
@@ -171,15 +172,14 @@ constructor(
                     awaitStreamInfoCooldown()
                     spaceOutStreamInfoRequests()
 
-                    val networkMeteredPref = context.dataStore.get(NetworkMeteredKey, true)
                     val result =
                         context.retryWithoutPlaybackLoginContext {
                             YTPlayerUtils.playerResponseForPlayback(
                                 mediaId,
-                                audioQuality = audioQuality,
+                                audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
                                 preferredStreamClient = preferredStreamClient,
                                 connectivityManager = connectivityManager,
-                                networkMetered = networkMeteredPref,
+                                networkMetered = lowDataModeActive,
                             )
                         }
 
@@ -230,12 +230,14 @@ constructor(
 
             val streamUrl = playbackData.streamUrl
 
-            songUrlCache[mediaId] =
-                AuthScopedCacheValue(
-                    url = streamUrl,
-                    expiresAtMs = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L),
-                    authFingerprint = playbackData.authFingerprint,
-                )
+            if (!lowDataModeActive) {
+                songUrlCache[mediaId] =
+                    AuthScopedCacheValue(
+                        url = streamUrl,
+                        expiresAtMs = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L),
+                        authFingerprint = playbackData.authFingerprint,
+                    )
+            }
             dataSpec.withUri(streamUrl.toUri())
         }
 

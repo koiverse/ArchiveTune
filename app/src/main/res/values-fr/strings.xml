@@ -392,9 +392,6 @@
     <string name="audio_quality_auto">Auto</string>
     <string name="audio_quality_high">Haute</string>
     <string name="audio_quality_low">Basse</string>
-    <string name="network_metered_title">Considérer le réseau comme un réseau mesuré</string>
-    <string name="network_metered_description">Une fois activée, l\'application privilégiera les flux de qualité inférieure sur les réseaux limités.</string>
-    <string name="queue">File d\'attente</string>
     <string name="persistent_queue">File d\'attente persistante</string>
     <string name="persistent_queue_desc">Restaurez votre dernière file d\'attente au démarrage de l\'application.</string>
     <string name="auto_load_more">Charger automatiquement plus de titres</string>

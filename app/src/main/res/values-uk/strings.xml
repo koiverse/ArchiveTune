@@ -419,8 +419,6 @@
     <string name="audio_quality_auto">Авто</string>
     <string name="audio_quality_high">Висока</string>
     <string name="audio_quality_low">Низька</string>
-    <string name="network_metered_title">Вважати мережу тарифікованою</string>
-    <string name="network_metered_description">Якщо ця функція увімкнена, додаток надаватиме перевагу потокам нижчої якості в мережах з обмеженим трафіком</string>
     <string name="queue">Черга</string>
     <string name="persistent_queue">Постійна черга</string>
     <string name="persistent_queue_desc">Відновлювати останню чергу при запуску програми</string>

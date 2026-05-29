@@ -495,8 +495,6 @@
     <string name="enable_betterlyrics">启用BetterLyrics</string>
     <string name="enable_simpmusic_lyrics">启用SimpMusic lyrics</string>
     <string name="player_and_audio">播放器与音频</string>
-    <string name="network_metered_title">设为按流量计费网络</string>
-    <string name="network_metered_description">开启后，应用在计费网络下将优先使用低音质串流</string>
     <string name="permission_status_all_granted">权限申请已通过，立即开始体验吧</string>
     <string name="permission_notifications_desc">允许此权限后，您可以在通知栏控制播放，并确保音乐在后台不会中断</string>
     <string name="clear">清除</string>

@@ -222,6 +222,7 @@ val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
 val NetworkMeteredKey = booleanPreferencesKey("networkMetered")
+val LowDataModeKey = NetworkMeteredKey
 
 enum class AudioQuality {
     AUTO,

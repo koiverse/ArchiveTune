@@ -384,8 +384,6 @@
     <string name="audio_quality_auto">Automático</string>
     <string name="audio_quality_high">Alta</string>
     <string name="audio_quality_low">Baja</string>
-    <string name="network_metered_title">Tratar la red como de uso medido</string>
-    <string name="network_metered_description">Si esta activada, la aplicación preferirá las transmisiones de baja calidad en redes de uso medido</string>
     <string name="queue">Cola</string>
     <string name="persistent_queue">Cola persistente</string>
     <string name="persistent_queue_desc">Restaura tú ultima cola cuando se inicia la aplicación</string>

@@ -100,6 +100,7 @@ import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.ui.utils.highRes
 import moe.koiverse.archivetune.utils.rememberEnumPreference
+import moe.koiverse.archivetune.utils.rememberLowDataModeActive
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -275,6 +276,7 @@ fun Thumbnail(
 
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
     val archiveTuneCanvasEnabled by rememberPreference(ArchiveTuneCanvasKey, false)
+    val lowDataModeActive = rememberLowDataModeActive()
     val playerDesignStyle by rememberEnumPreference(
         key = PlayerDesignStyleKey,
         defaultValue = PlayerDesignStyle.V4,
@@ -526,6 +528,7 @@ fun Thumbnail(
                                 }
                             val shouldAnimateCanvas =
                                 archiveTuneCanvasEnabled &&
+                                    !lowDataModeActive &&
                                     playerDesignStyle != PlayerDesignStyle.V7 &&
                                     playerDesignStyle != PlayerDesignStyle.V8 &&
                                     item.mediaId.isNotBlank() &&

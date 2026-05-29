@@ -400,8 +400,6 @@
     <string name="audio_quality_auto">Automatico</string>
     <string name="audio_quality_high">Alto</string>
     <string name="audio_quality_low">Basso</string>
-    <string name="network_metered_title">Tratta la rete come a consumo</string>
-    <string name="network_metered_description">Se abilitata, l\'app preferirà flussi di qualità inferiore su reti a consumo</string>
     <string name="queue">Coda</string>
     <string name="persistent_queue">Coda persistente</string>
     <string name="persistent_queue_desc">Ripristina l\'ultima coda all\'avvio dell\'app</string>

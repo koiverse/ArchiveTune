@@ -27,6 +27,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import moe.koiverse.archivetune.constants.LowDataModeKey
 import moe.koiverse.archivetune.constants.PreloadQueueLyricsEnabledKey
 import moe.koiverse.archivetune.constants.QueueLyricsPreloadCountKey
 import moe.koiverse.archivetune.db.MusicDatabase
@@ -34,6 +35,7 @@ import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import moe.koiverse.archivetune.utils.dataStore
+import moe.koiverse.archivetune.utils.isLowDataModeActive
 import moe.koiverse.archivetune.utils.reportException
 import javax.inject.Inject
 
@@ -84,6 +86,11 @@ class LyricsPreloadManager @Inject constructor(
                 
                 if (!isNetworkAvailable) {
                     Log.w(TAG, "Network unavailable, skipping lyrics pre-load")
+                    return@launch
+                }
+
+                if (context.isLowDataModeActive(preferences[LowDataModeKey] ?: true)) {
+                    Log.d(TAG, "Low Data Mode active, skipping lyrics pre-load")
                     return@launch
                 }
                 

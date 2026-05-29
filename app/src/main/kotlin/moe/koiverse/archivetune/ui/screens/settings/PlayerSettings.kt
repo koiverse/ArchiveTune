@@ -48,7 +48,7 @@ import moe.koiverse.archivetune.constants.AudioNormalizationKey
 import moe.koiverse.archivetune.constants.AudioOffload
 import moe.koiverse.archivetune.constants.AudioQuality
 import moe.koiverse.archivetune.constants.AudioQualityKey
-import moe.koiverse.archivetune.constants.NetworkMeteredKey
+import moe.koiverse.archivetune.constants.LowDataModeKey
 import moe.koiverse.archivetune.constants.AutoDownloadOnLikeKey
 import moe.koiverse.archivetune.constants.AutoStartOnBluetoothKey
 import moe.koiverse.archivetune.constants.AutoSkipNextOnErrorKey
@@ -96,8 +96,8 @@ fun PlayerSettings(
         PlayerStreamClientKey,
         defaultValue = PlayerStreamClient.ANDROID_VR
     )
-    val (networkMetered, onNetworkMeteredChange) = rememberPreference(
-        NetworkMeteredKey,
+    val (lowDataMode, onLowDataModeChange) = rememberPreference(
+        LowDataModeKey,
         defaultValue = true
     )
     val (persistentQueue, onPersistentQueueChange) = rememberPreference(
@@ -275,11 +275,11 @@ fun PlayerSettings(
 
             item {
                 SwitchPreference(
-                    title = { Text(stringResource(R.string.network_metered_title)) },
-                    description = stringResource(R.string.network_metered_description),
+                    title = { Text(stringResource(R.string.low_data_mode_title)) },
+                    description = stringResource(R.string.low_data_mode_description),
                     icon = { Icon(painterResource(R.drawable.android_cell), null) },
-                    checked = networkMetered,
-                    onCheckedChange = onNetworkMeteredChange
+                    checked = lowDataMode,
+                    onCheckedChange = onLowDataModeChange
                 )
             }
 
