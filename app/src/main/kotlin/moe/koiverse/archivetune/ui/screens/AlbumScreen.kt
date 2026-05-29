@@ -639,7 +639,8 @@ fun AlbumScreen(
                                         CircularProgressIndicator(
                                             progress = { state.progress },
                                             modifier = Modifier.size(24.dp),
-                                            color = MaterialTheme.colorScheme.primary,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            trackColor = MaterialTheme.colorScheme.outlineVariant,
                                             strokeWidth = 2.dp,
                                         )
                                     }
