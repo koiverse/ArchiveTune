@@ -50,25 +50,19 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -97,11 +91,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -109,15 +101,11 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -144,8 +132,6 @@ import moe.koiverse.archivetune.constants.UseLoginForBrowse
 import moe.koiverse.archivetune.constants.VisitorDataKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.innertube.YouTube
-import moe.koiverse.archivetune.innertube.models.PlaylistItem
-import moe.koiverse.archivetune.innertube.utils.completed
 import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.InfoLabel
@@ -162,7 +148,6 @@ import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
 import java.util.UUID
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
-import kotlin.math.floor
 
 private val CardShape = RoundedCornerShape(28.dp)
 private val InnerTileShape = RoundedCornerShape(22.dp)
@@ -229,7 +214,6 @@ fun AccountSettings(
 
     var showToken by remember { mutableStateOf(false) }
     var showTokenEditor by remember { mutableStateOf(false) }
-    var showPlaylistDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(isLoggedIn) {
         if (!isLoggedIn) {
@@ -409,8 +393,6 @@ fun AccountSettings(
 
             item {
                 QuickAccessGrid(
-                    isLoggedIn = isLoggedIn,
-                    onPlaylistClick = { showPlaylistDialog = true },
                     onIntegrationClick = { navController.navigate("settings/integration") },
                     onMusicTogetherClick = { navController.navigate("settings/music_together") },
                     onTokenClick = {
@@ -490,14 +472,6 @@ fun AccountSettings(
             item {
                 ExpressiveSectionCard(title = integrationLabel) {
                     ExpressiveActionRow(
-                        icon = painterResource(R.drawable.playlist_add),
-                        title = stringResource(R.string.select_playlist_to_sync),
-                        onClick = { showPlaylistDialog = true },
-                    )
-
-                    ExpressiveDivider()
-
-                    ExpressiveActionRow(
                         icon = painterResource(R.drawable.integration),
                         title = integrationLabel,
                         subtitle = "Discord, Last.fm, ListenBrainz",
@@ -556,12 +530,6 @@ fun AccountSettings(
             onAccountEmailChange = onAccountEmailChange,
             onAccountChannelHandleChange = onAccountChannelHandleChange,
             onDismiss = { showTokenEditor = false },
-        )
-    }
-
-    if (showPlaylistDialog) {
-        PlaylistSelectionDialog(
-            onDismiss = { showPlaylistDialog = false },
         )
     }
 }
@@ -1016,8 +984,6 @@ private fun UpdateBannerStrip(
 
 @Composable
 private fun QuickAccessGrid(
-    isLoggedIn: Boolean,
-    onPlaylistClick: () -> Unit,
     onIntegrationClick: () -> Unit,
     onMusicTogetherClick: () -> Unit,
     onTokenClick: () -> Unit,
@@ -1029,26 +995,12 @@ private fun QuickAccessGrid(
         ) {
             QuickAccessTile(
                 modifier = Modifier.weight(1f),
-                icon = painterResource(R.drawable.playlist_add),
-                label = stringResource(R.string.select_playlist_to_sync),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                onClick = onPlaylistClick,
-            )
-            QuickAccessTile(
-                modifier = Modifier.weight(1f),
                 icon = painterResource(R.drawable.integration),
                 label = stringResource(R.string.integration),
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 onClick = onIntegrationClick,
             )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
             QuickAccessTile(
                 modifier = Modifier.weight(1f),
                 icon = painterResource(R.drawable.fire),
@@ -1057,15 +1009,16 @@ private fun QuickAccessGrid(
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 onClick = onMusicTogetherClick,
             )
-            QuickAccessTile(
-                modifier = Modifier.weight(1f),
-                icon = painterResource(R.drawable.token),
-                label = stringResource(R.string.advanced_login),
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                onClick = onTokenClick,
-            )
         }
+
+        QuickAccessTile(
+            modifier = Modifier.fillMaxWidth(),
+            icon = painterResource(R.drawable.token),
+            label = stringResource(R.string.advanced_login),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            onClick = onTokenClick,
+        )
     }
 }
 
@@ -1081,7 +1034,7 @@ private fun QuickAccessTile(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
+        targetValue = if (isPressed) PressScale else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessHigh),
         label = "tileScale",
     )
@@ -1526,219 +1479,6 @@ private fun TokenEditorDialog(
     )
 }
 
-@Composable
-private fun PlaylistSelectionDialog(onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    val (initialSelected, _) = rememberPreference(SelectedYtmPlaylistsKey, "")
-    val selectedList = remember { mutableStateListOf<String>() }
-
-    LaunchedEffect(initialSelected) {
-        selectedList.clear()
-        if (initialSelected.isNotEmpty()) {
-            selectedList.addAll(
-                initialSelected.split(',')
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() },
-            )
-        }
-    }
-
-    var loading by remember { mutableStateOf(true) }
-    val playlists = remember { mutableStateListOf<PlaylistItem>() }
-
-    LaunchedEffect(Unit) {
-        loading = true
-        YouTube
-            .library("FEmusic_liked_playlists")
-            .completed()
-            .onSuccess { page ->
-                playlists.clear()
-                playlists.addAll(
-                    page.items
-                        .filterIsInstance<PlaylistItem>()
-                        .filterNot { it.id == "LM" || it.id == "SE" }
-                        .reversed(),
-                )
-            }
-        loading = false
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = CardShape,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        confirmButton = {
-            FilledTonalButton(
-                onClick = {
-                    PreferenceStore.launchEdit(context.dataStore) {
-                        this[SelectedYtmPlaylistsKey] = selectedList.joinToString(",")
-                    }
-                    onDismiss()
-                },
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(
-                    text = stringResource(R.string.save),
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                Text(text = stringResource(R.string.cancel_button))
-            }
-        },
-        title = {
-            Text(
-                text = stringResource(R.string.select_playlist_to_sync),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-        },
-        text = {
-            if (loading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 200.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularWavyProgressIndicator(
-                        modifier = Modifier.size(40.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            } else if (playlists.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 120.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.not_logged_in),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 400.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    items(
-                        items = playlists,
-                        key = { it.id },
-                    ) { playlist ->
-                        PlaylistSelectionRow(
-                            playlist = playlist,
-                            isSelected = selectedList.contains(playlist.id),
-                            onSelectedChange = { isSelected ->
-                                selectedList.setSelected(playlist.id, isSelected)
-                            },
-                        )
-                    }
-                }
-            }
-        },
-    )
-}
-
-@Composable
-private fun PlaylistSelectionRow(
-    playlist: PlaylistItem,
-    isSelected: Boolean,
-    onSelectedChange: (Boolean) -> Unit,
-) {
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f)
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.30f)
-        },
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "playlistBg",
-    )
-
-    val borderColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
-        } else {
-            Color.Transparent
-        },
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "playlistBorder",
-    )
-
-    val cbStrokeWidthPx = with(LocalDensity.current) { floor(CheckboxDefaults.StrokeWidth.toPx()) }
-    val cbCheckmarkStroke = remember(cbStrokeWidthPx) {
-        Stroke(width = cbStrokeWidthPx, cap = StrokeCap.Round, join = StrokeJoin.Round)
-    }
-    val cbOutlineStroke = remember(cbStrokeWidthPx) { Stroke(width = cbStrokeWidthPx) }
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(18.dp),
-            )
-            .clickable { onSelectedChange(!isSelected) },
-        color = backgroundColor,
-        shape = RoundedCornerShape(18.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            AsyncImage(
-                model = playlist.thumbnail,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(14.dp)),
-                contentScale = ContentScale.Crop,
-            )
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = playlist.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                playlist.songCountText?.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = { onSelectedChange(it) },
-                colors = CheckboxDefaults.colors(
-                    checkedColor = MaterialTheme.colorScheme.primary,
-                    uncheckedColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f),
-                ),
-                checkmarkStroke = cbCheckmarkStroke,
-                outlineStroke = cbOutlineStroke,
-            )
-        }
-    }
-}
-
 private fun hasVisibleSecureDetails(
     innerTubeCookie: String,
     visitorData: String,
@@ -1754,15 +1494,5 @@ private fun previewSecureValue(value: String): String {
         return normalized
     }
     return normalized.take(52) + "\u2025" + normalized.takeLast(18)
-}
-
-private fun SnapshotStateList<String>.setSelected(id: String, selected: Boolean) {
-    if (selected) {
-        if (!contains(id)) {
-            add(id)
-        }
-    } else {
-        remove(id)
-    }
 }
 
