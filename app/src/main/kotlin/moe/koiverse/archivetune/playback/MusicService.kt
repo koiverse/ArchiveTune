@@ -5164,6 +5164,17 @@ private fun onMediaItemTransitionInternal() {
 
         knownContentLength?.let { contentLengthCache[mediaId] = it }
 
+        if (allowCacheShortCircuit && !isCurrentlyNetworkConnected()) {
+            resolveCachedOnlyDataSpec(
+                dataSpec = dataSpec,
+                mediaId = mediaId,
+                knownContentLength = knownContentLength,
+            )?.let { cachedDataSpec ->
+                scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                return cachedDataSpec
+            }
+        }
+
         val requiredCachedLength =
             if (dataSpec.length >= 0) {
                 dataSpec.length
@@ -5324,6 +5335,68 @@ private fun onMediaItemTransitionInternal() {
         return length?.let { nonNullLength ->
             resolvedDataSpec.subrange(0L, nonNullLength)
         } ?: resolvedDataSpec
+    }
+
+    private fun isCurrentlyNetworkConnected(): Boolean =
+        runCatching { connectivityObserver.isCurrentlyConnected() }
+            .getOrDefault(isNetworkConnected.value)
+
+    private fun resolveCachedOnlyDataSpec(
+        dataSpec: DataSpec,
+        mediaId: String,
+        knownContentLength: Long?,
+    ): DataSpec? {
+        val requestedLength =
+            when {
+                dataSpec.length > 0L -> dataSpec.length
+                knownContentLength != null && knownContentLength > dataSpec.position ->
+                    knownContentLength - dataSpec.position
+                else -> CHUNK_LENGTH
+            }
+
+        val cachedLength =
+            getContinuousCachedLength(
+                mediaId = mediaId,
+                position = dataSpec.position,
+                requestedLength = requestedLength,
+            )
+
+        if (cachedLength <= 0L) return null
+
+        return dataSpec.subrange(0L, cachedLength)
+    }
+
+    private fun getContinuousCachedLength(
+        mediaId: String,
+        position: Long,
+        requestedLength: Long,
+    ): Long {
+        val targetEnd = position.saturatingAdd(requestedLength)
+        var cursor = position
+        val spans =
+            (runCatching { downloadCache.getCachedSpans(mediaId).toList() }.getOrNull().orEmpty() +
+                runCatching { playerCache.getCachedSpans(mediaId).toList() }.getOrNull().orEmpty())
+                .asSequence()
+                .filter { span -> span.position.saturatingAdd(span.length) > position }
+                .sortedBy { span -> span.position }
+                .toList()
+
+        for (span in spans) {
+            if (span.position > cursor) break
+            val spanEnd = span.position.saturatingAdd(span.length)
+            if (spanEnd > cursor) {
+                cursor = minOf(spanEnd, targetEnd)
+                if (cursor >= targetEnd) break
+            }
+        }
+
+        return (cursor - position).coerceAtLeast(0L)
+    }
+
+    private fun Long.saturatingAdd(value: Long): Long {
+        if (value <= 0L) return this
+        val result = this + value
+        return if (result < this) Long.MAX_VALUE else result
     }
 
     private fun Uri.shouldBypassYouTubeResolver(): Boolean {
