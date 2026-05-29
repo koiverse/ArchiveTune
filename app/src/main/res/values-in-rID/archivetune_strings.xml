@@ -7,7 +7,7 @@
     <string name="music_recognition_listen_again">Dengarkan lagi</string>
     <string name="music_recognition_no_match">Tidak ada kecocokan yang ditemukan</string>
     <string name="music_recognition_signature_failed">Tidak dapat membuat tanda tangan</string>
-    <string name="music_recognition_recognition_failed">Pengakuan gagal</string>
+    <string name="music_recognition_recognition_failed">Pengenalan gagal</string>
     <string name="music_recognition_open_shazam">Buka Shazam</string>
     <string name="music_recognition_lyrics_preview">Pratinjau lirik</string>
     <string name="music_recognition_permission_title">Izin mikrofon</string>
@@ -288,7 +288,7 @@
     <string name="token_adv_login_description">Ini adalah metode login LANJUTAN. Sebagai alternatif dari portal web, Anda dapat langsung memasukkan atau memperbarui token login Anda di sini. Misalnya, ini dapat mempercepat login di beberapa perangkat. Harap dicatat bahwa format token tidak valid apa pun yang gagal diurai oleh aplikasi tidak akan diterima</string>
     <string name="ytm_sync">Sinkronkan secara otomatis dengan akun YouTube Music Anda</string>
     <string name="yt_sync">Sinkron otomatis dengan akun</string>
-    <string name="force_sync_on_switch_account">Paksa Sinkron di Ganti Akun</string>
+    <string name="force_sync_on_switch_account">Paksa Sinkronisasi di Ganti Akun</string>
     <string name="force_sync_on_switch_account_desc">Sinkronkan ulang playlist, lagu yang disukai, artis, dan album dari akun yang dipilih setelah beralih</string>
     <string name="more_content">Lebih banyak konten</string>
     <string name="general">Umum</string>
@@ -354,8 +354,8 @@
     <string name="playlist_not_found_desc">Playlist yang diminta tidak dapat dimuat</string>
     <string name="album_not_found">Album tidak ditemukan</string>
     <string name="album_not_found_desc">Album yang diminta tidak dapat dimuat</string>
-    <string name="new_releases">Rilis baru</string>
-    <string name="total_releases">Jumlah rilis</string>
+    <string name="new_releases">Rilisan Baru</string>
+    <string name="total_releases">Jumlah rilisan</string>
     <string name="singles">Single</string>
     <string name="ep">EP</string>
     <string name="no_releases_found">Tidak ada rilis yang ditemukan</string>
@@ -363,6 +363,10 @@
     <string name="playlist_private_desc">Anda tidak memiliki akses ke playlist ini.</string>
     <string name="empty_playlist">Playlist Kosong</string>
     <string name="empty_playlist_desc">Playlist ini tidak berisi lagu apa pun</string>
+    <string name="android_auto_suggested_songs">Lagu yang disarankan</string>
+    <string name="android_auto_mixes_and_radios">Mix dan radio</string>
+    <string name="android_auto_sort_playlist">Urutkan playlist</string>
+    <string name="android_auto_sort_option_format">%1$s - %2$s</string>
     <string name="empty_album">Album Kosong</string>
     <string name="empty_album_desc">Album ini tidak berisi lagu apa pun</string>
     <plurals name="seconds">
@@ -384,7 +388,7 @@
     <string name="player_stream_client_web_remix_desc">Dukungan format yang diperluas dengan mengorbankan kecepatan. Dekripsi tanda tangan JavaScript menyebabkan penundaan startup ~5–10 detik.</string>
     <string name="settings_section_ui">Antarmuka Pengguna</string>
     <string name="settings_section_privacy">Privasi &amp; Keamanan</string>
-    <string name="settings_section_player">Pemain &amp; Media</string>
+    <string name="settings_section_player">Pemutar &amp; Media</string>
     <string name="settings_section_player_content">Pemutar &amp; Konten</string>
     <string name="settings_section_storage">Penyimpanan &amp; Data</string>
     <string name="settings_section_system">Sistem &amp; Tentang</string>
@@ -500,10 +504,12 @@
     <string name="backup_category_settings_desc">Penampilan, pemutaran &amp; preferensi</string>
     <string name="backup_category_account">Detail Akun</string>
     <string name="backup_category_account_desc">Kredensial YouTube, Spotify, Last.fm, Discord &amp; proxy</string>
+    <string name="internal_service">Layanan Internal</string>
+    <string name="external_service">Layanan Eksternal</string>
     <string name="backup_data_safety">Keamanan data</string>
     <string name="backup_data_safety_desc">Buat cadangan portabel atau pulihkan data aplikasi yang dipilih.</string>
     <string name="backup_data_formats">File \".backup\"</string>
-    <string name="backup_create_backup_desc">Ekspor pustaka, pengaturan, dan detail akun.</string>
+    <string name="backup_create_backup_desc">Cadangkan pustaka, pengaturan, dan detail akun.</string>
     <string name="backup_restore_backup_desc">Pulihkan data yang dipilih dari cadangan sebelumnya.</string>
     <string name="import_from_file">Impor dari file</string>
     <string name="import_from_file_desc">Impor playlist dari file M3U atau CSV lokal.</string>
