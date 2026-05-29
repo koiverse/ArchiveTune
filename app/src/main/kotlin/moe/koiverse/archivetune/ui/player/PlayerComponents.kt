@@ -2436,6 +2436,7 @@ private fun V8PlaybackProgress(
 
             if (currentFormat != null) {
                 V8QualityChip(
+                    currentFormat = currentFormat,
                     foreground = foreground,
                     modifier = Modifier.align(Alignment.Center),
                 )
@@ -2455,9 +2456,14 @@ private fun V8PlaybackProgress(
 
 @Composable
 private fun V8QualityChip(
+    currentFormat: FormatEntity,
     foreground: Color,
     modifier: Modifier = Modifier,
 ) {
+    val label = remember(currentFormat.mimeType, currentFormat.codecs) {
+        currentFormat.codecLabel()
+    }
+
     Surface(
         shape = RoundedCornerShape(6.dp),
         color = foreground.copy(alpha = 0.1f),
@@ -2479,12 +2485,29 @@ private fun V8QualityChip(
                 modifier = Modifier.size(15.dp),
             )
             Text(
-                text = stringResource(R.string.audio_quality_high).uppercase(),
+                text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = foreground.copy(alpha = 0.72f),
                 maxLines = 1,
             )
         }
+    }
+}
+
+private fun FormatEntity.codecLabel(): String {
+    val rawCodec = codecs.ifBlank { mimeType.substringAfter("/") }.uppercase()
+    val rawMime = mimeType.substringAfter("/").substringBefore(";").uppercase()
+
+    return when {
+        rawCodec.contains("FLAC") || rawCodec.contains("ALAC") -> "Lossless"
+        rawCodec.contains("OPUS") -> "OPUS"
+        rawCodec.contains("AAC") || rawCodec.contains("MP4A") -> "AAC"
+        rawCodec.contains("VORBIS") -> "VORBIS"
+        rawMime.contains("OPUS") -> "OPUS"
+        rawMime.contains("AAC") || rawMime.contains("MP4A") -> "AAC"
+        rawMime.contains("VORBIS") -> "VORBIS"
+        rawMime.isNotBlank() -> rawMime
+        else -> rawCodec
     }
 }
 
