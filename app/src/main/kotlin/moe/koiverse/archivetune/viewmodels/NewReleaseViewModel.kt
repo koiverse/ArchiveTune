@@ -59,7 +59,7 @@ sealed interface NewReleaseUiState {
     data object Loading : NewReleaseUiState
     data class Success(val content: NewReleaseContent) : NewReleaseUiState
     data object Empty : NewReleaseUiState
-    data class Error(val throwable: Throwable?) : NewReleaseUiState
+    data object Error : NewReleaseUiState
 }
 
 @HiltViewModel
@@ -116,7 +116,7 @@ constructor(
                     else NewReleaseUiState.Success(content)
             } catch (t: Throwable) {
                 reportException(t)
-                _uiState.value = NewReleaseUiState.Error(t)
+                _uiState.value = NewReleaseUiState.Error
             }
         }
     }
