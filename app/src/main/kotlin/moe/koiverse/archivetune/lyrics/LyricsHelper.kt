@@ -31,12 +31,16 @@ import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.selects.select
 import javax.inject.Inject
 
 class LyricsHelper
@@ -62,12 +66,17 @@ constructor(
         )
 
     private val cache = LruCache<String, List<LyricsResult>>(MAX_CACHE_SIZE)
+    private val singleLyricsCache = LruCache<String, String>(MAX_CACHE_SIZE)
     private var currentLyricsJob: Job? = null
 
     suspend fun getLyrics(mediaMetadata: MediaMetadata, preferredProviderOnly: Boolean = false): String {
-        currentLyricsJob?.cancel()
+        val cacheKey = mediaMetadata.lyricsCacheKey
+        singleLyricsCache.get(cacheKey)?.let { lyrics ->
+            GlobalLog.append(Log.DEBUG, "LyricsHelper", "Found lyrics in cache for ${mediaMetadata.title}")
+            return lyrics
+        }
 
-        val cached = cache.get(mediaMetadata.id)?.firstOrNull()
+        val cached = cache.get(cacheKey)?.firstOrNull()
         if (cached != null) {
             GlobalLog.append(Log.DEBUG, "LyricsHelper", "Found lyrics in cache for ${mediaMetadata.title}")
             return cached.lyrics
@@ -88,37 +97,11 @@ constructor(
 
         val ordered = orderedProviders()
         val providers = if (preferredProviderOnly) listOf(ordered.first()) else ordered
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        val deferred = scope.async {
-            for (provider in providers) {
-                val enabled = provider.isEnabled(context)
-                
-                if (enabled) {
-                    try {
-                        val result = provider.getLyrics(
-                            mediaMetadata.id,
-                            mediaMetadata.title,
-                            mediaMetadata.artists.joinToString { it.name },
-                            mediaMetadata.album?.title,
-                            mediaMetadata.duration,
-                        )
-                        result.onSuccess { lyrics ->
-                            if (isMeaningfulLyrics(lyrics)) {
-                                return@async lyrics
-                            }
-                        }.onFailure {
-                            reportException(it)
-                        }
-                    } catch (e: Exception) {
-                        reportException(e)
-                    }
-                }
-            }
-            return@async LYRICS_NOT_FOUND
+        val lyrics = fetchFirstMeaningfulLyrics(providers, mediaMetadata)
+        if (isMeaningfulLyrics(lyrics)) {
+            singleLyricsCache.put(cacheKey, lyrics)
         }
 
-        val lyrics = deferred.await()
-        scope.cancel()
         return lyrics
     }
 
@@ -132,7 +115,7 @@ constructor(
     ) {
         currentLyricsJob?.cancel()
 
-        val cacheKey = "$songArtists-$songTitle".replace(" ", "")
+        val cacheKey = lyricsCacheKey(songTitle, songArtists)
         cache.get(cacheKey)?.let { results ->
             results.forEach {
                 callback(it)
@@ -171,6 +154,68 @@ constructor(
         }
 
         currentLyricsJob?.join()
+    }
+
+    private suspend fun fetchFirstMeaningfulLyrics(
+        providers: List<LyricsProvider>,
+        mediaMetadata: MediaMetadata,
+    ): String = supervisorScope {
+        val artist = mediaMetadata.artists.joinToString { it.name }
+        val requests =
+            providers
+                .filter { it.isEnabled(context) }
+                .map { provider ->
+                    async(Dispatchers.IO) {
+                        fetchProviderLyrics(provider, mediaMetadata, artist)
+                    }
+                }
+
+        if (requests.isEmpty()) return@supervisorScope LYRICS_NOT_FOUND
+
+        val pending = requests.toMutableSet()
+        while (pending.isNotEmpty()) {
+            val (request, lyrics) = select<Pair<Deferred<String?>, String?>> {
+                pending.forEach { deferred ->
+                    deferred.onAwait { result -> deferred to result }
+                }
+            }
+            pending.remove(request)
+            if (lyrics != null) {
+                pending.forEach { it.cancel() }
+                return@supervisorScope lyrics
+            }
+        }
+
+        LYRICS_NOT_FOUND
+    }
+
+    private suspend fun fetchProviderLyrics(
+        provider: LyricsProvider,
+        mediaMetadata: MediaMetadata,
+        artist: String,
+    ): String? {
+        return try {
+            provider.getLyrics(
+                mediaMetadata.id,
+                mediaMetadata.title,
+                artist,
+                mediaMetadata.album?.title,
+                mediaMetadata.duration,
+            ).fold(
+                onSuccess = { lyrics ->
+                    lyrics.takeIf(::isMeaningfulLyrics)
+                },
+                onFailure = {
+                    reportException(it)
+                    null
+                },
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            reportException(e)
+            null
+        }
     }
 
     private suspend fun orderedProviders(): List<LyricsProvider> {
@@ -228,10 +273,22 @@ constructor(
 
     fun clearCache() {
         cache.evictAll()
+        singleLyricsCache.evictAll()
     }
 
+    private val MediaMetadata.lyricsCacheKey: String
+        get() = lyricsCacheKey(
+            title = title,
+            artists = artists.joinToString { it.name },
+        )
+
+    private fun lyricsCacheKey(
+        title: String,
+        artists: String,
+    ): String = "$artists-$title".replace(" ", "")
+
     companion object {
-        private const val MAX_CACHE_SIZE = 3
+        private const val MAX_CACHE_SIZE = 16
         private val TIMESTAMP_REGEX = Regex("""\[[0-9]{1,2}:[0-9]{2}(?:\.[0-9]{1,3})?]""")
         private val INVISIBLE_CHARS_REGEX = Regex("""[\u200B\u200C\u200D\u2060\u00AD]""")
     }
