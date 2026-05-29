@@ -1257,6 +1257,9 @@ interface DatabaseDao {
     @Query("SELECT * FROM event ORDER BY rowId ASC LIMIT 1")
     fun firstEvent(): Flow<EventWithSong?>
 
+    @Query("SELECT songId FROM event ORDER BY rowId DESC LIMIT 1")
+    fun lastEventSongId(): Flow<String?>
+
     @Transaction
     @Query("DELETE FROM event")
     fun clearListenHistory()
