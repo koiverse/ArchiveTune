@@ -2131,7 +2131,7 @@ private fun V8PortraitContent(
                 onNextClick = onNextClick,
             )
 
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(if (compactHeight) 10.dp else 18.dp))
 
             V8VolumeControls(
                 volume = volume,
@@ -2240,7 +2240,7 @@ private fun V8LandscapeContent(
                     onNextClick = onNextClick,
                 )
 
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.height(18.dp))
 
                 V8VolumeControls(
                     volume = volume,
