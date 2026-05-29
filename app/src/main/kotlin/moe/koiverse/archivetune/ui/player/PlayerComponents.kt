@@ -2088,6 +2088,7 @@ private fun V8PortraitContent(
             )
 
             Spacer(Modifier.height(headerToArtwork))
+            Spacer(Modifier.weight(1f))
 
             V8Artwork(
                 artworkUrl = artworkUrl,
