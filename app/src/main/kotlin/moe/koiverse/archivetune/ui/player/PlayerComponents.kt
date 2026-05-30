@@ -2073,13 +2073,40 @@ private fun V8PortraitContent(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val contentPadding = if (maxWidth < 380.dp) 22.dp else 24.dp
         val compactHeight = maxHeight < 760.dp
-        val artworkSize = (maxWidth - contentPadding * 2)
-            .coerceAtMost(if (compactHeight) 330.dp else 420.dp)
-            .coerceAtMost(maxHeight * if (compactHeight) 0.38f else 0.48f)
+        val veryCompactHeight = maxHeight < 680.dp
         val headerTop = if (compactHeight) 6.dp else 14.dp
-        val headerToArtwork = if (compactHeight) 14.dp else 28.dp
-        val artworkToMetadata = if (compactHeight) 16.dp else 28.dp
-        val controlsGap = if (compactHeight) 12.dp else 18.dp
+        val headerToArtwork = when {
+            veryCompactHeight -> 10.dp
+            compactHeight -> 14.dp
+            else -> 28.dp
+        }
+        val artworkToMetadata = when {
+            veryCompactHeight -> 12.dp
+            compactHeight -> 16.dp
+            else -> 28.dp
+        }
+        val controlsGap = if (compactHeight) 10.dp else 18.dp
+        val progressToTransportGap = if (compactHeight) 8.dp else 18.dp
+        val transportToVolumeGap = if (compactHeight) 8.dp else 18.dp
+        val bottomGap = if (compactHeight) 8.dp else 16.dp
+        val reservedControlsHeight =
+            headerTop +
+                56.dp +
+                headerToArtwork +
+                artworkToMetadata +
+                58.dp +
+                controlsGap +
+                62.dp +
+                progressToTransportGap +
+                72.dp +
+                transportToVolumeGap +
+                30.dp +
+                bottomGap
+        val maxArtworkSize = (maxWidth - contentPadding * 2)
+            .coerceAtMost(if (compactHeight) 360.dp else 420.dp)
+        val artworkSize = maxArtworkSize
+            .coerceAtMost(maxHeight - reservedControlsHeight)
+            .coerceAtLeast(0.dp)
 
         Column(
             modifier = Modifier
@@ -2130,7 +2157,7 @@ private fun V8PortraitContent(
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
             )
 
-            Spacer(Modifier.height(if (compactHeight) 10.dp else 18.dp))
+            Spacer(Modifier.height(progressToTransportGap))
 
             V8TransportControls(
                 playbackState = playbackState,
@@ -2144,7 +2171,7 @@ private fun V8PortraitContent(
                 onNextClick = onNextClick,
             )
 
-            Spacer(Modifier.height(if (compactHeight) 10.dp else 18.dp))
+            Spacer(Modifier.height(transportToVolumeGap))
 
             V8VolumeControls(
                 volume = volume,
@@ -2153,7 +2180,7 @@ private fun V8PortraitContent(
                 onVolumeChange = onVolumeChange,
             )
 
-            Spacer(Modifier.height(if (compactHeight) 10.dp else 16.dp))
+            Spacer(Modifier.height(bottomGap))
         }
     }
 }
@@ -2190,14 +2217,18 @@ private fun V8LandscapeContent(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val artworkSize = (maxHeight - 48.dp).coerceAtMost(maxWidth * 0.36f)
+        val horizontalPadding = 36.dp
+        val contentGap = 36.dp
+        val artworkSize = (maxHeight - 48.dp)
+            .coerceAtMost((maxWidth - horizontalPadding * 2 - contentGap) * 0.44f)
+            .coerceAtLeast(0.dp)
 
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 36.dp, vertical = 24.dp),
+                .padding(horizontal = horizontalPadding, vertical = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(36.dp),
+            horizontalArrangement = Arrangement.spacedBy(contentGap),
         ) {
             V8Artwork(
                 artworkUrl = artworkUrl,
