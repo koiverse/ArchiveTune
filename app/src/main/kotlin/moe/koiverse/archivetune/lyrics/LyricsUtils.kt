@@ -179,6 +179,9 @@ object LyricsUtils {
                 text = line.text,
                 words = words,
                 agent = line.agent,
+                providerRomanizedText = line.providerRomanizedText,
+                providerRomanizedWords = line.providerRomanizedWords,
+                providerRomanizedLanguage = line.providerRomanizedLanguage,
             )
         }.sorted()
     }
@@ -545,6 +548,69 @@ object LyricsUtils {
             preferences.romanizeOther && hasOtherRomanizableScript(text) -> true
             else -> false
         }
+    }
+
+    fun shouldUseProvidedRomanization(
+        originalText: String,
+        providerRomanizedText: String?,
+        providerRomanizedLanguage: String?,
+        preferences: LyricsRomanizationPreferences,
+    ): Boolean {
+        if (!preferences.isEnabled || originalText.isBlank()) return false
+        val normalized = providerRomanizedText
+            ?.replace(WHITESPACE_REGEX, " ")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: return false
+        if (normalized.equals(originalText.trim(), ignoreCase = true)) return false
+
+        val language = providerRomanizedLanguage
+            ?.substringBefore("-")
+            ?.substringBefore("_")
+            ?.lowercase()
+
+        return when (language) {
+            "ja" -> preferences.romanizeJapanese
+            "ko" -> preferences.romanizeKorean
+            "zh", "cmn", "yue" -> preferences.romanizeChinese
+            "hi", "sa", "mr", "ne" -> preferences.romanizeHindi
+            null, "" -> shouldRomanizeLyricsLine(originalText, preferences)
+            else -> preferences.romanizeOther || shouldRomanizeLyricsLine(originalText, preferences)
+        }
+    }
+
+    fun providedRomanizedTextForEntry(
+        entry: LyricsEntry,
+        preferences: LyricsRomanizationPreferences,
+    ): String? {
+        return entry.providerRomanizedText
+            ?.replace(WHITESPACE_REGEX, " ")
+            ?.trim()
+            ?.takeIf {
+                shouldUseProvidedRomanization(
+                    originalText = entry.text,
+                    providerRomanizedText = it,
+                    providerRomanizedLanguage = entry.providerRomanizedLanguage,
+                    preferences = preferences,
+                )
+            }
+    }
+
+    fun providedRomanizedWordsForEntry(
+        entry: LyricsEntry,
+        expectedWordCount: Int,
+        preferences: LyricsRomanizationPreferences,
+    ): List<String?>? {
+        if (expectedWordCount <= 0) return null
+        if (providedRomanizedTextForEntry(entry, preferences) == null) return null
+
+        val words = entry.providerRomanizedWords
+            ?.map { word -> word.replace(WHITESPACE_REGEX, " ").trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.takeIf { it.size == expectedWordCount }
+            ?: return null
+
+        return words
     }
 
     suspend fun romanizeLyricsLine(
