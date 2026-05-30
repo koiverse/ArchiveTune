@@ -150,6 +150,7 @@ import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FO
 import moe.koiverse.archivetune.lyrics.LyricsEntry
 import moe.koiverse.archivetune.lyrics.LyricsRomanizationPreferences
 import moe.koiverse.archivetune.lyrics.LyricsUtils.findCurrentLineIndex
+import moe.koiverse.archivetune.lyrics.LyricsUtils.providedRomanizedTextForEntry
 import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeLyricsLine
 import moe.koiverse.archivetune.lyrics.LyricsUtils.shouldRomanizeLyricsLine
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
@@ -321,6 +322,14 @@ fun LyricsV2(
         }
 
         entriesWithWords.forEach { entry ->
+            val providerRomanized = providedRomanizedTextForEntry(entry, romanizationPreferences)
+            if (providerRomanized != null) {
+                if (entry.romanizedTextFlow.value != providerRomanized) {
+                    entry.romanizedTextFlow.value = providerRomanized
+                }
+                return@forEach
+            }
+
             if (!shouldRomanizeLyricsLine(entry.text, romanizationPreferences)) {
                 if (entry.romanizedTextFlow.value != null) {
                     entry.romanizedTextFlow.value = null

@@ -125,6 +125,8 @@ import moe.koiverse.archivetune.lyrics.LyricsRomanizationPreferences
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
 import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
+import moe.koiverse.archivetune.lyrics.LyricsUtils.providedRomanizedTextForEntry
+import moe.koiverse.archivetune.lyrics.LyricsUtils.providedRomanizedWordsForEntry
 import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeLyricsLine
 import moe.koiverse.archivetune.lyrics.LyricsUtils.romanizeLyricsWordWithLineContext
 import moe.koiverse.archivetune.lyrics.LyricsUtils.shouldRomanizeLyricsLine
@@ -241,7 +243,13 @@ fun LyricsEnhanced(
         if (!romanizationPreferences.isEnabled) return@LaunchedEffect
 
         val toRomanize = lyricsEntries.mapIndexedNotNull { index, entry ->
-            if (shouldRomanizeLyricsLine(entry.text, romanizationPreferences)) index to entry else null
+            val hasProviderRomanization =
+                providedRomanizedTextForEntry(entry, romanizationPreferences) != null
+            if (hasProviderRomanization || shouldRomanizeLyricsLine(entry.text, romanizationPreferences)) {
+                index to entry
+            } else {
+                null
+            }
         }
         if (toRomanize.isEmpty()) return@LaunchedEffect
 
@@ -249,11 +257,16 @@ fun LyricsEnhanced(
             async {
                 val romanized: List<String?> = try {
                     if (isTtmlFormat && entry.words != null) {
-                        entry.words!!.filter { !it.isBackground }.map { word ->
-                            romanizeLyricsWordWithLineContext(word.text, entry.text, romanizationPreferences)
-                        }
+                        val mainWordCount = entry.words!!.count { !it.isBackground }
+                        providedRomanizedWordsForEntry(entry, mainWordCount, romanizationPreferences)
+                            ?: entry.words!!.filter { !it.isBackground }.map { word ->
+                                romanizeLyricsWordWithLineContext(word.text, entry.text, romanizationPreferences)
+                            }
                     } else {
-                        listOf(romanizeLyricsLine(entry.text, romanizationPreferences))
+                        listOf(
+                            providedRomanizedTextForEntry(entry, romanizationPreferences)
+                                ?: romanizeLyricsLine(entry.text, romanizationPreferences)
+                        )
                     }
                 } catch (e: Exception) {
                     reportException(e)
