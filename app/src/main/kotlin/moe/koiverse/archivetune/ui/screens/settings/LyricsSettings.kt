@@ -93,6 +93,7 @@ import moe.koiverse.archivetune.constants.LyricsTextSizeKey
 import moe.koiverse.archivetune.constants.PreferredLyricsProvider
 import moe.koiverse.archivetune.constants.PreloadQueueLyricsEnabledKey
 import moe.koiverse.archivetune.constants.QueueLyricsPreloadCountKey
+import moe.koiverse.archivetune.constants.deserializeLyricsProviderOrder
 import moe.koiverse.archivetune.paxsenix.models.PaxsenixStats
 import moe.koiverse.archivetune.paxsenix.models.ProviderStats
 import moe.koiverse.archivetune.ui.component.ActionPromptDialog
@@ -169,15 +170,7 @@ fun LyricsSettings(
         defaultValue = "",
     )
     val providerOrder = remember(providerOrderStr) {
-        if (providerOrderStr.isBlank()) {
-            PreferredLyricsProvider.entries.toList()
-        } else {
-            val parsed = providerOrderStr.split(",").mapNotNull { name ->
-                PreferredLyricsProvider.entries.find { it.name == name.trim() }
-            }
-            val missing = PreferredLyricsProvider.entries.filterNot { it in parsed }
-            parsed + missing
-        }
+        deserializeLyricsProviderOrder(providerOrderStr)
     }
     val (lyricsLineBlur, onLyricsLineBlurChange) = rememberPreference(LyricsLineBlurKey, defaultValue = true)
     val (lyricsRomanizeJapanese, onLyricsRomanizeJapaneseChange) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
@@ -417,6 +410,15 @@ fun LyricsSettings(
         PreferenceGroup(title = stringResource(R.string.providers)) {
             item {
                 SwitchPreference(
+                    title = { Text(stringResource(R.string.enable_betterlyrics)) },
+                    icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                    checked = enableBetterLyrics,
+                    onCheckedChange = onEnableBetterLyricsChange,
+                )
+            }
+
+            item {
+                SwitchPreference(
                     title = { Text(stringResource(R.string.enable_lrclib)) },
                     icon = { Icon(painterResource(R.drawable.lyrics), null) },
                     checked = enableLrclib,
@@ -430,15 +432,6 @@ fun LyricsSettings(
                     icon = { Icon(painterResource(R.drawable.lyrics), null) },
                     checked = enableKugou,
                     onCheckedChange = onEnableKugouChange,
-                )
-            }
-
-            item {
-                SwitchPreference(
-                    title = { Text(stringResource(R.string.enable_betterlyrics)) },
-                    icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                    checked = enableBetterLyrics,
-                    onCheckedChange = onEnableBetterLyricsChange,
                 )
             }
 
