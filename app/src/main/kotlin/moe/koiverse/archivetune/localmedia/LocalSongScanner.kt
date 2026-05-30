@@ -315,6 +315,11 @@ constructor(
                 if (shouldExcludeFolder(normalizedFolderPath, sanitizedExcludedFolders)) {
                     continue
                 }
+                val displayName = cursor.getString(displayNameIndex)
+                val mimeType = cursor.getString(mimeTypeIndex)?.takeIf(String::isNotBlank) ?: "audio/*"
+                if (!SupportedLocalAudio.isSupported(displayName, mimeType)) {
+                    continue
+                }
                 val artistValue = normalizeArtistName(cursor.getString(artistIndex), unknownArtist)
                 val splitArtists = splitArtistNames(artistValue).ifEmpty { listOf(unknownArtist) }
                 val mediaStoreArtistId = cursor.getLongOrNull(artistIdIndex)
@@ -328,7 +333,7 @@ constructor(
                 val albumName = normalizeAlbumName(cursor.getString(albumIndex))
                 val title = normalizeTitle(
                     title = cursor.getString(titleIndex),
-                    displayName = cursor.getString(displayNameIndex),
+                    displayName = displayName,
                     fallback = unknownTitle,
                 )
                 tracks += LocalTrackRecord(
@@ -351,7 +356,7 @@ constructor(
                         .takeIf { it > 0L }
                         ?.let { LocalDateTime.ofInstant(Instant.ofEpochSecond(it), ZoneId.systemDefault()) },
                     sizeBytes = cursor.getLong(sizeIndex).coerceAtLeast(0L),
-                    mimeType = cursor.getString(mimeTypeIndex)?.takeIf(String::isNotBlank) ?: "audio/*",
+                    mimeType = mimeType,
                     thumbnailUrl = mediaStoreAlbumId
                         ?.takeIf { it > 0L }
                         ?.let { ContentUris.withAppendedId(AlbumArtUri, it).toString() },
