@@ -255,10 +255,14 @@ fun BottomSheetPlayer(
         defaultValue = PlayerDesignStyle.V4
     )
     
-    val playerBackground by rememberEnumPreference(
+    val storedPlayerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
+    val playerUsesFixedBackground =
+        playerDesignStyle == PlayerDesignStyle.V8 || playerDesignStyle == PlayerDesignStyle.V9
+    val playerBackground =
+        if (playerUsesFixedBackground) PlayerBackgroundStyle.DEFAULT else storedPlayerBackground
 
     // Custom background preferences (image + effects)
     val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
@@ -851,10 +855,21 @@ fun BottomSheetPlayer(
                 !lowDataModeActive &&
                 playerDesignStyle == PlayerDesignStyle.V7 &&
                 !aodModeEnabled
+        val shouldUseArtworkCanvas =
+            archiveTuneCanvasEnabled &&
+                !lowDataModeActive &&
+                (playerDesignStyle == PlayerDesignStyle.V8 || playerDesignStyle == PlayerDesignStyle.V9) &&
+                !aodModeEnabled
         var v7CanvasArtwork by remember(mediaMetadata?.id) {
             mutableStateOf<CanvasArtwork?>(null)
         }
         var v7CanvasFetchInFlight by remember(mediaMetadata?.id) {
+            mutableStateOf(false)
+        }
+        var artworkCanvas by remember(mediaMetadata?.id) {
+            mutableStateOf<CanvasArtwork?>(null)
+        }
+        var artworkCanvasFetchInFlight by remember(mediaMetadata?.id) {
             mutableStateOf(false)
         }
 
@@ -899,6 +914,47 @@ fun BottomSheetPlayer(
             }
         }
 
+        LaunchedEffect(shouldUseArtworkCanvas, mediaMetadata?.id) {
+            val metadata = mediaMetadata
+            if (!shouldUseArtworkCanvas || metadata == null) {
+                artworkCanvas = null
+                artworkCanvasFetchInFlight = false
+                return@LaunchedEffect
+            }
+
+            CanvasArtworkPlaybackCache.get(metadata.id)
+                ?.takeIf { !it.preferredAnimationUrl.isNullOrBlank() }
+                ?.let { cached ->
+                    artworkCanvas = cached
+                    artworkCanvasFetchInFlight = false
+                    return@LaunchedEffect
+                }
+
+            val artistNameRaw = metadata.artists.firstOrNull()?.name.orEmpty()
+            if (metadata.title.isBlank() || artistNameRaw.isBlank() || artworkCanvasFetchInFlight) {
+                return@LaunchedEffect
+            }
+
+            artworkCanvasFetchInFlight = true
+            try {
+                val fetched =
+                    withContext(Dispatchers.IO) {
+                        fetchCanvasArtworkForPlayback(
+                            songTitleRaw = metadata.title,
+                            artistNameRaw = artistNameRaw,
+                            storefront = storefront,
+                            requireVertical = false,
+                        )
+                    }
+                artworkCanvas = fetched
+                if (fetched != null) {
+                    CanvasArtworkPlaybackCache.put(metadata.id, fetched)
+                }
+            } finally {
+                artworkCanvasFetchInFlight = false
+            }
+        }
+
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             PlayerControlsContent(
                 mediaMetadata = mediaMetadata,
@@ -934,7 +990,8 @@ fun BottomSheetPlayer(
             !aodModeEnabled &&
             playerDesignStyle != PlayerDesignStyle.V5 &&
             playerDesignStyle != PlayerDesignStyle.V7 &&
-            playerDesignStyle != PlayerDesignStyle.V8
+            playerDesignStyle != PlayerDesignStyle.V8 &&
+            playerDesignStyle != PlayerDesignStyle.V9
         ) {
             PlayerBackground(
                 playerBackground = playerBackground,
@@ -1086,6 +1143,8 @@ fun BottomSheetPlayer(
                                 menuState = menuState,
                                 bottomSheetPageState = bottomSheetPageState,
                                 currentFormat = currentFormat,
+                                canvasPrimaryUrl = artworkCanvas?.animated,
+                                canvasFallbackUrl = artworkCanvas?.videoUrl,
                                 onSliderValueChange = onSliderValueChange,
                                 onSliderValueChangeFinished = onSliderValueChangeFinished,
                                 onVolumeChange = {
@@ -1120,6 +1179,8 @@ fun BottomSheetPlayer(
                             textBackgroundColor = TextBackgroundColor,
                             textButtonColor = textButtonColor,
                             iconButtonColor = iconButtonColor,
+                            canvasPrimaryUrl = artworkCanvas?.animated,
+                            canvasFallbackUrl = artworkCanvas?.videoUrl,
                             onCollapseClick = { state.collapseSoft() },
                             onQueueClick = { queueSheetState.expandSoft() },
                             onLyricsClick = { isLyricsScreenVisible = true },
@@ -1312,6 +1373,8 @@ fun BottomSheetPlayer(
                                 menuState = menuState,
                                 bottomSheetPageState = bottomSheetPageState,
                                 currentFormat = currentFormat,
+                                canvasPrimaryUrl = artworkCanvas?.animated,
+                                canvasFallbackUrl = artworkCanvas?.videoUrl,
                                 onSliderValueChange = onSliderValueChange,
                                 onSliderValueChangeFinished = onSliderValueChangeFinished,
                                 onVolumeChange = {
@@ -1345,6 +1408,8 @@ fun BottomSheetPlayer(
                             textBackgroundColor = TextBackgroundColor,
                             textButtonColor = textButtonColor,
                             iconButtonColor = iconButtonColor,
+                            canvasPrimaryUrl = artworkCanvas?.animated,
+                            canvasFallbackUrl = artworkCanvas?.videoUrl,
                             onCollapseClick = { state.collapseSoft() },
                             onQueueClick = { queueSheetState.expandSoft() },
                             onLyricsClick = { isLyricsScreenVisible = true },
