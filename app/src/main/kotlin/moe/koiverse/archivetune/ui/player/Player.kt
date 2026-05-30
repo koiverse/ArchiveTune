@@ -223,7 +223,7 @@ private const val V7BackdropMinArtworkSizePx = 1_024
 private const val V7BackdropMaxArtworkSizePx = 2_048
 private const val V7BackdropOverscanFactor = 1.15f
 private const val V7BackdropSharpArtworkScale = 1.03f
-private const val V7BackdropBlurredArtworkScale = 1.16f
+private const val V7BackdropBlurredArtworkScale = 1.22f
 private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1658,12 +1658,13 @@ private fun V7PlayerBackdrop(
         val canvasFallback = canvasFallbackUrl?.takeIf { it.isNotBlank() }
         val canvasStatic = canvasStaticUrl?.takeIf { it.isNotBlank() }
         val backdropState =
-            remember(thumbnailUrl, canvasStatic, canvasPrimary, canvasFallback) {
+            remember(thumbnailUrl, canvasStatic, canvasPrimary, canvasFallback, disableBlur) {
                 V7PlayerBackdropState(
                     thumbnailUrl = thumbnailUrl,
                     canvasStaticUrl = canvasStatic,
                     canvasPrimaryUrl = canvasPrimary,
                     canvasFallbackUrl = canvasFallback,
+                    disableBlur = disableBlur,
                 )
             }
 
@@ -1706,7 +1707,7 @@ private fun V7PlayerBackdrop(
                         )
                     }
 
-                    if (!disableBlur) {
+                    if (!backdrop.disableBlur) {
                         V7FrostedArtworkOverlay(
                             artworkModel = backdropArtworkModel,
                             maskStart = blurMaskStart,
@@ -1789,7 +1790,7 @@ private fun V7FrostedArtworkOverlay(
                     scaleX = V7BackdropBlurredArtworkScale
                     scaleY = V7BackdropBlurredArtworkScale
                 }
-                .blur(48.dp)
+                .blur(64.dp)
                 .graphicsLayer {
                     compositingStrategy = CompositingStrategy.Offscreen
                     alpha = 0.92f
@@ -1839,6 +1840,7 @@ private data class V7PlayerBackdropState(
     val canvasStaticUrl: String?,
     val canvasPrimaryUrl: String?,
     val canvasFallbackUrl: String?,
+    val disableBlur: Boolean,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
