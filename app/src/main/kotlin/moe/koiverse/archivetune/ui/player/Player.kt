@@ -150,7 +150,6 @@ import androidx.navigation.NavController
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.imageLoader
-import com.skydoves.cloudy.cloudy
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
@@ -219,10 +218,12 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 private const val SeekbarSettleToleranceMs = 1_500L
-private const val V7BackdropBlurHeightFraction = 0.54f // The height of the blur layout in PlayerDesignStyle V7
+private const val V7BackdropBlurHeightFraction = 0.56f
 private const val V7BackdropMinArtworkSizePx = 1_024
 private const val V7BackdropMaxArtworkSizePx = 2_048
 private const val V7BackdropOverscanFactor = 1.15f
+private const val V7BackdropSharpArtworkScale = 1.03f
+private const val V7BackdropBlurredArtworkScale = 1.16f
 private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1084,6 +1085,7 @@ fun BottomSheetPlayer(
                     ) {
                         V7PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            canvasStaticUrl = v7CanvasArtwork?.static,
                             canvasPrimaryUrl = v7CanvasArtwork?.animatedVertical,
                             canvasFallbackUrl = v7CanvasArtwork?.videoUrlVertical,
                             isPlaying = isPlaying,
@@ -1314,6 +1316,7 @@ fun BottomSheetPlayer(
                     ) {
                         V7PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            canvasStaticUrl = v7CanvasArtwork?.static,
                             canvasPrimaryUrl = v7CanvasArtwork?.animatedVertical,
                             canvasFallbackUrl = v7CanvasArtwork?.videoUrlVertical,
                             isPlaying = isPlaying,
@@ -1619,6 +1622,7 @@ private fun V8PlayerBackdrop(
 @Composable
 private fun V7PlayerBackdrop(
     thumbnailUrl: String?,
+    canvasStaticUrl: String?,
     canvasPrimaryUrl: String?,
     canvasFallbackUrl: String?,
     isPlaying: Boolean,
@@ -1628,22 +1632,20 @@ private fun V7PlayerBackdrop(
 ) {
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
-    val cloudyRadius = 100
     val blurMaskStart = (1f - V7BackdropBlurHeightFraction).coerceIn(0f, 0.85f)
-    val blurMaskMid = (blurMaskStart + 0.12f).coerceIn(blurMaskStart, 0.95f)
-    val blurMaskSolid = (blurMaskStart + 0.22f).coerceIn(blurMaskMid, 1f)
-    val baseArtworkScale = if (disableBlur) 1.03f else 1.06f
-    val baseArtworkAlpha = if (disableBlur) 0.72f else 0.82f
+    val blurMaskMid = (blurMaskStart + 0.14f).coerceIn(blurMaskStart, 0.95f)
+    val blurMaskSolid = (blurMaskStart + 0.28f).coerceIn(blurMaskMid, 1f)
+    val backdropScale = if (disableBlur) 1.01f else V7BackdropSharpArtworkScale
     val surfaceTint = MaterialTheme.colorScheme.surface
     val backdropArtworkSizePx = remember(
         configuration.screenWidthDp,
         configuration.screenHeightDp,
         density.density,
-        baseArtworkScale,
+        backdropScale,
     ) {
         with(density) {
             (maxOf(configuration.screenWidthDp, configuration.screenHeightDp).dp.toPx() *
-                maxOf(baseArtworkScale, V7BackdropOverscanFactor))
+                maxOf(backdropScale, V7BackdropOverscanFactor))
                 .roundToInt()
                 .coerceIn(V7BackdropMinArtworkSizePx, V7BackdropMaxArtworkSizePx)
         }
@@ -1654,10 +1656,12 @@ private fun V7PlayerBackdrop(
     ) {
         val canvasPrimary = canvasPrimaryUrl?.takeIf { it.isNotBlank() }
         val canvasFallback = canvasFallbackUrl?.takeIf { it.isNotBlank() }
+        val canvasStatic = canvasStaticUrl?.takeIf { it.isNotBlank() }
         val backdropState =
-            remember(thumbnailUrl, canvasPrimary, canvasFallback) {
+            remember(thumbnailUrl, canvasStatic, canvasPrimary, canvasFallback) {
                 V7PlayerBackdropState(
                     thumbnailUrl = thumbnailUrl,
+                    canvasStaticUrl = canvasStatic,
                     canvasPrimaryUrl = canvasPrimary,
                     canvasFallbackUrl = canvasFallback,
                 )
@@ -1673,7 +1677,7 @@ private fun V7PlayerBackdrop(
             val hasCanvas =
                 !backdrop.canvasPrimaryUrl.isNullOrBlank() ||
                     !backdrop.canvasFallbackUrl.isNullOrBlank()
-            val artworkUrl = backdrop.thumbnailUrl
+            val artworkUrl = backdrop.canvasStaticUrl ?: backdrop.thumbnailUrl
             if (artworkUrl != null) {
                 val backdropArtworkModel = remember(artworkUrl, backdropArtworkSizePx) {
                     artworkUrl.resize(backdropArtworkSizePx, backdropArtworkSizePx)
@@ -1687,45 +1691,10 @@ private fun V7PlayerBackdrop(
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
-                                scaleX = baseArtworkScale
-                                scaleY = baseArtworkScale
-                                alpha = baseArtworkAlpha
+                                scaleX = backdropScale
+                                scaleY = backdropScale
                             }
                     )
-
-                    if (!disableBlur) {
-                        AsyncImage(
-                            model = backdropArtworkModel,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .cloudy(radius = cloudyRadius)
-                                .graphicsLayer {
-                                    compositingStrategy = CompositingStrategy.Offscreen
-                                    alpha = 1f
-                                }
-                                .drawWithCache {
-                                    val blurMask = Brush.verticalGradient(
-                                        colorStops = arrayOf(
-                                            0f to Color.Transparent,
-                                            blurMaskStart to Color.Transparent,
-                                            blurMaskMid to Color.Black.copy(alpha = 0.6f),
-                                            blurMaskSolid to Color.Black,
-                                            1f to Color.Black,
-                                        )
-                                    )
-
-                                    onDrawWithContent {
-                                        drawContent()
-                                        drawRect(
-                                            brush = blurMask,
-                                            blendMode = BlendMode.DstIn,
-                                        )
-                                    }
-                                }
-                        )
-                    }
 
                     if (hasCanvas) {
                         CanvasArtworkPlayer(
@@ -1734,6 +1703,15 @@ private fun V7PlayerBackdrop(
                             isPlaying = isPlaying,
                             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
                             modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
+                    if (!disableBlur) {
+                        V7FrostedArtworkOverlay(
+                            artworkModel = backdropArtworkModel,
+                            maskStart = blurMaskStart,
+                            maskMid = blurMaskMid,
+                            maskSolid = blurMaskSolid,
                         )
                     }
                 }
@@ -1766,10 +1744,10 @@ private fun V7PlayerBackdrop(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.18f),
-                            0.34f to Color.Transparent,
-                            0.64f to Color.Black.copy(alpha = 0.22f),
-                            1f to Color.Black.copy(alpha = 0.82f),
+                            0f to Color.Black.copy(alpha = 0.2f),
+                            0.32f to Color.Transparent,
+                            0.62f to Color.Black.copy(alpha = 0.14f),
+                            1f to Color.Black.copy(alpha = 0.66f),
                         )
                     )
                 )
@@ -1782,9 +1760,72 @@ private fun V7PlayerBackdrop(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
-                            0.56f to Color.Transparent,
-                            0.8f to surfaceTint.copy(alpha = 0.16f),
-                            1f to surfaceTint.copy(alpha = 0.3f),
+                            blurMaskStart to Color.Transparent,
+                            0.82f to surfaceTint.copy(alpha = 0.1f),
+                            1f to surfaceTint.copy(alpha = 0.18f),
+                        )
+                    )
+                )
+        )
+    }
+}
+
+@Composable
+private fun V7FrostedArtworkOverlay(
+    artworkModel: String,
+    maskStart: Float,
+    maskMid: Float,
+    maskSolid: Float,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxSize()) {
+        AsyncImage(
+            model = artworkModel,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = V7BackdropBlurredArtworkScale
+                    scaleY = V7BackdropBlurredArtworkScale
+                }
+                .blur(48.dp)
+                .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
+                    alpha = 0.92f
+                }
+                .drawWithCache {
+                    val blurMask = Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color.Transparent,
+                            maskStart to Color.Transparent,
+                            maskMid to Color.Black.copy(alpha = 0.64f),
+                            maskSolid to Color.Black,
+                            1f to Color.Black,
+                        )
+                    )
+
+                    onDrawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = blurMask,
+                            blendMode = BlendMode.DstIn,
+                        )
+                    }
+                },
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color.Transparent,
+                            maskStart to Color.Transparent,
+                            maskMid to Color.White.copy(alpha = 0.08f),
+                            maskSolid to Color.Black.copy(alpha = 0.16f),
+                            1f to Color.Black.copy(alpha = 0.38f),
                         )
                     )
                 )
@@ -1795,6 +1836,7 @@ private fun V7PlayerBackdrop(
 @Immutable
 private data class V7PlayerBackdropState(
     val thumbnailUrl: String?,
+    val canvasStaticUrl: String?,
     val canvasPrimaryUrl: String?,
     val canvasFallbackUrl: String?,
 )
