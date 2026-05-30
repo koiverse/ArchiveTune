@@ -510,16 +510,52 @@ enum class QuickPicks {
 }
 
 enum class PreferredLyricsProvider {
+    BETTER_LYRICS,
     LRCLIB,
     KUGOU,
-    BETTER_LYRICS,
     SIMPMUSIC,
+    UNISON,
     PAXSENIX_APPLE_MUSIC,
     PAXSENIX_NETEASE,
     PAXSENIX_SPOTIFY,
     PAXSENIX_MUSIXMATCH,
     PAXSENIX_KUGOU,
-    UNISON,
+}
+
+val DefaultLyricsProviderOrder = listOf(
+    PreferredLyricsProvider.BETTER_LYRICS,
+    PreferredLyricsProvider.LRCLIB,
+    PreferredLyricsProvider.KUGOU,
+    PreferredLyricsProvider.SIMPMUSIC,
+    PreferredLyricsProvider.UNISON,
+    PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC,
+    PreferredLyricsProvider.PAXSENIX_NETEASE,
+    PreferredLyricsProvider.PAXSENIX_SPOTIFY,
+    PreferredLyricsProvider.PAXSENIX_MUSIXMATCH,
+    PreferredLyricsProvider.PAXSENIX_KUGOU,
+)
+
+fun deserializeLyricsProviderOrder(orderStr: String?): List<PreferredLyricsProvider> {
+    if (orderStr.isNullOrBlank()) return DefaultLyricsProviderOrder
+
+    val parsed = orderStr
+        .split(",")
+        .mapNotNull { name ->
+            PreferredLyricsProvider.entries.find { it.name == name.trim() }
+        }
+        .distinct()
+
+    val normalized = when {
+        parsed.take(3) == listOf(
+            PreferredLyricsProvider.LRCLIB,
+            PreferredLyricsProvider.KUGOU,
+            PreferredLyricsProvider.BETTER_LYRICS,
+        ) -> listOf(PreferredLyricsProvider.BETTER_LYRICS) + parsed.filterNot { it == PreferredLyricsProvider.BETTER_LYRICS }
+        else -> parsed
+    }
+
+    val missing = DefaultLyricsProviderOrder.filterNot { it in normalized }
+    return normalized + missing
 }
 
 enum class PlayerButtonsStyle {
