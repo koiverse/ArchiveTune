@@ -11,8 +11,9 @@ import android.content.Context
 import android.util.Log
 import android.util.LruCache
 import moe.koiverse.archivetune.utils.GlobalLog
-import moe.koiverse.archivetune.constants.PreferredLyricsProvider
 import moe.koiverse.archivetune.constants.LyricsProviderOrderKey
+import moe.koiverse.archivetune.constants.PreferredLyricsProvider
+import moe.koiverse.archivetune.constants.deserializeLyricsProviderOrder
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.utils.dataStore
@@ -40,11 +41,11 @@ constructor(
 ) {
     private val baseProviders =
         listOf(
-            SimpMusicLyricsProvider,
             BetterLyricsProvider,
-            UnisonLyricsProvider,
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
+            SimpMusicLyricsProvider,
+            UnisonLyricsProvider,
             PaxsenixAppleMusicLyricsProvider,
             PaxsenixNeteaseLyricsProvider,
             PaxsenixSpotifyLyricsProvider,
@@ -84,9 +85,9 @@ constructor(
             return LYRICS_NOT_FOUND
         }
 
-        val ordered = orderedProviders()
-        val providers = if (preferredProviderOnly) listOf(ordered.first()) else ordered
-        val lyrics = fetchFirstMeaningfulLyrics(providers, mediaMetadata)
+        val ordered = orderedProviders().filter { it.isEnabled(context) }
+        val providers = if (preferredProviderOnly) ordered.take(1) else ordered
+        val lyrics = fetchPriorityLyrics(providers, mediaMetadata)
         if (isMeaningfulLyrics(lyrics)) {
             singleLyricsCache.put(cacheKey, lyrics)
         }
@@ -126,17 +127,17 @@ constructor(
         val providers = orderedProviders()
         currentLyricsJob = CoroutineScope(SupervisorJob() + Dispatchers.IO).async {
             providers.forEach { provider ->
-                if (provider.isEnabled(context)) {
-                    try {
-                        provider.getAllLyrics(mediaId, songTitle, songArtists, songAlbum, duration) lyricsCallback@{ lyrics ->
-                            if (!isMeaningfulLyrics(lyrics)) return@lyricsCallback
-                            val result = LyricsResult(provider.name, lyrics)
-                            allResult += result
-                            callback(result)
-                        }
-                    } catch (e: Exception) {
-                        reportException(e)
+                if (!provider.isEnabled(context)) return@forEach
+
+                try {
+                    provider.getAllLyrics(mediaId, songTitle, songArtists, songAlbum, duration) lyricsCallback@{ lyrics ->
+                        if (!isMeaningfulLyrics(lyrics)) return@lyricsCallback
+                        val result = LyricsResult(provider.name, lyrics)
+                        allResult += result
+                        callback(result)
                     }
+                } catch (e: Exception) {
+                    reportException(e)
                 }
             }
             cache.put(cacheKey, allResult)
@@ -145,14 +146,27 @@ constructor(
         currentLyricsJob?.join()
     }
 
+    private suspend fun fetchPriorityLyrics(
+        providers: List<LyricsProvider>,
+        mediaMetadata: MediaMetadata,
+    ): String {
+        if (providers.isEmpty()) return LYRICS_NOT_FOUND
+
+        val artist = mediaMetadata.artists.joinToString { it.name }
+        fetchProviderLyrics(providers.first(), mediaMetadata, artist)?.let { lyrics ->
+            return lyrics
+        }
+
+        return fetchFirstMeaningfulLyrics(providers.drop(1), mediaMetadata, artist)
+    }
+
     private suspend fun fetchFirstMeaningfulLyrics(
         providers: List<LyricsProvider>,
         mediaMetadata: MediaMetadata,
+        artist: String,
     ): String = supervisorScope {
-        val artist = mediaMetadata.artists.joinToString { it.name }
         val requests =
             providers
-                .filter { it.isEnabled(context) }
                 .map { provider ->
                     async(Dispatchers.IO) {
                         fetchProviderLyrics(provider, mediaMetadata, artist)
@@ -209,7 +223,7 @@ constructor(
 
     private suspend fun orderedProviders(): List<LyricsProvider> {
         val orderStr = context.dataStore.data.first()[LyricsProviderOrderKey]
-        val orderedEnums = deserializeProviderOrder(orderStr)
+        val orderedEnums = deserializeLyricsProviderOrder(orderStr)
         val providerMap: Map<PreferredLyricsProvider, LyricsProvider> = mapOf(
             PreferredLyricsProvider.LRCLIB to LrcLibLyricsProvider,
             PreferredLyricsProvider.KUGOU to KuGouLyricsProvider,
@@ -225,15 +239,6 @@ constructor(
         val userOrdered = orderedEnums.mapNotNull { providerMap[it] }
         val rest = baseProviders.filterNot { it in userOrdered }
         return userOrdered + rest
-    }
-
-    private fun deserializeProviderOrder(orderStr: String?): List<PreferredLyricsProvider> {
-        if (orderStr.isNullOrBlank()) return PreferredLyricsProvider.entries
-        val parsed = orderStr.split(",").mapNotNull { name ->
-            PreferredLyricsProvider.entries.find { it.name == name.trim() }
-        }
-        val missing = PreferredLyricsProvider.entries.filterNot { it in parsed }
-        return parsed + missing
     }
 
     private fun isMeaningfulLyrics(lyrics: String): Boolean {
