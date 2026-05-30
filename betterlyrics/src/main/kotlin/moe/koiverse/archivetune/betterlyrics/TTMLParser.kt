@@ -29,6 +29,9 @@ object TTMLParser {
         val words: List<ParsedWord>,
         val isBackground: Boolean = false,
         val agent: String? = null,
+        val providerRomanizedText: String? = null,
+        val providerRomanizedWords: List<String>? = null,
+        val providerRomanizedLanguage: String? = null,
     )
 
     data class ParsedWord(
@@ -42,6 +45,14 @@ object TTMLParser {
         val tickRate: Double,
         val frameRate: Double,
     )
+
+    private data class ParsedTransliteration(
+        val text: String,
+        val words: List<String>,
+        val language: String?,
+    )
+
+    private val whitespaceRegex = Regex("\\s+")
 
     private fun isCjk(text: String): Boolean {
         return text.any { c ->
@@ -69,6 +80,7 @@ object TTMLParser {
             val builder = factory.newDocumentBuilder()
             val doc = builder.parse(ttml.byteInputStream())
             val timingContext = readTimingContext(doc.documentElement)
+            val transliterations = parseTransliterations(doc.documentElement)
 
             val divElements = doc.getElementsByTagName("*")
 
@@ -101,6 +113,8 @@ object TTMLParser {
                                 .firstOrNull { it.nodeName.endsWith("agent", ignoreCase = true) }
                                 ?.nodeValue?.takeIf { it.isNotEmpty() }
                         }
+                    val lineKey = readAttributeBySuffix(pElement, "key")
+                    val transliteration = lineKey?.let(transliterations::get)
 
                     val words = mutableListOf<ParsedWord>()
                     val lineText = StringBuilder()
@@ -258,6 +272,9 @@ object TTMLParser {
                                 words = words,
                                 isBackground = false,
                                 agent = agent,
+                                providerRomanizedText = transliteration?.text,
+                                providerRomanizedWords = transliteration?.words,
+                                providerRomanizedLanguage = transliteration?.language,
                             )
                         )
                     }
@@ -290,6 +307,8 @@ object TTMLParser {
                                 .firstOrNull { it.nodeName.endsWith("agent", ignoreCase = true) }
                                 ?.nodeValue?.takeIf { it.isNotEmpty() }
                         }
+                    val lineKey = readAttributeBySuffix(pElement, "key")
+                    val transliteration = lineKey?.let(transliterations::get)
 
                     val words = mutableListOf<ParsedWord>()
                     val lineText = StringBuilder()
@@ -450,6 +469,9 @@ object TTMLParser {
                                 words = words,
                                 isBackground = false,
                                 agent = agent,
+                                providerRomanizedText = transliteration?.text,
+                                providerRomanizedWords = transliteration?.words,
+                                providerRomanizedLanguage = transliteration?.language,
                             )
                         )
                     }
@@ -461,6 +483,84 @@ object TTMLParser {
         }
 
         return lines.sortedBy { it.startTime }
+    }
+
+    private fun parseTransliterations(root: Element): Map<String, ParsedTransliteration> {
+        val latinTransliterations = linkedMapOf<String, ParsedTransliteration>()
+        val fallbackTransliterations = linkedMapOf<String, ParsedTransliteration>()
+        val elements = root.getElementsByTagName("*")
+
+        for (i in 0 until elements.length) {
+            val transliterationElement = elements.item(i) as? Element ?: continue
+            if (!transliterationElement.tagName.endsWith("transliteration", ignoreCase = true)) continue
+
+            val language = readAttributeBySuffix(transliterationElement, "lang")
+            val target = if (language?.contains("Latn", ignoreCase = true) == true) {
+                latinTransliterations
+            } else {
+                fallbackTransliterations
+            }
+
+            val textElements = transliterationElement.getElementsByTagName("*")
+            for (textIndex in 0 until textElements.length) {
+                val textElement = textElements.item(textIndex) as? Element ?: continue
+                if (!textElement.tagName.endsWith("text", ignoreCase = true)) continue
+
+                val lineKey = readAttributeBySuffix(textElement, "for") ?: continue
+                val parsed = parseTransliterationLine(textElement, language)
+                if (parsed.text.isNotBlank() && lineKey !in target) {
+                    target[lineKey] = parsed
+                }
+            }
+        }
+
+        return fallbackTransliterations.apply { putAll(latinTransliterations) }
+    }
+
+    private fun parseTransliterationLine(
+        element: Element,
+        language: String?,
+    ): ParsedTransliteration {
+        val lineText = StringBuilder()
+        val words = mutableListOf<String>()
+        parseTransliterationNodes(element, lineText, words)
+
+        return ParsedTransliteration(
+            text = normalizeProvidedRomanization(lineText.toString()).orEmpty(),
+            words = words.mapNotNull(::normalizeProvidedRomanization),
+            language = language,
+        )
+    }
+
+    private fun parseTransliterationNodes(
+        element: Element,
+        lineText: StringBuilder,
+        words: MutableList<String>,
+    ) {
+        val childNodes = element.childNodes
+        for (i in 0 until childNodes.length) {
+            val node = childNodes.item(i)
+            when (node.nodeType) {
+                Node.ELEMENT_NODE -> {
+                    val childElement = node as Element
+                    if (childElement.tagName.endsWith("span", ignoreCase = true)) {
+                        val rawText = childElement.textContent.orEmpty()
+                        lineText.append(rawText)
+                        normalizeProvidedRomanization(rawText)?.let(words::add)
+                    } else {
+                        parseTransliterationNodes(childElement, lineText, words)
+                    }
+                }
+                Node.TEXT_NODE -> lineText.append(node.textContent.orEmpty())
+            }
+        }
+    }
+
+    private fun normalizeProvidedRomanization(text: String): String? {
+        return text
+            .replace(whitespaceRegex, " ")
+            .trim()
+            .takeIf { it.isNotEmpty() }
     }
 
     private fun parseSpanElements(
@@ -633,6 +733,23 @@ object TTMLParser {
             tickRate = tickRate,
             frameRate = frameRate,
         )
+    }
+
+    private fun readAttributeBySuffix(element: Element, suffix: String): String? {
+        val directValue = element.getAttribute(suffix)
+            .takeIf { it.isNotBlank() }
+        if (directValue != null) return directValue
+
+        val attrs = element.attributes ?: return null
+        for (i in 0 until attrs.length) {
+            val node = attrs.item(i) ?: continue
+            val name = node.nodeName ?: continue
+            if (name.equals(suffix, ignoreCase = true) || name.endsWith(":$suffix", ignoreCase = true)) {
+                val value = node.nodeValue?.trim()
+                if (!value.isNullOrEmpty()) return value
+            }
+        }
+        return null
     }
 
     private fun parseTime(timeStr: String, timingContext: TimingContext): Double {
