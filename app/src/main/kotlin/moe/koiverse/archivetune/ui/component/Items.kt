@@ -14,6 +14,7 @@
 
 
 
+
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package moe.koiverse.archivetune.ui.component
@@ -357,6 +358,7 @@ fun SongListItem(
     showLikedIcon: Boolean = true,
     showInLibraryIcon: Boolean = false,
     showDownloadIcon: Boolean = true,
+    showSongIconPlaceholder: Boolean = false,
     badges: @Composable RowScope.() -> Unit = {
         if (showLikedIcon && song.song.liked) {
             Icon.Favorite()
@@ -400,6 +402,7 @@ fun SongListItem(
                     isActive = isActive,
                     isPlaying = isPlaying,
                     shape = RoundedCornerShape(ThumbnailCornerRadius),
+                    placeholderIconRes = if (showSongIconPlaceholder) R.drawable.music_note else null,
                     modifier = Modifier.size(ListThumbnailSize)
                 )
             },
@@ -1538,6 +1541,7 @@ fun ItemThumbnail(
     albumIndex: Int? = null,
     isSelected: Boolean = false,
     shouldLoadImage: Boolean = true,
+    @DrawableRes placeholderIconRes: Int? = null,
     thumbnailRatio: Float = 1f
 ) {
     val context = LocalContext.current
@@ -1557,7 +1561,23 @@ fun ItemThumbnail(
         val heightPx = if (maxHeight == Dp.Infinity) null else with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
 
         if (albumIndex == null) {
-            if (shouldLoadImage) {
+            if (placeholderIconRes != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(placeholderIconRes),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(ListThumbnailSize * 0.48f),
+                    )
+                }
+            }
+
+            if (shouldLoadImage && !thumbnailUrl.isNullOrBlank()) {
                 val request = remember(thumbnailUrl, widthPx, heightPx) {
                     ImageRequest.Builder(context)
                         .data(thumbnailUrl?.resize(544, 544))
@@ -1577,7 +1597,7 @@ fun ItemThumbnail(
                         .fillMaxSize()
                         .let { if (shouldApplySquareCrop) it.aspectRatio(1f) else it }
                 )
-            } else {
+            } else if (placeholderIconRes == null) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
