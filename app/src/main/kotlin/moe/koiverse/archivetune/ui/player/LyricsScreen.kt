@@ -294,6 +294,7 @@ fun LyricsScreen(
             AppleMusicTrackHeader(
                 mediaMetadata = mediaMetadata,
                 onMoreClick = showLyricsMenu,
+                onDismissClick = onBackClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
@@ -504,6 +505,7 @@ private fun AppleMusicGrabber(
 private fun AppleMusicTrackHeader(
     mediaMetadata: MediaMetadata,
     onMoreClick: () -> Unit,
+    onDismissClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val artistText = remember(mediaMetadata.id, mediaMetadata.artists) {
@@ -561,31 +563,52 @@ private fun AppleMusicTrackHeader(
 
         Spacer(modifier = Modifier.width(12.dp))
 
+        AppleMusicHeaderIconButton(
+            iconRes = R.drawable.close,
+            contentDescription = stringResource(R.string.close),
+            onClick = onDismissClick,
+        )
+
+        Spacer(modifier = Modifier.width(4.dp))
+
+        AppleMusicHeaderIconButton(
+            iconRes = R.drawable.more_horiz,
+            contentDescription = stringResource(R.string.more_options),
+            onClick = onMoreClick,
+        )
+    }
+}
+
+@Composable
+private fun AppleMusicHeaderIconButton(
+    iconRes: Int,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = false, radius = 24.dp),
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(bounded = false, radius = 24.dp),
-                    role = Role.Button,
-                    onClick = onMoreClick,
-                ),
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(AppleMusicForeground.copy(alpha = 0.18f)),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(AppleMusicForeground.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.more_horiz),
-                    contentDescription = stringResource(R.string.more_options),
-                    tint = AppleMusicForeground,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = contentDescription,
+                tint = AppleMusicForeground,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }
@@ -819,14 +842,12 @@ private fun LyricsContent(
             lyricsSyncOffset = lyricsSyncOffset,
             modifier = modifier,
             textColorOverride = textColor,
-            lyricsLineBlurOverride = false,
         )
         LyricsMode.ENHANCED -> LyricsEnhanced(
             sliderPositionProvider = sliderPositionProvider,
             lyricsSyncOffset = lyricsSyncOffset,
             modifier = modifier,
             textColorOverride = textColor,
-            lyricsLineBlurOverride = false,
         )
     }
 }
