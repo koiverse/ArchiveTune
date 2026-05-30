@@ -34,6 +34,9 @@ data class LyricsEntry(
     val agent: String? = null,
     val isInstrumental: Boolean = false,
     val durationMs: Long = 0L,
+    val providerRomanizedText: String? = null,
+    val providerRomanizedWords: List<String>? = null,
+    val providerRomanizedLanguage: String? = null,
     val romanizedTextFlow: MutableStateFlow<String?> = MutableStateFlow(null)
 ) : Comparable<LyricsEntry> {
     override fun compareTo(other: LyricsEntry): Int = (time - other.time).toInt()
