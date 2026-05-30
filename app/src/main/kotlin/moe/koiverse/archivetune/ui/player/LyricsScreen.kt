@@ -10,6 +10,7 @@
 package moe.koiverse.archivetune.ui.player
 
 import android.content.res.Configuration
+import android.util.LruCache
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -193,7 +194,7 @@ fun LyricsScreen(
     var sliderPosition by remember(mediaMetadata.id) { mutableStateOf<Long?>(null) }
     var lyricsSyncOffset by remember(mediaMetadata.id) { mutableIntStateOf(0) }
     var gradientColors by remember { mutableStateOf(AppleMusicFallbackGradient) }
-    val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
+    val gradientColorsCache = remember { LruCache<String, List<Color>>(32) }
     val fallbackColor = remember { AppleMusicFallbackGradient[1].toArgb() }
 
     LaunchedEffect(mediaMetadata.id, mediaMetadata.thumbnailUrl) {
@@ -225,15 +226,21 @@ fun LyricsScreen(
                 null
             } else {
                 val bitmap = image.toBitmap()
-                withContext(Dispatchers.Default) {
-                    val palette = Palette.from(bitmap)
-                        .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
-                        .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
-                        .generate()
-                    PlayerColorExtractor.extractGradientColors(
-                        palette = palette,
-                        fallbackColor = fallbackColor,
-                    )
+                try {
+                    withContext(Dispatchers.Default) {
+                        val palette = Palette.from(bitmap)
+                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                            .generate()
+                        PlayerColorExtractor.extractGradientColors(
+                            palette = palette,
+                            fallbackColor = fallbackColor,
+                        )
+                    }
+                } finally {
+                    if (!bitmap.isRecycled) {
+                        bitmap.recycle()
+                    }
                 }
             }
         } catch (e: CancellationException) {

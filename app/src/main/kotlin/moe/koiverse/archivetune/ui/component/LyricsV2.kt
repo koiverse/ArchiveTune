@@ -113,6 +113,7 @@ import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -313,6 +314,7 @@ fun LyricsV2(
         }
 
         entriesWithWords.forEach { entry ->
+            ensureActive()
             val providerRomanized = providedRomanizedTextForEntry(entry, romanizationPreferences)
             if (providerRomanized != null) {
                 if (entry.romanizedTextFlow.value != providerRomanized) {
@@ -328,15 +330,13 @@ fun LyricsV2(
                 return@forEach
             }
 
-            launch {
-                val romanized = try {
-                    romanizeLyricsLine(entry.text, romanizationPreferences)
-                } catch (e: Exception) {
-                    reportException(e)
-                    null
-                }
-                entry.romanizedTextFlow.value = romanized
+            val romanized = try {
+                romanizeLyricsLine(entry.text, romanizationPreferences)
+            } catch (e: Exception) {
+                reportException(e)
+                null
             }
+            entry.romanizedTextFlow.value = romanized
         }
     }
 

@@ -198,6 +198,7 @@ import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -541,6 +542,7 @@ fun Lyrics(
         }
 
         lines.forEach { entry ->
+            ensureActive()
             if (!shouldRomanizeLyricsLine(entry.text, romanizationPreferences)) {
                 if (entry.romanizedTextFlow.value != null) {
                     entry.romanizedTextFlow.value = null
@@ -548,15 +550,13 @@ fun Lyrics(
                 return@forEach
             }
 
-            launch {
-                val romanized = try {
-                    romanizeLyricsLine(entry.text, romanizationPreferences)
-                } catch (e: Exception) {
-                    reportException(e)
-                    null
-                }
-                entry.romanizedTextFlow.value = romanized
+            val romanized = try {
+                romanizeLyricsLine(entry.text, romanizationPreferences)
+            } catch (e: Exception) {
+                reportException(e)
+                null
             }
+            entry.romanizedTextFlow.value = romanized
         }
     }
     val isSynced =
