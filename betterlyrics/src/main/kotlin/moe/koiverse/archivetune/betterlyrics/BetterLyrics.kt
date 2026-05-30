@@ -23,7 +23,8 @@ import kotlinx.serialization.json.Json
 
 object BetterLyrics {
     private const val API_BASE_URL = "https://lyrics-api.boidu.dev/"
-    private const val GET_LYRICS_PATH = "/getLyrics"
+    private const val TTML_LYRICS_PATH = "getLyrics"
+    private const val KUGOU_LYRICS_PATH = "kugou/getLyrics"
     private val jsonFormat by lazy {
         Json {
             isLenient = true
@@ -55,7 +56,7 @@ object BetterLyrics {
 
     var logger: ((String) -> Unit)? = null
 
-    private suspend fun fetchTTML(
+    private suspend fun fetchLyrics(
         artist: String,
         title: String,
         album: String?,
@@ -67,66 +68,92 @@ object BetterLyrics {
 
         if (cleanTitle.isBlank() || cleanArtist.isBlank()) return null
 
-        logger?.invoke(
-            buildString {
-                append("Sending Request to: ")
-                append(API_BASE_URL.trimEnd('/'))
-                append(GET_LYRICS_PATH)
-                append(" (s=")
-                append(cleanTitle)
-                append(", a=")
-                append(cleanArtist)
-                if (cleanAlbum.isNotBlank()) {
-                    append(", al=")
-                    append(cleanAlbum)
-                }
-                if (durationSeconds > 0) {
-                    append(", d=")
-                    append(durationSeconds)
-                }
-                append(")")
+        val endpoints = listOf(TTML_LYRICS_PATH, KUGOU_LYRICS_PATH)
+
+        for (endpoint in endpoints) {
+            fetchLyricsFromEndpoint(
+                endpoint = endpoint,
+                title = cleanTitle,
+                artist = cleanArtist,
+                album = cleanAlbum,
+                durationSeconds = durationSeconds,
+            )?.let { lyrics ->
+                return lyrics
             }
-        )
-        
+        }
+
+        return null
+    }
+
+    private suspend fun fetchLyricsFromEndpoint(
+        endpoint: String,
+        title: String,
+        artist: String,
+        album: String,
+        durationSeconds: Int,
+    ): String? {
+        logger?.invoke(buildRequestLog(endpoint, title, artist, album, durationSeconds))
+
         return try {
-            val response: HttpResponse = client.get(GET_LYRICS_PATH) {
-                parameter("s", cleanTitle)
-                parameter("a", cleanArtist)
-                if (cleanAlbum.isNotBlank()) parameter("al", cleanAlbum)
+            val response: HttpResponse = client.get(endpoint) {
+                parameter("s", title)
+                parameter("a", artist)
+                if (album.isNotBlank()) parameter("al", album)
                 if (durationSeconds > 0) parameter("d", durationSeconds)
             }
             
-            logger?.invoke("Response Status: ${response.status}")
+            logger?.invoke("$endpoint response status: ${response.status}")
     
             val responseText = response.bodyAsText()
-            logger?.invoke("Raw Response: $responseText")
-
             if (!response.status.isSuccess()) {
-                logger?.invoke("Request failed with status: ${response.status}")
+                logger?.invoke("$endpoint request failed with status: ${response.status}")
                 return null
             }
 
-            val ttmlResponse = try {
-                jsonFormat.decodeFromString<TTMLResponse>(responseText)
+            val lyrics = try {
+                decodeLyrics(responseText)
             } catch (e: Exception) {
-                logger?.invoke("JSON Parse Error: ${e.message}")
-                TTMLResponse("")
+                logger?.invoke("$endpoint parse error: ${e.message}")
+                ""
             }
-            val ttml = ttmlResponse.ttml
-            
-            logger?.invoke("Parsed TTML - isBlank: ${ttml.isBlank()}, length: ${ttml.length}, first 50 chars: ${ttml.take(50)}")
-            
-            if (ttml.isNotBlank()) {
-                logger?.invoke("Received TTML (length: ${ttml.length}): ${ttml.take(100)}...")
-            } else {
-                 logger?.invoke("Received empty TTML")
-            }
-            
-            ttml.takeIf { it.isNotBlank() }
+
+            logger?.invoke("$endpoint lyrics length: ${lyrics.length}")
+            lyrics.takeIf { it.isNotBlank() }
         } catch (e: Exception) {
-            logger?.invoke("Error fetching lyrics: ${e.stackTraceToString()}")
+            logger?.invoke("$endpoint error fetching lyrics: ${e.stackTraceToString()}")
             null
         }
+    }
+
+    private fun decodeLyrics(responseText: String): String {
+        val trimmed = responseText.trim()
+        if (trimmed.startsWith("<")) return trimmed
+        return jsonFormat.decodeFromString<TTMLResponse>(responseText).ttml
+    }
+
+    private fun buildRequestLog(
+        endpoint: String,
+        title: String,
+        artist: String,
+        album: String,
+        durationSeconds: Int,
+    ): String = buildString {
+        append("Sending request to ")
+        append(API_BASE_URL)
+        append(endpoint)
+        append(" (s=")
+        append(title)
+        append(", a=")
+        append(artist)
+        if (album.isNotBlank()) {
+            append(", al=")
+            append(album)
+        }
+        if (durationSeconds > 0) {
+            append(", d=")
+            append(durationSeconds)
+        }
+        append(")")
     }
 
     suspend fun getLyrics(
@@ -136,7 +163,7 @@ object BetterLyrics {
         durationSeconds: Int = -1,
     ) = runCatching {
         require(title.isNotBlank() && artist.isNotBlank()) { "Song title and artist are required" }
-        val ttml = fetchTTML(
+        val ttml = fetchLyrics(
             artist = artist,
             title = title,
             album = album,
