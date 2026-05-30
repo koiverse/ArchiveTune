@@ -116,6 +116,7 @@ import moe.koiverse.archivetune.constants.LocalSongsSortTypeKey
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.localmedia.LocalSongScanConfig
+import moe.koiverse.archivetune.localmedia.SupportedLocalAudio
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.SongListItem
@@ -210,10 +211,13 @@ fun LocalSongScreen(
     val visibleSongs by remember(songs, query, sortType, sortDescending, collator) {
         derivedStateOf {
             val normalizedQuery = query.trim()
+            val supportedSongs = songs.filter { song ->
+                SupportedLocalAudio.isSupportedMimeType(song.format?.mimeType)
+            }
             val filteredSongs = if (normalizedQuery.isBlank()) {
-                songs
+                supportedSongs
             } else {
-                songs.filter { song ->
+                supportedSongs.filter { song ->
                     song.song.title.contains(normalizedQuery, ignoreCase = true) ||
                         song.song.albumName.orEmpty().contains(normalizedQuery, ignoreCase = true) ||
                         song.artists.any { artist -> artist.name.contains(normalizedQuery, ignoreCase = true) }
@@ -414,6 +418,7 @@ fun LocalSongScreen(
                         song = song,
                         showInLibraryIcon = false,
                         showDownloadIcon = false,
+                        showSongIconPlaceholder = true,
                         isActive = song.id == mediaMetadata?.id,
                         isPlaying = isPlaying,
                         trailingContent = {
