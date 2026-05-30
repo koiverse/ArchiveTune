@@ -54,6 +54,7 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -242,6 +243,8 @@ fun AppearanceSettings(
     val availableBackgroundStyles = PlayerBackgroundStyle.entries.filter {
         it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     }
+    val isPlayerBackgroundStyleEnabled =
+        playerDesignStyle != PlayerDesignStyle.V8 && playerDesignStyle != PlayerDesignStyle.V9
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useDarkTheme =
         remember(darkMode, isSystemInDarkTheme) {
@@ -255,6 +258,12 @@ fun AppearanceSettings(
 
     var showSliderOptionDialog by rememberSaveable {
         mutableStateOf(false)
+    }
+
+    LaunchedEffect(isPlayerBackgroundStyleEnabled, playerBackground) {
+        if (!isPlayerBackgroundStyleEnabled && playerBackground != PlayerBackgroundStyle.DEFAULT) {
+            onPlayerBackgroundChange(PlayerBackgroundStyle.DEFAULT)
+        }
     }
 
     if (showSliderOptionDialog) {
@@ -444,9 +453,15 @@ fun AppearanceSettings(
             item {
                 EnumListPreference(
                     title = { Text(stringResource(R.string.player_background_style)) },
+                    description = if (isPlayerBackgroundStyleEnabled) {
+                        null
+                    } else {
+                        stringResource(R.string.player_background_style_v8_v9_desc)
+                    },
                     icon = { Icon(painterResource(R.drawable.gradient), null) },
                     selectedValue = playerBackground,
                     onValueSelected = onPlayerBackgroundChange,
+                    isEnabled = isPlayerBackgroundStyleEnabled,
                     valueText = {
                         when (it) {
                             PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
