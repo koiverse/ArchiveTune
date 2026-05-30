@@ -5,9 +5,10 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
+@file:OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package moe.koiverse.archivetune.ui.player
 
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
@@ -19,8 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -31,7 +32,8 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
+import androidx.media3.ui.compose.ContentFrame
+import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import okhttp3.OkHttpClient
@@ -159,6 +161,7 @@ internal fun CanvasArtworkPlayer(
 
     LaunchedEffect(currentUrl, exoPlayer) {
         val normalized = currentUrl.trim()
+        isVideoReady = false
         val lowercaseUrl = normalized.lowercase(Locale.ROOT)
         val mimeType =
             when {
@@ -193,20 +196,22 @@ internal fun CanvasArtworkPlayer(
         label = "canvasAlpha",
     )
 
-    AndroidView(
-        factory = { viewContext ->
-            PlayerView(viewContext).apply {
-                layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                player = exoPlayer
-                useController = false
-                this.resizeMode = resizeMode
-                setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
-            }
-        },
-        update = { view ->
-            if (view.player !== exoPlayer) view.player = exoPlayer
-            if (view.resizeMode != resizeMode) view.resizeMode = resizeMode
-        },
+    ContentFrame(
+        player = exoPlayer,
+        surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
+        contentScale = resizeMode.toContentScale(),
+        keepContentOnReset = false,
+        shutter = {},
         modifier = modifier.alpha(alpha),
     )
 }
+
+private fun Int.toContentScale(): ContentScale =
+    when (this) {
+        AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> ContentScale.Crop
+        AspectRatioFrameLayout.RESIZE_MODE_FILL -> ContentScale.FillBounds
+        AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH,
+        AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT,
+        AspectRatioFrameLayout.RESIZE_MODE_FIT -> ContentScale.Fit
+        else -> ContentScale.Fit
+    }
