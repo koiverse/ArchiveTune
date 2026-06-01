@@ -673,12 +673,18 @@ fun Lyrics(
             currentPlaybackPosition = 0L
             return@LaunchedEffect
         }
+
+        val isTtmlLyrics = isTtml(lyrics!!)
         while (isActive) {
             if (isAppMinimized) {
                 delay(250L)
                 continue
             }
-            withFrameNanos { }
+            if (isTtmlLyrics) {
+                withFrameNanos { }
+            } else {
+                delay(50L)
+            }
             val sliderPosition = sliderPositionProvider()
             val seekingNow = sliderPosition != null
             if (isSeeking != seekingNow) {
