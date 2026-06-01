@@ -224,10 +224,12 @@ private const val V7BackdropMaxArtworkSizePx = 2_048
 private const val V7BackdropOverscanFactor = 1.15f
 private const val V7BackdropSharpArtworkScale = 1.02f
 private const val V7BackdropBlurredArtworkScale = 1.34f
-private const val V7BackdropBlurRadiusDp = 82
+private const val V7BackdropBlurRadiusDp = 96
 private const val V7BackdropMaskStartFraction = 0.60f
 private const val V7BackdropMaskMidFraction = 0.65f
 private const val V7BackdropMaskSolidFraction = 0.71f
+private const val V7FrostedBlurMaskEdgeFraction = 0.52f
+private const val V7FrostedBlurMaskSolidFraction = 0.57f
 private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1897,15 +1899,14 @@ private fun V7FrostedArtworkOverlay(
                 .blur(V7BackdropBlurRadiusDp.dp)
                 .graphicsLayer {
                     compositingStrategy = CompositingStrategy.Offscreen
-                    alpha = 0.98f
+                    alpha = 1f
                 }
                 .drawWithCache {
                     val blurMask = Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
-                            V7BackdropMaskStartFraction to Color.Transparent,
-                            V7BackdropMaskMidFraction to Color.Black.copy(alpha = 0.88f),
-                            V7BackdropMaskSolidFraction to Color.Black,
+                            V7FrostedBlurMaskEdgeFraction to Color.Transparent,
+                            V7FrostedBlurMaskSolidFraction to Color.Black,
                             1f to Color.Black,
                         )
                     )
@@ -1927,10 +1928,10 @@ private fun V7FrostedArtworkOverlay(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
-                            V7BackdropMaskStartFraction to Color.Transparent,
-                            V7BackdropMaskMidFraction to palette.top.copy(alpha = 0.20f),
-                            V7BackdropMaskSolidFraction to palette.mid.copy(alpha = 0.48f),
-                            1f to palette.bottom.copy(alpha = 0.82f),
+                            V7FrostedBlurMaskEdgeFraction to Color.Transparent,
+                            V7FrostedBlurMaskSolidFraction to palette.top.copy(alpha = 0.22f),
+                            V7BackdropMaskSolidFraction to palette.mid.copy(alpha = 0.50f),
+                            1f to palette.bottom.copy(alpha = 0.84f),
                         )
                     )
                 )
