@@ -478,6 +478,16 @@ class MusicService :
         }
     }
 
+    private fun Throwable.isRequestTimeout(): Boolean {
+        var current: Throwable? = this
+        while (current != null) {
+            if (current is SocketTimeoutException) return true
+            if (current.message?.contains("Request timeout has expired", ignoreCase = true) == true) return true
+            current = current.cause
+        }
+        return false
+    }
+
     lateinit var sleepTimer: SleepTimer
 
     @Inject
@@ -5255,7 +5265,7 @@ private fun onMediaItemTransitionInternal() {
                     )
                 }
 
-                is java.net.SocketTimeoutException -> {
+                throwable.isRequestTimeout() -> {
                     throw PlaybackException(
                         getString(R.string.error_timeout),
                         throwable,
