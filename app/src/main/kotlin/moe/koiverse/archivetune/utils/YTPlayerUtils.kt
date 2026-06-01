@@ -814,16 +814,20 @@ object YTPlayerUtils {
                 .thenByDescending { it.audioSampleRate ?: 0 }
 
         val candidates =
-            if (targetBitrateBps == null) {
-                audioFormats.sortedWith(preferHigher)
-            } else {
-                val belowOrEqual = audioFormats.filter { it.bitrate <= targetBitrateBps }
-                if (belowOrEqual.isNotEmpty()) {
-                    belowOrEqual.sortedWith(preferHigher)
-                } else {
-                    val aboveOrEqual = audioFormats.filter { it.bitrate >= targetBitrateBps }
-                    if (aboveOrEqual.isNotEmpty()) aboveOrEqual.sortedWith(preferLowerAboveTarget)
-                    else audioFormats.sortedWith(preferHigher)
+            when {
+                targetBitrateBps == null || effectiveQuality == AudioQuality.HIGHEST -> {
+                    audioFormats.sortedWith(preferHigher)
+                }
+
+                else -> {
+                    val preferred = audioFormats
+                        .filter { it.bitrate <= targetBitrateBps }
+                        .sortedWith(preferHigher)
+                    val fallback = audioFormats
+                        .filter { it.bitrate > targetBitrateBps }
+                        .sortedWith(preferLowerAboveTarget)
+
+                    preferred + fallback
                 }
             }
 
