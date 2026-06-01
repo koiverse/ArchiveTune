@@ -199,7 +199,7 @@ fun LyricsScreen(
             override fun removeEldestEntry(eldest: Map.Entry<String, List<Color>>) = size > 20
         }
     }
-    val fallbackColor = remember { AppleMusicFallbackGradient[1].toArgb() }
+    val fallbackColor = remember { Color.Black.toArgb() }
 
     LaunchedEffect(mediaMetadata.id, mediaMetadata.thumbnailUrl) {
         val thumbnailUrl = mediaMetadata.thumbnailUrl

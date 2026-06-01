@@ -235,7 +235,7 @@ fun AppearanceSettings(
         it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     }
     val isPlayerBackgroundStyleEnabled =
-        playerDesignStyle != PlayerDesignStyle.V8 && playerDesignStyle != PlayerDesignStyle.V9
+        playerDesignStyle != PlayerDesignStyle.V7 && playerDesignStyle != PlayerDesignStyle.V8 && playerDesignStyle != PlayerDesignStyle.V9
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useDarkTheme =
         remember(darkMode, isSystemInDarkTheme) {
@@ -524,9 +524,15 @@ fun AppearanceSettings(
             item {
                 EnumListPreference(
                     title = { Text(stringResource(R.string.player_buttons_style)) },
+                    description = if (isPlayerBackgroundStyleEnabled) {
+                        null
+                    } else {
+                        stringResource(R.string.player_background_style_v8_v9_desc)
+                    },
                     icon = { Icon(painterResource(R.drawable.palette), null) },
                     selectedValue = playerButtonsStyle,
                     onValueSelected = onPlayerButtonsStyleChange,
+                    isEnabled = isPlayerBackgroundStyleEnabled,
                     valueText = {
                         when (it) {
                             PlayerButtonsStyle.DEFAULT -> stringResource(R.string.default_style)

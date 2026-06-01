@@ -59,9 +59,39 @@ object PlayerColorExtractor {
             addIfUnique(Color(swatch.rgb), satFactor)
             if (availableColors.size >= 6) break
         }
-        
+
+        val maxExtractedSaturation = allSwatches.maxOfOrNull { swatch ->
+            val hsv = FloatArray(3)
+            android.graphics.Color.colorToHSV(swatch.rgb, hsv)
+            hsv[1]
+        } ?: 0f
+        val isGreyscaleImage = maxExtractedSaturation < 0.22f
+
+        if (isGreyscaleImage) {
+            val baseBrightness = allSwatches.maxByOrNull { it.population }?.let { swatch ->
+                val hsv = FloatArray(3)
+                android.graphics.Color.colorToHSV(swatch.rgb, hsv)
+                hsv[2]
+            } ?: 0.10f
+            val greyStops = floatArrayOf(
+                (baseBrightness * 1.2f).coerceIn(0.06f, 0.40f),
+                (baseBrightness * 0.9f).coerceIn(0.04f, 0.28f),
+                (baseBrightness * 0.6f).coerceIn(0.02f, 0.16f),
+                (baseBrightness * 1.4f).coerceIn(0.08f, 0.44f),
+                (baseBrightness * 0.7f).coerceIn(0.03f, 0.20f),
+                (baseBrightness * 0.5f).coerceIn(0.01f, 0.12f),
+            )
+            while (availableColors.size < 6) {
+                val v = greyStops[availableColors.size % greyStops.size]
+                availableColors.add(Color(android.graphics.Color.HSVToColor(floatArrayOf(0f, 0f, v))))
+            }
+            return@withContext availableColors
+        }
+
         val fallbackSeed =
-            Color(fallbackColor).takeUnless { isNearGray(it) } ?: DefaultThemeColor
+            Color(fallbackColor).takeUnless { isNearGray(it) }
+                ?: palette.dominantSwatch?.let { Color(it.rgb) }?.takeUnless { isNearGray(it) }
+                ?: Color.DarkGray
 
         val seed = availableColors.firstOrNull() ?: fallbackSeed
         val targets = listOf(25f, -25f, 55f, -55f, 120f, -120f, 180f, 150f, -150f)
@@ -96,7 +126,7 @@ object PlayerColorExtractor {
         if (availableColors.isEmpty()) {
             availableColors.add(tuneColorForMesh(fallbackSeed, 0.62f, 1.08f, 0.75f, 0.38f, 0.9f))
         }
-        
+
         return@withContext availableColors
     }
 
