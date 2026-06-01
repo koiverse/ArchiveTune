@@ -1316,6 +1316,8 @@ object YouTube {
     suspend fun registerPlayback(
         playlistId: String? = null,
         playbackTracking: String,
+        watchtimeTracking: String? = null,
+        playedTimeMs: Long = 0L,
         authState: PlaybackAuthState = currentPlaybackAuthState(),
     ) = runCatching {
         val cpn = (1..16).map {
@@ -1337,6 +1339,22 @@ object YouTube {
             poToken = resolveGvsPoToken(authState),
             authState = authState,
         )
+
+        watchtimeTracking
+            ?.takeIf { it.isNotBlank() }
+            ?.replace(
+                "https://s.youtube.com",
+                "https://music.youtube.com",
+            )?.let { watchtimeUrl ->
+                innerTube.registerPlayback(
+                    url = watchtimeUrl,
+                    playlistId = playlistId,
+                    cpn = cpn,
+                    poToken = resolveGvsPoToken(authState),
+                    elapsedSeconds = playedTimeMs.coerceAtLeast(0L) / 1000.0,
+                    authState = authState,
+                )
+            }
     }
 
     suspend fun next(
