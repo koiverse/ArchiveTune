@@ -1951,6 +1951,20 @@ fun V8PlayerContent(
         }
     }
 
+    val onTitleClick = {
+        if (mediaMetadata.album != null) {
+            state.snapTo(state.collapsedBound)
+            navController.navigate("album/${mediaMetadata.album.id}")
+        }
+    }
+    val firstArtistId = mediaMetadata.artists.firstOrNull()?.id
+    val onArtistClick = {
+        if (!firstArtistId.isNullOrBlank()) {
+            state.collapseSoft()
+            navController.navigate("artist/$firstArtistId")
+        }
+    }
+
     if (landscape) {
         V8LandscapeContent(
             mediaMetadata = mediaMetadata,
@@ -1974,6 +1988,8 @@ fun V8PlayerContent(
             secondaryForeground = secondaryForeground,
             onMenuClick = onMenuClick,
             onToggleLike = playerConnection::toggleLike,
+            onTitleClick = onTitleClick,
+            onArtistClick = onArtistClick,
             onPreviousClick = playerConnection::seekToPrevious,
             onNextClick = playerConnection::seekToNext,
             onPlayPauseClick = {
@@ -2012,6 +2028,8 @@ fun V8PlayerContent(
             secondaryForeground = secondaryForeground,
             onMenuClick = onMenuClick,
             onToggleLike = playerConnection::toggleLike,
+            onTitleClick = onTitleClick,
+            onArtistClick = onArtistClick,
             onPreviousClick = playerConnection::seekToPrevious,
             onNextClick = playerConnection::seekToNext,
             onPlayPauseClick = {
@@ -2059,6 +2077,8 @@ private fun V8PortraitContent(
     onSliderValueChange: (Long) -> Unit,
     onSliderValueChangeFinished: () -> Unit,
     onVolumeChange: (Float) -> Unit,
+    onTitleClick: () -> Unit,
+    onArtistClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -2134,6 +2154,8 @@ private fun V8PortraitContent(
                 foreground = foreground,
                 onMenuClick = onMenuClick,
                 onToggleLike = onToggleLike,
+                onTitleClick = onTitleClick,
+                onArtistClick = onArtistClick,
             )
 
             Spacer(Modifier.height(controlsGap))
@@ -2205,6 +2227,8 @@ private fun V8LandscapeContent(
     onSliderValueChange: (Long) -> Unit,
     onSliderValueChangeFinished: () -> Unit,
     onVolumeChange: (Float) -> Unit,
+    onTitleClick: () -> Unit,
+    onArtistClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -2252,6 +2276,8 @@ private fun V8LandscapeContent(
                     foreground = foreground,
                     onMenuClick = onMenuClick,
                     onToggleLike = onToggleLike,
+                    onTitleClick = onTitleClick,
+                    onArtistClick = onArtistClick,
                 )
 
                 Spacer(Modifier.height(18.dp))
@@ -2369,6 +2395,8 @@ private fun V8MetadataActions(
     foreground: Color,
     onMenuClick: () -> Unit,
     onToggleLike: () -> Unit,
+    onTitleClick: () -> Unit,
+    onArtistClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -2386,7 +2414,13 @@ private fun V8MetadataActions(
                 color = foreground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.basicMarquee(),
+                modifier = Modifier
+                    .basicMarquee()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = onTitleClick,
+                    ),
             )
             Text(
                 text = artists,
@@ -2394,7 +2428,13 @@ private fun V8MetadataActions(
                 color = foreground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.basicMarquee(),
+                modifier = Modifier
+                    .basicMarquee()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = onArtistClick,
+                    ),
             )
         }
 
@@ -2776,6 +2816,8 @@ fun V9PlayerContent(
     position: Long,
     duration: Long,
     playerConnection: PlayerConnection,
+    navController: NavController,
+    state: BottomSheetState,
     textBackgroundColor: Color,
     textButtonColor: Color,
     iconButtonColor: Color,
@@ -2792,6 +2834,19 @@ fun V9PlayerContent(
     val artworkUrl = mediaMetadata.thumbnailUrl?.highRes()
     val artists = remember(mediaMetadata.artists) {
         mediaMetadata.artists.joinToString(", ") { it.name }
+    }
+    val onTitleClick = {
+        if (mediaMetadata.album != null) {
+            state.snapTo(state.collapsedBound)
+            navController.navigate("album/${mediaMetadata.album.id}")
+        }
+    }
+    val firstArtistId = mediaMetadata.artists.firstOrNull()?.id
+    val onArtistClick = {
+        if (!firstArtistId.isNullOrBlank()) {
+            state.collapseSoft()
+            navController.navigate("artist/$firstArtistId")
+        }
     }
     val onPlayPauseClick = {
         if (playbackState == STATE_ENDED) {
@@ -2823,6 +2878,8 @@ fun V9PlayerContent(
             onCollapseClick = onCollapseClick,
             onQueueClick = onQueueClick,
             onLyricsClick = onLyricsClick,
+            onTitleClick = onTitleClick,
+            onArtistClick = onArtistClick,
             onPreviousClick = playerConnection::seekToPrevious,
             onPlayPauseClick = onPlayPauseClick,
             onNextClick = playerConnection::seekToNext,
@@ -2851,6 +2908,8 @@ fun V9PlayerContent(
             onCollapseClick = onCollapseClick,
             onQueueClick = onQueueClick,
             onLyricsClick = onLyricsClick,
+            onTitleClick = onTitleClick,
+            onArtistClick = onArtistClick,
             onPreviousClick = playerConnection::seekToPrevious,
             onPlayPauseClick = onPlayPauseClick,
             onNextClick = playerConnection::seekToNext,
@@ -2887,6 +2946,8 @@ private fun V9PortraitContent(
     onNextClick: () -> Unit,
     onSliderValueChange: (Long) -> Unit,
     onSliderValueChangeFinished: () -> Unit,
+    onTitleClick: () -> Unit,
+    onArtistClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -2958,6 +3019,8 @@ private fun V9PortraitContent(
                 title = title,
                 artists = artists,
                 textColor = textBackgroundColor,
+                onTitleClick = onTitleClick,
+                onArtistClick = onArtistClick,
             )
 
             Spacer(Modifier.height(controlsGap))
@@ -3022,6 +3085,8 @@ private fun V9LandscapeContent(
     onNextClick: () -> Unit,
     onSliderValueChange: (Long) -> Unit,
     onSliderValueChangeFinished: () -> Unit,
+    onTitleClick: () -> Unit,
+    onArtistClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -3066,6 +3131,8 @@ private fun V9LandscapeContent(
                     title = title,
                     artists = artists,
                     textColor = textBackgroundColor,
+                    onTitleClick = onTitleClick,
+                    onArtistClick = onArtistClick,
                 )
 
                 Spacer(Modifier.height(20.dp))
@@ -3230,6 +3297,8 @@ private fun V9Metadata(
     title: String,
     artists: String,
     textColor: Color,
+    onTitleClick: () -> Unit,
+    onArtistClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -3246,7 +3315,12 @@ private fun V9Metadata(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .fillMaxWidth()
-                .basicMarquee(),
+                .basicMarquee()
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onTitleClick,
+                ),
         )
         Text(
             text = artists,
@@ -3258,7 +3332,12 @@ private fun V9Metadata(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .fillMaxWidth()
-                .basicMarquee(),
+                .basicMarquee()
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onArtistClick,
+                ),
         )
     }
 }
