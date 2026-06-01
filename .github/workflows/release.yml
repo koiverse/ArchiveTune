@@ -96,6 +96,9 @@ jobs:
             local candidate
 
             for dir in \
+              "app/build/outputs/apk/standard/${DEVICE}/${ABI}/release" \
+              "app/build/outputs/apk/standard/${DEVICE}${ABI_CAP}/release" \
+              "app/build/outputs/apk/standard/${DEVICE_CAP}${ABI_CAP}/release" \
               "app/build/outputs/apk/${DEVICE}/${ABI}/release" \
               "app/build/outputs/apk/${DEVICE}${ABI_CAP}/release" \
               "app/build/outputs/apk/${DEVICE_CAP}${ABI_CAP}/release"

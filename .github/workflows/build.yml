@@ -101,7 +101,7 @@ jobs:
           echo "abi=$ABI" >> "$GITHUB_OUTPUT"
           echo "device_cap=$DEVICE_CAP" >> "$GITHUB_OUTPUT"
           echo "abi_cap=$ABI_CAP" >> "$GITHUB_OUTPUT"
-          echo "gradle_task=assemble${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
+          echo "gradle_task=assembleStandard${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
           echo "artifact_name=app-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
           echo "apk_name=app-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
 
@@ -147,6 +147,9 @@ jobs:
           DEVICE_CAP="${{ steps.variant.outputs.device_cap }}"
           ABI_CAP="${{ steps.variant.outputs.abi_cap }}"
           CANDIDATES=(
+            "app/build/outputs/apk/standard/${DEVICE}/${ABI}/release"
+            "app/build/outputs/apk/standard/${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/standard/${DEVICE_CAP}${ABI_CAP}/release"
             "app/build/outputs/apk/${DEVICE}/${ABI}/release"
             "app/build/outputs/apk/${DEVICE}${ABI_CAP}/release"
             "app/build/outputs/apk/${DEVICE_CAP}${ABI_CAP}/release"
