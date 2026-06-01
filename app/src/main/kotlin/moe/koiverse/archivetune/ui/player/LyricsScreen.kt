@@ -118,9 +118,9 @@ import moe.koiverse.archivetune.utils.rememberPreference
 import kotlin.coroutines.cancellation.CancellationException
 
 private val AppleMusicFallbackGradient = listOf(
-    Color(0xFF78958C),
-    Color(0xFF646D55),
-    Color(0xFF252A22),
+    Color(0xFF202020),
+    Color(0xFF141414),
+    Color(0xFF050505),
 )
 
 private val AppleMusicForeground = Color.White
@@ -192,7 +192,7 @@ fun LyricsScreen(
     val durationState = remember(mediaMetadata.id) { mutableLongStateOf(C.TIME_UNSET) }
     var sliderPosition by remember(mediaMetadata.id) { mutableStateOf<Long?>(null) }
     var lyricsSyncOffset by remember(mediaMetadata.id) { mutableIntStateOf(0) }
-    var gradientColors by remember { mutableStateOf(AppleMusicFallbackGradient) }
+    var gradientColors by remember(mediaMetadata.thumbnailUrl) { mutableStateOf(AppleMusicFallbackGradient) }
 
     val gradientColorsCache = remember {
         object : LinkedHashMap<String, List<Color>>(20, 0.75f, true) {
@@ -208,7 +208,7 @@ fun LyricsScreen(
             return@LaunchedEffect
         }
 
-        gradientColorsCache[mediaMetadata.id]?.let {
+        gradientColorsCache[thumbnailUrl]?.let {
             gradientColors = it
             return@LaunchedEffect
         }
@@ -247,7 +247,7 @@ fun LyricsScreen(
         }
 
         gradientColors = extractedColors ?: AppleMusicFallbackGradient
-        gradientColorsCache.put(mediaMetadata.id, gradientColors)
+        gradientColorsCache[thumbnailUrl] = gradientColors
     }
 
     LaunchedEffect(player, playbackState) {
