@@ -1682,16 +1682,12 @@ private fun V7PlayerBackdrop(
                     null
                 } else {
                     val bitmap = image.toBitmap()
-                    try {
-                        withContext(Dispatchers.Default) {
-                            val palette = Palette.from(bitmap)
-                                .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
-                                .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
-                                .generate()
-                            extractV7BackdropColors(palette)
-                        }
-                    } finally {
-                        bitmap.recycle()
+                    withContext(Dispatchers.Default) {
+                        val palette = Palette.from(bitmap)
+                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                            .generate()
+                        extractV7BackdropColors(palette)
                     }
                 }
             } catch (e: CancellationException) {
