@@ -14,6 +14,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.os.SystemClock
 import android.widget.Toast
@@ -1690,11 +1691,7 @@ private fun V7PlayerBackdrop(
                 } else {
                     val bitmap = image.toBitmap()
                     withContext(Dispatchers.Default) {
-                        val palette = Palette.from(bitmap)
-                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
-                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
-                            .generate()
-                        extractV7BackdropColors(palette)
+                        extractV7BackdropColors(bitmap)
                     }
                 }
             } catch (e: CancellationException) {
@@ -1773,6 +1770,13 @@ private fun V7PlayerBackdrop(
                             }
                     )
 
+                    if (!backdrop.disableBlur) {
+                        V7FrostedArtworkOverlay(
+                            artworkModel = backdropArtworkModel,
+                            palette = backdropPalette,
+                        )
+                    }
+
                     if (hasCanvas) {
                         CanvasArtworkPlayer(
                             primaryUrl = backdrop.canvasPrimaryUrl,
@@ -1807,13 +1811,6 @@ private fun V7PlayerBackdrop(
                                         )
                                     }
                                 },
-                        )
-                    }
-
-                    if (!backdrop.disableBlur) {
-                        V7FrostedArtworkOverlay(
-                            artworkModel = backdropArtworkModel,
-                            palette = backdropPalette,
                         )
                     }
                 }
@@ -1949,13 +1946,10 @@ private data class V7BackdropPalette(
 ) {
     companion object {
         fun fromColors(colors: List<Color>, fallbackColor: Int): V7BackdropPalette {
-            val fallback = Color(fallbackColor).v7BackdropTone(valueMin = 0.14f, valueMax = 0.34f)
-            val first = colors.getOrNull(0)?.v7BackdropTone(valueMin = 0.18f, valueMax = 0.46f) ?: fallback
-            val second = colors.getOrNull(1)?.v7BackdropTone(valueMin = 0.16f, valueMax = 0.38f) ?: first
-            val third = colors.getOrNull(2)?.v7BackdropTone(valueMin = 0.12f, valueMax = 0.30f) ?: second
-            val top = blendV7BackdropColor(first, second, 0.24f)
-            val mid = blendV7BackdropColor(second, third, 0.32f)
-            val bottom = blendV7BackdropColor(third, Color.Black, 0.34f)
+            val fallback = Color(fallbackColor).v7BackdropTone(valueMin = 0.12f, valueMax = 0.42f)
+            val top = colors.getOrNull(0)?.v7BackdropTone(valueMin = 0.16f, valueMax = 0.62f) ?: fallback
+            val mid = colors.getOrNull(1)?.v7BackdropTone(valueMin = 0.14f, valueMax = 0.54f) ?: top
+            val bottom = colors.getOrNull(2)?.v7BackdropTone(valueMin = 0.10f, valueMax = 0.46f) ?: mid
             val shadow = blendV7BackdropColor(bottom, Color.Black, 0.54f)
             return V7BackdropPalette(
                 top = top,
@@ -1976,7 +1970,7 @@ private fun Color.v7BackdropTone(
     hsv[1] = if (hsv[1] < 0.12f) {
         hsv[1].coerceAtMost(0.08f)
     } else {
-        (hsv[1].coerceAtLeast(0.42f) * 1.08f).coerceIn(0f, 1f)
+        (hsv[1] * 1.04f).coerceIn(0f, 1f)
     }
     hsv[2] = hsv[2].coerceIn(valueMin, valueMax)
     return Color(android.graphics.Color.HSVToColor(hsv))
@@ -1995,25 +1989,78 @@ private fun blendV7BackdropColor(
         )
     )
 
-private fun extractV7BackdropColors(palette: Palette): List<Color> =
-    listOfNotNull(
-        palette.vibrantSwatch,
-        palette.darkVibrantSwatch,
-        palette.lightVibrantSwatch,
-        palette.dominantSwatch,
-        palette.mutedSwatch,
-        palette.darkMutedSwatch,
-        palette.lightMutedSwatch,
+private fun extractV7BackdropColors(bitmap: Bitmap): List<Color> {
+    if (bitmap.width <= 0 || bitmap.height <= 0) return emptyList()
+    val height = bitmap.height
+    return listOf(
+        bitmap.extractV7RegionColor(0, (height * 0.34f).roundToInt()),
+        bitmap.extractV7RegionColor((height * 0.30f).roundToInt(), (height * 0.72f).roundToInt()),
+        bitmap.extractV7RegionColor((height * 0.62f).roundToInt(), height),
     )
-        .distinctBy { it.rgb }
-        .sortedByDescending { swatch ->
+}
+
+private fun Bitmap.extractV7RegionColor(
+    startY: Int,
+    endY: Int,
+): Color {
+    val safeStartY = startY.coerceIn(0, height - 1)
+    val safeEndY = endY.coerceIn(safeStartY + 1, height)
+    val regionHeight = safeEndY - safeStartY
+    val pixels = IntArray(width * regionHeight)
+    getPixels(pixels, 0, width, 0, safeStartY, width, regionHeight)
+
+    val buckets = LinkedHashMap<Int, V7ColorBucket>()
+    for (pixel in pixels) {
+        val alpha = android.graphics.Color.alpha(pixel)
+        if (alpha < 180) continue
+
+        val red = android.graphics.Color.red(pixel)
+        val green = android.graphics.Color.green(pixel)
+        val blue = android.graphics.Color.blue(pixel)
+        val key = ((red / 24) shl 16) or ((green / 24) shl 8) or (blue / 24)
+        buckets.getOrPut(key) { V7ColorBucket() }.add(red, green, blue)
+    }
+
+    val bucket = buckets.values.maxByOrNull { it.score } ?: return Color.Black
+    return bucket.toColor()
+}
+
+private class V7ColorBucket {
+    private var count = 0
+    private var redSum = 0L
+    private var greenSum = 0L
+    private var blueSum = 0L
+
+    val score: Float
+        get() {
+            if (count == 0) return 0f
+            val color = toColor()
             val hsv = FloatArray(3)
-            android.graphics.Color.colorToHSV(swatch.rgb, hsv)
-            val saturationWeight = if (hsv[1] < 0.12f) 1.05f else 1f + hsv[1] * 0.45f
-            val brightnessWeight = if (hsv[2] in 0.12f..0.92f) 1.2f else 0.78f
-            swatch.population.toFloat() * saturationWeight * brightnessWeight
+            android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+            val readableBrightness = if (hsv[2] in 0.08f..0.92f) 1.08f else 0.82f
+            return count * readableBrightness
         }
-        .map { swatch -> Color(swatch.rgb) }
+
+    fun add(
+        red: Int,
+        green: Int,
+        blue: Int,
+    ) {
+        count++
+        redSum += red
+        greenSum += green
+        blueSum += blue
+    }
+
+    fun toColor(): Color {
+        if (count == 0) return Color.Black
+        return Color(
+            red = (redSum / count).toInt().coerceIn(0, 255),
+            green = (greenSum / count).toInt().coerceIn(0, 255),
+            blue = (blueSum / count).toInt().coerceIn(0, 255),
+        )
+    }
+}
 
 @Immutable
 private data class V7PlayerBackdropState(
