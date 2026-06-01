@@ -193,7 +193,12 @@ fun LyricsScreen(
     var sliderPosition by remember(mediaMetadata.id) { mutableStateOf<Long?>(null) }
     var lyricsSyncOffset by remember(mediaMetadata.id) { mutableIntStateOf(0) }
     var gradientColors by remember { mutableStateOf(AppleMusicFallbackGradient) }
-    val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
+
+    val gradientColorsCache = remember {
+        object : LinkedHashMap<String, List<Color>>(20, 0.75f, true) {
+            override fun removeEldestEntry(eldest: Map.Entry<String, List<Color>>) = size > 20
+        }
+    }
     val fallbackColor = remember { AppleMusicFallbackGradient[1].toArgb() }
 
     LaunchedEffect(mediaMetadata.id, mediaMetadata.thumbnailUrl) {
@@ -214,7 +219,6 @@ fun LyricsScreen(
             .data(thumbnailUrl)
             .size(Size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE))
             .allowHardware(false)
-            .memoryCacheKey("lyrics_apple_${mediaMetadata.id}")
             .build()
 
         val extractedColors = try {
@@ -225,15 +229,19 @@ fun LyricsScreen(
                 null
             } else {
                 val bitmap = image.toBitmap()
-                withContext(Dispatchers.Default) {
-                    val palette = Palette.from(bitmap)
-                        .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
-                        .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
-                        .generate()
-                    PlayerColorExtractor.extractGradientColors(
-                        palette = palette,
-                        fallbackColor = fallbackColor,
-                    )
+                try {
+                    withContext(Dispatchers.Default) {
+                        val palette = Palette.from(bitmap)
+                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                            .generate()
+                        PlayerColorExtractor.extractGradientColors(
+                            palette = palette,
+                            fallbackColor = fallbackColor,
+                        )
+                    }
+                } finally {
+                    bitmap.recycle()
                 }
             }
         } catch (e: CancellationException) {
