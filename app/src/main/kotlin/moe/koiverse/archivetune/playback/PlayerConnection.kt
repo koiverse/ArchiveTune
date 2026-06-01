@@ -122,6 +122,10 @@ class PlayerConnection(
         service.addToQueue(items)
     }
 
+    fun playFromVoiceSearch(query: String) {
+        service.playFromVoiceSearch(query)
+    }
+
     fun toggleLike() {
         service.toggleLike()
     }

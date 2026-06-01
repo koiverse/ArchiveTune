@@ -1067,6 +1067,23 @@ constructor(
             }
         }
 
+    override fun onAddMediaItems(
+        mediaSession: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        mediaItems: MutableList<MediaItem>,
+    ): ListenableFuture<MutableList<MediaItem>> =
+        scope.future(Dispatchers.IO) {
+            mediaItems.flatMap { item ->
+                val query = item.requestMetadata.searchQuery?.trim().orEmpty()
+                if (query.isBlank()) {
+                    listOf(item)
+                } else {
+                    val resolved = resolveVoiceMediaItems(query)
+                    resolved.ifEmpty { listOf(item) }
+                }
+            }.toMutableList()
+        }
+
     private suspend fun autoQueueSongPathItem(mediaId: String): MediaItem? {
         val path = mediaId.pathSegments()
         val root = path.getOrNull(0) ?: return null
@@ -1817,6 +1834,21 @@ constructor(
             second.getOrNull(index)?.let(merged::add)
         }
         return merged
+    }
+
+    internal suspend fun resolveVoiceMediaItems(
+        query: String,
+        previewSize: Int = 50,
+    ): List<MediaItem> {
+        val q = query.trim()
+        if (q.isBlank()) return emptyList()
+        val offlineSongs = searchOfflineSongs(q, previewSize)
+        val existingIds = offlineSongs.items.mapTo(HashSet(offlineSongs.items.size * 2), ::searchSongIdentity)
+        val onlineSongs = searchOnlineSongs(q, previewSize).filter { onlineItem ->
+            existingIds.add(searchSongIdentity(onlineItem))
+        }
+        onlineSongs.forEach { onlineSearchItemCache[it.mediaId] = it }
+        return interleaveMediaItems(offlineSongs.items, onlineSongs).take(previewSize)
     }
 
     private fun searchSongIdentity(item: MediaItem): String =

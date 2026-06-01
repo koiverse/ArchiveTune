@@ -2805,6 +2805,20 @@ class MusicService :
         player.prepare()
     }
 
+    fun playFromVoiceSearch(query: String) {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return
+        ensureScopesActive()
+        scope.launch(SilentHandler) {
+            val mediaItems =
+                withContext(Dispatchers.IO) {
+                    mediaLibrarySessionCallback.resolveVoiceMediaItems(trimmed)
+                }
+            if (mediaItems.isEmpty()) return@launch
+            playQueue(ListQueue(items = mediaItems))
+        }
+    }
+
     fun startTogetherHost(
         port: Int,
         displayName: String,

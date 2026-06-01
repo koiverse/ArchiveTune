@@ -299,6 +299,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
     private var pendingDeepLinkQueue: Queue? = null
+    private var pendingVoiceSearchQuery: String? = null
     private var pendingTogetherJoinLink: String? = null
     private var latestVersionName by mutableStateOf(BuildConfig.VERSION_NAME)
 
@@ -316,6 +317,7 @@ class MainActivity : ComponentActivity() {
                     playerConnection =
                         PlayerConnection(this@MainActivity, service, database, lifecycleScope)
                     playPendingDeepLinkQueueIfReady()
+                    playPendingVoiceSearchIfReady()
                     joinPendingTogetherIfReady()
                 }
             }
@@ -332,6 +334,13 @@ class MainActivity : ComponentActivity() {
         val connection = playerConnection ?: return
         pendingDeepLinkQueue = null
         connection.playQueue(pending)
+    }
+
+    private fun playPendingVoiceSearchIfReady() {
+        val query = pendingVoiceSearchQuery ?: return
+        val connection = playerConnection ?: return
+        pendingVoiceSearchQuery = null
+        connection.playFromVoiceSearch(query)
     }
 
     private fun joinPendingTogetherIfReady() {
@@ -1963,6 +1972,18 @@ class MainActivity : ComponentActivity() {
         if (intent == null) return
         if (intent.action == ACTION_MUSIC_RECOGNITION) {
             navController.openMusicRecognition()
+            return
+        }
+        if (intent.action == "android.media.action.MEDIA_PLAY_FROM_SEARCH") {
+            val query =
+                (intent.getStringExtra("query")
+                    ?: intent.getStringExtra("android.intent.extra.TITLE")
+                    ?: "").trim()
+            if (query.isNotBlank()) {
+                pendingVoiceSearchQuery = query
+                startMusicServiceSafely()
+                playPendingVoiceSearchIfReady()
+            }
             return
         }
         if (handleExternalAudioIntent(intent)) {
