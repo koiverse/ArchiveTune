@@ -19,10 +19,12 @@ import android.content.BroadcastReceiver
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothClass
 import android.content.pm.PackageManager
+import android.database.ContentObserver
 import android.database.SQLException
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.os.Handler
 import android.media.AudioFocusRequest
 import android.media.AudioAttributes as LegacyAudioAttributes
 import android.media.audiofx.AudioEffect
@@ -278,6 +280,7 @@ class MusicService :
     private var wasPlayingBeforeAudioFocusLoss = false
     private var pauseOnDeviceMuteEnabled = false
     private var wasAutoPausedByDeviceMute = false
+    private var muteRecoveryObserver: ContentObserver? = null
     private var hasAudioFocus = false
     private var duckingRecoveryJob: Job? = null
     private var autoStartOnBluetoothEnabled = false
@@ -891,6 +894,7 @@ class MusicService :
                 pauseOnDeviceMuteEnabled = enabled
                 if (!enabled) {
                     wasAutoPausedByDeviceMute = false
+                    unregisterMuteRecoveryObserver()
                 } else {
                     handleDeviceMuteStateChanged()
                 }
@@ -2031,9 +2035,32 @@ class MusicService :
         return joined?.role is moe.koiverse.archivetune.together.TogetherRole.Guest
     }
 
+    private fun registerMuteRecoveryObserver() {
+        if (muteRecoveryObserver != null) return
+        val observer = object : ContentObserver(Handler(mainLooper)) {
+            override fun onChange(selfChange: Boolean) {
+                if (audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) > 0) {
+                    handleDeviceMuteStateChanged()
+                }
+            }
+        }
+        contentResolver.registerContentObserver(
+            android.provider.Settings.System.CONTENT_URI,
+            true,
+            observer,
+        )
+        muteRecoveryObserver = observer
+    }
+
+    private fun unregisterMuteRecoveryObserver() {
+        muteRecoveryObserver?.let { contentResolver.unregisterContentObserver(it) }
+        muteRecoveryObserver = null
+    }
+
     private fun handleDeviceMuteStateChanged() {
         if (!pauseOnDeviceMuteEnabled || isTogetherGuestSession()) {
             wasAutoPausedByDeviceMute = false
+            unregisterMuteRecoveryObserver()
             return
         }
 
@@ -2047,9 +2074,12 @@ class MusicService :
             if (canPauseNow) {
                 player.pause()
                 wasAutoPausedByDeviceMute = true
+                registerMuteRecoveryObserver()
             }
             return
         }
+
+        unregisterMuteRecoveryObserver()
 
         if (!wasAutoPausedByDeviceMute) return
 
@@ -4726,6 +4756,7 @@ private fun onMediaItemTransitionInternal() {
         (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
     ) {
         wasAutoPausedByDeviceMute = false
+        unregisterMuteRecoveryObserver()
     }
     if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
         val newSessionId = this.player.audioSessionId
@@ -5847,6 +5878,7 @@ private fun onMediaItemTransitionInternal() {
             audioDeviceCallbackRegistered = false
         }
         unregisterBluetoothReceiver()
+        unregisterMuteRecoveryObserver()
         try {
             scope.launch { stopTogetherInternal() }
         } catch (_: Exception) {}
