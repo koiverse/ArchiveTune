@@ -229,19 +229,15 @@ fun LyricsScreen(
                 null
             } else {
                 val bitmap = image.toBitmap()
-                try {
-                    withContext(Dispatchers.Default) {
-                        val palette = Palette.from(bitmap)
-                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
-                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
-                            .generate()
-                        PlayerColorExtractor.extractGradientColors(
-                            palette = palette,
-                            fallbackColor = fallbackColor,
-                        )
-                    }
-                } finally {
-                    bitmap.recycle()
+                withContext(Dispatchers.Default) {
+                    val palette = Palette.from(bitmap)
+                        .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                        .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                        .generate()
+                    PlayerColorExtractor.extractGradientColors(
+                        palette = palette,
+                        fallbackColor = fallbackColor,
+                    )
                 }
             }
         } catch (e: CancellationException) {
