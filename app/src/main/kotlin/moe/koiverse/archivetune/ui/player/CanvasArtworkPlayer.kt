@@ -27,6 +27,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.datasource.DefaultDataSource
@@ -126,6 +127,11 @@ internal fun CanvasArtworkPlayer(
                     )
                     volume = 0f
                     repeatMode = Player.REPEAT_MODE_ONE
+                    trackSelectionParameters =
+                        TrackSelectionParameters
+                            .Builder(context)
+                            .setForceHighestSupportedBitrate(true)
+                            .build()
                     playWhenReady = isPlaying
                 }
         }
