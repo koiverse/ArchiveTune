@@ -5864,7 +5864,6 @@ private fun onMediaItemTransitionInternal() {
                         output.writeObject(payload)
                         output.flush()
                     }
-                    fos.fd.sync()
                 }
 
                 if (!tempFile.renameTo(persistentFile)) {
