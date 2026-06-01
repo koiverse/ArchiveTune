@@ -243,7 +243,7 @@ fun LyricsScreen(
         }
 
         gradientColors = extractedColors ?: AppleMusicFallbackGradient
-        gradientColorsCache[mediaMetadata.id] = gradientColors
+        gradientColorsCache.put(mediaMetadata.id, gradientColors)
     }
 
     LaunchedEffect(player, playbackState) {
