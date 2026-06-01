@@ -289,6 +289,7 @@ class MusicService :
     private var wakelockEnabled = false
     private var audioDeviceCallbackRegistered = false
     private var audioRouteRecoveryJob: Job? = null
+    private var audiblePlaybackRecoveryJob: Job? = null
     private var lastAudioOutputDeviceSignature: String? = null
     private var lastAudioRouteRecoveryRealtimeMs = 0L
 
@@ -1456,6 +1457,43 @@ class MusicService :
         incomingPlayer?.volume = 0f
     }
 
+    private fun ensureAudiblePlaybackVolume(reason: String) {
+        if (!::player.isInitialized) return
+        if (isCrossfading || crossfadeHandoffInProgress) return
+        if (!shouldKeepPlaybackAudible()) return
+        if (playerVolume.value <= 0f) return
+
+        val expectedVolume = currentEffectivePlayerVolume()
+        if (expectedVolume <= MIN_AUDIBLE_EFFECTIVE_VOLUME) return
+        if (player.volume > STUCK_MUTED_VOLUME_EPSILON) return
+
+        Timber.tag(TAG).w(
+            "Restoring muted primary player volume during active playback: reason=%s expected=%s actual=%s",
+            reason,
+            expectedVolume,
+            player.volume,
+        )
+        applyEffectiveVolume(expectedVolume)
+    }
+
+    private fun updateAudiblePlaybackRecovery() {
+        if (!::player.isInitialized || !shouldKeepPlaybackAudible()) {
+            audiblePlaybackRecoveryJob?.cancel()
+            audiblePlaybackRecoveryJob = null
+            return
+        }
+
+        if (audiblePlaybackRecoveryJob?.isActive == true) return
+        audiblePlaybackRecoveryJob =
+            scope.launch {
+                while (isActive && shouldKeepPlaybackAudible()) {
+                    ensureAudiblePlaybackVolume("watchdog")
+                    delay(AUDIBLE_PLAYBACK_VOLUME_CHECK_MS)
+                }
+                audiblePlaybackRecoveryJob = null
+            }
+    }
+
     private fun applyCrossfadeVolumes(
         progress: Float,
         baseVolume: Float,
@@ -1724,18 +1762,31 @@ class MusicService :
         val incomingPosition = incomingPlayer.currentPosition.coerceAtLeast(0L)
         val shouldContinuePlayback = crossfadePlaybackRequested
 
-        player.pauseAtEndOfMediaItems = false
-        player.volume = 0f
-        crossfadeHandoffInProgress = true
-        player.seekTo(targetIndex, incomingPosition)
-        player.playWhenReady = shouldContinuePlayback
-        if (shouldContinuePlayback) {
-            if (awaitPrimaryCrossfadeHandoffReady(incomingPlayer)) {
-                val syncedIncomingPosition = incomingPlayer.currentPosition.coerceAtLeast(0L)
-                player.seekTo(targetIndex, syncedIncomingPosition)
+        var handoffCompleted = false
+        try {
+            player.pauseAtEndOfMediaItems = false
+            player.volume = 0f
+            crossfadeHandoffInProgress = true
+            player.seekTo(targetIndex, incomingPosition)
+            player.playWhenReady = shouldContinuePlayback
+            if (shouldContinuePlayback) {
+                if (awaitPrimaryCrossfadeHandoffReady(incomingPlayer)) {
+                    val syncedIncomingPosition = incomingPlayer.currentPosition.coerceAtLeast(0L)
+                    player.seekTo(targetIndex, syncedIncomingPosition)
+                }
+            }
+            currentMediaMetadata.value = player.getMediaItemAt(targetIndex).metadata
+            handoffCompleted = true
+        } finally {
+            if (!handoffCompleted) {
+                crossfadeHandoffInProgress = false
+                isCrossfading = false
+                crossfadeProgress = 0f
+                crossfadePlaybackRequested = false
+                releaseSecondaryCrossfadePlayer()
+                applyEffectiveVolume()
             }
         }
-        currentMediaMetadata.value = player.getMediaItemAt(targetIndex).metadata
 
         isCrossfading = false
         crossfadeHandoffInProgress = false
@@ -1743,6 +1794,7 @@ class MusicService :
         crossfadePlaybackRequested = false
         releaseSecondaryCrossfadePlayer()
         applyEffectiveVolume()
+        updateAudiblePlaybackRecovery()
         scheduleCrossfade()
     }
 
@@ -4619,6 +4671,7 @@ override fun onIsPlayingChanged(isPlaying: Boolean) {
     if (isPlaying && !isCrossfading) {
         scheduleCrossfade()
     }
+    updateAudiblePlaybackRecovery()
     
     widgetUpdater.update()
     widgetUpdater.updateProgressTracking()
@@ -4709,6 +4762,15 @@ private fun onMediaItemTransitionInternal() {
             (events.contains(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying)
         ) {
             playbackStreamRecoveryTracker.onPlaybackRecovered(currentMediaId)
+            ensureAudiblePlaybackVolume("player_event")
+        }
+        if (events.containsAny(
+                Player.EVENT_PLAYBACK_STATE_CHANGED,
+                Player.EVENT_PLAY_WHEN_READY_CHANGED,
+                Player.EVENT_IS_PLAYING_CHANGED,
+            )
+        ) {
+            updateAudiblePlaybackRecovery()
         }
         if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
             currentMediaMetadata.value = player.currentMetadata
@@ -4757,6 +4819,7 @@ private fun onMediaItemTransitionInternal() {
     ) {
         wasAutoPausedByDeviceMute = false
         unregisterMuteRecoveryObserver()
+        updateAudiblePlaybackRecovery()
     }
     if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
         val newSessionId = this.player.audioSessionId
