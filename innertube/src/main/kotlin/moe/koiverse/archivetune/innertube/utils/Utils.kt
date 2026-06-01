@@ -33,7 +33,7 @@ internal suspend fun completePlaylistPage(
         ?: page.continuation.normalizedContinuation()
     val seenContinuations = mutableSetOf<String>()
     var requestCount = 0
-    val maxRequests = 50
+    val maxRequests = 500
     var consecutiveEmptyResponses = 0
 
     while (continuation != null && requestCount < maxRequests) {
@@ -70,7 +70,7 @@ suspend fun Result<LibraryPage>.completed(): Result<LibraryPage> = runCatching {
     var continuation = page.continuation
     val seenContinuations = mutableSetOf<String>()
     var requestCount = 0
-    val maxRequests = 50
+    val maxRequests = 500
     var consecutiveEmptyResponses = 0
     
     while (continuation != null && requestCount < maxRequests) {
