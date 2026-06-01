@@ -532,7 +532,6 @@
     <string name="spotify_login_title">Login do Spotify</string>
     <string name="spotify_loading_library">Carregando a biblioteca do Spotify</string>
     <string name="spotify_no_sources">Nenhuma playlist do Spotify encontrada</string>
-    <string name="spotify_import_complete">Importação do Spotify concluída</string>
     <string name="spotify_account">Conta do Spotify</string>
     <string name="spotify_waiting_for_login">Aguardando login do Spotify</string>
     <string name="login_success">Login efetuado com sucesso</string>
