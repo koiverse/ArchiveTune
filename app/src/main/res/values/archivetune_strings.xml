@@ -163,6 +163,8 @@
     <string name="my_top">My top</string>
     <string name="cached_playlist">Cached</string>
     <string name="sync_playlist">Sync playlist</string>
+    <string name="playlist_sync_progress_step">%1$d/%2$d Songs</string>
+    <string name="playlist_sync_failed">Playlist sync failed: %1$s</string>
     <string name="sync_disabled">Sync disabled</string>
     <string name="elements_selected">%1$d elements selected</string>
     <string name="allows_for_sync_witch_youtube">Note: This allows for syncing with YouTube Music. This is NOT changeable later.</string>

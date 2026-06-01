@@ -677,14 +677,26 @@ class SyncUtils @Inject constructor(
         }
     }
 
-    suspend fun syncPlaylistNow(browseId: String, playlistId: String) = playlistSyncMutex.withLock {
-        syncPlaylist(browseId, playlistId)
+    suspend fun syncPlaylistNow(
+        browseId: String,
+        playlistId: String,
+        propagateFailures: Boolean = false,
+        onProgress: (completedSongs: Int, totalSongs: Int) -> Unit = { _, _ -> },
+    ) = playlistSyncMutex.withLock {
+        syncPlaylist(
+            browseId = browseId,
+            playlistId = playlistId,
+            propagateFailures = propagateFailures,
+            onProgress = onProgress,
+        )
     }
 
     private suspend fun syncPlaylist(
         browseId: String,
         playlistId: String,
         authoritative: Boolean = false,
+        propagateFailures: Boolean = false,
+        onProgress: (completedSongs: Int, totalSongs: Int) -> Unit = { _, _ -> },
     ) = coroutineScope {
         if (!isYtmSyncEnabled()) {
             Timber.w("syncPlaylist: Skipping - sync disabled")
@@ -693,71 +705,83 @@ class SyncUtils @Inject constructor(
         val gen = syncGeneration.get()
         if (!isSyncStillEnabled(gen)) return@coroutineScope
         Timber.d("syncPlaylist: Starting sync for browseId=$browseId, playlistId=$playlistId")
-        
-        YouTube.playlist(browseId).completed().onSuccess { page ->
-            if (!isSyncStillEnabled(gen)) return@onSuccess
-            val songs = page.songs.orEmpty().map(SongItem::toMediaMetadata)
-            Timber.d("syncPlaylist: Fetched ${songs.size} songs from remote")
 
-            if (songs.isEmpty()) {
-                if (authoritative) {
-                    database.withTransaction {
-                        if (!isSyncStillEnabled(gen)) return@withTransaction
-                        database.clearPlaylist(playlistId)
-                    }
+        val page =
+            YouTube.playlist(browseId).completed().getOrElse { e ->
+                Timber.e(e, "syncPlaylist: Failed to fetch playlist from YouTube")
+                if (propagateFailures) {
+                    throw e
                 }
-                Timber.w("syncPlaylist: Remote playlist is empty, skipping sync")
-                return@onSuccess
+                return@coroutineScope
             }
+        if (!isSyncStillEnabled(gen)) return@coroutineScope
+        val songs = page.songs.orEmpty().map(SongItem::toMediaMetadata)
+        Timber.d("syncPlaylist: Fetched ${songs.size} songs from remote")
 
-            val remoteIds = songs.mapNotNull { it.id }
-            if (remoteIds.isEmpty()) {
-                Timber.w("syncPlaylist: No valid song IDs found, skipping sync")
-                return@onSuccess
-            }
-
-            val localIds = try {
-                database.playlistSongs(playlistId).first()
-                    .sortedBy { it.map.position }
-                    .map { it.song.id }
-            } catch (e: Exception) {
-                Timber.w("syncPlaylist: Failed to fetch local songs", e)
-                emptyList()
-            }
-
-            if (remoteIds == localIds) {
-                Timber.d("syncPlaylist: Local and remote are in sync, no changes needed")
-                return@onSuccess
-            }
-
-            Timber.d("syncPlaylist: Updating local playlist (remote: ${remoteIds.size}, local: ${localIds.size})")
-
-            try {
+        if (songs.isEmpty()) {
+            if (authoritative) {
                 database.withTransaction {
                     if (!isSyncStillEnabled(gen)) return@withTransaction
                     database.clearPlaylist(playlistId)
-                    songs.forEachIndexed { idx, song ->
-                        if (!isSyncStillEnabled(gen)) return@withTransaction
-                        if (song.id == null) return@forEachIndexed
-                        if (database.song(song.id).firstOrNull() == null) {
-                            database.insert(song)
-                        }
-                        database.insert(
-                            PlaylistSongMap(
-                                songId = song.id,
-                                playlistId = playlistId,
-                                position = idx,
-                                setVideoId = song.setVideoId
-                            )
-                        )
-                    }
                 }
-                Timber.d("syncPlaylist: Successfully synced playlist")
-            } catch (e: Exception) {
-                Timber.e(e, "syncPlaylist: Error during database transaction")
             }
-        }.onFailure { e ->
-            Timber.e(e, "syncPlaylist: Failed to fetch playlist from YouTube")
+            Timber.w("syncPlaylist: Remote playlist is empty, skipping sync")
+            return@coroutineScope
+        }
+
+        val remoteIds = songs.mapNotNull { it.id }
+        if (remoteIds.isEmpty()) {
+            Timber.w("syncPlaylist: No valid song IDs found, skipping sync")
+            return@coroutineScope
+        }
+
+        val localIds = try {
+            database.playlistSongs(playlistId).first()
+                .sortedBy { it.map.position }
+                .map { it.song.id }
+        } catch (e: Exception) {
+            Timber.w("syncPlaylist: Failed to fetch local songs", e)
+            emptyList()
+        }
+
+        if (remoteIds == localIds) {
+            Timber.d("syncPlaylist: Local and remote are in sync, no changes needed")
+            onProgress(remoteIds.size, remoteIds.size)
+            return@coroutineScope
+        }
+
+        Timber.d("syncPlaylist: Updating local playlist (remote: ${remoteIds.size}, local: ${localIds.size})")
+
+        try {
+            onProgress(0, remoteIds.size)
+            database.withTransaction {
+                if (!isSyncStillEnabled(gen)) return@withTransaction
+                database.clearPlaylist(playlistId)
+                var completedSongs = 0
+                songs.forEachIndexed { idx, song ->
+                    if (!isSyncStillEnabled(gen)) return@withTransaction
+                    val songId = song.id ?: return@forEachIndexed
+                    if (database.song(songId).firstOrNull() == null) {
+                        database.insert(song)
+                    }
+                    database.insert(
+                        PlaylistSongMap(
+                            songId = songId,
+                            playlistId = playlistId,
+                            position = idx,
+                            setVideoId = song.setVideoId
+                        )
+                    )
+                    completedSongs += 1
+                    onProgress(completedSongs, remoteIds.size)
+                }
+            }
+            Timber.d("syncPlaylist: Successfully synced playlist")
+        } catch (e: Exception) {
+            Timber.e(e, "syncPlaylist: Error during database transaction")
+            if (propagateFailures) {
+                throw e
+            }
         }
     }
 }
