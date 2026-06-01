@@ -50,16 +50,21 @@ class SpotifyPlaylistQueue(
             }
 
             val targetIndex = startIndex.coerceIn(allTracks.indices)
-            val windowEnd = (targetIndex + FAST_START_COUNT).coerceAtMost(allTracks.size)
-            val windowTracks = allTracks.subList(targetIndex, windowEnd)
-            val resolvedItems = resolveTracks(windowTracks)
+            val resolvedEntries = resolveTrackEntries(allTracks)
+            val resolvedItems = resolvedEntries.map { it.second }
 
-            resolveOffset = windowEnd
+            resolveOffset = allTracks.size
+            if (resolvedItems.isEmpty()) {
+                return@withContext Queue.Status(title = title, items = emptyList(), mediaItemIndex = 0)
+            }
 
             Queue.Status(
                 title = title,
                 items = resolvedItems,
-                mediaItemIndex = 0,
+                mediaItemIndex = resolvedEntries
+                    .indexOfFirst { it.first >= targetIndex }
+                    .takeIf { it >= 0 }
+                    ?: resolvedItems.lastIndex,
             )
         }
 
@@ -80,10 +85,22 @@ class SpotifyPlaylistQueue(
         }
 
     private suspend fun resolveTracks(tracks: List<SpotifyTrack>): List<MediaItem> =
-        coroutineScope {
-            tracks.map { track ->
-                async { SpotifyPlaybackResolver.resolveToMediaItem(track) }
-            }.awaitAll().filterNotNull()
+        resolveTrackEntries(tracks).map { it.second }
+
+    private suspend fun resolveTrackEntries(tracks: List<SpotifyTrack>): List<Pair<Int, MediaItem>> =
+        buildList {
+            tracks.chunked(RESOLVE_BATCH_SIZE).forEachIndexed { chunkIndex, chunk ->
+                val chunkOffset = chunkIndex * RESOLVE_BATCH_SIZE
+                val resolvedChunk = coroutineScope {
+                    chunk.mapIndexed { index, track ->
+                        async {
+                            SpotifyPlaybackResolver.resolveToMediaItem(track)
+                                ?.let { mediaItem -> chunkOffset + index to mediaItem }
+                        }
+                    }.awaitAll().filterNotNull()
+                }
+                addAll(resolvedChunk)
+            }
         }
 
     private suspend fun fetchNextApiPage() {
@@ -103,6 +120,5 @@ class SpotifyPlaylistQueue(
     companion object {
         private const val SPOTIFY_PAGE_SIZE = 50
         private const val RESOLVE_BATCH_SIZE = 20
-        private const val FAST_START_COUNT = 3
     }
 }
