@@ -6153,5 +6153,8 @@ private fun onMediaItemTransitionInternal() {
         const val CROSSFADE_MIN_BUFFER_MS = 15_000
         const val CROSSFADE_MAX_BUFFER_MS = 45_000
         const val CROSSFADE_FRAME_MS = 32L
+        const val MIN_AUDIBLE_EFFECTIVE_VOLUME = 0.01f
+        const val STUCK_MUTED_VOLUME_EPSILON = 0.001f
+        const val AUDIBLE_PLAYBACK_VOLUME_CHECK_MS = 2_000L
     }
 }
