@@ -28,16 +28,31 @@ import java.util.Locale
 object PaxsenixLyrics {
     private const val BASE_URL = "https://lyrics.paxsenix.org/"
 
+    var userAgent: String = "ArchiveTune"
+        private set
+
+    fun setUserAgent(appName: String, versionName: String) {
+        userAgent = "$appName/$versionName"
+    }
+
+    // Apple Music AMP API (direct catalog search)
+    private const val AMP_BASE_URL = "https://amp-api.music.apple.com"
+    private const val AMP_TOKEN =
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IldlYlBsYXlLaWQifQ" +
+        ".eyJpc3MiOiJBTVBXZWJQbGF5IiwiaWF0IjoxNzc0NDU2MzgyLCJleHAiOjE3ODE3" +
+        "MTM5ODIsInJvb3RfaHR0cHNfb3JpZ2luIjpbImFwcGxlLmNvbSJdfQ" +
+        ".4n8qYF4qa18sL1E0G9A3qX35cD8wQ-IJcS9Bh8ZT8JV_yLBtVq46B-9-2ZS3EvWHuw3yK9BYFYAhAdTaDm38vQ"
+
+    private val json = Json {
+        isLenient = true
+        ignoreUnknownKeys = true
+        explicitNulls = false
+    }
+
     private val client by lazy {
         HttpClient(OkHttp) {
             install(ContentNegotiation) {
-                json(
-                    Json {
-                        isLenient = true
-                        ignoreUnknownKeys = true
-                        explicitNulls = false
-                    },
-                )
+                json(json)
             }
 
             install(HttpTimeout) {
@@ -48,7 +63,7 @@ object PaxsenixLyrics {
 
             defaultRequest {
                 url(BASE_URL)
-                header(HttpHeaders.UserAgent, "ArchiveTune-Lyrics-Fetcher/1.0 (https://github.com/koiverse/archivetune)")
+                header(HttpHeaders.UserAgent, userAgent)
                 header(HttpHeaders.Accept, "application/json, text/plain, */*")
                 header(HttpHeaders.AcceptLanguage, "en-US,en;q=0.9")
             }
@@ -70,73 +85,124 @@ object PaxsenixLyrics {
         } else trimmed
     }
 
+    /**
+     * Searches Apple Music catalog via the AMP API to find a song's catalog ID.
+     * Falls back to a query combining title + artist.
+     */
+    private suspend fun searchAppleMusicId(
+        title: String,
+        artist: String,
+        durationMs: Long,
+    ): String? = runCatching {
+        val query = "$title $artist"
+        System.err.println("PaxsenixLyrics: Searching Apple Music catalog for: $query")
+
+        val response = client.get("$AMP_BASE_URL/v1/catalog/us/search") {
+            header("Authorization", "Bearer $AMP_TOKEN")
+            header("Origin", "https://music.apple.com")
+            header("Referer", "https://music.apple.com/")
+            parameter("term", query)
+            parameter("types", "songs")
+            parameter("limit", "10")
+        }
+
+        if (response.status != HttpStatusCode.OK) {
+            System.err.println("PaxsenixLyrics: AMP search failed with status: ${response.status}")
+            return@runCatching null
+        }
+
+        val root = response.body<JsonObject>()
+        val songs = root["results"]?.jsonObject
+            ?.get("songs")?.jsonObject
+            ?.get("data")?.jsonArray
+            ?: return@runCatching null
+
+        if (songs.isEmpty()) {
+            System.err.println("PaxsenixLyrics: AMP search returned no results")
+            return@runCatching null
+        }
+
+        // Score and pick best match
+        data class ScoredSong(val id: String, val score: Int, val name: String, val artistName: String, val duration: Long)
+
+        val scored = songs.mapNotNull { item ->
+            val obj = item.jsonObject ?: return@mapNotNull null
+            val attrs = obj["attributes"]?.jsonObject ?: return@mapNotNull null
+            val songId = obj["id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+            val name = attrs["name"]?.jsonPrimitive?.contentOrNull ?: ""
+            val artistName = attrs["artistName"]?.jsonPrimitive?.contentOrNull ?: ""
+            val dur = attrs["durationInMillis"]?.jsonPrimitive?.longOrNull ?: 0L
+
+            var score = 0
+            if (name.equals(title, ignoreCase = true)) score += 20
+            else if (name.contains(title, ignoreCase = true) || title.contains(name, ignoreCase = true)) score += 10
+            if (artistName.equals(artist, ignoreCase = true)) score += 15
+            else if (artistName.contains(artist, ignoreCase = true) || artist.contains(artistName, ignoreCase = true)) score += 5
+            if (durationMs > 0 && dur > 0) {
+                val diff = abs(dur - durationMs)
+                if (diff < 3000) score += 10
+                else if (diff < 10000) score += 5
+            }
+
+            ScoredSong(songId, score, name, artistName, dur)
+        }.sortedByDescending { it.score }
+
+        val best = scored.firstOrNull() ?: return@runCatching null
+        System.err.println("PaxsenixLyrics: Best AMP match: ${best.name} by ${best.artistName} (ID: ${best.id}, Score: ${best.score})")
+        best.id
+    }.onFailure {
+        System.err.println("PaxsenixLyrics: AMP search error: ${it.message}")
+    }.getOrNull()
+
     suspend fun getAppleMusicLyrics(
         title: String,
         artist: String,
         durationSeconds: Int,
     ): Result<String> = runCatching {
         val durationMs = resolveDurationMs(durationSeconds)
-        val query = "$title $artist"
-        val amSearch = client.get("apple-music/search") {
-            parameter("q", query)
+        val songId = searchAppleMusicId(title, artist, durationMs)
+            ?: throw IllegalStateException("Apple Music lyrics unavailable")
+
+        val lyricsResponse = client.get("apple-music/lyrics") {
+            parameter("id", songId)
+            parameter("ttml", "true")
         }
 
-        if (amSearch.status == HttpStatusCode.OK) {
-            val items = amSearch.body<List<AppleMusicSearchItem>>()
-            val bestMatch = if (durationMs > 0) {
-                items.minByOrNull { abs(it.duration.toLong() - durationMs) }
-            } else {
-                items.firstOrNull()
-            }
+        System.err.println("PaxsenixLyrics: Apple Music lyrics (TTML) status: ${lyricsResponse.status}")
+        if (lyricsResponse.status == HttpStatusCode.OK) {
+            try {
+                val rawBody = lyricsResponse.body<String>().trim()
 
-            if (bestMatch != null) {
-                val diff = abs(bestMatch.duration.toLong() - durationMs)
-                System.err.println("PaxsenixLyrics: Best Apple Music match: ${bestMatch.songName} (ID: ${bestMatch.id}, Duration: ${bestMatch.duration}, Diff: $diff)")
-                if (durationMs <= 0 || (diff < 10000)) {
-                    val lyricsResponse = client.get("apple-music/lyrics") {
-                        parameter("id", bestMatch.id)
-                        parameter("ttml", "true")
-                    }
-
-                    System.err.println("PaxsenixLyrics: Apple Music lyrics (TTML) status: ${lyricsResponse.status}")
-                    if (lyricsResponse.status == HttpStatusCode.OK) {
-                        try {
-                            val rawBody = lyricsResponse.body<String>().trim()
-                            
-                            // Case 1: Direct XML response
-                            if (rawBody.startsWith("<tt") || rawBody.startsWith("<?xml")) {
-                                System.err.println("PaxsenixLyrics: SUCCESS from Apple Music (Direct TTML)")
-                                return@runCatching rawBody
-                            }
-
-                            // Case 2: JSON-wrapped XML response
-                            val data = Json.decodeFromString<JsonObject>(rawBody)
-                            val content = data["content"]?.jsonPrimitive?.content
-                            if (content != null && (content.contains("<tt") || content.contains("<?xml"))) {
-                                System.err.println("PaxsenixLyrics: SUCCESS from Apple Music (JSON-wrapped TTML, Length: ${content.length})")
-                                return@runCatching content
-                            } else {
-                                System.err.println("PaxsenixLyrics: Apple Music TTML content was null or invalid. Type: ${data["type"]}")
-                            }
-                        } catch (e: Exception) {
-                            System.err.println("PaxsenixLyrics: Error parsing Apple Music TTML: ${e.message}")
-                        }
-                    }
-
-                    val jsonResponse = client.get("apple-music/lyrics") {
-                        parameter("id", bestMatch.id)
-                    }
-                    System.err.println("PaxsenixLyrics: Apple Music lyrics (JSON) status: ${jsonResponse.status}")
-                    if (jsonResponse.status == HttpStatusCode.OK) {
-                        val lyricsData = jsonResponse.body<AppleMusicLyricsResponse>()
-                        if (lyricsData.content.isNotEmpty()) {
-                            System.err.println("PaxsenixLyrics: SUCCESS from Apple Music (LRC Fallback)")
-                            return@runCatching convertAppleMusicToLrc(lyricsData)
-                        }
-                    }
+                if (rawBody.startsWith("<tt") || rawBody.startsWith("<?xml")) {
+                    System.err.println("PaxsenixLyrics: SUCCESS from Apple Music (Direct TTML)")
+                    return@runCatching rawBody
                 }
+
+                val data = Json.decodeFromString<JsonObject>(rawBody)
+                val content = data["content"]?.jsonPrimitive?.content
+                if (content != null && (content.contains("<tt") || content.contains("<?xml"))) {
+                    System.err.println("PaxsenixLyrics: SUCCESS from Apple Music (JSON-wrapped TTML, Length: ${content.length})")
+                    return@runCatching content
+                } else {
+                    System.err.println("PaxsenixLyrics: Apple Music TTML content was null or invalid. Type: ${data["type"]}")
+                }
+            } catch (e: Exception) {
+                System.err.println("PaxsenixLyrics: Error parsing Apple Music TTML: ${e.message}")
             }
         }
+
+        val jsonResponse = client.get("apple-music/lyrics") {
+            parameter("id", songId)
+        }
+        System.err.println("PaxsenixLyrics: Apple Music lyrics (JSON) status: ${jsonResponse.status}")
+        if (jsonResponse.status == HttpStatusCode.OK) {
+            val lyricsData = jsonResponse.body<AppleMusicLyricsResponse>()
+            if (lyricsData.content.isNotEmpty()) {
+                System.err.println("PaxsenixLyrics: SUCCESS from Apple Music (LRC Fallback)")
+                return@runCatching convertAppleMusicToLrc(lyricsData)
+            }
+        }
+
         throw IllegalStateException("Apple Music lyrics unavailable")
     }
 
