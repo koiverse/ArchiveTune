@@ -1667,6 +1667,7 @@ private fun V7PlayerBackdrop(
         val canvasFallback = canvasFallbackUrl?.takeIf { it.isNotBlank() }
         val canvasStatic = canvasStaticUrl?.takeIf { it.isNotBlank() }
         val artworkUrl = canvasStatic ?: thumbnailUrl?.takeIf { it.isNotBlank() }
+        val hasCanvas = !canvasPrimary.isNullOrBlank() || !canvasFallback.isNullOrBlank()
         val paletteArtworkUrl = thumbnailUrl?.takeIf { it.isNotBlank() } ?: artworkUrl
         var backdropPalette by remember(paletteArtworkUrl, fallbackColor) {
             mutableStateOf(V7BackdropPalette.fromColors(emptyList(), fallbackColor))
@@ -1725,9 +1726,6 @@ private fun V7PlayerBackdrop(
             },
             label = label,
         ) { backdrop ->
-            val hasCanvas =
-                !backdrop.canvasPrimaryUrl.isNullOrBlank() ||
-                    !backdrop.canvasFallbackUrl.isNullOrBlank()
             if (backdrop.artworkUrl != null) {
                 val backdropArtworkModel = remember(backdrop.artworkUrl, backdropArtworkSizePx) {
                     backdrop.artworkUrl.resize(backdropArtworkSizePx, backdropArtworkSizePx)
@@ -1776,52 +1774,9 @@ private fun V7PlayerBackdrop(
                             palette = backdropPalette,
                         )
                     }
-
-                    if (hasCanvas) {
-                        CanvasArtworkPlayer(
-                            primaryUrl = backdrop.canvasPrimaryUrl,
-                            fallbackUrl = backdrop.canvasFallbackUrl,
-                            isPlaying = isPlaying,
-                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    compositingStrategy = CompositingStrategy.Offscreen
-                                }
-                                .drawWithCache {
-                                    val canvasMask = Brush.verticalGradient(
-                                        colorStops = arrayOf(
-                                            0f to Color.Black,
-                                            V7BackdropMaskStartFraction to Color.Black,
-                                            V7BackdropMaskMidFraction to Color.Black.copy(alpha = 0.96f),
-                                            V7BackdropMaskSolidFraction to Color.Black.copy(
-                                                alpha = if (backdrop.disableBlur) 0.88f else 0.68f,
-                                            ),
-                                            1f to Color.Black.copy(
-                                                alpha = if (backdrop.disableBlur) 0.78f else 0.42f,
-                                            ),
-                                        )
-                                    )
-
-                                    onDrawWithContent {
-                                        drawContent()
-                                        drawRect(
-                                            brush = canvasMask,
-                                            blendMode = BlendMode.DstIn,
-                                        )
-                                    }
-                                },
-                        )
-                    }
                 }
             } else if (hasCanvas) {
-                CanvasArtworkPlayer(
-                    primaryUrl = backdrop.canvasPrimaryUrl,
-                    fallbackUrl = backdrop.canvasFallbackUrl,
-                    isPlaying = isPlaying,
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                Box(modifier = Modifier.fillMaxSize())
             } else {
                 Box(
                     modifier = Modifier
@@ -1853,6 +1808,43 @@ private fun V7PlayerBackdrop(
                     )
                 )
         )
+
+        if (hasCanvas) {
+            CanvasArtworkPlayer(
+                primaryUrl = canvasPrimary,
+                fallbackUrl = canvasFallback,
+                isPlaying = isPlaying,
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithCache {
+                        val canvasMask = Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0f to Color.Black,
+                                V7BackdropMaskStartFraction to Color.Black,
+                                V7BackdropMaskMidFraction to Color.Black.copy(alpha = 0.96f),
+                                V7BackdropMaskSolidFraction to Color.Black.copy(
+                                    alpha = if (disableBlur) 0.88f else 0.68f,
+                                ),
+                                1f to Color.Black.copy(
+                                    alpha = if (disableBlur) 0.78f else 0.42f,
+                                ),
+                            )
+                        )
+
+                        onDrawWithContent {
+                            drawContent()
+                            drawRect(
+                                brush = canvasMask,
+                                blendMode = BlendMode.DstIn,
+                            )
+                        }
+                    },
+            )
+        }
     }
 }
 
