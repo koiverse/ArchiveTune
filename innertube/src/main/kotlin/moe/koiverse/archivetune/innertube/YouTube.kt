@@ -1243,6 +1243,51 @@ object YouTube {
             ?.setVideoId
     }
 
+    suspend fun addSongsToPlaylist(
+        playlistId: String,
+        videoIds: List<String>,
+        batchSize: Int = DEFAULT_PLAYLIST_EDIT_BATCH_SIZE,
+        onProgress: (completedSongs: Int, totalSongs: Int) -> Unit = { _, _ -> },
+    ): Result<List<String?>> = runCatching {
+        require(batchSize > 0) { "batchSize must be positive" }
+        if (videoIds.isEmpty()) return@runCatching emptyList()
+
+        val setVideoIds = ArrayList<String?>(videoIds.size)
+        val totalSongs = videoIds.size
+        var completedSongs = 0
+        onProgress(completedSongs, totalSongs)
+
+        videoIds.chunked(batchSize).forEach { batch ->
+            val batchResponse = runCatching {
+                innerTube
+                    .addSongsToPlaylist(WEB_REMIX, playlistId, batch)
+                    .body<AddItemYouTubePlaylistResponse>()
+            }
+
+            if (batchResponse.isSuccess) {
+                val resultByVideoId = batchResponse.getOrThrow().playlistEditResults
+                    .map { it.playlistEditVideoAddedResultData }
+                    .associateBy { it.videoId }
+
+                batch.forEach { videoId ->
+                    setVideoIds += resultByVideoId[videoId]?.setVideoId
+                    completedSongs += 1
+                }
+            } else if (batch.size == 1) {
+                throw batchResponse.exceptionOrNull() ?: IllegalStateException("Playlist edit failed")
+            } else {
+                batch.forEach { videoId ->
+                    val setVideoId = addToPlaylist(playlistId, videoId).getOrThrow()
+                    setVideoIds += setVideoId
+                    completedSongs += 1
+                }
+            }
+            onProgress(completedSongs, totalSongs)
+        }
+
+        setVideoIds
+    }
+
     suspend fun addPlaylistToPlaylist(playlistId: String, addPlaylistId: String) = runCatching {
         innerTube.addPlaylistToPlaylist(WEB_REMIX, playlistId, addPlaylistId)
     }
@@ -1514,6 +1559,7 @@ object YouTube {
     }
 
     const val MAX_GET_QUEUE_SIZE = 1000
+    private const val DEFAULT_PLAYLIST_EDIT_BATCH_SIZE = 50
 
     private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
 }
