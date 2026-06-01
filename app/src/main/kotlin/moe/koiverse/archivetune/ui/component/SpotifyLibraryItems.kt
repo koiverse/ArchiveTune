@@ -77,6 +77,20 @@ fun SpotifyLibraryPlaylistListItem(
 fun SpotifyTrackListItem(
     track: SpotifyTrack,
     modifier: Modifier = Modifier,
+    albumIndex: Int? = null,
+    badges: @Composable RowScope.() -> Unit = {
+        if (track.explicit) {
+            Icon(
+                painter = painterResource(R.drawable.explicit),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    },
+    isSelected: Boolean = false,
+    isActive: Boolean = false,
+    isPlaying: Boolean = false,
+    showSongIconPlaceholder: Boolean = true,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val duration = track.durationMs.takeIf { it > 0 }?.toLong()?.let(::makeTimeString)
@@ -88,18 +102,22 @@ fun SpotifyTrackListItem(
     ListItem(
         title = track.name,
         subtitle = subtitle,
+        badges = badges,
         thumbnailContent = {
             ItemThumbnail(
                 thumbnailUrl = SpotifyMapper.getTrackThumbnail(track)?.resize(200, 200),
-                isActive = false,
-                isPlaying = false,
+                albumIndex = albumIndex,
+                isSelected = isSelected,
+                isActive = isActive,
+                isPlaying = isPlaying,
                 shape = RoundedCornerShape(ThumbnailCornerRadius),
-                placeholderIconRes = R.drawable.music_note,
+                placeholderIconRes = if (showSongIconPlaceholder) R.drawable.music_note else null,
                 modifier = Modifier.size(ListThumbnailSize),
             )
         },
         trailingContent = trailingContent,
         modifier = modifier,
+        isActive = isActive,
     )
 }
 
