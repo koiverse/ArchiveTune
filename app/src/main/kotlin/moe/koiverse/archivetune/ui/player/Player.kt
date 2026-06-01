@@ -225,9 +225,9 @@ private const val V7BackdropOverscanFactor = 1.15f
 private const val V7BackdropSharpArtworkScale = 1.02f
 private const val V7BackdropBlurredArtworkScale = 1.34f
 private const val V7BackdropBlurRadiusDp = 82
-private const val V7BackdropMaskStartFraction = 0.50f
-private const val V7BackdropMaskMidFraction = 0.62f
-private const val V7BackdropMaskSolidFraction = 0.76f
+private const val V7BackdropMaskStartFraction = 0.60f
+private const val V7BackdropMaskMidFraction = 0.65f
+private const val V7BackdropMaskSolidFraction = 0.71f
 private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1900,7 +1900,7 @@ private fun V7FrostedArtworkOverlay(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
                             V7BackdropMaskStartFraction to Color.Transparent,
-                            V7BackdropMaskMidFraction to Color.Black.copy(alpha = 0.74f),
+                            V7BackdropMaskMidFraction to Color.Black.copy(alpha = 0.88f),
                             V7BackdropMaskSolidFraction to Color.Black,
                             1f to Color.Black,
                         )
