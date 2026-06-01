@@ -212,7 +212,8 @@ fun AccountSettings(
         }
     }
 
-    val hasUpdate = !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
+    val hasUpdate = BuildConfig.UPDATER_AVAILABLE &&
+        !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
     val tokenActionTitle = when {
         !isLoggedIn -> stringResource(R.string.advanced_login)
         showToken -> stringResource(R.string.token_shown)
@@ -426,7 +427,13 @@ fun AccountSettings(
                     ExpressiveActionRow(
                         icon = painterResource(R.drawable.integration),
                         title = integrationLabel,
-                        subtitle = "Discord, Last.fm, ListenBrainz",
+                        subtitle = stringResource(
+                            if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
+                                R.string.account_integrations_summary_standard
+                            } else {
+                                R.string.account_integrations_summary_foss
+                            },
+                        ),
                         onClick = { navController.navigate("settings/integration") },
                     )
 

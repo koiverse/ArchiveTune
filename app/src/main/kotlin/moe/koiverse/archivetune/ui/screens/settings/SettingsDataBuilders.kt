@@ -205,26 +205,28 @@ fun buildSettingsGroups(
                             ),
                         )
                     }
-                    add(
-                        SettingsItem(
-                            key = "updates",
-                            icon = painterResource(R.drawable.update),
-                            title = stringResource(R.string.updates),
-                            subtitle = if (hasUpdate) {
-                                stringResource(R.string.new_version_available)
-                            } else {
-                                stringResource(R.string.settings_updates_subtitle)
-                            },
-                            showUpdateIndicator = hasUpdate,
-                            accentColor = if (hasUpdate) {
-                                MaterialTheme.colorScheme.tertiary
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            },
-                            badge = if (hasUpdate) "v${BuildConfig.VERSION_NAME}" else BuildConfig.VERSION_NAME,
-                            onClick = { navController.navigate("settings/update") },
-                        ),
-                    )
+                    if (BuildConfig.UPDATER_AVAILABLE) {
+                        add(
+                            SettingsItem(
+                                key = "updates",
+                                icon = painterResource(R.drawable.update),
+                                title = stringResource(R.string.updates),
+                                subtitle = if (hasUpdate) {
+                                    stringResource(R.string.new_version_available)
+                                } else {
+                                    stringResource(R.string.settings_updates_subtitle)
+                                },
+                                showUpdateIndicator = hasUpdate,
+                                accentColor = if (hasUpdate) {
+                                    MaterialTheme.colorScheme.tertiary
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                                badge = if (hasUpdate) "v${BuildConfig.VERSION_NAME}" else BuildConfig.VERSION_NAME,
+                                onClick = { navController.navigate("settings/update") },
+                            ),
+                        )
+                    }
                     add(
                         SettingsItem(
                             key = "about",

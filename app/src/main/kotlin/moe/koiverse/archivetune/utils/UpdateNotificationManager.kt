@@ -47,6 +47,8 @@ object UpdateNotificationManager {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun createNotificationChannel(context: Context) {
+        if (!BuildConfig.UPDATER_AVAILABLE) return
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = context.getString(R.string.update_notification_channel_name)
             val descriptionText = context.getString(R.string.update_notification_channel_desc)
@@ -60,6 +62,11 @@ object UpdateNotificationManager {
     }
 
     fun schedulePeriodicUpdateCheck(context: Context) {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            cancelPeriodicUpdateCheck(context)
+            return
+        }
+
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .setRequiresBatteryNotLow(true)
@@ -84,6 +91,12 @@ object UpdateNotificationManager {
     }
 
     fun checkForUpdates(context: Context) {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            cancelPeriodicUpdateCheck(context)
+            cancelUpdateNotification(context)
+            return
+        }
+
         scope.launch {
             try {
                 val dataStore = context.dataStore
@@ -123,6 +136,8 @@ object UpdateNotificationManager {
     }
 
     suspend fun notifyIfNewVersion(context: Context, latestVersion: String) {
+        if (!BuildConfig.UPDATER_AVAILABLE) return
+
         try {
             val dataStore = context.dataStore
             val lastNotified = dataStore.data.map { it[LastNotifiedVersionKey] ?: "" }.first()

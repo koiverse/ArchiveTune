@@ -23,6 +23,10 @@ class UpdateCheckWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            return Result.success()
+        }
+
         return try {
             val dataStore = applicationContext.dataStore
 

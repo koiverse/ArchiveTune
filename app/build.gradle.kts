@@ -16,6 +16,7 @@ if (localPropertiesFile.exists()) {
 }
 
 val discordSocialSdkAar = file("libs/discord_partner_sdk.aar")
+val discordSocialSdkAvailable = discordSocialSdkAar.exists()
 val discordApplicationId =
     (
         localProperties.getProperty("DISCORD_APPLICATION_ID")
@@ -69,20 +70,51 @@ android {
                     ?: ""
                 ).trim()
         buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
-        buildConfigField("String", "DISCORD_APPLICATION_ID", "\"$discordApplicationId\"")
-        buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
-        buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
-        manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
-
-        externalNativeBuild {
-            cmake {
-                arguments += "-DARCHIVETUNE_ENABLE_DISCORD_SOCIAL_SDK=${if (discordSocialSdkAar.exists()) "ON" else "OFF"}"
-            }
-        }
+        buildConfigField("String", "DISTRIBUTION", "\"standard\"")
+        buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
+        buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
     }
 
-    flavorDimensions += listOf("device", "abi")
+    flavorDimensions += listOf("distribution", "device", "abi")
     productFlavors {
+        create("standard") {
+            dimension = "distribution"
+            isDefault = true
+            buildConfigField("String", "DISTRIBUTION", "\"standard\"")
+            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", discordSocialSdkAvailable.toString())
+            buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
+            buildConfigField("String", "DISCORD_APPLICATION_ID", "\"$discordApplicationId\"")
+            buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
+            buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
+            manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DARCHIVETUNE_ENABLE_DISCORD_SOCIAL_SDK=${if (discordSocialSdkAvailable) "ON" else "OFF"}"
+                }
+            }
+        }
+        create("foss") {
+            dimension = "distribution"
+            buildConfigField("String", "DISTRIBUTION", "\"foss\"")
+            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
+            buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DARCHIVETUNE_ENABLE_DISCORD_SOCIAL_SDK=OFF"
+                }
+            }
+        }
+        create("izzy") {
+            dimension = "distribution"
+            buildConfigField("String", "DISTRIBUTION", "\"izzy\"")
+            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
+            buildConfigField("boolean", "UPDATER_AVAILABLE", "false")
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DARCHIVETUNE_ENABLE_DISCORD_SOCIAL_SDK=OFF"
+                }
+            }
+        }
         create("mobile") {
             dimension = "device"
             buildConfigField("String", "DEVICE", "\"mobile\"")
@@ -307,8 +339,8 @@ dependencies {
     implementation(libs.accompanist.lyrics.ui)
     implementation(libs.accompanist.lyrics.core)
 
-    if (discordSocialSdkAar.exists()) {
-        implementation(files(discordSocialSdkAar))
+    if (discordSocialSdkAvailable) {
+        "standardImplementation"(files(discordSocialSdkAar))
     }
 }
 

@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.ListenBrainzEnabledKey
@@ -66,15 +67,17 @@ fun IntegrationScreen(
             )
         )
 
-        PreferenceGroup(title = stringResource(R.string.general)) {
-            item {
-                PreferenceEntry(
-                    title = { Text(stringResource(R.string.discord_integration)) },
-                    icon = { Icon(painterResource(R.drawable.discord), null) },
-                    onClick = {
-                        navController.navigate("settings/discord")
-                    },
-                )
+        if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
+            PreferenceGroup(title = stringResource(R.string.general)) {
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.discord_integration)) },
+                        icon = { Icon(painterResource(R.drawable.discord), null) },
+                        onClick = {
+                            navController.navigate("settings/discord")
+                        },
+                    )
+                }
             }
         }
 

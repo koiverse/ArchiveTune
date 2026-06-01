@@ -509,7 +509,10 @@ class MainActivity : ComponentActivity() {
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
 
-                if (System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds) {
+                if (
+                    BuildConfig.UPDATER_AVAILABLE &&
+                    System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds
+                ) {
                     Updater.getLatestVersionName().onSuccess {
                         latestVersionName = it
                     }
@@ -586,7 +589,10 @@ class MainActivity : ComponentActivity() {
 
                     // fetch release notes and show sheet when a new version is detected
                     LaunchedEffect(latestVersionName) {
-                        if (!Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)) {
+                        if (
+                            BuildConfig.UPDATER_AVAILABLE &&
+                            !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
+                        ) {
                             Updater.getLatestReleaseNotes().onSuccess {
                                 releaseNotesState.value = it
                             }.onFailure {
@@ -1473,7 +1479,10 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                     IconButton(onClick = { navController.navigate("settings") }) {
                                                         BadgedBox(badge = {
-                                                            if (!Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)) {
+                                                            if (
+                                                                BuildConfig.UPDATER_AVAILABLE &&
+                                                                !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
+                                                            ) {
                                                                 Badge()
                                                             }
                                                         }) {

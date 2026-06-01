@@ -44,6 +44,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import moe.koiverse.archivetune.BuildConfig
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.DarkModeKey
 import moe.koiverse.archivetune.constants.PureBlackKey
@@ -405,8 +406,10 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/backup_restore") {
         BackupAndRestore(navController, scrollBehavior)
     }
-    composable("settings/discord") {
-        DiscordSettings(navController, scrollBehavior)
+    if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
+        composable("settings/discord") {
+            DiscordSettings(navController, scrollBehavior)
+        }
     }
     composable("settings/integration") {
         IntegrationScreen(navController, scrollBehavior)
@@ -420,14 +423,18 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/lastfm") {
         LastFMSettings(navController, scrollBehavior)
     }
-    composable("settings/discord/experimental") {
-        moe.koiverse.archivetune.ui.screens.settings.DiscordExperimental(navController)
+    if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
+        composable("settings/discord/experimental") {
+            moe.koiverse.archivetune.ui.screens.settings.DiscordExperimental(navController)
+        }
     }
     composable("settings/misc") {
         DebugSettings(navController)
     }
-    composable("settings/update") {
-        UpdateScreen(navController, scrollBehavior)
+    if (BuildConfig.UPDATER_AVAILABLE) {
+        composable("settings/update") {
+            UpdateScreen(navController, scrollBehavior)
+        }
     }
     composable("settings/changelog") {
         ChangelogScreen(navController, scrollBehavior)

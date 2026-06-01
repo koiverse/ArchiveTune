@@ -237,6 +237,10 @@ object Updater {
     }
 
     suspend fun getCachedReleases(): List<ReleaseInfo> {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            return emptyList()
+        }
+
         val cachedJson = App.instance.dataStore.getAsync(GitHubReleasesJsonKey)
         return cachedJson
             ?.takeIf { it.isNotBlank() }
@@ -254,6 +258,10 @@ object Updater {
 
     suspend fun getLatestReleaseInfo(): Result<ReleaseInfo> =
         runCatching {
+            if (!BuildConfig.UPDATER_AVAILABLE) {
+                throw IllegalStateException("Updater is not available for this distribution")
+            }
+
             val releases = getAllReleases().getOrThrow()
             val latest = findLatestRelease(releases)
                 ?: throw IllegalStateException("No releases found")
@@ -263,6 +271,10 @@ object Updater {
 
     suspend fun getCommitHistory(count: Int = 20, branch: String = "dev"): Result<List<GitCommit>> =
         runCatching {
+            if (!BuildConfig.UPDATER_AVAILABLE) {
+                return@runCatching emptyList()
+            }
+
             val response =
                 client.get("https://api.github.com/repos/koiverse/ArchiveTune/commits?sha=$branch&per_page=$count")
                     .bodyAsText()
@@ -286,6 +298,10 @@ object Updater {
         }
 
     fun getLatestDownloadUrl(): String {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            return ""
+        }
+
         val baseUrl = "https://github.com/koiverse/ArchiveTune/releases/latest/download/"
         return baseUrl + "app-${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release.apk"
     }
@@ -293,8 +309,12 @@ object Updater {
     suspend fun getAllReleases(
         perPage: Int = 30,
         forceRefresh: Boolean = false,
-    ): Result<List<ReleaseInfo>> =
-        runCatching {
+    ): Result<List<ReleaseInfo>> {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            return Result.success(emptyList())
+        }
+
+        return runCatching {
             val now = System.currentTimeMillis()
             val cachedJson = App.instance.dataStore.getAsync(GitHubReleasesJsonKey)
             val cachedEtag = App.instance.dataStore.getAsync(GitHubReleasesEtagKey)
@@ -374,4 +394,5 @@ object Updater {
                 }
             }
         }
+    }
 }

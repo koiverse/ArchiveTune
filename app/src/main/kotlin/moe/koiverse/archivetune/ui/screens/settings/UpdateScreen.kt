@@ -141,7 +141,8 @@ fun UpdateScreen(
     val isNightlyChannel = updateChannel == UpdateChannel.NIGHTLY
     val isUpdateAvailable by remember(latestVersion) {
         derivedStateOf {
-            latestVersion?.let { !Updater.isSameVersion(it, BuildConfig.VERSION_NAME) } ?: false
+            BuildConfig.UPDATER_AVAILABLE &&
+                (latestVersion?.let { !Updater.isSameVersion(it, BuildConfig.VERSION_NAME) } ?: false)
         }
     }
     val latestCommit by remember(commits) {
@@ -312,6 +313,11 @@ fun UpdateScreen(
     }
 
     LaunchedEffect(Unit) {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            isLoadingCommits = false
+            return@LaunchedEffect
+        }
+
         Updater.getLatestVersionName().onSuccess {
             latestVersion = it
         }
