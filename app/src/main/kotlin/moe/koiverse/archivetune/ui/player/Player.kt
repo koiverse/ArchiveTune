@@ -206,6 +206,7 @@ import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberLowDataModeActive
 import moe.koiverse.archivetune.utils.rememberPreference
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -218,12 +219,15 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 private const val SeekbarSettleToleranceMs = 1_500L
-private const val V7BackdropBlurHeightFraction = 0.56f
 private const val V7BackdropMinArtworkSizePx = 1_024
 private const val V7BackdropMaxArtworkSizePx = 2_048
 private const val V7BackdropOverscanFactor = 1.15f
-private const val V7BackdropSharpArtworkScale = 1.03f
-private const val V7BackdropBlurredArtworkScale = 1.22f
+private const val V7BackdropSharpArtworkScale = 1.02f
+private const val V7BackdropBlurredArtworkScale = 1.34f
+private const val V7BackdropBlurRadiusDp = 82
+private const val V7BackdropMaskStartFraction = 0.50f
+private const val V7BackdropMaskMidFraction = 0.62f
+private const val V7BackdropMaskSolidFraction = 0.76f
 private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1631,12 +1635,10 @@ private fun V7PlayerBackdrop(
     modifier: Modifier = Modifier,
 ) {
     val configuration = LocalConfiguration.current
+    val context = LocalContext.current
     val density = LocalDensity.current
-    val blurMaskStart = (1f - V7BackdropBlurHeightFraction).coerceIn(0f, 0.85f)
-    val blurMaskMid = (blurMaskStart + 0.14f).coerceIn(blurMaskStart, 0.95f)
-    val blurMaskSolid = (blurMaskStart + 0.28f).coerceIn(blurMaskMid, 1f)
+    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val backdropScale = if (disableBlur) 1.01f else V7BackdropSharpArtworkScale
-    val surfaceTint = MaterialTheme.colorScheme.surface
     val backdropArtworkSizePx = remember(
         configuration.screenWidthDp,
         configuration.screenHeightDp,
@@ -1657,16 +1659,64 @@ private fun V7PlayerBackdrop(
         val canvasPrimary = canvasPrimaryUrl?.takeIf { it.isNotBlank() }
         val canvasFallback = canvasFallbackUrl?.takeIf { it.isNotBlank() }
         val canvasStatic = canvasStaticUrl?.takeIf { it.isNotBlank() }
+        val artworkUrl = canvasStatic ?: thumbnailUrl?.takeIf { it.isNotBlank() }
+        var backdropPalette by remember(artworkUrl, fallbackColor) {
+            mutableStateOf(V7BackdropPalette.fromColors(emptyList(), fallbackColor))
+        }
+
+        LaunchedEffect(artworkUrl, fallbackColor) {
+            backdropPalette = V7BackdropPalette.fromColors(emptyList(), fallbackColor)
+            if (artworkUrl == null) return@LaunchedEffect
+
+            val request = ImageRequest.Builder(context)
+                .data(artworkUrl)
+                .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
+                .allowHardware(false)
+                .build()
+
+            val extractedColors = try {
+                val image = withContext(Dispatchers.IO) {
+                    context.imageLoader.execute(request)
+                }.image
+                if (image == null) {
+                    null
+                } else {
+                    val bitmap = image.toBitmap()
+                    try {
+                        withContext(Dispatchers.Default) {
+                            val palette = Palette.from(bitmap)
+                                .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                                .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                                .generate()
+                            extractV7BackdropColors(palette)
+                        }
+                    } finally {
+                        bitmap.recycle()
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+
+            backdropPalette = V7BackdropPalette.fromColors(extractedColors.orEmpty(), fallbackColor)
+        }
+
         val backdropState =
-            remember(thumbnailUrl, canvasStatic, canvasPrimary, canvasFallback, disableBlur) {
+            remember(artworkUrl, canvasPrimary, canvasFallback, disableBlur) {
                 V7PlayerBackdropState(
-                    thumbnailUrl = thumbnailUrl,
-                    canvasStaticUrl = canvasStatic,
+                    artworkUrl = artworkUrl,
                     canvasPrimaryUrl = canvasPrimary,
                     canvasFallbackUrl = canvasFallback,
                     disableBlur = disableBlur,
                 )
             }
+
+        V7ExtractedColorBackdrop(
+            palette = backdropPalette,
+            modifier = Modifier.fillMaxSize(),
+        )
 
         AnimatedContent(
             targetState = backdropState,
@@ -1678,10 +1728,9 @@ private fun V7PlayerBackdrop(
             val hasCanvas =
                 !backdrop.canvasPrimaryUrl.isNullOrBlank() ||
                     !backdrop.canvasFallbackUrl.isNullOrBlank()
-            val artworkUrl = backdrop.canvasStaticUrl ?: backdrop.thumbnailUrl
-            if (artworkUrl != null) {
-                val backdropArtworkModel = remember(artworkUrl, backdropArtworkSizePx) {
-                    artworkUrl.resize(backdropArtworkSizePx, backdropArtworkSizePx)
+            if (backdrop.artworkUrl != null) {
+                val backdropArtworkModel = remember(backdrop.artworkUrl, backdropArtworkSizePx) {
+                    backdrop.artworkUrl.resize(backdropArtworkSizePx, backdropArtworkSizePx)
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -1694,6 +1743,30 @@ private fun V7PlayerBackdrop(
                             .graphicsLayer {
                                 scaleX = backdropScale
                                 scaleY = backdropScale
+                                compositingStrategy = CompositingStrategy.Offscreen
+                            }
+                            .drawWithCache {
+                                val artworkMask = Brush.verticalGradient(
+                                    colorStops = arrayOf(
+                                        0f to Color.Black,
+                                        V7BackdropMaskStartFraction to Color.Black,
+                                        V7BackdropMaskMidFraction to Color.Black.copy(alpha = 0.94f),
+                                        V7BackdropMaskSolidFraction to Color.Black.copy(
+                                            alpha = if (backdrop.disableBlur) 0.84f else 0.62f,
+                                        ),
+                                        1f to Color.Black.copy(
+                                            alpha = if (backdrop.disableBlur) 0.72f else 0.36f,
+                                        ),
+                                    )
+                                )
+
+                                onDrawWithContent {
+                                    drawContent()
+                                    drawRect(
+                                        brush = artworkMask,
+                                        blendMode = BlendMode.DstIn,
+                                    )
+                                }
                             }
                     )
 
@@ -1703,16 +1776,41 @@ private fun V7PlayerBackdrop(
                             fallbackUrl = backdrop.canvasFallbackUrl,
                             isPlaying = isPlaying,
                             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    compositingStrategy = CompositingStrategy.Offscreen
+                                }
+                                .drawWithCache {
+                                    val canvasMask = Brush.verticalGradient(
+                                        colorStops = arrayOf(
+                                            0f to Color.Black,
+                                            V7BackdropMaskStartFraction to Color.Black,
+                                            V7BackdropMaskMidFraction to Color.Black.copy(alpha = 0.96f),
+                                            V7BackdropMaskSolidFraction to Color.Black.copy(
+                                                alpha = if (backdrop.disableBlur) 0.88f else 0.68f,
+                                            ),
+                                            1f to Color.Black.copy(
+                                                alpha = if (backdrop.disableBlur) 0.78f else 0.42f,
+                                            ),
+                                        )
+                                    )
+
+                                    onDrawWithContent {
+                                        drawContent()
+                                        drawRect(
+                                            brush = canvasMask,
+                                            blendMode = BlendMode.DstIn,
+                                        )
+                                    }
+                                },
                         )
                     }
 
                     if (!backdrop.disableBlur) {
                         V7FrostedArtworkOverlay(
                             artworkModel = backdropArtworkModel,
-                            maskStart = blurMaskStart,
-                            maskMid = blurMaskMid,
-                            maskSolid = blurMaskSolid,
+                            palette = backdropPalette,
                         )
                     }
                 }
@@ -1736,7 +1834,7 @@ private fun V7PlayerBackdrop(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.08f))
+                .background(Color.Black.copy(alpha = 0.06f))
         )
 
         Box(
@@ -1745,25 +1843,12 @@ private fun V7PlayerBackdrop(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.2f),
-                            0.32f to Color.Transparent,
-                            0.62f to Color.Black.copy(alpha = 0.14f),
-                            1f to Color.Black.copy(alpha = 0.66f),
-                        )
-                    )
-                )
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0f to Color.Transparent,
-                            blurMaskStart to Color.Transparent,
-                            0.82f to surfaceTint.copy(alpha = 0.1f),
-                            1f to surfaceTint.copy(alpha = 0.18f),
+                            0f to Color.Black.copy(alpha = 0.24f),
+                            0.34f to Color.Transparent,
+                            V7BackdropMaskStartFraction to Color.Transparent,
+                            V7BackdropMaskMidFraction to backdropPalette.top.copy(alpha = 0.10f),
+                            V7BackdropMaskSolidFraction to backdropPalette.mid.copy(alpha = 0.30f),
+                            1f to backdropPalette.bottom.copy(alpha = 0.76f),
                         )
                     )
                 )
@@ -1772,11 +1857,30 @@ private fun V7PlayerBackdrop(
 }
 
 @Composable
+private fun V7ExtractedColorBackdrop(
+    palette: V7BackdropPalette,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .background(
+                Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0f to palette.top.copy(alpha = 0.94f),
+                        0.42f to palette.mid.copy(alpha = 0.98f),
+                        V7BackdropMaskStartFraction to palette.mid.copy(alpha = 1f),
+                        V7BackdropMaskSolidFraction to palette.bottom.copy(alpha = 1f),
+                        1f to palette.shadow,
+                    )
+                )
+            )
+    )
+}
+
+@Composable
 private fun V7FrostedArtworkOverlay(
     artworkModel: String,
-    maskStart: Float,
-    maskMid: Float,
-    maskSolid: Float,
+    palette: V7BackdropPalette,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -1790,18 +1894,18 @@ private fun V7FrostedArtworkOverlay(
                     scaleX = V7BackdropBlurredArtworkScale
                     scaleY = V7BackdropBlurredArtworkScale
                 }
-                .blur(64.dp)
+                .blur(V7BackdropBlurRadiusDp.dp)
                 .graphicsLayer {
                     compositingStrategy = CompositingStrategy.Offscreen
-                    alpha = 0.92f
+                    alpha = 0.98f
                 }
                 .drawWithCache {
                     val blurMask = Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
-                            maskStart to Color.Transparent,
-                            maskMid to Color.Black.copy(alpha = 0.64f),
-                            maskSolid to Color.Black,
+                            V7BackdropMaskStartFraction to Color.Transparent,
+                            V7BackdropMaskMidFraction to Color.Black.copy(alpha = 0.74f),
+                            V7BackdropMaskSolidFraction to Color.Black,
                             1f to Color.Black,
                         )
                     )
@@ -1823,10 +1927,10 @@ private fun V7FrostedArtworkOverlay(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
-                            maskStart to Color.Transparent,
-                            maskMid to Color.White.copy(alpha = 0.08f),
-                            maskSolid to Color.Black.copy(alpha = 0.16f),
-                            1f to Color.Black.copy(alpha = 0.38f),
+                            V7BackdropMaskStartFraction to Color.Transparent,
+                            V7BackdropMaskMidFraction to palette.top.copy(alpha = 0.20f),
+                            V7BackdropMaskSolidFraction to palette.mid.copy(alpha = 0.48f),
+                            1f to palette.bottom.copy(alpha = 0.82f),
                         )
                     )
                 )
@@ -1835,9 +1939,79 @@ private fun V7FrostedArtworkOverlay(
 }
 
 @Immutable
+private data class V7BackdropPalette(
+    val top: Color,
+    val mid: Color,
+    val bottom: Color,
+    val shadow: Color,
+) {
+    companion object {
+        fun fromColors(colors: List<Color>, fallbackColor: Int): V7BackdropPalette {
+            val fallback = Color(fallbackColor).v7BackdropTone(valueMin = 0.14f, valueMax = 0.34f)
+            val first = colors.getOrNull(0)?.v7BackdropTone(valueMin = 0.18f, valueMax = 0.46f) ?: fallback
+            val second = colors.getOrNull(1)?.v7BackdropTone(valueMin = 0.16f, valueMax = 0.38f) ?: first
+            val third = colors.getOrNull(2)?.v7BackdropTone(valueMin = 0.12f, valueMax = 0.30f) ?: second
+            val top = blendV7BackdropColor(first, second, 0.24f)
+            val mid = blendV7BackdropColor(second, third, 0.32f)
+            val bottom = blendV7BackdropColor(third, Color.Black, 0.34f)
+            val shadow = blendV7BackdropColor(bottom, Color.Black, 0.54f)
+            return V7BackdropPalette(
+                top = top,
+                mid = mid,
+                bottom = bottom,
+                shadow = shadow,
+            )
+        }
+    }
+}
+
+private fun Color.v7BackdropTone(
+    valueMin: Float,
+    valueMax: Float,
+): Color {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(toArgb(), hsv)
+    hsv[1] = (hsv[1].coerceAtLeast(0.42f) * 1.08f).coerceIn(0f, 1f)
+    hsv[2] = hsv[2].coerceIn(valueMin, valueMax)
+    return Color(android.graphics.Color.HSVToColor(hsv))
+}
+
+private fun blendV7BackdropColor(
+    start: Color,
+    stop: Color,
+    fraction: Float,
+): Color =
+    Color(
+        ColorUtils.blendARGB(
+            start.toArgb(),
+            stop.toArgb(),
+            fraction.coerceIn(0f, 1f),
+        )
+    )
+
+private fun extractV7BackdropColors(palette: Palette): List<Color> =
+    listOfNotNull(
+        palette.vibrantSwatch,
+        palette.darkVibrantSwatch,
+        palette.lightVibrantSwatch,
+        palette.dominantSwatch,
+        palette.mutedSwatch,
+        palette.darkMutedSwatch,
+        palette.lightMutedSwatch,
+    )
+        .distinctBy { it.rgb }
+        .sortedByDescending { swatch ->
+            val hsv = FloatArray(3)
+            android.graphics.Color.colorToHSV(swatch.rgb, hsv)
+            val saturationWeight = 1f + hsv[1] * 0.8f
+            val brightnessWeight = if (hsv[2] in 0.12f..0.92f) 1.2f else 0.78f
+            swatch.population.toFloat() * saturationWeight * brightnessWeight
+        }
+        .map { swatch -> Color(swatch.rgb) }
+
+@Immutable
 private data class V7PlayerBackdropState(
-    val thumbnailUrl: String?,
-    val canvasStaticUrl: String?,
+    val artworkUrl: String?,
     val canvasPrimaryUrl: String?,
     val canvasFallbackUrl: String?,
     val disableBlur: Boolean,
