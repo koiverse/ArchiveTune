@@ -228,8 +228,8 @@ private const val V7BackdropBlurRadiusDp = 132
 private const val V7BackdropMaskStartFraction = 0.60f
 private const val V7BackdropMaskMidFraction = 0.65f
 private const val V7BackdropMaskSolidFraction = 0.71f
-private const val V7FrostedBlurMaskEdgeFraction = 0.32f
-private const val V7FrostedBlurMaskSolidFraction = 0.38f
+private const val V7FrostedBlurMaskEdgeFraction = 0.52f
+private const val V7FrostedBlurMaskSolidFraction = 0.60f
 private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
