@@ -60,14 +60,16 @@ object PlayerColorExtractor {
             if (availableColors.size >= 6) break
         }
 
-        val maxExtractedSaturation = allSwatches.maxOfOrNull { swatch ->
+        val totalPopulation = allSwatches.sumOf { it.population }.coerceAtLeast(1)
+        val weightedExtractedSaturation = allSwatches.sumOf { swatch ->
             val hsv = FloatArray(3)
             android.graphics.Color.colorToHSV(swatch.rgb, hsv)
-            hsv[1]
-        } ?: 0f
-        val isGreyscaleImage = maxExtractedSaturation < 0.22f
+            (hsv[1] * swatch.population).toDouble()
+        }.toFloat() / totalPopulation.toFloat()
+        val isGreyscaleImage = weightedExtractedSaturation < 0.18f
 
         if (isGreyscaleImage) {
+            availableColors.clear()
             val baseBrightness = allSwatches.maxByOrNull { it.population }?.let { swatch ->
                 val hsv = FloatArray(3)
                 android.graphics.Color.colorToHSV(swatch.rgb, hsv)
