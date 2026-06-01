@@ -10,8 +10,8 @@ package moe.koiverse.archivetune.ui.player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -186,7 +186,7 @@ private fun NewMiniPlayer(
             MiniPlayerBackground(
                 style = effectiveBackgroundStyle,
                 palette = backgroundPalette,
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.fillMaxSize(),
             )
             NewMiniPlayerContent(
                 position = position,
@@ -266,7 +266,7 @@ private fun MiniPlayerBackground(
             Box(modifier = modifier) {
                 Box(
                     modifier = Modifier
-                        .matchParentSize()
+                        .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
                                 colorStops = arrayOf(
@@ -279,7 +279,7 @@ private fun MiniPlayerBackground(
                 )
                 Box(
                     modifier = Modifier
-                        .matchParentSize()
+                        .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.32f))
                 )
             }
