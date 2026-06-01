@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -72,6 +73,7 @@ import moe.koiverse.archivetune.constants.PlaylistSortTypeKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
+import moe.koiverse.archivetune.constants.ShowSpotifyPlaylistsKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.entities.Playlist
@@ -81,9 +83,11 @@ import moe.koiverse.archivetune.ui.component.ExpressivePullToRefreshBox
 import moe.koiverse.archivetune.ui.component.LibraryPinnedCollectionTile
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
+import moe.koiverse.archivetune.ui.component.SpotifyLibraryPlaylistListItem
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibraryPlaylistsViewModel
+import moe.koiverse.archivetune.spotify.SpotifyLibraryViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -94,13 +98,14 @@ private data class PlaylistShortcutEntry(
     val accentColor: Color,
 )
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibraryPlaylistsScreen(
     navController: NavController,
     filterContent: @Composable () -> Unit,
     selectedTagIds: Set<String>,
     viewModel: LibraryPlaylistsViewModel = hiltViewModel(),
+    spotifyLibraryViewModel: SpotifyLibraryViewModel = hiltViewModel(),
     initialTextFieldValue: String? = null,
     allowSyncing: Boolean = true,
 ) {
@@ -169,7 +174,17 @@ fun LibraryPlaylistsScreen(
     val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
     val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
+    val (showSpotifyPlaylists) = rememberPreference(ShowSpotifyPlaylistsKey, false)
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
+    val spotifyPlaylists by spotifyLibraryViewModel.playlists.collectAsState()
+    val spotifyIsRefreshing by spotifyLibraryViewModel.isRefreshing.collectAsState()
+    val spotifyErrorMessage by spotifyLibraryViewModel.errorMessage.collectAsState()
+
+    LaunchedEffect(showSpotifyPlaylists) {
+        if (showSpotifyPlaylists && spotifyPlaylists.isEmpty()) {
+            spotifyLibraryViewModel.refreshPlaylists()
+        }
+    }
 
     val shortcuts = buildList {
         if (showLiked) {
@@ -218,7 +233,14 @@ fun LibraryPlaylistsScreen(
     val canEnterReorderMode = sortType == PlaylistSortType.CUSTOM && selectedTagIds.isEmpty()
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
-    val playlistSectionLeadingItems = 3 + if (shortcuts.isNotEmpty()) 1 else 0
+    val spotifySectionItemCount = if (showSpotifyPlaylists) {
+        1 + spotifyPlaylists.size +
+            if (spotifyIsRefreshing) 1 else 0 +
+            if (spotifyErrorMessage != null) 1 else 0
+    } else {
+        0
+    }
+    val playlistSectionLeadingItems = 3 + if (shortcuts.isNotEmpty()) 1 else 0 + spotifySectionItemCount
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val reorderableState = rememberReorderableLazyListState(
@@ -287,6 +309,9 @@ fun LibraryPlaylistsScreen(
     ExpressivePullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = {
+            if (showSpotifyPlaylists) {
+                spotifyLibraryViewModel.refreshPlaylists()
+            }
             if (ytmSync && allowSyncing) {
                 viewModel.sync()
             }
@@ -329,6 +354,59 @@ fun LibraryPlaylistsScreen(
                         entries = shortcuts,
                         onClick = navController::navigate,
                         modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+            }
+
+            if (showSpotifyPlaylists) {
+                item(key = "spotify_playlist_section_header") {
+                    LibrarySectionHeaderText(
+                        title = stringResource(R.string.spotify_playlists),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+
+                if (spotifyIsRefreshing) {
+                    item(key = "spotify_playlist_loading") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            CircularWavyProgressIndicator(modifier = Modifier.size(28.dp))
+                            Text(
+                                text = stringResource(R.string.spotify_loading_library),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                spotifyErrorMessage?.let { error ->
+                    item(key = "spotify_playlist_error") {
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                        )
+                    }
+                }
+
+                items(
+                    items = spotifyPlaylists,
+                    key = { "spotify_playlist_${it.id}" },
+                    contentType = { "spotify_playlist" },
+                ) { playlist ->
+                    SpotifyLibraryPlaylistListItem(
+                        navController = navController,
+                        playlist = playlist,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .animateItem(),
                     )
                 }
             }

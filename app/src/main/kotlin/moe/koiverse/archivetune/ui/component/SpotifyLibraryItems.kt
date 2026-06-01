@@ -1,0 +1,116 @@
+/*
+ * ArchiveTune (2026)
+ * © Chartreux Westia — github.com/koiverse
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+package moe.koiverse.archivetune.ui.component
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.ListThumbnailSize
+import moe.koiverse.archivetune.constants.ThumbnailCornerRadius
+import moe.koiverse.archivetune.db.entities.Playlist
+import moe.koiverse.archivetune.db.entities.PlaylistEntity
+import moe.koiverse.archivetune.spotify.SpotifyMapper
+import moe.koiverse.archivetune.spotify.models.SpotifyPlaylist
+import moe.koiverse.archivetune.spotify.models.SpotifyTrack
+import moe.koiverse.archivetune.ui.utils.resize
+import moe.koiverse.archivetune.utils.joinByBullet
+import moe.koiverse.archivetune.utils.makeTimeString
+
+@Composable
+fun SpotifyLibraryPlaylistListItem(
+    playlist: SpotifyPlaylist,
+    navController: NavController,
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(26.dp),
+) {
+    val libraryPlaylist = playlist.toLibraryPlaylist()
+    val openPlaylist = {
+        navController.navigate("spotify_playlist/${playlist.id}")
+    }
+    val trailing: @Composable RowScope.() -> Unit = {
+        IconButton(onClick = openPlaylist) {
+            Icon(
+                painter = painterResource(R.drawable.more_vert),
+                contentDescription = null,
+            )
+        }
+        Icon(
+            painter = painterResource(R.drawable.spotify_icon),
+            contentDescription = stringResource(R.string.spotify_account),
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+
+    LibraryPlaylistFeatureCard(
+        playlist = libraryPlaylist,
+        shape = shape,
+        trailingContent = trailing,
+        modifier = modifier
+            .fillMaxWidth()
+            .focusable()
+            .clickable(onClick = openPlaylist),
+    )
+}
+
+@Composable
+fun SpotifyTrackListItem(
+    track: SpotifyTrack,
+    modifier: Modifier = Modifier,
+    trailingContent: @Composable RowScope.() -> Unit = {},
+) {
+    val duration = track.durationMs.takeIf { it > 0 }?.toLong()?.let(::makeTimeString)
+    val subtitle = joinByBullet(
+        track.artists.joinToString { it.name },
+        duration,
+    )
+
+    ListItem(
+        title = track.name,
+        subtitle = subtitle,
+        thumbnailContent = {
+            ItemThumbnail(
+                thumbnailUrl = SpotifyMapper.getTrackThumbnail(track)?.resize(200, 200),
+                isActive = false,
+                isPlaying = false,
+                shape = RoundedCornerShape(ThumbnailCornerRadius),
+                placeholderIconRes = R.drawable.music_note,
+                modifier = Modifier.size(ListThumbnailSize),
+            )
+        },
+        trailingContent = trailingContent,
+        modifier = modifier,
+    )
+}
+
+private fun SpotifyPlaylist.toLibraryPlaylist(): Playlist =
+    Playlist(
+        playlist = PlaylistEntity(
+            id = "SPOTIFY_PLAYLIST_$id",
+            name = name,
+            thumbnailUrl = SpotifyMapper.getPlaylistThumbnail(this),
+            remoteSongCount = tracks?.total ?: 0,
+            isEditable = false,
+        ),
+        songCount = tracks?.total ?: 0,
+        songThumbnails = images.map { it.url },
+    )

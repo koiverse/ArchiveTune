@@ -22,7 +22,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -33,13 +32,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -88,22 +84,22 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.ShowSpotifyPlaylistsKey
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.spotify.SpotifyAuth
-import moe.koiverse.archivetune.spotifyimport.SpotifyImportSourceType
-import moe.koiverse.archivetune.spotifyimport.SpotifyImportSourceUi
-import moe.koiverse.archivetune.spotifyimport.SpotifyImportSummaryUi
-import moe.koiverse.archivetune.spotifyimport.SpotifyImportUiState
-import moe.koiverse.archivetune.spotifyimport.SpotifyImportViewModel
+import moe.koiverse.archivetune.spotify.SpotifyAccountUiState
+import moe.koiverse.archivetune.spotify.SpotifyAccountViewModel
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.PreferenceEntry
 import moe.koiverse.archivetune.ui.component.PreferenceGroup
 import moe.koiverse.archivetune.ui.component.PreferenceGroupScope
+import moe.koiverse.archivetune.ui.component.SwitchPreference
 import moe.koiverse.archivetune.ui.menu.AddToPlaylistDialogOnline
 import moe.koiverse.archivetune.ui.menu.LoadingScreen
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.utils.resetAuthWebViewSession
+import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.BackupCategory
 import moe.koiverse.archivetune.viewmodels.BackupRestoreViewModel
 import java.time.LocalDateTime
@@ -130,7 +126,7 @@ fun BackupAndRestore(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
     viewModel: BackupRestoreViewModel = hiltViewModel(),
-    spotifyImportViewModel: SpotifyImportViewModel = hiltViewModel(),
+    spotifyAccountViewModel: SpotifyAccountViewModel = hiltViewModel(),
 ) {
     val importedSongs = remember { mutableStateListOf<Song>() }
     var showChoosePlaylistDialogOnline by rememberSaveable { mutableStateOf(false) }
@@ -140,12 +136,12 @@ fun BackupAndRestore(
     var showBackupOptionsDialog by rememberSaveable { mutableStateOf(false) }
     var showRestoreOptionsDialog by rememberSaveable { mutableStateOf(false) }
     var showSpotifyLogin by rememberSaveable { mutableStateOf(false) }
-    var showSpotifySources by rememberSaveable { mutableStateOf(false) }
     var pendingBackupCategories by remember { mutableStateOf(BackupCategory.entries.toSet()) }
     var pendingRestoreCategories by remember { mutableStateOf(BackupCategory.entries.toSet()) }
 
     val backupRestoreProgress by viewModel.backupRestoreProgress.collectAsStateWithLifecycle()
-    val spotifyState by spotifyImportViewModel.uiState.collectAsStateWithLifecycle()
+    val spotifyState by spotifyAccountViewModel.uiState.collectAsStateWithLifecycle()
+    val (showSpotifyPlaylists, onShowSpotifyPlaylistsChange) = rememberPreference(ShowSpotifyPlaylistsKey, false)
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -236,16 +232,15 @@ fun BackupAndRestore(
         }
 
         PreferenceGroup(title = stringResource(R.string.external_service)) {
-            spotifyImportPreferences(
+            spotifyAccountPreferences(
                 state = spotifyState,
+                showPlaylists = showSpotifyPlaylists,
                 onConnectClick = { showSpotifyLogin = true },
-                onRefreshClick = spotifyImportViewModel::loadSources,
+                onShowPlaylistsChange = onShowSpotifyPlaylistsChange,
+                onReloadClick = spotifyAccountViewModel::reloadPlaylists,
                 onLogoutClick = {
-                    showSpotifySources = false
-                    spotifyImportViewModel.logout()
+                    spotifyAccountViewModel.logout()
                 },
-                onSelectClick = { showSpotifySources = true },
-                onImportClick = spotifyImportViewModel::importSelectedSources,
             )
         }
     }
@@ -300,36 +295,15 @@ fun BackupAndRestore(
             onDismiss = { showSpotifyLogin = false },
             onCookiesCaptured = { spDc, spKey ->
                 showSpotifyLogin = false
-                spotifyImportViewModel.connectWithCookies(spDc = spDc, spKey = spKey)
+                spotifyAccountViewModel.connectWithCookies(spDc = spDc, spKey = spKey)
             },
-        )
-    }
-
-    if (showSpotifySources && spotifyState.isAuthenticated) {
-        SpotifySourcePickerSheet(
-            state = spotifyState,
-            onDismiss = { showSpotifySources = false },
-            onToggleSource = spotifyImportViewModel::toggleSource,
-            onSelectAll = spotifyImportViewModel::selectAllSources,
-            onClearSelection = spotifyImportViewModel::clearSelection,
-            onImport = {
-                showSpotifySources = false
-                spotifyImportViewModel.importSelectedSources()
-            },
-        )
-    }
-
-    spotifyState.summary?.let { summary ->
-        SpotifyImportSummaryDialog(
-            summary = summary,
-            onDismiss = spotifyImportViewModel::dismissSummary,
         )
     }
 
     spotifyState.errorMessage?.let { error ->
         SpotifyErrorDialog(
             message = error,
-            onDismiss = spotifyImportViewModel::dismissError,
+            onDismiss = spotifyAccountViewModel::dismissError,
         )
     }
 
@@ -353,39 +327,22 @@ fun BackupAndRestore(
         }
     }
 
-    val spotifyProgress = spotifyState.progress
-    val spotifyProgressTitle = stringResource(R.string.spotify_import_in_progress)
-    val spotifyCancelLabel = if (spotifyProgress != null) stringResource(android.R.string.cancel) else null
-    val spotifyProgressStep =
-        spotifyProgress?.let {
-            stringResource(
-                R.string.spotify_import_progress_step,
-                it.sourceTitle,
-                it.completedSources,
-                it.totalSources,
-                it.matchedTracks,
-                it.totalTracks,
-            )
-        }
-
     LoadingScreen(
-        isVisible = backupRestoreProgress != null || isProgressStarted || spotifyProgress != null,
-        value = backupRestoreProgress?.percent ?: spotifyProgress?.percent ?: progressPercentage,
-        title = backupRestoreProgress?.title ?: if (spotifyProgress != null) spotifyProgressTitle else null,
-        stepText = backupRestoreProgress?.step ?: spotifyProgressStep ?: progressStatus,
+        isVisible = backupRestoreProgress != null || isProgressStarted,
+        value = backupRestoreProgress?.percent ?: progressPercentage,
+        title = backupRestoreProgress?.title,
+        stepText = backupRestoreProgress?.step ?: progressStatus,
         indeterminate = backupRestoreProgress?.indeterminate ?: false,
-        cancelLabel = spotifyCancelLabel,
-        onCancel = if (spotifyProgress != null) spotifyImportViewModel::cancelImport else null,
     )
 }
 
-private fun PreferenceGroupScope.spotifyImportPreferences(
-    state: SpotifyImportUiState,
+private fun PreferenceGroupScope.spotifyAccountPreferences(
+    state: SpotifyAccountUiState,
+    showPlaylists: Boolean,
     onConnectClick: () -> Unit,
-    onRefreshClick: () -> Unit,
+    onShowPlaylistsChange: (Boolean) -> Unit,
+    onReloadClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    onSelectClick: () -> Unit,
-    onImportClick: () -> Unit,
 ) {
     if (!state.isAuthenticated) {
         item {
@@ -402,7 +359,7 @@ private fun PreferenceGroupScope.spotifyImportPreferences(
                     }
                 },
                 onClick = onConnectClick,
-                isEnabled = state.progress == null,
+                isEnabled = !state.isLoading,
             )
         }
         return
@@ -423,7 +380,7 @@ private fun PreferenceGroupScope.spotifyImportPreferences(
             },
             description = when {
                 state.isLoading -> stringResource(R.string.spotify_loading_library)
-                state.hasSources -> stringResource(R.string.spotify_available_count, state.sources.size)
+                state.playlistCount > 0 -> stringResource(R.string.spotify_available_count, state.playlistCount)
                 else -> stringResource(R.string.spotify_no_sources)
             },
             icon = { SpotifyAccountIcon(avatarUrl = state.accountAvatarUrl) },
@@ -435,42 +392,28 @@ private fun PreferenceGroupScope.spotifyImportPreferences(
                     )
                 }
             },
-            onClick = onSelectClick,
-            isEnabled = state.hasSources && state.progress == null,
+            isEnabled = false,
+        )
+    }
+
+    item {
+        SwitchPreference(
+            title = { Text(stringResource(R.string.spotify_show_playlist)) },
+            description = stringResource(R.string.spotify_show_playlist_desc),
+            icon = { Icon(painterResource(R.drawable.spotify_icon), null) },
+            checked = showPlaylists,
+            onCheckedChange = onShowPlaylistsChange,
+            isEnabled = !state.isLoading,
         )
     }
 
     item {
         PreferenceEntry(
-            title = { Text(stringResource(R.string.spotify_select_sources)) },
-            description = if (state.hasSources) {
-                stringResource(R.string.spotify_available_count, state.sources.size)
-            } else {
-                stringResource(R.string.spotify_no_sources)
-            },
-            icon = { Icon(painterResource(R.drawable.playlist_play), null) },
-            onClick = onSelectClick,
-            isEnabled = state.hasSources && state.progress == null,
-        )
-    }
-
-    item {
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.spotify_import_selected)) },
-            description = stringResource(R.string.spotify_selected_count, state.selectedSourceIds.size),
-            icon = { Icon(painterResource(R.drawable.playlist_add), null) },
-            onClick = onImportClick,
-            isEnabled = state.canImport,
-        )
-    }
-
-    item {
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.spotify_refresh)) },
-            description = stringResource(R.string.spotify_import_desc),
+            title = { Text(stringResource(R.string.spotify_reload_playlist)) },
+            description = stringResource(R.string.spotify_reload_playlist_desc),
             icon = { Icon(painterResource(R.drawable.sync), null) },
-            onClick = onRefreshClick,
-            isEnabled = !state.isLoading && state.progress == null,
+            onClick = onReloadClick,
+            isEnabled = !state.isLoading,
         )
     }
 
@@ -479,7 +422,7 @@ private fun PreferenceGroupScope.spotifyImportPreferences(
             title = { Text(stringResource(R.string.action_logout)) },
             icon = { Icon(painterResource(R.drawable.logout), null) },
             onClick = onLogoutClick,
-            isEnabled = !state.isLoading && state.progress == null,
+            isEnabled = !state.isLoading,
         )
     }
 }
@@ -521,185 +464,6 @@ private fun SpotifyAccountIcon(avatarUrl: String?) {
                 painter = accountIcon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(24.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun SpotifySourcePickerSheet(
-    state: SpotifyImportUiState,
-    onDismiss: () -> Unit,
-    onToggleSource: (String) -> Unit,
-    onSelectAll: () -> Unit,
-    onClearSelection: () -> Unit,
-    onImport: () -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
-        modifier = Modifier.fillMaxHeight(),
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.spotify_select_sources),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = stringResource(R.string.spotify_selected_count, state.selectedSourceIds.size),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                TextButton(
-                    onClick = onClearSelection,
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.spotify_clear_selection))
-                }
-                TextButton(
-                    onClick = onSelectAll,
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.spotify_select_all))
-                }
-            }
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 6.dp),
-            ) {
-                items(
-                    items = state.sources,
-                    key = { it.id },
-                    contentType = { it.type },
-                ) { source ->
-                    SpotifySourceRow(
-                        source = source,
-                        selected = source.id in state.selectedSourceIds,
-                        onClick = { onToggleSource(source.id) },
-                    )
-                }
-            }
-
-            Button(
-                onClick = onImport,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                enabled = state.canImport,
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(stringResource(R.string.spotify_import_selected))
-            }
-        }
-    }
-}
-
-@Composable
-private fun SpotifySourceRow(
-    source: SpotifyImportSourceUi,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val subtitle = when {
-        source.subtitle.isNotBlank() -> source.subtitle
-        source.type == SpotifyImportSourceType.LIKED_SONGS -> stringResource(R.string.spotify_liked_songs_desc)
-        else -> stringResource(R.string.spotify_account)
-    }
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = if (selected) {
-            MaterialTheme.colorScheme.secondaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
-        },
-        onClick = onClick,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 76.dp)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            SpotifySourceThumbnail(source)
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = source.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = source.trackCount?.let { stringResource(R.string.spotify_track_count, it) } ?: subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Checkbox(
-                checked = selected,
-                onCheckedChange = { onClick() },
-            )
-        }
-    }
-}
-
-@Composable
-private fun SpotifySourceThumbnail(source: SpotifyImportSourceUi) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (!source.thumbnailUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = source.thumbnailUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            Icon(
-                painter = painterResource(
-                    if (source.type == SpotifyImportSourceType.LIKED_SONGS) {
-                        R.drawable.favorite
-                    } else {
-                        R.drawable.playlist_play
-                    },
-                ),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -847,49 +611,6 @@ private fun String.toSpotifyCookieOrigin(): String? {
         ?.takeIf { it.equals("https", ignoreCase = true) || it.equals("http", ignoreCase = true) }
         ?: "https"
     return "$scheme://$host"
-}
-
-@Composable
-private fun SpotifyImportSummaryDialog(
-    summary: SpotifyImportSummaryUi,
-    onDismiss: () -> Unit,
-) {
-    DefaultDialog(
-        onDismiss = onDismiss,
-        title = { Text(stringResource(R.string.spotify_import_complete)) },
-        buttons = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(android.R.string.ok))
-            }
-        },
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                text = stringResource(
-                    R.string.spotify_import_summary,
-                    summary.sourceCount,
-                    summary.importedTracks,
-                    summary.failedTracks,
-                ),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            summary.sources.forEach { source ->
-                Text(
-                    text = stringResource(
-                        R.string.spotify_source_summary,
-                        source.title,
-                        source.importedTracks,
-                        source.totalTracks,
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
 }
 
 @Composable

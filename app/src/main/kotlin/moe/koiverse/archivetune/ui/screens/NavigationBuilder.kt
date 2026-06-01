@@ -61,6 +61,7 @@ import moe.koiverse.archivetune.ui.screens.library.LibraryScreen
 import moe.koiverse.archivetune.ui.screens.playlist.AutoPlaylistScreen
 import moe.koiverse.archivetune.ui.screens.playlist.LocalPlaylistScreen
 import moe.koiverse.archivetune.ui.screens.playlist.OnlinePlaylistScreen
+import moe.koiverse.archivetune.ui.screens.playlist.SpotifyPlaylistScreen
 import moe.koiverse.archivetune.ui.screens.playlist.TopPlaylistScreen
 import moe.koiverse.archivetune.ui.screens.playlist.CachePlaylistScreen
 import moe.koiverse.archivetune.ui.screens.search.OnlineSearchResult
@@ -301,6 +302,17 @@ fun NavGraphBuilder.navigationBuilder(
         ),
     ) {
         LocalPlaylistScreen(navController, scrollBehavior)
+    }
+    composable(
+        route = "spotify_playlist/{playlistId}",
+        arguments =
+        listOf(
+            navArgument("playlistId") {
+                type = NavType.StringType
+            },
+        ),
+    ) {
+        SpotifyPlaylistScreen(navController, scrollBehavior)
     }
     composable(
         route = "auto_playlist/{playlist}",
