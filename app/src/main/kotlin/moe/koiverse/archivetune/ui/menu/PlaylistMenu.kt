@@ -158,7 +158,28 @@ fun PlaylistMenu(
 
     fun syncPlaylistToYouTube() {
         coroutineScope.launch(Dispatchers.IO) {
+            var lastProgressPercent = -1
+            var lastProgressCompleted = -1
+
             fun updateProgress(completedSongs: Int, totalSongs: Int) {
+                val nextProgressPercent = if (totalSongs <= 0) {
+                    -1
+                } else {
+                    (completedSongs.coerceIn(0, totalSongs).toFloat() / totalSongs.toFloat() * 100f)
+                        .roundToInt()
+                        .coerceIn(0, 100)
+                }
+                val shouldUpdate =
+                    totalSongs <= 0 ||
+                        completedSongs == totalSongs ||
+                        nextProgressPercent != lastProgressPercent ||
+                        completedSongs - lastProgressCompleted >= 25
+
+                if (!shouldUpdate) return
+
+                lastProgressPercent = nextProgressPercent
+                lastProgressCompleted = completedSongs
+
                 coroutineScope.launch(Dispatchers.Main) {
                     syncProgress = PlaylistSyncProgressUi(
                         completedSongs = completedSongs,
@@ -188,10 +209,11 @@ fun PlaylistMenu(
                 val browseId = playlist.playlist.browseId ?: YouTube.createPlaylist(playlist.playlist.name).getOrThrow()
                 if (playlist.playlist.browseId == null) {
                     updateProgress(completedSongs = 0, totalSongs = songs.size)
-                    songs.forEachIndexed { index, song ->
-                        YouTube.addToPlaylist(browseId, song.id).getOrThrow()
-                        updateProgress(completedSongs = index + 1, totalSongs = songs.size)
-                    }
+                    YouTube.addSongsToPlaylist(
+                        playlistId = browseId,
+                        videoIds = songs.map(Song::id),
+                        onProgress = ::updateProgress,
+                    ).getOrThrow()
                     database.query {
                         update(
                             playlist.playlist.copy(
