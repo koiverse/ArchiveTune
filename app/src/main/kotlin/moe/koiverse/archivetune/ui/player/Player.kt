@@ -1666,16 +1666,17 @@ private fun V7PlayerBackdrop(
         val canvasFallback = canvasFallbackUrl?.takeIf { it.isNotBlank() }
         val canvasStatic = canvasStaticUrl?.takeIf { it.isNotBlank() }
         val artworkUrl = canvasStatic ?: thumbnailUrl?.takeIf { it.isNotBlank() }
-        var backdropPalette by remember(artworkUrl, fallbackColor) {
+        val paletteArtworkUrl = thumbnailUrl?.takeIf { it.isNotBlank() } ?: artworkUrl
+        var backdropPalette by remember(paletteArtworkUrl, fallbackColor) {
             mutableStateOf(V7BackdropPalette.fromColors(emptyList(), fallbackColor))
         }
 
-        LaunchedEffect(artworkUrl, fallbackColor) {
+        LaunchedEffect(paletteArtworkUrl, fallbackColor) {
             backdropPalette = V7BackdropPalette.fromColors(emptyList(), fallbackColor)
-            if (artworkUrl == null) return@LaunchedEffect
+            if (paletteArtworkUrl == null) return@LaunchedEffect
 
             val request = ImageRequest.Builder(context)
-                .data(artworkUrl)
+                .data(paletteArtworkUrl)
                 .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
                 .allowHardware(false)
                 .build()
@@ -1972,7 +1973,11 @@ private fun Color.v7BackdropTone(
 ): Color {
     val hsv = FloatArray(3)
     android.graphics.Color.colorToHSV(toArgb(), hsv)
-    hsv[1] = (hsv[1].coerceAtLeast(0.42f) * 1.08f).coerceIn(0f, 1f)
+    hsv[1] = if (hsv[1] < 0.12f) {
+        hsv[1].coerceAtMost(0.08f)
+    } else {
+        (hsv[1].coerceAtLeast(0.42f) * 1.08f).coerceIn(0f, 1f)
+    }
     hsv[2] = hsv[2].coerceIn(valueMin, valueMax)
     return Color(android.graphics.Color.HSVToColor(hsv))
 }
@@ -2004,7 +2009,7 @@ private fun extractV7BackdropColors(palette: Palette): List<Color> =
         .sortedByDescending { swatch ->
             val hsv = FloatArray(3)
             android.graphics.Color.colorToHSV(swatch.rgb, hsv)
-            val saturationWeight = 1f + hsv[1] * 0.8f
+            val saturationWeight = if (hsv[1] < 0.12f) 1.05f else 1f + hsv[1] * 0.45f
             val brightnessWeight = if (hsv[2] in 0.12f..0.92f) 1.2f else 0.78f
             swatch.population.toFloat() * saturationWeight * brightnessWeight
         }
