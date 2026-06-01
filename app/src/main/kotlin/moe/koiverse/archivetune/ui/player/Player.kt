@@ -223,13 +223,13 @@ private const val V7BackdropMinArtworkSizePx = 1_024
 private const val V7BackdropMaxArtworkSizePx = 2_048
 private const val V7BackdropOverscanFactor = 1.15f
 private const val V7BackdropSharpArtworkScale = 1.02f
-private const val V7BackdropBlurredArtworkScale = 1.34f
-private const val V7BackdropBlurRadiusDp = 96
+private const val V7BackdropBlurredArtworkScale = 1.44f
+private const val V7BackdropBlurRadiusDp = 132
 private const val V7BackdropMaskStartFraction = 0.60f
 private const val V7BackdropMaskMidFraction = 0.65f
 private const val V7BackdropMaskSolidFraction = 0.71f
-private const val V7FrostedBlurMaskEdgeFraction = 0.52f
-private const val V7FrostedBlurMaskSolidFraction = 0.57f
+private const val V7FrostedBlurMaskEdgeFraction = 0.32f
+private const val V7FrostedBlurMaskSolidFraction = 0.38f
 private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1845,12 +1845,12 @@ private fun V7PlayerBackdrop(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.24f),
-                            0.34f to Color.Transparent,
-                            V7BackdropMaskStartFraction to Color.Transparent,
-                            V7BackdropMaskMidFraction to backdropPalette.top.copy(alpha = 0.10f),
-                            V7BackdropMaskSolidFraction to backdropPalette.mid.copy(alpha = 0.30f),
-                            1f to backdropPalette.bottom.copy(alpha = 0.76f),
+                            0f to Color.Black.copy(alpha = 0.18f),
+                            0.24f to Color.Transparent,
+                            V7FrostedBlurMaskEdgeFraction to Color.Transparent,
+                            V7FrostedBlurMaskSolidFraction to backdropPalette.top.copy(alpha = 0.18f),
+                            (V7FrostedBlurMaskSolidFraction + 0.06f) to backdropPalette.mid.copy(alpha = 0.36f),
+                            1f to backdropPalette.bottom.copy(alpha = 0.68f),
                         )
                     )
                 )
@@ -1906,7 +1906,7 @@ private fun V7FrostedArtworkOverlay(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
                             V7FrostedBlurMaskEdgeFraction to Color.Transparent,
-                            V7FrostedBlurMaskSolidFraction to Color.Black,
+                            V7FrostedBlurMaskSolidFraction to Color.Black.copy(alpha = 0.92f),
                             1f to Color.Black,
                         )
                     )
@@ -1929,9 +1929,9 @@ private fun V7FrostedArtworkOverlay(
                         colorStops = arrayOf(
                             0f to Color.Transparent,
                             V7FrostedBlurMaskEdgeFraction to Color.Transparent,
-                            V7FrostedBlurMaskSolidFraction to palette.top.copy(alpha = 0.22f),
-                            V7BackdropMaskSolidFraction to palette.mid.copy(alpha = 0.50f),
-                            1f to palette.bottom.copy(alpha = 0.84f),
+                            V7FrostedBlurMaskSolidFraction to palette.top.copy(alpha = 0.64f),
+                            (V7FrostedBlurMaskSolidFraction + 0.06f) to palette.mid.copy(alpha = 0.72f),
+                            1f to palette.bottom.copy(alpha = 0.82f),
                         )
                     )
                 )
