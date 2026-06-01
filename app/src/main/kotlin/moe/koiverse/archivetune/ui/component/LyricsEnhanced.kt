@@ -94,7 +94,6 @@ import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -247,30 +246,34 @@ fun LyricsEnhanced(
         }
         if (toRomanize.isEmpty()) return@LaunchedEffect
 
-        val tempMap = mutableMapOf<Int, List<String?>>()
-        toRomanize.forEach { (index, entry) ->
-            ensureActive()
-            val romanized: List<String?> = try {
-                if (isTtmlFormat && entry.words != null) {
-                    val mainWordCount = entry.words!!.count { !it.isBackground }
-                    providedRomanizedWordsForEntry(entry, mainWordCount, romanizationPreferences)
-                        ?: entry.words!!.filter { !it.isBackground }.map { word ->
-                            romanizeLyricsWordWithLineContext(word.text, entry.text, romanizationPreferences)
-                        }
-                } else {
-                    listOf(
-                        providedRomanizedTextForEntry(entry, romanizationPreferences)
-                            ?: romanizeLyricsLine(entry.text, romanizationPreferences)
-                    )
+        val jobs = toRomanize.map { (index, entry) ->
+            async {
+                val romanized: List<String?> = try {
+                    if (isTtmlFormat && entry.words != null) {
+                        val mainWordCount = entry.words!!.count { !it.isBackground }
+                        providedRomanizedWordsForEntry(entry, mainWordCount, romanizationPreferences)
+                            ?: entry.words!!.filter { !it.isBackground }.map { word ->
+                                romanizeLyricsWordWithLineContext(word.text, entry.text, romanizationPreferences)
+                            }
+                    } else {
+                        listOf(
+                            providedRomanizedTextForEntry(entry, romanizationPreferences)
+                                ?: romanizeLyricsLine(entry.text, romanizationPreferences)
+                        )
+                    }
+                } catch (e: Exception) {
+                    reportException(e)
+                    if (isTtmlFormat && entry.words != null) {
+                        List(entry.words!!.count { !it.isBackground }) { null }
+                    } else {
+                        listOf(null)
+                    }
                 }
-            } catch (e: Exception) {
-                reportException(e)
-                if (isTtmlFormat && entry.words != null) {
-                    List(entry.words!!.count { !it.isBackground }) { null }
-                } else {
-                    listOf(null)
-                }
+                index to romanized
             }
+        }
+        val tempMap = mutableMapOf<Int, List<String?>>()
+        jobs.awaitAll().forEach { (index, romanized) ->
             tempMap[index] = romanized
         }
         syncedLyrics = buildSyncedLyrics(lyricsEntries, isTtmlFormat, tempMap)
