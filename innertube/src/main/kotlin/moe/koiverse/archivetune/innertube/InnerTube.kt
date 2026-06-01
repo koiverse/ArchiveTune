@@ -28,6 +28,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import java.net.Proxy
@@ -200,29 +201,38 @@ class InnerTube {
         parameter("prettyPrint", false)
     }
 
-    /**
-     * Simple retry wrapper for transient IO errors (socket aborts, timeouts).
-     * Retries the given block up to [maxAttempts] times with exponential backoff.
-     * Cancellation is respected since [delay] will throw if the coroutine is cancelled.
-     */
     private suspend fun <T> withRetry(
         maxAttempts: Int = 3,
         initialDelay: Long = 500L,
         factor: Double = 2.0,
         block: suspend () -> T,
     ): T {
+        val resolvedMaxAttempts = proxySelector?.activeCount()?.coerceIn(maxAttempts, 6) ?: maxAttempts
         var currentDelay = initialDelay
         var attempt = 0
         while (true) {
             try {
                 return block()
-            } catch (e: IOException) {
+            } catch (e: Throwable) {
+                if (e is CancellationException || !e.isTransientNetworkFailure()) throw e
                 attempt++
-                if (attempt >= maxAttempts) throw e
+                proxySelector?.markLastSelectedFailed()
+                proxySelector?.rotate()
+                if (attempt >= resolvedMaxAttempts) throw e
                 delay(currentDelay)
                 currentDelay = (currentDelay * factor).toLong()
             }
         }
+    }
+
+    private fun Throwable.isTransientNetworkFailure(): Boolean {
+        var current: Throwable? = this
+        while (current != null) {
+            if (current is IOException || current is HttpRequestTimeoutException) return true
+            if (current.message?.contains("Request timeout has expired", ignoreCase = true) == true) return true
+            current = current.cause
+        }
+        return false
     }
 
     suspend fun search(
