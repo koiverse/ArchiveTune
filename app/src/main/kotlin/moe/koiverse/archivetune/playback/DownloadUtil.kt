@@ -8,7 +8,6 @@
 package moe.koiverse.archivetune.playback
 
 import android.content.Context
-import android.media.MediaCodecList
 import android.net.ConnectivityManager
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
@@ -40,7 +39,7 @@ import moe.koiverse.archivetune.utils.retryWithoutPlaybackLoginContext
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.Flow
@@ -54,11 +53,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
+import okhttp3.ConnectionPool
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -76,6 +77,7 @@ constructor(
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
     private val preferredStreamClient by enumPreference(context, PlayerStreamClientKey, PlayerStreamClient.ANDROID_VR)
+    private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val songUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
     private val downloadExecutor = Executors.newFixedThreadPool(DEFAULT_MAX_PARALLEL_DOWNLOADS)
     private val streamInfoRequestLimiter = Semaphore(MAX_CONCURRENT_STREAM_INFO_REQUESTS)
@@ -97,6 +99,14 @@ constructor(
             .proxy(YouTube.streamProxy)
             .followRedirects(true)
             .followSslRedirects(true)
+            .retryOnConnectionFailure(true)
+            .connectionPool(
+                ConnectionPool(
+                    MAX_IDLE_DOWNLOAD_CONNECTIONS,
+                    DOWNLOAD_CONNECTION_KEEP_ALIVE_MINUTES,
+                    TimeUnit.MINUTES,
+                ),
+            )
             .addInterceptor { chain ->
                 val request = chain.request()
                 val host = request.url.host
@@ -130,17 +140,11 @@ constructor(
                     OkHttpDataSource.Factory(
                         mediaOkHttpClient,
                     ),
-                ),
+                )
+                .setCacheWriteDataSinkFactory(null),
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
             val length = if (dataSpec.length >= 0) dataSpec.length else 1
-            if (playerCache.cacheSpace > 500 * 1024 * 1024L) {
-                GlobalScope.launch(Dispatchers.IO) {
-                    playerCache.keys.shuffled().take(10).forEach { key ->
-                        playerCache.getCachedSpans(key).sumOf { it.length }
-                    }
-                }
-            }
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {
                 return@Factory dataSpec
             }
@@ -181,41 +185,7 @@ constructor(
                     result
                 }
             }.getOrThrow()
-            val format = playbackData.format
-
-            database.query {
-                upsert(
-                    FormatEntity(
-                        id = mediaId,
-                        itag = format.itag,
-                        mimeType = format.mimeType.split(";")[0],
-                        codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
-                        bitrate = format.bitrate,
-                        sampleRate = format.audioSampleRate,
-                        contentLength = format.contentLength!!,
-                        loudnessDb = playbackData.audioConfig?.loudnessDb,
-                        perceptualLoudnessDb = playbackData.audioConfig?.perceptualLoudnessDb,
-                        playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl,
-                    ),
-                )
-
-                val now = LocalDateTime.now()
-                val existing = getSongByIdBlocking(mediaId)?.song
-
-                val updatedSong = if (existing != null) {
-                    if (existing.dateDownload == null) existing.copy(dateDownload = now) else existing
-                } else {
-                    SongEntity(
-                        id = mediaId,
-                        title = playbackData.videoDetails?.title ?: "Unknown",
-                        duration = playbackData.videoDetails?.lengthSeconds?.toIntOrNull() ?: 0,
-                        thumbnailUrl = playbackData.videoDetails?.thumbnail?.thumbnails?.lastOrNull()?.url,
-                        dateDownload = now,
-                    )
-                }
-
-                upsert(updatedSong)
-            }
+            persistPlaybackMetadata(mediaId, playbackData)
 
             val streamUrl = playbackData.streamUrl
 
@@ -266,7 +236,7 @@ constructor(
         }
 
     init {
-        CoroutineScope(Dispatchers.IO).launch {
+        downloadScope.launch {
             val result = mutableMapOf<String, Download>()
             val cursor = downloadManager.downloadIndex.getDownloads()
             while (cursor.moveToNext()) {
@@ -274,7 +244,7 @@ constructor(
             }
             downloads.value = result
         }
-        CoroutineScope(Dispatchers.IO).launch {
+        downloadScope.launch {
             var previousFingerprint: String? = null
             YouTube.authStateFlow
                 .map { it.fingerprint }
@@ -289,6 +259,52 @@ constructor(
     }
 
     fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
+
+    private fun persistPlaybackMetadata(
+        mediaId: String,
+        playbackData: YTPlayerUtils.PlaybackData,
+    ) {
+        downloadScope.launch {
+            runCatching {
+                val format = playbackData.format
+                val contentLength = format.contentLength ?: return@runCatching
+
+                database.query {
+                    upsert(
+                        FormatEntity(
+                            id = mediaId,
+                            itag = format.itag,
+                            mimeType = format.mimeType.split(";")[0],
+                            codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
+                            bitrate = format.bitrate,
+                            sampleRate = format.audioSampleRate,
+                            contentLength = contentLength,
+                            loudnessDb = playbackData.audioConfig?.loudnessDb,
+                            perceptualLoudnessDb = playbackData.audioConfig?.perceptualLoudnessDb,
+                            playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl,
+                        ),
+                    )
+
+                    val now = LocalDateTime.now()
+                    val existing = getSongByIdBlocking(mediaId)?.song
+
+                    val updatedSong = if (existing != null) {
+                        if (existing.dateDownload == null) existing.copy(dateDownload = now) else existing
+                    } else {
+                        SongEntity(
+                            id = mediaId,
+                            title = playbackData.videoDetails?.title ?: "Unknown",
+                            duration = playbackData.videoDetails?.lengthSeconds?.toIntOrNull() ?: 0,
+                            thumbnailUrl = playbackData.videoDetails?.thumbnail?.thumbnails?.lastOrNull()?.url,
+                            dateDownload = now,
+                        )
+                    }
+
+                    upsert(updatedSong)
+                }
+            }
+        }
+    }
 
     private suspend fun awaitStreamInfoCooldown() {
         val remainingMs = cooldownUntilMs - System.currentTimeMillis()
@@ -388,11 +404,13 @@ constructor(
     }
 
     companion object {
-        private const val DEFAULT_MAX_PARALLEL_DOWNLOADS = 4
+        private const val DEFAULT_MAX_PARALLEL_DOWNLOADS = 6
         private const val MIN_PARALLEL_DOWNLOADS = 2
-        private const val MAX_CONCURRENT_STREAM_INFO_REQUESTS = 2
-        private const val STREAM_INFO_REQUEST_SPACING_MS = 350L
+        private const val MAX_CONCURRENT_STREAM_INFO_REQUESTS = 4
+        private const val STREAM_INFO_REQUEST_SPACING_MS = 150L
         private const val SHORT_COOLDOWN_MS = 2_500L
         private const val LONG_COOLDOWN_MS = 8_000L
+        private const val MAX_IDLE_DOWNLOAD_CONNECTIONS = 12
+        private const val DOWNLOAD_CONNECTION_KEEP_ALIVE_MINUTES = 5L
     }
 }
