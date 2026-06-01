@@ -285,7 +285,7 @@ jobs:
           fi
 
       - name: Build Debug APK
-        run: ./gradlew assembleMobileUniversalDebug
+        run: ./gradlew assembleStandardMobileUniversalDebug
         env:
           PULL_REQUEST: 'false'
           GITHUB_EVENT_NAME: ${{ github.event_name }}

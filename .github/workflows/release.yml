@@ -140,7 +140,7 @@ jobs:
             return 1
           }
 
-          ./gradlew clean assembleMobileUniversalRelease
+          ./gradlew clean assembleStandardMobileUniversalRelease
           APK_1="$(locate_universal_apk || true)"
           if [ -z "${APK_1:-}" ] || [ ! -f "$APK_1" ]; then
             echo "Could not find unsigned universal release APK (first build)."
@@ -151,7 +151,7 @@ jobs:
           SHA_1="$(sha256sum "$APK_1" | awk '{print $1}')"
           cp "$APK_1" /tmp/universal-1.apk
 
-          ./gradlew clean assembleMobileUniversalRelease
+          ./gradlew clean assembleStandardMobileUniversalRelease
           APK_2="$(locate_universal_apk || true)"
           if [ -z "${APK_2:-}" ] || [ ! -f "$APK_2" ]; then
             echo "Could not find unsigned universal release APK (second build)."
@@ -223,7 +223,7 @@ jobs:
           echo "abi=$ABI" >> "$GITHUB_OUTPUT"
           echo "device_cap=$DEVICE_CAP" >> "$GITHUB_OUTPUT"
           echo "abi_cap=$ABI_CAP" >> "$GITHUB_OUTPUT"
-          echo "gradle_task=assemble${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
+          echo "gradle_task=assembleStandard${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
           echo "artifact_name=app-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
           echo "apk_name=app-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
  
@@ -257,6 +257,9 @@ jobs:
           DEVICE_CAP="${{ steps.variant.outputs.device_cap }}"
           ABI_CAP="${{ steps.variant.outputs.abi_cap }}"
           CANDIDATES=(
+            "app/build/outputs/apk/standard/${DEVICE}/${ABI}/release"
+            "app/build/outputs/apk/standard/${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/standard/${DEVICE_CAP}${ABI_CAP}/release"
             "app/build/outputs/apk/${DEVICE}/${ABI}/release"
             "app/build/outputs/apk/${DEVICE}${ABI_CAP}/release"
             "app/build/outputs/apk/${DEVICE_CAP}${ABI_CAP}/release"
