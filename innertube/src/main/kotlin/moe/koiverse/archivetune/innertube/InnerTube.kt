@@ -615,6 +615,25 @@ class InnerTube {
         }
     }
 
+    suspend fun addSongsToPlaylist(
+        client: YouTubeClient,
+        playlistId: String,
+        videoIds: List<String>,
+    ) = withRetry {
+        httpClient.post("browse/edit_playlist") {
+            ytClient(client, setLogin = true)
+            setBody(
+                EditPlaylistBody(
+                    context = client.toContext(locale, visitorData, dataSyncId),
+                    playlistId = playlistId.removePrefix("VL"),
+                    actions = videoIds.map { videoId ->
+                        Action.AddVideoAction(addedVideoId = videoId)
+                    },
+                )
+            )
+        }
+    }
+
     suspend fun addPlaylistToPlaylist(
         client: YouTubeClient,
         playlistId: String,
