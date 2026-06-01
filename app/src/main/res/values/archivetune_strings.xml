@@ -42,6 +42,10 @@
     <string name="local_songs_scan_filters_note">Changes apply the next time you scan this device.</string>
     <string name="local_songs_scan_duration_title">Exclude short songs</string>
     <string name="local_songs_scan_duration_desc">Skip songs shorter than the selected duration.</string>
+    <string name="local_songs_scan_included_folders_title">Included folders</string>
+    <string name="local_songs_scan_included_folders_desc">Scan only songs stored in folders that match any of these paths.</string>
+    <string name="local_songs_scan_included_folders_empty">All folders are included.</string>
+    <string name="local_songs_scan_included_folders_add">Include folder</string>
     <string name="local_songs_scan_folders_title">Excluded folders</string>
     <string name="local_songs_scan_folders_desc">Skip songs stored in folders that match any of these paths.</string>
     <string name="local_songs_scan_folders_empty">No folders excluded yet.</string>
@@ -245,6 +249,7 @@
     <string name="login_settings">Login settings</string>
     <string name="general_settings">General settings</string>
     <string name="player_background_style">Player background style</string>
+    <string name="mini_player_background_style">Mini player background style</string>
     <string name="follow_theme">Follow theme</string>
     <string name="gradient">Gradient</string>
     <string name="player_design_style">Player design style</string>

@@ -76,6 +76,8 @@ import moe.koiverse.archivetune.constants.PlayerDesignStyle
 import moe.koiverse.archivetune.constants.PlayerDesignStyleKey
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyle
 import moe.koiverse.archivetune.constants.PlayerBackgroundStyleKey
+import moe.koiverse.archivetune.constants.MiniPlayerBackgroundStyle
+import moe.koiverse.archivetune.constants.MiniPlayerBackgroundStyleKey
 import moe.koiverse.archivetune.constants.PureBlackKey
 import moe.koiverse.archivetune.constants.RandomThemeOnStartupKey
 import moe.koiverse.archivetune.constants.UseSystemFontKey
@@ -159,6 +161,11 @@ fun AppearanceSettings(
         rememberEnumPreference(
             PlayerBackgroundStyleKey,
             defaultValue = PlayerBackgroundStyle.DEFAULT,
+        )
+    val (miniPlayerBackground, onMiniPlayerBackgroundChange) =
+        rememberEnumPreference(
+            MiniPlayerBackgroundStyleKey,
+            defaultValue = MiniPlayerBackgroundStyle.THEME,
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
     val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
@@ -473,6 +480,22 @@ fun AppearanceSettings(
                     title = { Text(stringResource(R.string.customized_background)) },
                     icon = { Icon(painterResource(R.drawable.image), null) },
                     onClick = { navController.navigate("customize_background") }
+                )
+            }
+
+            item {
+                EnumListPreference(
+                    title = { Text(stringResource(R.string.mini_player_background_style)) },
+                    icon = { Icon(painterResource(R.drawable.gradient), null) },
+                    selectedValue = miniPlayerBackground,
+                    onValueSelected = onMiniPlayerBackgroundChange,
+                    valueText = {
+                        when (it) {
+                            MiniPlayerBackgroundStyle.THEME -> stringResource(R.string.follow_theme)
+                            MiniPlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
+                            MiniPlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
+                        }
+                    },
                 )
             }
 

@@ -61,6 +61,7 @@ val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
 val BlurRadiusKey = floatPreferencesKey("blurRadius")
 val MiniPlayerLastAnchorKey = intPreferencesKey("miniPlayerLastAnchor")
+val MiniPlayerBackgroundStyleKey = stringPreferencesKey("miniPlayerBackgroundStyle")
 
 enum class AodThumbnailShape {
     ROUNDED,
@@ -160,6 +161,7 @@ val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val ForceSyncOnAccountSwitchKey = booleanPreferencesKey("forceSyncOnAccountSwitch")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
 val LocalSongsMinDurationSecondsKey = intPreferencesKey("local_songs_min_duration_seconds")
+val LocalSongsIncludedFoldersKey = stringSetPreferencesKey("local_songs_included_folders")
 val LocalSongsExcludedFoldersKey = stringSetPreferencesKey("local_songs_excluded_folders")
 val LocalSongsSortTypeKey = stringPreferencesKey("local_songs_sort_type")
 val LocalSongsSortDescendingKey = booleanPreferencesKey("local_songs_sort_descending")
@@ -584,6 +586,12 @@ enum class PlayerBackgroundStyle {
     BLUR_GRADIENT,
     GLOW,
     GLOW_ANIMATED,
+}
+
+enum class MiniPlayerBackgroundStyle {
+    THEME,
+    GRADIENT,
+    GLOW,
 }
 
 // Keys for customized background

@@ -35,10 +35,14 @@ import javax.inject.Inject
 
 data class LocalSongScanConfig(
     val minimumDurationSeconds: Int = 0,
+    val includedFolders: Set<String> = emptySet(),
     val excludedFolders: Set<String> = emptySet(),
 ) {
     val sanitizedMinimumDurationSeconds: Int
         get() = minimumDurationSeconds.coerceAtLeast(0)
+
+    val sanitizedIncludedFolders: Set<String>
+        get() = deduplicateFolderEntries(includedFolders)
 
     val sanitizedExcludedFolders: Set<String>
         get() = deduplicateFolderEntries(excludedFolders)
@@ -234,6 +238,9 @@ constructor(
     @Suppress("DEPRECATION")
     private fun queryTracks(scanConfig: LocalSongScanConfig): LocalScanSnapshot {
         val sanitizedMinimumDurationMs = scanConfig.sanitizedMinimumDurationSeconds.toLong() * 1000L
+        val sanitizedIncludedFolders = scanConfig.sanitizedIncludedFolders
+            .map { it.lowercase(Locale.ROOT) }
+            .toSet()
         val sanitizedExcludedFolders = scanConfig.sanitizedExcludedFolders
             .map { it.lowercase(Locale.ROOT) }
             .toSet()
@@ -303,6 +310,9 @@ constructor(
                     relativePath = cursor.getStringOrNull(relativePathIndex),
                     absolutePath = cursor.getStringOrNull(dataPathIndex),
                 )
+                if (!shouldIncludeFolder(normalizedFolderPath, sanitizedIncludedFolders)) {
+                    continue
+                }
                 if (shouldExcludeFolder(normalizedFolderPath, sanitizedExcludedFolders)) {
                     continue
                 }
@@ -447,13 +457,23 @@ constructor(
         return normalizedAbsoluteFolder.takeIf(String::isNotEmpty)?.lowercase(Locale.ROOT)
     }
 
+    private fun shouldIncludeFolder(folderPath: String?, includedFolders: Set<String>): Boolean {
+        if (includedFolders.isEmpty()) return true
+        return matchesFolderEntry(folderPath, includedFolders)
+    }
+
     private fun shouldExcludeFolder(folderPath: String?, excludedFolders: Set<String>): Boolean {
-        if (folderPath.isNullOrEmpty() || excludedFolders.isEmpty()) return false
-        return excludedFolders.any { excludedFolder ->
-            folderPath == excludedFolder ||
-                folderPath.startsWith("$excludedFolder/") ||
-                folderPath.endsWith("/$excludedFolder") ||
-                folderPath.contains("/$excludedFolder/")
+        if (excludedFolders.isEmpty()) return false
+        return matchesFolderEntry(folderPath, excludedFolders)
+    }
+
+    private fun matchesFolderEntry(folderPath: String?, folders: Set<String>): Boolean {
+        if (folderPath.isNullOrEmpty()) return false
+        return folders.any { folder ->
+            folderPath == folder ||
+                folderPath.startsWith("$folder/") ||
+                folderPath.endsWith("/$folder") ||
+                folderPath.contains("/$folder/")
         }
     }
 
