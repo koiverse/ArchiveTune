@@ -151,6 +151,7 @@ import moe.koiverse.archivetune.db.entities.AlbumEntity
 import moe.koiverse.archivetune.di.DownloadCache
 import moe.koiverse.archivetune.di.PlayerCache
 import moe.koiverse.archivetune.innertube.PlaybackAuthState
+import moe.koiverse.archivetune.innertube.models.response.PlayerResponse
 import moe.koiverse.archivetune.extensions.SilentHandler
 import moe.koiverse.archivetune.extensions.collect
 import moe.koiverse.archivetune.extensions.collectLatest
@@ -4362,7 +4363,7 @@ class MusicService :
                         playTimeMs = playedMs,
                         mediaMetadata = mediaMetadataSnapshot,
                     )
-                val remoteRegistered = remoteRegisteredSnapshot || registerRemotePlaybackHistory(mediaId)
+                val remoteRegistered = remoteRegisteredSnapshot || registerRemotePlaybackHistory(mediaId, playedMs)
                 ImmediateHistoryResult(
                     eventId = resolvedEventId,
                     remoteRegistered = remoteRegistered,
@@ -4421,16 +4422,21 @@ class MusicService :
         }
     }
 
-    private suspend fun registerRemotePlaybackHistory(mediaId: String): Boolean {
+    private suspend fun registerRemotePlaybackHistory(mediaId: String, playedTimeMs: Long): Boolean {
         if (database.song(mediaId).first()?.song?.isLocal == true) {
             return false
         }
 
-        suspend fun registerTrackingUrl(url: String): Boolean {
+        suspend fun registerTrackingUrl(
+            playbackUrl: String,
+            watchtimeUrl: String?,
+        ): Boolean {
             return retryWithoutPlaybackLoginContext {
                 YouTube.registerPlayback(
                     playlistId = null,
-                    playbackTracking = url,
+                    playbackTracking = playbackUrl,
+                    watchtimeTracking = watchtimeUrl,
+                    playedTimeMs = playedTimeMs,
                 )
             }.onFailure { throwable ->
                 when (throwable) {
@@ -4449,38 +4455,58 @@ class MusicService :
             }.isSuccess
         }
 
-        val playbackUrl =
-            database.format(mediaId).first()?.playbackUrl
-                ?.takeIf { it.isNotBlank() }
-                ?: retryWithoutPlaybackLoginContext {
-                    YTPlayerUtils.playerResponseForMetadata(mediaId)
-                }.onFailure { throwable ->
-                    when (throwable) {
-                        is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
-                            promptLoginRecovery(mediaId, throwable.targetUrl)
-                        }
+        suspend fun registerPlaybackTracking(playbackTracking: PlayerResponse.PlaybackTracking): Boolean {
+            val playbackUrl = playbackTracking.videostatsPlaybackUrl?.baseUrl
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: return false
+            val watchtimeUrl = playbackTracking.videostatsWatchtimeUrl?.baseUrl
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
 
-                        is YTPlayerUtils.LoginRequiredForPlaybackException -> {
-                            Timber.tag("MusicService").w(
-                                throwable,
-                                "Playback confirmation is required before refreshing remote playback tracking for %s",
-                                mediaId,
-                            )
-                        }
+            return registerTrackingUrl(
+                playbackUrl = playbackUrl,
+                watchtimeUrl = watchtimeUrl,
+            )
+        }
 
-                        else -> {
-                            Timber.tag("MusicService").w(
-                                throwable,
-                                "Failed to refresh remote playback tracking for %s",
-                                mediaId,
-                            )
-                        }
+        val remotePlaybackTracking =
+            retryWithoutPlaybackLoginContext {
+                YTPlayerUtils.playerResponseForMetadata(mediaId)
+            }.onFailure { throwable ->
+                when (throwable) {
+                    is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+                        promptLoginRecovery(mediaId, throwable.targetUrl)
                     }
-                }.getOrNull()?.playbackTracking?.videostatsPlaybackUrl?.baseUrl
-                    ?.trim()
-                    ?.takeIf { it.isNotEmpty() }
 
-        return playbackUrl?.let { registerTrackingUrl(it) } ?: false
+                    is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                        Timber.tag("MusicService").w(
+                            throwable,
+                            "Playback confirmation is required before refreshing remote playback tracking for %s",
+                            mediaId,
+                        )
+                    }
+
+                    else -> {
+                        Timber.tag("MusicService").w(
+                            throwable,
+                            "Failed to refresh remote playback tracking for %s",
+                            mediaId,
+                        )
+                    }
+                }
+            }.getOrNull()?.playbackTracking
+
+        if (remotePlaybackTracking != null) {
+            return registerPlaybackTracking(remotePlaybackTracking)
+        }
+
+        val cachedPlaybackUrl =
+            database.format(mediaId).first()?.playbackUrl
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+
+        return cachedPlaybackUrl?.let { registerTrackingUrl(it, null) } ?: false
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -5717,7 +5743,7 @@ private fun onMediaItemTransitionInternal() {
                 }
 
                 if (pendingResult?.remoteRegistered != true) {
-                    registerRemotePlaybackHistory(mediaId)
+                    registerRemotePlaybackHistory(mediaId, playbackStats.totalPlayTimeMs)
                 }
             }
 
