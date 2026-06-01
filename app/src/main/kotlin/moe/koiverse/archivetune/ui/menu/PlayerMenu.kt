@@ -567,6 +567,25 @@ fun PlayerMenu(
                                 ),
                             )
                         }
+                        if (isQueueTrigger != true) {
+                            add(
+                                NewAction(
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.bedtime),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(28.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    text = stringResource(R.string.aod_mode),
+                                    onClick = {
+                                        playerConnection.aodModeEnabled.value = true
+                                        onDismiss()
+                                    }
+                                ),
+                            )
+                        }
                     },
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
                 )
@@ -840,25 +859,6 @@ fun PlayerMenu(
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         )
 
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 56.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                        )
-
-                        ListItem(
-                            headlineContent = { Text(text = stringResource(R.string.aod_mode)) },
-                            leadingContent = {
-                                Icon(
-                                    painter = painterResource(R.drawable.bedtime),
-                                    contentDescription = null,
-                                )
-                            },
-                            modifier = Modifier.clickable {
-                                playerConnection.aodModeEnabled.value = true
-                                onDismiss()
-                            },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        )
                     }
                 }
             }
