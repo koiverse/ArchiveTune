@@ -26,6 +26,7 @@ internal class RotatingProxySelector : ProxySelector() {
 
     private val poolRef = AtomicReference(Pool(emptyArray(), AtomicLongArray(0)))
     private val index = AtomicInteger(0)
+    private val lastSelectedIndex = AtomicInteger(-1)
 
     companion object {
         private const val COOLDOWN_MS = 60_000L
@@ -51,6 +52,14 @@ internal class RotatingProxySelector : ProxySelector() {
         }
     }
 
+    fun markLastSelectedFailed() {
+        val pool = poolRef.get()
+        val selected = lastSelectedIndex.get()
+        if (selected in pool.proxies.indices) {
+            pool.deadUntil.set(selected, System.currentTimeMillis() + COOLDOWN_MS)
+        }
+    }
+
     override fun select(uri: URI?): List<Proxy> {
         val pool = poolRef.get()
         if (pool.proxies.isEmpty()) return listOf(Proxy.NO_PROXY)
@@ -58,8 +67,12 @@ internal class RotatingProxySelector : ProxySelector() {
         val start = Math.floorMod(index.getAndIncrement(), pool.proxies.size)
         for (offset in 0 until pool.proxies.size) {
             val i = (start + offset) % pool.proxies.size
-            if (pool.deadUntil.get(i) <= now) return listOf(pool.proxies[i])
+            if (pool.deadUntil.get(i) <= now) {
+                lastSelectedIndex.set(i)
+                return listOf(pool.proxies[i])
+            }
         }
+        lastSelectedIndex.set(start)
         return listOf(pool.proxies[start])
     }
 
