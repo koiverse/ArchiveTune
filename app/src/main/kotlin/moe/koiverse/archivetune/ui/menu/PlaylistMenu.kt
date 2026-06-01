@@ -38,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ListItem
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -90,7 +91,24 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.time.LocalDateTime
+import kotlin.math.roundToInt
+
+@Immutable
+private data class PlaylistSyncProgressUi(
+    val completedSongs: Int,
+    val totalSongs: Int,
+) {
+    val percent: Int
+        get() = if (totalSongs <= 0) {
+            0
+        } else {
+            (completedSongs.coerceIn(0, totalSongs).toFloat() / totalSongs.toFloat() * 100f)
+                .roundToInt()
+                .coerceIn(0, 100)
+        }
+}
 
 @Composable
 fun PlaylistMenu(
@@ -132,12 +150,23 @@ fun PlaylistMenu(
     var downloadState by remember {
         mutableIntStateOf(Download.STATE_STOPPED)
     }
+    var syncProgress by remember {
+        mutableStateOf<PlaylistSyncProgressUi?>(null)
+    }
 
     val editable: Boolean = playlist.playlist.isEditable == true
 
     fun syncPlaylistToYouTube() {
-        onDismiss()
         coroutineScope.launch(Dispatchers.IO) {
+            fun updateProgress(completedSongs: Int, totalSongs: Int) {
+                coroutineScope.launch(Dispatchers.Main) {
+                    syncProgress = PlaylistSyncProgressUi(
+                        completedSongs = completedSongs,
+                        totalSongs = totalSongs,
+                    )
+                }
+            }
+
             try {
                 if (!context.isSyncEnabled()) {
                     withContext(Dispatchers.Main) {
@@ -158,8 +187,10 @@ fun PlaylistMenu(
 
                 val browseId = playlist.playlist.browseId ?: YouTube.createPlaylist(playlist.playlist.name).getOrThrow()
                 if (playlist.playlist.browseId == null) {
-                    songs.forEach { song ->
+                    updateProgress(completedSongs = 0, totalSongs = songs.size)
+                    songs.forEachIndexed { index, song ->
                         YouTube.addToPlaylist(browseId, song.id).getOrThrow()
+                        updateProgress(completedSongs = index + 1, totalSongs = songs.size)
                     }
                     database.query {
                         update(
@@ -171,21 +202,35 @@ fun PlaylistMenu(
                         )
                     }
                 } else {
-                    syncUtils.syncPlaylistNow(browseId, playlist.id)
+                    updateProgress(completedSongs = 0, totalSongs = 0)
+                    syncUtils.syncPlaylistNow(
+                        browseId = browseId,
+                        playlistId = playlist.id,
+                        propagateFailures = true,
+                    ) { completedSongs, totalSongs ->
+                        updateProgress(
+                            completedSongs = completedSongs,
+                            totalSongs = totalSongs,
+                        )
+                    }
                 }
 
                 withContext(Dispatchers.Main) {
+                    syncProgress = null
                     Toast.makeText(
                         context,
                         context.getString(R.string.playlist_synced),
                         Toast.LENGTH_SHORT,
                     ).show()
+                    onDismiss()
                 }
             } catch (e: Exception) {
+                Timber.e(e, "Failed to sync playlist ${playlist.playlist.name}")
                 withContext(Dispatchers.Main) {
+                    syncProgress = null
                     Toast.makeText(
                         context,
-                        context.getString(R.string.error_unknown),
+                        context.getString(R.string.playlist_sync_failed, e.syncErrorDetail(context)),
                         Toast.LENGTH_SHORT,
                     ).show()
                 }
@@ -724,7 +769,9 @@ fun PlaylistMenu(
                             )
                         },
                         modifier = Modifier.clickable {
-                            syncPlaylistToYouTube()
+                            if (syncProgress == null) {
+                                syncPlaylistToYouTube()
+                            }
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
@@ -788,4 +835,28 @@ fun PlaylistMenu(
             }
         }
     }
+
+    syncProgress?.let { progress ->
+        LoadingScreen(
+            isVisible = true,
+            value = progress.percent,
+            title = stringResource(R.string.sync_playlist),
+            stepText = if (progress.totalSongs > 0) {
+                stringResource(
+                    R.string.playlist_sync_progress_step,
+                    progress.completedSongs,
+                    progress.totalSongs,
+                )
+            } else {
+                stringResource(R.string.please_wait)
+            },
+            indeterminate = progress.totalSongs <= 0,
+        )
+    }
 }
+
+private fun Throwable.syncErrorDetail(context: android.content.Context): String =
+    localizedMessage
+        ?.takeIf(String::isNotBlank)
+        ?: javaClass.simpleName.takeIf(String::isNotBlank)
+        ?: context.getString(R.string.error_unknown)
