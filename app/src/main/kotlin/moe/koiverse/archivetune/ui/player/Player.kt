@@ -1644,7 +1644,7 @@ private fun V7PlayerBackdrop(
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
     val density = LocalDensity.current
-    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val fallbackColor = Color.Black.toArgb()
     val backdropScale = if (disableBlur) 1.01f else V7BackdropSharpArtworkScale
     val backdropArtworkSizePx = remember(
         configuration.screenWidthDp,
@@ -1867,6 +1867,7 @@ private fun V7ExtractedColorBackdrop(
                 Brush.verticalGradient(
                     colorStops = arrayOf(
                         0f to palette.top.copy(alpha = 0.94f),
+                        0.34f to palette.top.copy(alpha = 0.96f),
                         0.42f to palette.mid.copy(alpha = 0.98f),
                         V7BackdropMaskStartFraction to palette.mid.copy(alpha = 1f),
                         V7BackdropMaskSolidFraction to palette.bottom.copy(alpha = 1f),
