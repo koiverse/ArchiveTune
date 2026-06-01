@@ -95,7 +95,9 @@ fun LibraryArtistsScreen(
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
     val filterContent = @Composable {
-        Row {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Spacer(Modifier.width(12.dp))
             FilterChip(
                 label = { Text(stringResource(R.string.artists)) },

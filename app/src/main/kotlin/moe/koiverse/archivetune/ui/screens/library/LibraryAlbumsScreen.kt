@@ -101,7 +101,9 @@ fun LibraryAlbumsScreen(
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
 
     val filterContent = @Composable {
-        Row {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Spacer(Modifier.width(12.dp))
             FilterChip(
                 label = { Text(stringResource(R.string.albums)) },
