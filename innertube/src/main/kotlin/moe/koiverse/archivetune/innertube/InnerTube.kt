@@ -355,6 +355,7 @@ class InnerTube {
         cpn: String,
         playlistId: String?,
         poToken: String? = null,
+        elapsedSeconds: Double? = null,
         client: YouTubeClient = YouTubeClient.WEB_REMIX,
         authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
@@ -368,12 +369,31 @@ class InnerTube {
                 parameter("pot", poToken)
             }
 
+            if (elapsedSeconds != null) {
+                val seconds = elapsedSeconds.coerceAtLeast(0.0)
+                if (!url.hasQueryParameter("st")) {
+                    parameter("st", "0")
+                }
+                if (!url.hasQueryParameter("et")) {
+                    parameter("et", seconds.toString())
+                }
+                if (!url.hasQueryParameter("rt")) {
+                    parameter("rt", seconds.toString())
+                }
+                if (!url.hasQueryParameter("rti")) {
+                    parameter("rti", seconds.toString())
+                }
+            }
+
             if (playlistId != null) {
                 parameter("list", playlistId)
                 parameter("referrer", "https://music.youtube.com/playlist?list=$playlistId")
             }
         }
     }
+
+    private fun String.hasQueryParameter(name: String): Boolean =
+        runCatching { toHttpUrl().queryParameter(name) != null }.getOrDefault(false)
 
     suspend fun browse(
         client: YouTubeClient,
