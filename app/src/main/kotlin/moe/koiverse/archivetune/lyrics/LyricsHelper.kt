@@ -50,7 +50,6 @@ constructor(
             PaxsenixNeteaseLyricsProvider,
             PaxsenixSpotifyLyricsProvider,
             PaxsenixMusixmatchLyricsProvider,
-            PaxsenixKuGouLyricsProvider,
             YouTubeSubtitleLyricsProvider,
             YouTubeLyricsProvider,
         )
@@ -233,7 +232,6 @@ constructor(
             PreferredLyricsProvider.PAXSENIX_NETEASE to PaxsenixNeteaseLyricsProvider,
             PreferredLyricsProvider.PAXSENIX_SPOTIFY to PaxsenixSpotifyLyricsProvider,
             PreferredLyricsProvider.PAXSENIX_MUSIXMATCH to PaxsenixMusixmatchLyricsProvider,
-            PreferredLyricsProvider.PAXSENIX_KUGOU to PaxsenixKuGouLyricsProvider,
             PreferredLyricsProvider.UNISON to UnisonLyricsProvider,
         )
         val userOrdered = orderedEnums.mapNotNull { providerMap[it] }

@@ -360,44 +360,6 @@ object PaxsenixLyrics {
         throw IllegalStateException("Musixmatch lyrics unavailable")
     }
 
-    suspend fun getKugouLyrics(
-        title: String,
-        artist: String,
-        durationSeconds: Int,
-    ): Result<String> = runCatching {
-        val durationMs = resolveDurationMs(durationSeconds)
-        val query = "$title $artist"
-        val kugouSearch = client.get("kugou/search") {
-            parameter("q", query)
-        }
-        if (kugouSearch.status == HttpStatusCode.OK) {
-            val items = kugouSearch.body<List<PaxsenixSearchItem>>()
-            val bestMatch = if (durationMs > 0) {
-                items.minByOrNull { abs(it.durationMs - durationMs) }
-            } else {
-                items.firstOrNull()
-            }
-
-            if (bestMatch != null) {
-                val diff = abs(bestMatch.durationMs - durationMs)
-                if (durationMs <= 0 || (diff < 10000)) {
-                    val lyricsResponse = client.get("kugou/lyrics") {
-                        parameter("id", bestMatch.id ?: "")
-                        parameter("word", "true")
-                    }
-                    if (lyricsResponse.status == HttpStatusCode.OK) {
-                        val data = lyricsResponse.body<JsonObject>()
-                        val lyrics = data["lyrics"]?.jsonPrimitive?.content
-                        if (!lyrics.isNullOrBlank()) {
-                            return@runCatching lyrics
-                        }
-                    }
-                }
-            }
-        }
-        throw IllegalStateException("KuGou lyrics unavailable")
-    }
-
     suspend fun getLyrics(
         title: String,
         artist: String,
@@ -422,11 +384,6 @@ object PaxsenixLyrics {
         
         getMusixmatchLyrics(title, artist, durationSeconds).getOrNull()?.let { 
             System.err.println("PaxsenixLyrics: Search FINISHED (Musixmatch)")
-            return@runCatching it 
-        }
-
-        getKugouLyrics(title, artist, durationSeconds).getOrNull()?.let { 
-            System.err.println("PaxsenixLyrics: Search FINISHED (KuGou)")
             return@runCatching it 
         }
         
