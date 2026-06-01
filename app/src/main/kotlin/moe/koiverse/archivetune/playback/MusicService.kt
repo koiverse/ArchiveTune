@@ -5946,7 +5946,7 @@ private fun onMediaItemTransitionInternal() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Handle widget actions
+        ensureStartedAsForeground()
         when (intent?.action) {
             "moe.koiverse.archivetune.WIDGET_PLAY_PAUSE" -> {
                 if (player.isPlaying) player.pause() else player.play()
