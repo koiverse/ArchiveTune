@@ -5237,8 +5237,8 @@ private fun onMediaItemTransitionInternal() {
                 )
             }
         }.getOrElse { throwable ->
-            when (throwable) {
-                is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+            when {
+                throwable is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
                     promptLoginRecovery(mediaId, throwable.targetUrl)
                     throw PlaybackException(
                         getString(R.string.playback_requires_youtube_music_login_refresh),
@@ -5247,7 +5247,7 @@ private fun onMediaItemTransitionInternal() {
                     )
                 }
 
-                is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                throwable is YTPlayerUtils.LoginRequiredForPlaybackException -> {
                     throw PlaybackException(
                         getString(R.string.playback_requires_youtube_music_confirmation),
                         throwable,
@@ -5255,9 +5255,9 @@ private fun onMediaItemTransitionInternal() {
                     )
                 }
 
-                is PlaybackException -> throw throwable
+                throwable is PlaybackException -> throw throwable
 
-                is java.net.ConnectException, is java.net.UnknownHostException -> {
+                throwable is java.net.ConnectException || throwable is java.net.UnknownHostException -> {
                     throw PlaybackException(
                         getString(R.string.error_no_internet),
                         throwable,
