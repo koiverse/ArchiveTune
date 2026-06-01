@@ -100,6 +100,12 @@ constructor(
             .followRedirects(true)
             .followSslRedirects(true)
             .retryOnConnectionFailure(true)
+            .dispatcher(
+                okhttp3.Dispatcher().apply {
+                    maxRequests = MAX_DOWNLOAD_HTTP_REQUESTS
+                    maxRequestsPerHost = DEFAULT_MAX_PARALLEL_DOWNLOADS
+                },
+            )
             .connectionPool(
                 ConnectionPool(
                     MAX_IDLE_DOWNLOAD_CONNECTIONS,
@@ -149,9 +155,10 @@ constructor(
                 return@Factory dataSpec
             }
             val lowDataModeActive = context.isLowDataModeActive()
+            val requestedAudioQuality = resolveDownloadAudioQuality(lowDataModeActive)
+            val streamCacheKey = buildSongUrlCacheKey(mediaId, requestedAudioQuality)
             val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
-            songUrlCache[mediaId]
-                ?.takeUnless { lowDataModeActive }
+            songUrlCache[streamCacheKey]
                 ?.takeIf {
                     it.isValidFor(
                         authFingerprint = authFingerprint,
@@ -169,7 +176,7 @@ constructor(
                         context.retryWithoutPlaybackLoginContext {
                             YTPlayerUtils.playerResponseForPlayback(
                                 mediaId,
-                                audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
+                                audioQuality = requestedAudioQuality,
                                 preferredStreamClient = preferredStreamClient,
                                 connectivityManager = connectivityManager,
                                 networkMetered = lowDataModeActive,
@@ -189,14 +196,12 @@ constructor(
 
             val streamUrl = playbackData.streamUrl
 
-            if (!lowDataModeActive) {
-                songUrlCache[mediaId] =
-                    AuthScopedCacheValue(
-                        url = streamUrl,
-                        expiresAtMs = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L),
-                        authFingerprint = playbackData.authFingerprint,
-                    )
-            }
+            songUrlCache[streamCacheKey] =
+                AuthScopedCacheValue(
+                    url = streamUrl,
+                    expiresAtMs = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L),
+                    authFingerprint = playbackData.authFingerprint,
+                )
             dataSpec.withUri(streamUrl.toUri())
         }
 
@@ -259,6 +264,12 @@ constructor(
     }
 
     fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
+
+    private fun resolveDownloadAudioQuality(lowDataModeActive: Boolean): AudioQuality =
+        if (lowDataModeActive) AudioQuality.LOW else audioQuality
+
+    private fun buildSongUrlCacheKey(mediaId: String, requestedAudioQuality: AudioQuality): String =
+        "$mediaId:${requestedAudioQuality.name}"
 
     private fun persistPlaybackMetadata(
         mediaId: String,
@@ -411,6 +422,7 @@ constructor(
         private const val SHORT_COOLDOWN_MS = 2_500L
         private const val LONG_COOLDOWN_MS = 8_000L
         private const val MAX_IDLE_DOWNLOAD_CONNECTIONS = 12
+        private const val MAX_DOWNLOAD_HTTP_REQUESTS = 24
         private const val DOWNLOAD_CONNECTION_KEEP_ALIVE_MINUTES = 5L
     }
 }
