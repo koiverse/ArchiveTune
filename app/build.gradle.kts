@@ -70,17 +70,17 @@ android {
                     ?: ""
                 ).trim()
         buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
-        buildConfigField("String", "DISTRIBUTION", "\"standard\"")
+        buildConfigField("String", "DISTRIBUTION", "\"gms\"")
         buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
         buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
     }
 
     flavorDimensions += listOf("distribution", "device", "abi")
     productFlavors {
-        create("standard") {
+        create("gms") {
             dimension = "distribution"
             isDefault = true
-            buildConfigField("String", "DISTRIBUTION", "\"standard\"")
+            buildConfigField("String", "DISTRIBUTION", "\"gms\"")
             buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", discordSocialSdkAvailable.toString())
             buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
             buildConfigField("String", "DISCORD_APPLICATION_ID", "\"$discordApplicationId\"")
@@ -340,7 +340,7 @@ dependencies {
     implementation(libs.accompanist.lyrics.core)
 
     if (discordSocialSdkAvailable) {
-        "standardImplementation"(files(discordSocialSdkAar))
+        "gmsImplementation"(files(discordSocialSdkAar))
     }
 }
 

@@ -429,7 +429,7 @@ fun AccountSettings(
                         title = integrationLabel,
                         subtitle = stringResource(
                             if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
-                                R.string.account_integrations_summary_standard
+                                R.string.account_integrations_summary_gms
                             } else {
                                 R.string.account_integrations_summary_foss
                             },
