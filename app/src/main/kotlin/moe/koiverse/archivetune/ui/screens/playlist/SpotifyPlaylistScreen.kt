@@ -89,7 +89,6 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
@@ -124,12 +123,10 @@ fun SpotifyPlaylistScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val playerConnection = LocalPlayerConnection.current
-    val isPlaying by remember(playerConnection) {
-        playerConnection?.isPlaying ?: flowOf(false)
-    }.collectAsStateWithLifecycle()
-    val mediaMetadata by remember(playerConnection) {
-        playerConnection?.mediaMetadata ?: flowOf<MediaMetadata?>(null)
-    }.collectAsStateWithLifecycle()
+    val isPlaying by playerConnection?.isPlaying?.collectAsStateWithLifecycle()
+        ?: remember { mutableStateOf(false) }
+    val mediaMetadata by playerConnection?.mediaMetadata?.collectAsStateWithLifecycle()
+        ?: remember { mutableStateOf<MediaMetadata?>(null) }
     val playlist = state.playlist
     val tracks = state.tracks
     val lazyListState = rememberLazyListState()
