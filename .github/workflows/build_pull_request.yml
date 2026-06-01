@@ -59,5 +59,7 @@ jobs:
         with:
           name: app-mobile-universal-debug-pr-${{ github.event.number }}
           path: |
+            app/build/outputs/apk/standard/mobile/universal/debug/*.apk
+            app/build/outputs/apk/standardMobileUniversal/debug/*.apk
             app/build/outputs/apk/mobile/universal/debug/*.apk
             app/build/outputs/apk/mobileUniversal/debug/*.apk
