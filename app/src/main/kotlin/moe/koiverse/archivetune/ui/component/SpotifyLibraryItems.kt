@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
@@ -42,23 +43,23 @@ fun SpotifyLibraryPlaylistListItem(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(26.dp),
 ) {
-    val libraryPlaylist = playlist.toLibraryPlaylist()
+    val libraryPlaylist = remember(playlist) { playlist.toLibraryPlaylist() }
     val openPlaylist = {
         navController.navigate("spotify_playlist/${playlist.id}")
     }
     val trailing: @Composable RowScope.() -> Unit = {
-        IconButton(onClick = openPlaylist) {
-            Icon(
-                painter = painterResource(R.drawable.more_vert),
-                contentDescription = null,
-            )
-        }
         Icon(
             painter = painterResource(R.drawable.spotify_icon),
             contentDescription = stringResource(R.string.spotify_account),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp),
         )
+        IconButton(onClick = openPlaylist) {
+            Icon(
+                painter = painterResource(R.drawable.more_vert),
+                contentDescription = null,
+            )
+        }
     }
 
     LibraryPlaylistFeatureCard(

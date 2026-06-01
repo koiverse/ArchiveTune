@@ -39,6 +39,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -87,6 +88,7 @@ import moe.koiverse.archivetune.constants.PlaylistSortTypeKey
 import moe.koiverse.archivetune.constants.ShowCachedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowDownloadedPlaylistKey
 import moe.koiverse.archivetune.constants.ShowLikedPlaylistKey
+import moe.koiverse.archivetune.constants.ShowSpotifyPlaylistsKey
 import moe.koiverse.archivetune.constants.ShowTopPlaylistKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.entities.Playlist
@@ -100,10 +102,12 @@ import moe.koiverse.archivetune.ui.component.LibraryArtistSpotlightCard
 import moe.koiverse.archivetune.ui.component.LibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.component.LocalMenuState
 import moe.koiverse.archivetune.ui.component.LibraryPinnedCollectionTile
+import moe.koiverse.archivetune.ui.component.SpotifyLibraryPlaylistListItem
 import moe.koiverse.archivetune.ui.menu.AlbumMenu
 import moe.koiverse.archivetune.ui.menu.ArtistMenu
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
+import moe.koiverse.archivetune.spotify.SpotifyLibraryViewModel
 import moe.koiverse.archivetune.viewmodels.BuildYourMixBasis
 import moe.koiverse.archivetune.viewmodels.BuildYourMixUiState
 import moe.koiverse.archivetune.viewmodels.LibraryMixViewModel
@@ -158,6 +162,7 @@ fun LibraryMixScreen(
     filterContent: @Composable () -> Unit,
     selectedTagIds: Set<String>,
     viewModel: LibraryMixViewModel = hiltViewModel(),
+    spotifyLibraryViewModel: SpotifyLibraryViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
@@ -218,6 +223,7 @@ fun LibraryMixScreen(
     val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
     val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
+    val (showSpotifyPlaylists) = rememberPreference(ShowSpotifyPlaylistsKey, false)
 
     val albums by viewModel.albums.collectAsState()
     val artists by viewModel.artists.collectAsState()
@@ -225,6 +231,9 @@ fun LibraryMixScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val buildYourMixState by viewModel.buildYourMixState.collectAsState()
     val isBuildYourMixAvailable by viewModel.isBuildYourMixAvailable.collectAsState()
+    val spotifyPlaylists by spotifyLibraryViewModel.playlists.collectAsState()
+    val spotifyIsRefreshing by spotifyLibraryViewModel.isRefreshing.collectAsState()
+    val spotifyErrorMessage by spotifyLibraryViewModel.errorMessage.collectAsState()
     var showBuildYourMixDialog by rememberSaveable { mutableStateOf(false) }
     var buildYourMixSongCount by rememberSaveable { mutableStateOf(30) }
     var buildYourMixManualBasis by rememberSaveable { mutableStateOf("") }
@@ -327,7 +336,15 @@ fun LibraryMixScreen(
     val canEnterReorderMode = customPlaylistMode && selectedTagIds.isEmpty()
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
-    val playlistSectionLeadingItems = 3 + if (shortcuts.isNotEmpty()) 1 else 0
+    val spotifySectionItemCount = if (showSpotifyPlaylists) {
+        1 +
+            if (spotifyIsRefreshing) 1 else 0 +
+            if (spotifyErrorMessage != null) 1 else 0 +
+            if (spotifyPlaylists.isNotEmpty()) 1 else 0
+    } else {
+        0
+    }
+    val playlistSectionLeadingItems = 3 + if (shortcuts.isNotEmpty()) 1 else 0 + spotifySectionItemCount
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val reorderableState = rememberReorderableLazyListState(
@@ -380,6 +397,12 @@ fun LibraryMixScreen(
         if (!canEnterReorderMode) reorderEnabled = false
     }
 
+    LaunchedEffect(showSpotifyPlaylists) {
+        if (showSpotifyPlaylists && spotifyPlaylists.isEmpty()) {
+            spotifyLibraryViewModel.refreshPlaylists()
+        }
+    }
+
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop = backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
 
@@ -423,8 +446,11 @@ fun LibraryMixScreen(
     }
 
     ExpressivePullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = { if (ytmSync) viewModel.syncAllLibrary() },
+        isRefreshing = isRefreshing || spotifyIsRefreshing,
+        onRefresh = {
+            if (ytmSync) viewModel.syncAllLibrary()
+            if (showSpotifyPlaylists) spotifyLibraryViewModel.refreshPlaylists()
+        },
         modifier = Modifier.fillMaxSize(),
     ) {
         LazyColumn(
@@ -471,6 +497,63 @@ fun LibraryMixScreen(
                         },
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
+                }
+            }
+
+            if (showSpotifyPlaylists) {
+                item(key = "spotify_playlist_section_header") {
+                    LibrarySectionHeaderText(
+                        title = stringResource(R.string.spotify_playlists),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+
+                if (spotifyIsRefreshing) {
+                    item(key = "spotify_playlist_loading") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            CircularWavyProgressIndicator(modifier = Modifier.size(28.dp))
+                            Text(
+                                text = stringResource(R.string.spotify_loading_library),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                spotifyErrorMessage?.let { error ->
+                    item(key = "spotify_playlist_error") {
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                        )
+                    }
+                }
+
+                if (spotifyPlaylists.isNotEmpty()) {
+                    item(key = "spotify_playlists_group") {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(LibraryGroupItemSpacing),
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        ) {
+                            spotifyPlaylists.forEachIndexed { index, playlist ->
+                                SpotifyLibraryPlaylistListItem(
+                                    playlist = playlist,
+                                    navController = navController,
+                                    shape = librarySegmentedShape(index, spotifyPlaylists.size),
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
