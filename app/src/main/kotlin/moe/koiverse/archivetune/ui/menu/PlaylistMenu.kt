@@ -53,9 +53,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.media3.exoplayer.offline.Download
-import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.LocalDatabase
@@ -80,6 +78,8 @@ import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.PlaylistListItem
+import moe.koiverse.archivetune.ui.utils.HeaderDownloadItem
+import moe.koiverse.archivetune.ui.utils.sendAddMissingDownloads
 import moe.koiverse.archivetune.utils.SpeedDialPin
 import moe.koiverse.archivetune.utils.SpeedDialPinType
 import moe.koiverse.archivetune.utils.parseSpeedDialPins
@@ -689,20 +689,16 @@ fun PlaylistMenu(
                                     )
                                 },
                                 modifier = Modifier.clickable {
-                                    songs.forEach { song ->
-                                        val downloadRequest =
-                                            DownloadRequest
-                                                .Builder(song.id, song.id.toUri())
-                                                .setCustomCacheKey(song.id)
-                                                .setData(song.song.title.toByteArray())
-                                                .build()
-                                        DownloadService.sendAddDownload(
-                                            context,
-                                            ExoDownloadService::class.java,
-                                            downloadRequest,
-                                            false,
-                                        )
-                                    }
+                                    sendAddMissingDownloads(
+                                        context = context,
+                                        songs = songs.map { song ->
+                                            HeaderDownloadItem(
+                                                id = song.id,
+                                                title = song.song.title,
+                                            )
+                                        },
+                                        downloads = downloadUtil.downloads.value,
+                                    )
                                 },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             )

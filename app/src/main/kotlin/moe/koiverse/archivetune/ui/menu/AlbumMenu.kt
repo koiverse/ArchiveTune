@@ -66,12 +66,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
-import androidx.core.net.toUri
 import androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
 import androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING
 import androidx.media3.exoplayer.offline.Download.STATE_QUEUED
 import androidx.media3.exoplayer.offline.Download.STATE_STOPPED
-import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -97,6 +95,8 @@ import moe.koiverse.archivetune.ui.component.MenuSurfaceSection
 import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.utils.resize
+import moe.koiverse.archivetune.ui.utils.HeaderDownloadItem
+import moe.koiverse.archivetune.ui.utils.sendAddMissingDownloads
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.utils.SpeedDialPin
 import moe.koiverse.archivetune.utils.SpeedDialPinType
@@ -594,20 +594,16 @@ fun AlbumMenu(
                                     )
                                 },
                                 modifier = Modifier.clickable {
-                                    songs.forEach { song ->
-                                        val downloadRequest =
-                                            DownloadRequest
-                                                .Builder(song.id, song.id.toUri())
-                                                .setCustomCacheKey(song.id)
-                                                .setData(song.song.title.toByteArray())
-                                                .build()
-                                        DownloadService.sendAddDownload(
-                                            context,
-                                            ExoDownloadService::class.java,
-                                            downloadRequest,
-                                            false,
-                                        )
-                                    }
+                                    sendAddMissingDownloads(
+                                        context = context,
+                                        songs = songs.map { song ->
+                                            HeaderDownloadItem(
+                                                id = song.id,
+                                                title = song.song.title,
+                                            )
+                                        },
+                                        downloads = downloadUtil.downloads.value,
+                                    )
                                 },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             )

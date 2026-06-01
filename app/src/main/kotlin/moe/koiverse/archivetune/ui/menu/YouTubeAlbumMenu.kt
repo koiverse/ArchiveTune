@@ -61,9 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import androidx.media3.exoplayer.offline.Download
-import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.innertube.YouTube
@@ -86,6 +84,8 @@ import moe.koiverse.archivetune.ui.component.NewAction
 import moe.koiverse.archivetune.ui.component.NewActionGrid
 import moe.koiverse.archivetune.ui.component.SongListItem
 import moe.koiverse.archivetune.ui.component.YouTubeListItem
+import moe.koiverse.archivetune.ui.utils.HeaderDownloadItem
+import moe.koiverse.archivetune.ui.utils.sendAddMissingDownloads
 import moe.koiverse.archivetune.utils.SpeedDialPin
 import moe.koiverse.archivetune.utils.SpeedDialPinType
 import moe.koiverse.archivetune.utils.parseSpeedDialPins
@@ -580,18 +580,16 @@ fun YouTubeAlbumMenu(
                                 )
                             },
                             modifier = Modifier.clickable {
-                                album?.songs?.forEach { song ->
-                                    val downloadRequest =
-                                        DownloadRequest
-                                            .Builder(song.id, song.id.toUri())
-                                            .setCustomCacheKey(song.id)
-                                            .setData(song.song.title.toByteArray())
-                                            .build()
-                                    DownloadService.sendAddDownload(
-                                        context,
-                                        ExoDownloadService::class.java,
-                                        downloadRequest,
-                                        false,
+                                album?.songs?.let { songs ->
+                                    sendAddMissingDownloads(
+                                        context = context,
+                                        songs = songs.map { song ->
+                                            HeaderDownloadItem(
+                                                id = song.id,
+                                                title = song.song.title,
+                                            )
+                                        },
+                                        downloads = downloadUtil.downloads.value,
                                     )
                                 }
                             },
