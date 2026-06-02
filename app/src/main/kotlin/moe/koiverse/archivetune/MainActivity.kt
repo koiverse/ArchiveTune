@@ -424,6 +424,7 @@ class MainActivity : ComponentActivity() {
             }
 
         if (shouldStopOnTaskClear) {
+            playerConnection?.service?.stopAndClearPlayback(clearPersistentState = true)
             safeUnbindMusicService()
             stopService(Intent(this, MusicService::class.java))
             playerConnection = null
