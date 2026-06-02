@@ -595,116 +595,103 @@ private fun RecognitionHistoryCard(
 ) {
     val context = LocalContext.current
     val cover = item.coverArtHqUrl ?: item.coverArtUrl
+    val metadata = remember(item.album, item.genre, item.releaseDate) { buildHistoryMetadata(item) }
     val recognizedAt =
         remember(item.recognizedAtEpochMillis) {
             DateFormat
                 .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
                 .format(Date(item.recognizedAtEpochMillis))
         }
-    val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.secondary
-    val surfaceContainerHigh = MaterialTheme.colorScheme.surfaceContainerHigh
-    val cardBrush =
-        remember(primary, secondary, surfaceContainerHigh) {
-            Brush.verticalGradient(
-                colors =
-                    listOf(
-                        primary.copy(alpha = 0.24f),
-                        secondary.copy(alpha = 0.14f),
-                        surfaceContainerHigh,
-                    ),
-            )
-        }
-    val coverSize = if (isWide) 104.dp else 88.dp
+    val coverSize = if (isWide) 76.dp else 68.dp
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = MaterialTheme.shapes.large,
         colors =
             CardDefaults.elevatedCardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
     ) {
-        Column {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(cardBrush)
-                        .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                CoverArt(
-                    coverUrl = cover,
-                    modifier = Modifier.size(coverSize),
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CoverArt(
+                coverUrl = cover,
+                modifier = Modifier.size(coverSize),
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.title,
+                    style = if (isWide) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Column(modifier = Modifier.weight(1f)) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = item.artist,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (metadata.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = item.title,
-                        style = if (isWide) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = item.artist,
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = metadata,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    StatusPill(
-                        label = stringResource(R.string.music_recognition_history_recognized_at, recognizedAt),
-                        iconRes = R.drawable.calendar_today,
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.calendar_today),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.tertiary,
+                    )
+                    Text(
+                        text = stringResource(R.string.music_recognition_history_recognized_at, recognizedAt),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
-            Column(modifier = Modifier.padding(16.dp)) {
-                FlowChips(
-                    album = item.album,
-                    genre = item.genre,
-                    releaseDate = item.releaseDate,
-                    isrc = item.isrc,
-                )
-
-                if (!item.label.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    ResultInfoBlock(
-                        iconRes = R.drawable.info,
-                        title = item.label,
-                        body = item.label,
-                        maxLines = 1,
-                        showTitleBody = false,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (!item.shazamUrl.isNullOrBlank()) {
-                        RecognitionHistoryActionIcon(
-                            iconRes = R.drawable.link,
-                            contentDescription = stringResource(R.string.music_recognition_open_shazam),
-                            onClick = {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(item.shazamUrl)),
-                                )
-                            },
-                        )
-                    }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (!item.shazamUrl.isNullOrBlank()) {
                     RecognitionHistoryActionIcon(
-                        iconRes = R.drawable.search,
-                        contentDescription = stringResource(R.string.search),
-                        onClick = onSearch,
+                        iconRes = R.drawable.link,
+                        contentDescription = stringResource(R.string.music_recognition_open_shazam),
+                        onClick = {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(item.shazamUrl)),
+                            )
+                        },
                     )
                 }
+                RecognitionHistoryActionIcon(
+                    iconRes = R.drawable.search,
+                    contentDescription = stringResource(R.string.search),
+                    onClick = onSearch,
+                )
             }
         }
     }
@@ -718,7 +705,7 @@ private fun RecognitionHistoryActionIcon(
 ) {
     IconButton(onClick = onClick) {
         Surface(
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(36.dp),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.secondaryContainer,
         ) {
@@ -870,7 +857,6 @@ private data class RecognitionHistoryItem(
     val coverArtHqUrl: String?,
     val genre: String?,
     val releaseDate: String?,
-    val label: String?,
     val shazamUrl: String?,
     val isrc: String?,
     val recognizedAtEpochMillis: Long,
@@ -932,7 +918,6 @@ private fun RecognitionResult.toRecognitionHistoryItem(recognizedAtEpochMillis: 
         coverArtHqUrl = coverArtHqUrl,
         genre = genre,
         releaseDate = releaseDate,
-        label = label,
         shazamUrl = shazamUrl,
         isrc = isrc,
         recognizedAtEpochMillis = recognizedAtEpochMillis,
@@ -1030,6 +1015,16 @@ private fun buildMetadata(result: RecognitionResult): String {
             result.releaseDate?.takeIf { it.isNotBlank() },
         )
     return pieces.joinToString(" • ")
+}
+
+private fun buildHistoryMetadata(item: RecognitionHistoryItem): String {
+    val pieces =
+        listOfNotNull(
+            item.album?.takeIf { it.isNotBlank() },
+            item.genre?.takeIf { it.isNotBlank() },
+            item.releaseDate?.takeIf { it.isNotBlank() },
+        )
+    return pieces.joinToString(" - ")
 }
 
 private suspend fun recordMicPcm16Mono(
