@@ -669,8 +669,9 @@ object YouTube {
             browseId = "VL$playlistId",
             setLogin = true
         ).body<BrowseResponse>()
-        val allFirstColumnContents = response.contents?.twoColumnBrowseResultsRenderer?.tabs
-            ?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents.orEmpty()
+        val primarySection = response.contents?.twoColumnBrowseResultsRenderer?.tabs
+            ?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer
+        val allFirstColumnContents = primarySection?.contents.orEmpty()
         val base = allFirstColumnContents.firstOrNull {
             it.musicResponsiveHeaderRenderer != null || it.musicEditablePlaylistDetailHeaderRenderer != null
         }
@@ -698,16 +699,16 @@ object YouTube {
         val secondaryContents = secondarySection?.contents.orEmpty()
         val songContents = buildList {
             secondaryContents.forEach { content ->
-                addAll(content.musicPlaylistShelfRenderer?.contents.orEmpty())
-                addAll(content.musicShelfRenderer?.contents.orEmpty())
+                addAll(content.playlistSongContents())
+            }
+            allFirstColumnContents.forEach { content ->
+                addAll(content.playlistSongContents())
             }
         }
         val songsContinuation = secondaryContents.firstNotNullOfOrNull { content ->
-            content.musicPlaylistShelfRenderer?.let { shelf ->
-                shelf.contents.getContinuation() ?: shelf.continuations?.getContinuation()
-            } ?: content.musicShelfRenderer?.let { shelf ->
-                shelf.contents.orEmpty().getContinuation() ?: shelf.continuations?.getContinuation()
-            }
+            content.playlistSongContinuation()
+        } ?: allFirstColumnContents.firstNotNullOfOrNull { content ->
+            content.playlistSongContinuation()
         }
 
         PlaylistPage(
@@ -735,6 +736,7 @@ object YouTube {
             },
             songsContinuation = songsContinuation,
             continuation = secondarySection?.continuations?.getContinuation()
+                ?: primarySection?.continuations?.getContinuation()
         )
     }
 
@@ -1718,6 +1720,34 @@ object YouTube {
     private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
 }
 
+private fun SectionListRenderer.Content.playlistSongContents(): List<MusicShelfRenderer.Content> =
+    buildList {
+        addAll(musicPlaylistShelfRenderer?.contents.orEmpty())
+        addAll(musicShelfRenderer?.contents.orEmpty())
+        itemSectionRenderer?.contents.orEmpty().forEach { content ->
+            content.musicResponsiveListItemRenderer?.let { renderer ->
+                add(
+                    MusicShelfRenderer.Content(
+                        musicResponsiveListItemRenderer = renderer,
+                        continuationItemRenderer = null
+                    )
+                )
+            }
+            addAll(content.musicShelfRenderer?.contents.orEmpty())
+        }
+    }
+
+private fun SectionListRenderer.Content.playlistSongContinuation(): String? =
+    musicPlaylistShelfRenderer?.let { shelf ->
+        shelf.contents.getContinuation() ?: shelf.continuations?.getContinuation()
+    } ?: musicShelfRenderer?.let { shelf ->
+        shelf.contents.orEmpty().getContinuation() ?: shelf.continuations?.getContinuation()
+    } ?: itemSectionRenderer?.contents.orEmpty().firstNotNullOfOrNull { content ->
+        content.musicShelfRenderer?.let { shelf ->
+            shelf.contents.orEmpty().getContinuation() ?: shelf.continuations?.getContinuation()
+        }
+    }
+
 internal fun playlistContinuationPageFromResponse(response: BrowseResponse): PlaylistContinuationPage {
     val appendedContents = response.onResponseReceivedActions
         ?.firstOrNull()
@@ -1731,7 +1761,7 @@ internal fun playlistContinuationPageFromResponse(response: BrowseResponse): Pla
                 response.continuationContents?.sectionListContinuation?.contents
                     .orEmpty()
                     .forEach { sectionContent ->
-                        addAll(sectionContent.musicPlaylistShelfRenderer?.contents.orEmpty())
+                        addAll(sectionContent.playlistSongContents())
                     }
                 addAll(appendedContents)
             },
