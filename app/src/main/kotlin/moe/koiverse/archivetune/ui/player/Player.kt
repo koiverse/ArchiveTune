@@ -1723,7 +1723,8 @@ private fun V7PlayerBackdrop(
     val backdropFloor = remember(backdropPalette) {
         Brush.verticalGradient(
             colorStops = arrayOf(
-                0f to backdropPalette.bottom,
+                0f to Color.Transparent,
+                0.42f to backdropPalette.bottom.copy(alpha = 0.60f),
                 V7BackdropFloorBlackStartFraction to backdropPalette.bottom,
                 1f to Color.Black,
             )
@@ -1854,9 +1855,9 @@ private data class V7BackdropPalette(
     companion object {
         fun fromColors(colors: List<Color>, fallbackColor: Int): V7BackdropPalette {
             val fallback = Color(fallbackColor).v7BackdropTone(valueMin = 0.12f, valueMax = 0.42f)
-            val top = colors.getOrNull(0)?.v7BackdropTone(valueMin = 0.16f, valueMax = 0.62f) ?: fallback
-            val mid = colors.getOrNull(1)?.v7BackdropTone(valueMin = 0.14f, valueMax = 0.54f) ?: top
-            val bottom = colors.getOrNull(2)?.v7BackdropTone(valueMin = 0.10f, valueMax = 0.46f) ?: mid
+            val top = colors.getOrNull(0)?.v7BackdropTone(valueMin = 0.16f, valueMax = 0.88f) ?: fallback
+            val mid = colors.getOrNull(1)?.v7BackdropTone(valueMin = 0.14f, valueMax = 0.72f) ?: top
+            val bottom = colors.getOrNull(2)?.v7BackdropTone(valueMin = 0.10f, valueMax = 0.56f) ?: mid
             return V7BackdropPalette(
                 top = top,
                 mid = mid,
@@ -1875,7 +1876,7 @@ private fun Color.v7BackdropTone(
     hsv[1] = if (hsv[1] < 0.12f) {
         hsv[1].coerceAtMost(0.08f)
     } else {
-        (hsv[1] * 1.04f).coerceIn(0f, 1f)
+        (hsv[1] * 1.22f).coerceIn(0f, 1f)
     }
     hsv[2] = hsv[2].coerceIn(valueMin, valueMax)
     return Color(android.graphics.Color.HSVToColor(hsv))
