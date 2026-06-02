@@ -220,25 +220,5 @@ object PlayerColorExtractor {
         const val MAX_COLOR_COUNT = 32
         const val BITMAP_AREA = 8000
         const val IMAGE_SIZE = 200
-        
-        // Color enhancement factors
-        const val VIBRANT_SATURATION_THRESHOLD = 0.25f
-        const val VIBRANT_BRIGHTNESS_MIN = 0.2f
-        const val VIBRANT_BRIGHTNESS_MAX = 0.9f
-        
-        const val POPULATION_WEIGHT_MULTIPLIER = 2f
-        const val VIBRANCY_THRESHOLD_SATURATION = 0.3f
-        const val VIBRANCY_THRESHOLD_BRIGHTNESS = 0.3f
-        const val VIBRANCY_BONUS = 1.5f
-        
-        const val DEFAULT_SATURATION_FACTOR = 1.4f
-        const val VIBRANT_SATURATION_FACTOR = 1.3f
-        const val FALLBACK_SATURATION_FACTOR = 1.1f
-        
-        const val BRIGHTNESS_MULTIPLIER = 0.92f
-        const val BRIGHTNESS_MIN = 0.32f
-        const val BRIGHTNESS_MAX = 0.88f
-        
-        const val DARKER_VARIANT_FACTOR = 0.5f
     }
 }
