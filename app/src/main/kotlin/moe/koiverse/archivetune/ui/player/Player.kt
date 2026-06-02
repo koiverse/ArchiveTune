@@ -1110,7 +1110,7 @@ fun BottomSheetPlayer(
                             enrichedMetadata?.let { metadata ->
                                 V8PlayerControlsContent(
                                     mediaMetadata = metadata,
-                                    queueTitle = queueTitle,
+                                    queueTitle = "",
                                     playbackState = playbackState,
                                     isPlaying = isPlaying,
                                     isLoading = isLoading,
@@ -1364,7 +1364,7 @@ fun BottomSheetPlayer(
                             enrichedMetadata?.let { metadata ->
                                 V8PlayerControlsContent(
                                     mediaMetadata = metadata,
-                                    queueTitle = queueTitle,
+                                    queueTitle = "",
                                     playbackState = playbackState,
                                     isPlaying = isPlaying,
                                     isLoading = isLoading,
