@@ -196,11 +196,9 @@ fun AutoPlaylistScreen(
     var downloads by remember { mutableStateOf<Map<String, Download>>(emptyMap()) }
     var downloadState by remember { mutableStateOf<HeaderDownloadState>(HeaderDownloadState.None) }
 
-    LaunchedEffect(Unit) {
-        if (ytmSync) {
-            withContext(Dispatchers.IO) {
-                if (playlistType == PlaylistType.LIKE) viewModel.syncLikedSongs()
-            }
+    LaunchedEffect(ytmSync, playlistType) {
+        if (ytmSync && playlistType == PlaylistType.LIKE) {
+            viewModel.syncLikedSongs()
         }
     }
 
