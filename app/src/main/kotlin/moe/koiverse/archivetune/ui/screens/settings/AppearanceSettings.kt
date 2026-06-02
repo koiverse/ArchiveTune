@@ -177,7 +177,7 @@ fun AppearanceSettings(
         EnableHapticFeedbackKey,
         defaultValue = true,
     )
-    val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 36f)
+    val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 48f)
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
@@ -405,8 +405,8 @@ fun AppearanceSettings(
                         Slider(
                             value = blurRadius,
                             onValueChange = onBlurRadiusChange,
-                            valueRange = 0f..48f,
-                            steps = 47,
+                            valueRange = 0f..64f,
+                            steps = 63,
                             enabled = !disableBlur,
                             modifier = Modifier.fillMaxWidth()
                         )

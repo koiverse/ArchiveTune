@@ -221,7 +221,8 @@ private const val V7BackdropSharpArtworkScale = 1.04f
 private const val V7BackdropMaskStartFraction = 0.60f
 private const val V7BackdropMaskMidFraction = 0.65f
 private const val V7BackdropMaskSolidFraction = 0.71f
-private const val V7BackdropArtworkHeightFraction = 0.62f
+private const val V7BackdropArtworkHeightFraction =
+    (V7BackdropMaskStartFraction + V7BackdropMaskSolidFraction) / 2f
 private const val V7BackdropArtworkScrimStartFraction = 0.74f
 private const val V7BackdropArtworkScrimMidFraction = 0.88f
 private const val V8BackdropArtworkSizePx = 1_024
@@ -263,7 +264,7 @@ fun BottomSheetPlayer(
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
-    val (blurRadius) = rememberPreference(BlurRadiusKey, 36f)
+    val (blurRadius) = rememberPreference(BlurRadiusKey, 48f)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(moe.koiverse.archivetune.constants.SeekExtraSeconds, defaultValue = false)
     var keyboardSkipMultiplier by remember { mutableStateOf(1) }
