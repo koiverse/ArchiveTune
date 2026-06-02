@@ -1223,11 +1223,8 @@ object YouTube {
         HistoryPage(
             sections = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
                 ?.tabRenderer?.content?.sectionListRenderer?.contents
-                ?.mapNotNull {
-                    it.musicShelfRenderer?.let { musicShelfRenderer ->
-                        HistoryPage.fromMusicShelfRenderer(musicShelfRenderer)
-                    }
-                }
+                ?.flatMap(HistoryPage::fromSectionListContent)
+                .orEmpty()
         )
     }
 
