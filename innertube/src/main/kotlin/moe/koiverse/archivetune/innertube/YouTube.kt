@@ -567,7 +567,9 @@ object YouTube {
             sections = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
                 ?.tabRenderer?.content?.sectionListRenderer?.contents
                 ?.mapNotNull(ArtistPage::fromSectionListRendererContent)!!,
-            description = immersiveHeader?.description?.runs?.firstOrNull()?.text
+            description = immersiveHeader?.description?.runs
+                ?.joinToString(separator = "") { run -> run.text }
+                ?.takeIf { description -> description.isNotBlank() }
         )
     }
 
