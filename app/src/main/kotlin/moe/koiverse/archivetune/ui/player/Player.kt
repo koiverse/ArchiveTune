@@ -1724,9 +1724,9 @@ private fun V7PlayerBackdrop(
         Brush.verticalGradient(
             colorStops = arrayOf(
                 0f to Color.Transparent,
-                0.42f to backdropPalette.bottom.copy(alpha = 0.60f),
+                0.42f to backdropPalette.bottom.copy(alpha = 0.95f),
                 V7BackdropFloorBlackStartFraction to backdropPalette.bottom,
-                1f to Color.Black,
+                1f to backdropPalette.bottom,
             )
         )
     }

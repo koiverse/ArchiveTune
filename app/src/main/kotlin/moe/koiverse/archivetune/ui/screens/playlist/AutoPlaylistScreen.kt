@@ -28,15 +28,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,10 +52,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -74,7 +68,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -90,10 +83,9 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastSumBy
-import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.exoplayer.offline.Download
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
@@ -109,12 +101,10 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.DisableBlurKey
-import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.constants.AutoPlaylistSongSortDescendingKey
 import moe.koiverse.archivetune.constants.AutoPlaylistSongSortType
 import moe.koiverse.archivetune.constants.AutoPlaylistSongSortTypeKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
-import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.playback.queues.ListQueue
@@ -152,13 +142,12 @@ fun AutoPlaylistScreen(
     val haptic = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsStateWithLifecycle()
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
     val playlist =
         if (viewModel.playlist == "liked") stringResource(R.string.liked) else stringResource(R.string.offline)
 
-    val songs by viewModel.likedSongs.collectAsState(null)
-    val mutableSongs = remember { mutableStateListOf<Song>() }
+    val songs by viewModel.likedSongs.collectAsStateWithLifecycle()
 
     var isSearching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf(TextFieldValue()) }
@@ -171,12 +160,9 @@ fun AutoPlaylistScreen(
     }
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
-    val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
-    val likeLength = remember(songs) {
-        songs?.fastSumBy { it.song.duration } ?: 0
-    }
+    val likeLength = remember(songs) { songs.fastSumBy { it.song.duration } }
 
     val playlistId = viewModel.playlist
     val playlistType = when (playlistId) {
@@ -185,9 +171,7 @@ fun AutoPlaylistScreen(
         else -> PlaylistType.OTHER
     }
 
-    val wrappedSongs = remember(songs) {
-        songs?.map { item -> ItemWrapper(item) }?.toMutableStateList() ?: mutableStateListOf()
-    }
+    val wrappedSongs = remember(songs) { songs.map { item -> ItemWrapper(item) }.toMutableStateList() }
 
     var selection by remember { mutableStateOf(false) }
 
@@ -221,11 +205,7 @@ fun AutoPlaylistScreen(
     }
 
     LaunchedEffect(songs) {
-        mutableSongs.apply {
-            clear()
-            songs?.let { addAll(it) }
-        }
-        val songIds = songs?.map { it.song.id }.orEmpty()
+        val songIds = songs.map { it.song.id }
         if (songIds.isEmpty()) {
             downloads = emptyMap()
             downloadState = HeaderDownloadState.None
@@ -274,11 +254,12 @@ fun AutoPlaylistScreen(
     }
 
     val filteredSongs = remember(wrappedSongs, query) {
-        if (query.text.isEmpty()) wrappedSongs
+        val searchQuery = query.text.trim()
+        if (searchQuery.isEmpty()) wrappedSongs
         else wrappedSongs.filter { wrapper ->
             val song = wrapper.item
-            song.song.title.contains(query.text, true) ||
-                    song.artists.any { it.name.contains(query.text, true) }
+            song.song.title.contains(searchQuery, true) ||
+                    song.artists.any { it.name.contains(searchQuery, true) }
         }
     }
 
@@ -293,7 +274,7 @@ fun AutoPlaylistScreen(
 
     // Extract gradient colors from playlist cover (first song thumbnail)
     LaunchedEffect(songs) {
-        val thumbnailUrl = songs?.firstOrNull()?.song?.thumbnailUrl
+        val thumbnailUrl = songs.firstOrNull()?.song?.thumbnailUrl
         if (thumbnailUrl != null) {
             val request = ImageRequest.Builder(context)
                 .data(thumbnailUrl)
@@ -353,8 +334,7 @@ fun AutoPlaylistScreen(
 
     val headerItems by remember {
         derivedStateOf {
-            val currentSongs = songs
-            if (currentSongs != null && currentSongs.isNotEmpty() && !isSearching) 2 else 0
+            if (songs.isNotEmpty() && !isSearching) 2 else 0
         }
     }
 
@@ -478,9 +458,11 @@ fun AutoPlaylistScreen(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
-            if (songs != null) {
-                if (songs!!.isEmpty()) {
-                    item {
+                if (songs.isEmpty()) {
+                    item(
+                        key = "empty",
+                        contentType = CONTENT_TYPE_EMPTY,
+                    ) {
                         EmptyPlaceholder(
                             icon = R.drawable.music_note,
                             text = stringResource(R.string.playlist_is_empty),
@@ -489,7 +471,10 @@ fun AutoPlaylistScreen(
                 } else {
                     if (!isSearching) {
                         // Hero Header Item
-                        item(key = "header") {
+                        item(
+                            key = "header",
+                            contentType = CONTENT_TYPE_HEADER,
+                        ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -510,7 +495,7 @@ fun AutoPlaylistScreen(
                                         )
                                 ) {
                                     AsyncImage(
-                                        model = songs!!.firstOrNull()?.song?.thumbnailUrl,
+                                        model = songs.firstOrNull()?.song?.thumbnailUrl,
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
@@ -546,8 +531,8 @@ fun AutoPlaylistScreen(
                                         Text(
                                             text = pluralStringResource(
                                                 R.plurals.n_song,
-                                                songs!!.size,
-                                                songs!!.size
+                                                songs.size,
+                                                songs.size
                                             ),
                                             style = MaterialTheme.typography.labelMedium,
                                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -585,7 +570,7 @@ fun AutoPlaylistScreen(
                                                 else -> {
                                                     sendAddMissingDownloads(
                                                         context = context,
-                                                        songs = songs.orEmpty().map {
+                                                        songs = songs.map {
                                                             HeaderDownloadItem(
                                                                 id = it.song.id,
                                                                 title = it.song.title,
@@ -639,7 +624,7 @@ fun AutoPlaylistScreen(
                                             playerConnection.playQueue(
                                                 ListQueue(
                                                     title = playlist,
-                                                    items = songs!!.map { it.toMediaItem() },
+                                                    items = songs.map { it.toMediaItem() },
                                                 ),
                                             )
                                         },
@@ -667,7 +652,7 @@ fun AutoPlaylistScreen(
                                             playerConnection.playQueue(
                                                 ListQueue(
                                                     title = playlist,
-                                                    items = songs!!.shuffled().map { it.toMediaItem() },
+                                                    items = songs.shuffled().map { it.toMediaItem() },
                                                 ),
                                             )
                                         },
@@ -693,7 +678,7 @@ fun AutoPlaylistScreen(
                                         checked = false,
                                         onCheckedChange = {
                                             playerConnection.addToQueue(
-                                                items = songs!!.map { it.toMediaItem() },
+                                                items = songs.map { it.toMediaItem() },
                                             )
                                         },
                                         modifier = Modifier.size(48.dp),
@@ -719,7 +704,10 @@ fun AutoPlaylistScreen(
                     }
 
                     // Sort Header
-                    item(key = "sortHeader") {
+                    item(
+                        key = "sortHeader",
+                        contentType = CONTENT_TYPE_HEADER,
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(start = 16.dp),
@@ -746,7 +734,8 @@ fun AutoPlaylistScreen(
                     itemsIndexed(
                         items = filteredSongs,
                         key = { _, song -> song.item.id },
-                    ) { index, songWrapper ->
+                        contentType = { _, _ -> CONTENT_TYPE_SONG },
+                    ) { _, songWrapper ->
                         SongListItem(
                             song = songWrapper.item,
                             isActive = songWrapper.item.song.id == mediaMetadata?.id,
@@ -782,8 +771,8 @@ fun AutoPlaylistScreen(
                                                 playerConnection.playQueue(
                                                     ListQueue(
                                                         title = playlist,
-                                                        items = songs!!.map { it.toMediaItem() },
-                                                        startIndex = songs!!.indexOfFirst { it.id == songWrapper.item.id }
+                                                        items = songs.map { it.toMediaItem() },
+                                                        startIndex = songs.indexOfFirst { it.id == songWrapper.item.id }
                                                     ),
                                                 )
                                             }
@@ -947,6 +936,10 @@ fun AutoPlaylistScreen(
         )
     }
 }
+
+private const val CONTENT_TYPE_EMPTY = "empty"
+private const val CONTENT_TYPE_HEADER = "header"
+private const val CONTENT_TYPE_SONG = "song"
 
 enum class PlaylistType {
     LIKE, DOWNLOAD, OTHER
