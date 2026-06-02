@@ -326,6 +326,7 @@ class MusicService :
         PlayerStreamClient.ANDROID_VR
     )
     private val playbackUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
+    private val remotePlaybackTrackingCache = ConcurrentHashMap<String, RemotePlaybackTracking>()
     private val contentLengthCache = ConcurrentHashMap<String, Long>()
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
@@ -450,6 +451,32 @@ class MusicService :
         val eventId: Long?,
         val remoteRegistered: Boolean,
     )
+
+    private data class RemotePlaybackTracking(
+        val playbackUrl: String,
+        val watchtimeUrl: String,
+        val atrUrl: String?,
+    )
+
+    private fun PlayerResponse.PlaybackTracking.toRemotePlaybackTracking(): RemotePlaybackTracking? {
+        val playbackUrl = videostatsPlaybackUrl?.baseUrl
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: return null
+        val watchtimeUrl = videostatsWatchtimeUrl?.baseUrl
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: return null
+        val atrTrackingUrl = atrUrl?.baseUrl
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+
+        return RemotePlaybackTracking(
+            playbackUrl = playbackUrl,
+            watchtimeUrl = watchtimeUrl,
+            atrUrl = atrTrackingUrl,
+        )
+    }
 
     private fun isAppInForeground(): Boolean {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -4375,18 +4402,19 @@ class MusicService :
             return false
         }
 
-        suspend fun registerTrackingUrl(
-            playbackUrl: String,
-            watchtimeUrl: String?,
-        ): Boolean {
+        suspend fun registerTracking(tracking: RemotePlaybackTracking): Boolean {
             return retryWithoutPlaybackLoginContext {
                 YouTube.registerPlayback(
                     playlistId = null,
-                    playbackTracking = playbackUrl,
-                    watchtimeTracking = watchtimeUrl,
+                    playbackTracking = tracking.playbackUrl,
+                    watchtimeTracking = tracking.watchtimeUrl,
+                    atrTracking = tracking.atrUrl,
                     playedTimeMs = playedTimeMs,
                 )
             }.onFailure { throwable ->
+                if (throwable is CancellationException) {
+                    throw throwable
+                }
                 when (throwable) {
                     is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
                         promptLoginRecovery(mediaId, throwable.targetUrl)
@@ -4403,25 +4431,20 @@ class MusicService :
             }.isSuccess
         }
 
-        suspend fun registerPlaybackTracking(playbackTracking: PlayerResponse.PlaybackTracking): Boolean {
-            val playbackUrl = playbackTracking.videostatsPlaybackUrl?.baseUrl
-                ?.trim()
-                ?.takeIf { it.isNotEmpty() }
-                ?: return false
-            val watchtimeUrl = playbackTracking.videostatsWatchtimeUrl?.baseUrl
-                ?.trim()
-                ?.takeIf { it.isNotEmpty() }
-
-            return registerTrackingUrl(
-                playbackUrl = playbackUrl,
-                watchtimeUrl = watchtimeUrl,
-            )
+        remotePlaybackTrackingCache[mediaId]?.let { cachedTracking ->
+            if (registerTracking(cachedTracking)) {
+                return true
+            }
+            remotePlaybackTrackingCache.remove(mediaId, cachedTracking)
         }
 
         val remotePlaybackTracking =
             retryWithoutPlaybackLoginContext {
                 YTPlayerUtils.playerResponseForMetadata(mediaId)
             }.onFailure { throwable ->
+                if (throwable is CancellationException) {
+                    throw throwable
+                }
                 when (throwable) {
                     is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
                         promptLoginRecovery(mediaId, throwable.targetUrl)
@@ -4445,16 +4468,13 @@ class MusicService :
                 }
             }.getOrNull()?.playbackTracking
 
-        if (remotePlaybackTracking != null) {
-            return registerPlaybackTracking(remotePlaybackTracking)
+        val refreshedTracking = remotePlaybackTracking?.toRemotePlaybackTracking()
+        if (refreshedTracking != null) {
+            remotePlaybackTrackingCache[mediaId] = refreshedTracking
+            return registerTracking(refreshedTracking)
         }
 
-        val cachedPlaybackUrl =
-            database.format(mediaId).first()?.playbackUrl
-                ?.trim()
-                ?.takeIf { it.isNotEmpty() }
-
-        return cachedPlaybackUrl?.let { registerTrackingUrl(it, null) } ?: false
+        return false
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -5366,6 +5386,9 @@ private fun onMediaItemTransitionInternal() {
         val nonNullPlayback = requireNotNull(playbackData) {
             getString(R.string.error_unknown)
         }
+        nonNullPlayback.playbackTracking
+            ?.toRemotePlaybackTracking()
+            ?.let { remotePlaybackTrackingCache[mediaId] = it }
         val format = nonNullPlayback.format
         val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
         val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb

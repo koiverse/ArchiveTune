@@ -1300,7 +1300,7 @@ fun QueueCollapsedContentV7(
                         painter = painterResource(id = R.drawable.bluetooth),
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = textBackgroundColor
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(

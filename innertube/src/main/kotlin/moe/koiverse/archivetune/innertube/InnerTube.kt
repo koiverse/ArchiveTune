@@ -355,41 +355,48 @@ class InnerTube {
         playlistId: String?,
         poToken: String? = null,
         elapsedSeconds: Double? = null,
+        state: String? = null,
         client: YouTubeClient = YouTubeClient.WEB_REMIX,
         authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
         httpClient.get(url) {
             ytClient(client, true, authState = authState)
-            parameter("ver", "2")
-            parameter("c", client.clientName)
-            parameter("cpn", cpn)
+            parameterIfMissing(url, "ver", "2")
+            parameterIfMissing(url, "c", client.clientName)
+            parameterIfMissing(url, "cpn", cpn)
 
             if (!poToken.isNullOrBlank()) {
-                parameter("pot", poToken)
+                parameterIfMissing(url, "pot", poToken)
             }
 
             if (elapsedSeconds != null) {
                 val seconds = elapsedSeconds.coerceAtLeast(0.0)
-                if (!url.hasQueryParameter("st")) {
-                    parameter("st", "0")
-                }
-                if (!url.hasQueryParameter("et")) {
-                    parameter("et", seconds.toString())
-                }
-                if (!url.hasQueryParameter("rt")) {
-                    parameter("rt", seconds.toString())
-                }
-                if (!url.hasQueryParameter("rti")) {
-                    parameter("rti", seconds.toString())
-                }
+                val formattedSeconds = seconds.toStatsParameter()
+                parameterIfMissing(url, "st", "0")
+                parameterIfMissing(url, "et", formattedSeconds)
+                parameterIfMissing(url, "rt", formattedSeconds)
+                parameterIfMissing(url, "rti", formattedSeconds)
+            }
+
+            if (!state.isNullOrBlank()) {
+                parameterIfMissing(url, "state", state)
             }
 
             if (playlistId != null) {
-                parameter("list", playlistId)
-                parameter("referrer", "https://music.youtube.com/playlist?list=$playlistId")
+                parameterIfMissing(url, "list", playlistId)
+                parameterIfMissing(url, "referrer", "https://music.youtube.com/playlist?list=$playlistId")
             }
         }
     }
+
+    private fun HttpRequestBuilder.parameterIfMissing(url: String, name: String, value: String) {
+        if (!url.hasQueryParameter(name)) {
+            parameter(name, value)
+        }
+    }
+
+    private fun Double.toStatsParameter(): String =
+        String.format(Locale.US, "%.3f", this).trimEnd('0').trimEnd('.').ifBlank { "0" }
 
     private fun String.hasQueryParameter(name: String): Boolean =
         runCatching { toHttpUrl().queryParameter(name) != null }.getOrDefault(false)

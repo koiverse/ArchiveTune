@@ -1362,6 +1362,7 @@ object YouTube {
         playlistId: String? = null,
         playbackTracking: String,
         watchtimeTracking: String? = null,
+        atrTracking: String? = null,
         playedTimeMs: Long = 0L,
         authState: PlaybackAuthState = currentPlaybackAuthState(),
     ) = runCatching {
@@ -1397,6 +1398,22 @@ object YouTube {
                     cpn = cpn,
                     poToken = resolveGvsPoToken(authState),
                     elapsedSeconds = playedTimeMs.coerceAtLeast(0L) / 1000.0,
+                    state = "playing",
+                    authState = authState,
+                )
+            }
+
+        atrTracking
+            ?.takeIf { it.isNotBlank() }
+            ?.replace(
+                "https://s.youtube.com",
+                "https://music.youtube.com",
+            )?.let { atrUrl ->
+                innerTube.registerPlayback(
+                    url = atrUrl,
+                    playlistId = playlistId,
+                    cpn = cpn,
+                    poToken = resolveGvsPoToken(authState),
                     authState = authState,
                 )
             }
