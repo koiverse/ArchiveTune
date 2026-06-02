@@ -1254,6 +1254,10 @@ interface DatabaseDao {
     fun clearListenHistory()
 
     @Transaction
+    @Query("DELETE FROM event WHERE id IN (:eventIds)")
+    fun deleteEventsByIds(eventIds: List<Long>)
+
+    @Transaction
     @Query("SELECT * FROM search_history WHERE `query` LIKE :query || '%' ORDER BY id DESC")
     fun searchHistory(query: String = ""): Flow<List<SearchHistory>>
 

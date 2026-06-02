@@ -16,6 +16,7 @@ import moe.koiverse.archivetune.constants.HistorySource
 import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.db.MusicDatabase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -92,6 +93,21 @@ constructor(
             }.onFailure {
                 _remoteHistoryState.value = RemoteHistoryUiState.Error
                 reportException(it)
+            }
+        }
+    }
+
+    fun removeEventsFromHistory(eventIds: List<Long>) {
+        val uniqueEventIds = eventIds.distinct()
+        if (uniqueEventIds.isEmpty()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                database.deleteEventsByIds(uniqueEventIds)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Throwable) {
+                reportException(exception)
             }
         }
     }

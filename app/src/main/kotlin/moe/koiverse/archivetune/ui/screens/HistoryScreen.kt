@@ -65,7 +65,6 @@ import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -91,6 +90,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import moe.koiverse.archivetune.LocalAnimationsDisabled
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
@@ -136,12 +136,12 @@ fun HistoryScreen(
     val haptic = LocalHapticFeedback.current
     val animationsDisabled = LocalAnimationsDisabled.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsStateWithLifecycle()
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
 
-    val historySource by viewModel.historySource.collectAsState()
-    val events by viewModel.events.collectAsState()
-    val remoteHistoryState by viewModel.remoteHistoryState.collectAsState()
+    val historySource by viewModel.historySource.collectAsStateWithLifecycle()
+    val events by viewModel.events.collectAsStateWithLifecycle()
+    val remoteHistoryState by viewModel.remoteHistoryState.collectAsStateWithLifecycle()
 
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) {
@@ -181,6 +181,9 @@ fun HistoryScreen(
     }
     val selectedSongs = remember(localVisibleEvents, selectedEventIdSet) {
         localVisibleEvents.filter { it.event.id in selectedEventIdSet }
+    }
+    val selectedHistoryEventIds = remember(selectedSongs) {
+        selectedSongs.map { it.event.id }
     }
     val selectionCount = selectedSongs.size
 
@@ -568,6 +571,9 @@ fun HistoryScreen(
                             onDismiss = menuState::dismiss,
                             clearAction = clearSelection,
                             currentItems = emptyList(),
+                            onRemoveFromHistory = {
+                                viewModel.removeEventsFromHistory(selectedHistoryEventIds)
+                            },
                         )
                     }
                 },
@@ -642,6 +648,7 @@ private fun LocalHistoryFeed(
                 itemsIndexed(
                     items = songsForDate,
                     key = { _, event -> event.event.id },
+                    contentType = { _, _ -> "local_history_song" },
                 ) { index, event ->
                     SongListItem(
                         song = event.song,
@@ -777,6 +784,7 @@ private fun RemoteHistoryFeed(
                         items(
                             items = section.songs,
                             key = { song -> "${section.title}_${song.id}" },
+                            contentType = { "remote_history_song" },
                         ) { song ->
                             YouTubeListItem(
                                 item = song,
