@@ -219,12 +219,12 @@ private const val V7BackdropMaxArtworkSizePx = 2_048
 private const val V7BackdropBlurDp = 44
 private const val V7BackdropBlurScale = 1.18f
 private const val V7BackdropArtworkOverscanFactor = 1.15f
+private const val V7CanvasZoomScale = 1.08f
 private const val V7SharpStagePortraitFraction = 0.62f
 private const val V7SharpStageLandscapeFraction = 0.58f
 private const val V7BackdropOverlapDp = 72
 private const val V7SharpStageBottomScrimStartFraction = 0.68f
-private const val V7BackdropFloorMidFraction = 0.34f
-private const val V7BackdropFloorBottomFraction = 0.78f
+private const val V7BackdropFloorBlackStartFraction = 0.88f
 private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1716,16 +1716,15 @@ private fun V7PlayerBackdrop(
             colorStops = arrayOf(
                 0f to Color.Transparent,
                 V7SharpStageBottomScrimStartFraction to Color.Transparent,
-                1f to backdropPalette.mid,
+                1f to backdropPalette.bottom,
             )
         )
     }
     val backdropFloor = remember(backdropPalette) {
         Brush.verticalGradient(
             colorStops = arrayOf(
-                0f to backdropPalette.mid,
-                V7BackdropFloorMidFraction to backdropPalette.bottom,
-                V7BackdropFloorBottomFraction to backdropPalette.bottom,
+                0f to backdropPalette.bottom,
+                V7BackdropFloorBlackStartFraction to backdropPalette.bottom,
                 1f to Color.Black,
             )
         )
@@ -1744,6 +1743,14 @@ private fun V7PlayerBackdrop(
                 scaleX = V7BackdropBlurScale
                 scaleY = V7BackdropBlurScale
                 alpha = if (disableBlur) 0.20f else 0.58f
+            }
+    }
+    val canvasStageModifier = remember {
+        Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = V7CanvasZoomScale
+                scaleY = V7CanvasZoomScale
             }
     }
 
@@ -1811,7 +1818,7 @@ private fun V7PlayerBackdrop(
                     AsyncImage(
                         model = sharpArtworkModel,
                         contentDescription = null,
-                        contentScale = if (hasCanvas) ContentScale.Crop else ContentScale.Fit,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -1822,7 +1829,7 @@ private fun V7PlayerBackdrop(
                         fallbackUrl = backdrop.canvasFallbackUrl,
                         isPlaying = isPlaying,
                         resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = canvasStageModifier,
                     )
                 }
             }
