@@ -24,10 +24,16 @@ import moe.koiverse.archivetune.innertube.models.filterExplicit
 import moe.koiverse.archivetune.innertube.models.getItems
 import moe.koiverse.archivetune.innertube.models.oddElements
 
+enum class ArtistSectionLayout {
+    LIST,
+    GRID,
+}
+
 data class ArtistSection(
     val title: String,
     val items: List<YTItem>,
     val moreEndpoint: BrowseEndpoint?,
+    val layout: ArtistSectionLayout,
 )
 
 data class ArtistPage(
@@ -50,7 +56,8 @@ data class ArtistPage(
                 items = renderer.contents?.getItems()?.mapNotNull {
                     fromMusicResponsiveListItemRenderer(it)
                 }?.ifEmpty { null } ?: return null,
-                moreEndpoint = renderer.title?.runs?.firstOrNull()?.navigationEndpoint?.browseEndpoint
+                moreEndpoint = renderer.title?.runs?.firstOrNull()?.navigationEndpoint?.browseEndpoint,
+                layout = ArtistSectionLayout.LIST,
             )
         }
 
@@ -62,7 +69,8 @@ data class ArtistPage(
                         fromMusicTwoRowItemRenderer(renderer)
                     }
                 }.ifEmpty { null } ?: return null,
-                moreEndpoint = renderer.header.musicCarouselShelfBasicHeaderRenderer.moreContentButton?.buttonRenderer?.navigationEndpoint?.browseEndpoint
+                moreEndpoint = renderer.header.musicCarouselShelfBasicHeaderRenderer.moreContentButton?.buttonRenderer?.navigationEndpoint?.browseEndpoint,
+                layout = ArtistSectionLayout.GRID,
             )
         }
 

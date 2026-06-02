@@ -49,6 +49,7 @@ import moe.koiverse.archivetune.innertube.models.response.SearchResponse
 import moe.koiverse.archivetune.innertube.pages.AlbumPage
 import moe.koiverse.archivetune.innertube.pages.ArtistItemsContinuationPage
 import moe.koiverse.archivetune.innertube.pages.ArtistItemsPage
+import moe.koiverse.archivetune.innertube.pages.ArtistItemsPageLayout
 import moe.koiverse.archivetune.innertube.pages.ArtistPage
 import moe.koiverse.archivetune.innertube.pages.ChartsPage
 import moe.koiverse.archivetune.innertube.pages.BrowseResult
@@ -585,7 +586,8 @@ object YouTube {
                         ArtistItemsPage.fromMusicTwoRowItemRenderer(renderer)
                     }
                 },
-                continuation = gridRenderer.continuations?.getContinuation()
+                continuation = gridRenderer.continuations?.getContinuation(),
+                layout = ArtistItemsPageLayout.GRID,
             )
         } else {
             val musicPlaylistShelfRenderer = sectionContents.firstNotNullOfOrNull { it.findMusicPlaylistShelfRenderer() }
@@ -600,7 +602,8 @@ object YouTube {
                     },
                 continuation = shelfContents.getContinuation()
                     ?: musicPlaylistShelfRenderer?.continuations?.getContinuation()
-                    ?: musicShelfRenderer?.continuations?.getContinuation()
+                    ?: musicShelfRenderer?.continuations?.getContinuation(),
+                layout = ArtistItemsPageLayout.LIST,
             )
         }
     }

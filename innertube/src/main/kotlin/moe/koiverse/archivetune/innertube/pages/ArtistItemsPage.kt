@@ -19,10 +19,16 @@ import moe.koiverse.archivetune.innertube.models.oddElements
 import moe.koiverse.archivetune.innertube.models.splitBySeparator
 import moe.koiverse.archivetune.innertube.utils.parseTime
 
+enum class ArtistItemsPageLayout {
+    LIST,
+    GRID,
+}
+
 data class ArtistItemsPage(
     val title: String,
     val items: List<YTItem>,
     val continuation: String?,
+    val layout: ArtistItemsPageLayout,
 ) {
     companion object {
         fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): SongItem? {

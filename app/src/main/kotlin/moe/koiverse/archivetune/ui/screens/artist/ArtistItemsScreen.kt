@@ -21,13 +21,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
@@ -37,19 +35,27 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
+import moe.koiverse.archivetune.LocalPlayerConnection
+import moe.koiverse.archivetune.R
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_ALBUM
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_ARTIST
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_LIST
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_PLAYLIST
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_SONG
+import moe.koiverse.archivetune.constants.GridThumbnailHeight
+import moe.koiverse.archivetune.extensions.toMediaItem
+import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.innertube.models.AlbumItem
 import moe.koiverse.archivetune.innertube.models.ArtistItem
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
-import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
-import moe.koiverse.archivetune.LocalPlayerConnection
-import moe.koiverse.archivetune.R
-import moe.koiverse.archivetune.constants.GridThumbnailHeight
-import moe.koiverse.archivetune.extensions.togglePlayPause
+import moe.koiverse.archivetune.innertube.models.YTItem
+import moe.koiverse.archivetune.innertube.pages.ArtistItemsPageLayout
 import moe.koiverse.archivetune.models.toMediaMetadata
-import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
 import moe.koiverse.archivetune.ui.component.IconButton
@@ -76,15 +82,16 @@ fun ArtistItemsScreen(
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsStateWithLifecycle()
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
 
     val lazyListState = rememberLazyListState()
     val lazyGridState = rememberLazyGridState()
     val coroutineScope = rememberCoroutineScope()
 
-    val title by viewModel.title.collectAsState()
-    val itemsPage by viewModel.itemsPage.collectAsState()
+    val title by viewModel.title.collectAsStateWithLifecycle()
+    val itemsPage by viewModel.itemsPage.collectAsStateWithLifecycle()
+    val itemsLayout by viewModel.itemsLayout.collectAsStateWithLifecycle()
 
     LaunchedEffect(lazyListState) {
         snapshotFlow {
@@ -112,14 +119,15 @@ fun ArtistItemsScreen(
                 ListItemPlaceHolder()
             }
         }
-    } else if (itemsPage?.items?.firstOrNull() is SongItem) {
+    } else if (itemsLayout == ArtistItemsPageLayout.LIST && itemsPage?.items?.firstOrNull() is SongItem) {
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
             items(
                 items = itemsPage?.items.orEmpty().distinctBy { it.id },
-                key = { it.id },
+                key = { "artist_items_${it.contentKey}" },
+                contentType = { it.contentType },
             ) { item ->
                 YouTubeListItem(
                     item = item,
@@ -164,6 +172,7 @@ fun ArtistItemsScreen(
                                     }
                                 }
                             },
+                            onLongClick = {},
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.more_vert),
@@ -218,7 +227,8 @@ fun ArtistItemsScreen(
         ) {
             items(
                 items = itemsPage?.items.orEmpty().distinctBy { it.id },
-                key = { it.id }
+                key = { "artist_items_${it.contentKey}" },
+                contentType = { it.contentType },
             ) { item ->
                 YouTubeGridItem(
                     item = item,
@@ -315,6 +325,7 @@ fun ArtistItemsScreen(
                             ),
                         )
                     },
+                    onLongClick = {},
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.play),
@@ -330,6 +341,7 @@ fun ArtistItemsScreen(
                             ),
                         )
                     },
+                    onLongClick = {},
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.shuffle),
@@ -340,3 +352,24 @@ fun ArtistItemsScreen(
         },
     )
 }
+
+private val YTItem.contentKey: String
+    get() {
+        val type = when (this) {
+            is SongItem -> "song"
+            is AlbumItem -> "album"
+            is ArtistItem -> "artist"
+            is PlaylistItem -> "playlist"
+            else -> "item"
+        }
+        return "${type}_$id"
+    }
+
+private val YTItem.contentType: Int
+    get() = when (this) {
+        is SongItem -> CONTENT_TYPE_SONG
+        is AlbumItem -> CONTENT_TYPE_ALBUM
+        is ArtistItem -> CONTENT_TYPE_ARTIST
+        is PlaylistItem -> CONTENT_TYPE_PLAYLIST
+        else -> CONTENT_TYPE_LIST
+    }

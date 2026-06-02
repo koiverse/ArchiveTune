@@ -138,6 +138,7 @@ import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.innertube.pages.ArtistPage
+import moe.koiverse.archivetune.innertube.pages.ArtistSectionLayout
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
@@ -909,7 +910,7 @@ fun ArtistScreen(
                             }
                         }
 
-                        if (section.items.all { it is SongItem }) {
+                        if (section.layout == ArtistSectionLayout.LIST && section.items.all { it is SongItem }) {
                             items(
                                 items = section.items.distinctBy { it.id },
                                 key = { "youtube_song_${it.id}" },

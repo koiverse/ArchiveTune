@@ -14,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.innertube.YouTube
 import moe.koiverse.archivetune.innertube.models.BrowseEndpoint
 import moe.koiverse.archivetune.innertube.models.filterExplicit
+import moe.koiverse.archivetune.innertube.pages.ArtistItemsPageLayout
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.models.ItemsPage
 import moe.koiverse.archivetune.utils.dataStore
@@ -39,6 +40,7 @@ constructor(
 
     val title = MutableStateFlow("")
     val itemsPage = MutableStateFlow<ItemsPage?>(null)
+    val itemsLayout = MutableStateFlow(ArtistItemsPageLayout.LIST)
 
     init {
         viewModelScope.launch {
@@ -50,6 +52,7 @@ constructor(
                     ),
                 ).onSuccess { artistItemsPage ->
                     title.value = artistItemsPage.title
+                    itemsLayout.value = artistItemsPage.layout
                     itemsPage.value =
                         ItemsPage(
                             items = artistItemsPage.items
