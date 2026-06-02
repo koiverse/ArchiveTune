@@ -54,12 +54,6 @@ fun SpotifyLibraryPlaylistListItem(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp),
         )
-        IconButton(onClick = openPlaylist) {
-            Icon(
-                painter = painterResource(R.drawable.more_vert),
-                contentDescription = null,
-            )
-        }
     }
 
     LibraryPlaylistFeatureCard(

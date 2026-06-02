@@ -55,6 +55,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -98,6 +99,7 @@ import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.spotify.SpotifyMapper
+import moe.koiverse.archivetune.spotify.SpotifyPlaybackResolver
 import moe.koiverse.archivetune.spotify.SpotifyPlaylistQueue
 import moe.koiverse.archivetune.spotify.SpotifyPlaylistViewModel
 import moe.koiverse.archivetune.spotify.models.SpotifyTrack
@@ -111,6 +113,7 @@ import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.resize
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,6 +126,7 @@ fun SpotifyPlaylistScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val playerConnection = LocalPlayerConnection.current
+    val coroutineScope = rememberCoroutineScope()
     val isPlaying by playerConnection?.isPlaying?.collectAsStateWithLifecycle()
         ?: remember { mutableStateOf(false) }
     val mediaMetadata by playerConnection?.mediaMetadata?.collectAsStateWithLifecycle()
@@ -137,6 +141,7 @@ fun SpotifyPlaylistScreen(
     }
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
+    var resolvingTrackId by remember { mutableStateOf<String?>(null) }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusRequester = remember { FocusRequester() }
 
@@ -239,14 +244,27 @@ fun SpotifyPlaylistScreen(
         val currentPlaylist = playlist ?: return
         val queueTracks = if (shuffled) tracks.shuffled() else tracks
         if (queueTracks.isEmpty()) return
-        playerConnection?.playQueue(
-            SpotifyPlaylistQueue(
-                playlistId = currentPlaylist.id,
-                title = currentPlaylist.name,
-                initialTracks = queueTracks,
-                startIndex = startIndex,
-            ),
-        )
+        val boundedStartIndex = startIndex.coerceIn(queueTracks.indices)
+        val preloadTrack = queueTracks[boundedStartIndex]
+        if (resolvingTrackId != null) return
+
+        coroutineScope.launch {
+            resolvingTrackId = preloadTrack.id
+            try {
+                val preloadItem = SpotifyPlaybackResolver.resolveToMetadata(preloadTrack)
+                playerConnection?.playQueue(
+                    SpotifyPlaylistQueue(
+                        playlistId = currentPlaylist.id,
+                        title = currentPlaylist.name,
+                        initialTracks = queueTracks,
+                        startIndex = boundedStartIndex,
+                        preloadItem = preloadItem,
+                    ),
+                )
+            } finally {
+                resolvingTrackId = null
+            }
+        }
     }
 
     ExpressivePullToRefreshBox(
@@ -621,14 +639,20 @@ fun SpotifyPlaylistScreen(
                 val trackIsActive = remember(track, mediaMetadata) {
                     track.isResolvedAs(mediaMetadata)
                 }
+                val trackIsResolving = resolvingTrackId == track.id
 
                 SpotifyTrackListItem(
                     track = track,
-                    isActive = trackIsActive,
-                    isPlaying = isPlaying,
+                    isActive = trackIsActive || trackIsResolving,
+                    isPlaying = isPlaying && !trackIsResolving,
+                    trailingContent = {
+                        if (trackIsResolving) {
+                            CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
+                        .clickable(enabled = resolvingTrackId == null || trackIsActive) {
                             if (trackIsActive) {
                                 playerConnection?.player?.togglePlayPause()
                             } else {

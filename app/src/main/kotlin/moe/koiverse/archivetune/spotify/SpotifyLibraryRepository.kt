@@ -22,6 +22,7 @@ import moe.koiverse.archivetune.constants.SpotifyAccessTokenExpiresAtKey
 import moe.koiverse.archivetune.constants.SpotifyAccessTokenKey
 import moe.koiverse.archivetune.constants.SpotifyAccountAvatarUrlKey
 import moe.koiverse.archivetune.constants.SpotifyAccountNameKey
+import moe.koiverse.archivetune.constants.SpotifyLibraryPlaylistsCacheKey
 import moe.koiverse.archivetune.constants.SpotifySpDcKey
 import moe.koiverse.archivetune.constants.SpotifySpKeyKey
 import moe.koiverse.archivetune.spotify.models.SpotifyPlaylist
@@ -30,6 +31,8 @@ import moe.koiverse.archivetune.spotify.models.SpotifyTrack
 import moe.koiverse.archivetune.utils.clearWebAuthSession
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.reportException
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -45,6 +48,27 @@ class SpotifyLibraryRepository @Inject constructor(
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    suspend fun restoreCachedPlaylists() {
+        withContext(Dispatchers.IO) {
+            if (_playlists.value.isNotEmpty()) return@withContext
+            val cached = context.dataStore.data.first()[SpotifyLibraryPlaylistsCacheKey].orEmpty()
+            if (cached.isBlank()) return@withContext
+            runCatching {
+                spotifyCacheJson.decodeFromString(
+                    ListSerializer(SpotifyPlaylist.serializer()),
+                    cached,
+                )
+            }.onSuccess { playlists ->
+                _playlists.value = playlists
+            }.onFailure { error ->
+                reportException(error)
+                context.dataStore.edit { prefs ->
+                    prefs.remove(SpotifyLibraryPlaylistsCacheKey)
+                }
+            }
+        }
+    }
 
     suspend fun restoreSession(): SpotifyAccountSession =
         withContext(Dispatchers.IO) {
@@ -91,12 +115,15 @@ class SpotifyLibraryRepository @Inject constructor(
         withContext(Dispatchers.IO) {
             context.dataStore.edit { prefs ->
                 prefs[SpotifySpDcKey] = spDc
+                prefs.remove(SpotifyLibraryPlaylistsCacheKey)
                 if (spKey.isNotBlank()) {
                     prefs[SpotifySpKeyKey] = spKey
                 } else {
                     prefs.remove(SpotifySpKeyKey)
                 }
             }
+            _playlists.value = emptyList()
+            _errorMessage.value = null
             refreshAccessToken(spDc = spDc, spKey = spKey).getOrThrow()
             val prefs = context.dataStore.data.first()
             SpotifyAccountSession(
@@ -115,6 +142,7 @@ class SpotifyLibraryRepository @Inject constructor(
                 prefs.remove(SpotifyAccessTokenExpiresAtKey)
                 prefs.remove(SpotifyAccountNameKey)
                 prefs.remove(SpotifyAccountAvatarUrlKey)
+                prefs.remove(SpotifyLibraryPlaylistsCacheKey)
             }
             _playlists.value = emptyList()
             _errorMessage.value = null
@@ -133,6 +161,12 @@ class SpotifyLibraryRepository @Inject constructor(
                 refreshProfile()
                 val loaded = fetchAllPlaylists()
                 _playlists.value = loaded
+                context.dataStore.edit { prefs ->
+                    prefs[SpotifyLibraryPlaylistsCacheKey] = spotifyCacheJson.encodeToString(
+                        ListSerializer(SpotifyPlaylist.serializer()),
+                        loaded,
+                    )
+                }
                 loaded
             } catch (error: CancellationException) {
                 throw error
@@ -277,6 +311,11 @@ class SpotifyLibraryRepository @Inject constructor(
 
     companion object {
         private const val TOKEN_EXPIRY_GRACE_MS = 60_000L
+        private val spotifyCacheJson =
+            Json {
+                ignoreUnknownKeys = true
+                encodeDefaults = true
+            }
     }
 }
 

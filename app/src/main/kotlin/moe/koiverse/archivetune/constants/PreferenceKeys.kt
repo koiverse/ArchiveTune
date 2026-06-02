@@ -680,6 +680,7 @@ val SpotifyAccessTokenExpiresAtKey = longPreferencesKey("spotify_access_token_ex
 val SpotifyAccountNameKey = stringPreferencesKey("spotify_account_name")
 val SpotifyAccountAvatarUrlKey = stringPreferencesKey("spotify_account_avatar_url")
 val ShowSpotifyPlaylistsKey = booleanPreferencesKey("show_spotify_playlists")
+val SpotifyLibraryPlaylistsCacheKey = stringPreferencesKey("spotify_library_playlists_cache")
 
 val WebClientPoTokenEnabledKey = booleanPreferencesKey("webClientPoTokenEnabled")
 val PoTokenGvsKey = stringPreferencesKey("poTokenGvs")

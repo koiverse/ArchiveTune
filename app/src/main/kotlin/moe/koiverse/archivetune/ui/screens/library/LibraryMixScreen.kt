@@ -397,12 +397,6 @@ fun LibraryMixScreen(
         if (!canEnterReorderMode) reorderEnabled = false
     }
 
-    LaunchedEffect(showSpotifyPlaylists) {
-        if (showSpotifyPlaylists && spotifyPlaylists.isEmpty()) {
-            spotifyLibraryViewModel.refreshPlaylists()
-        }
-    }
-
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop = backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
 
