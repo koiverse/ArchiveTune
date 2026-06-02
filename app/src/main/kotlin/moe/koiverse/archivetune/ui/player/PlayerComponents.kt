@@ -135,6 +135,8 @@ import androidx.compose.ui.platform.LocalView
 import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 import moe.koiverse.archivetune.utils.rememberPreference
 
+private const val PlayerBackgroundMaxBlurRadius = 64f
+
 @Composable
 fun PlayerTitleSection(
     mediaMetadata: MediaMetadata,
@@ -3559,7 +3561,7 @@ fun PlayerBackground(
     playerCustomContrast: Float,
     playerCustomBrightness: Float
 ) {
-    val effectiveBlurRadius = blurRadius.coerceIn(0f, 48f)
+    val effectiveBlurRadius = blurRadius.coerceIn(0f, PlayerBackgroundMaxBlurRadius)
     val shouldApplyBlur = !disableBlur && effectiveBlurRadius > 0f
     Box(modifier = Modifier.fillMaxSize()) {
         when (playerBackground) {
