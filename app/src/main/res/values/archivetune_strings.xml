@@ -14,6 +14,13 @@
     <string name="music_recognition_permission_desc">Allow microphone access to recognize nearby music.</string>
     <string name="music_recognition_permission_action">Allow</string>
     <string name="music_recognition_error">Something went wrong</string>
+    <string name="music_recognition_history">Recognition history</string>
+    <string name="music_recognition_history_search">Search recognized songs</string>
+    <string name="music_recognition_history_empty_title">No recognized songs yet</string>
+    <string name="music_recognition_history_empty_body">Matched songs will appear here after recognition succeeds.</string>
+    <string name="music_recognition_history_no_results_title">No history matches</string>
+    <string name="music_recognition_history_no_results_body">Try another song, artist, album, or code.</string>
+    <string name="music_recognition_history_recognized_at">Recognized %1$s</string>
     <string name="local_history">Local</string>
     <string name="history_local_summary">Played on this device</string>
     <string name="history_remote_summary">Synced from YouTube Music</string>

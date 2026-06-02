@@ -10,6 +10,7 @@
 package moe.koiverse.archivetune.ui.screens.musicrecognition
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
@@ -36,6 +37,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +47,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,6 +57,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -66,25 +71,33 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,6 +121,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.window.core.layout.WindowSizeClass
@@ -116,9 +131,14 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.musicrecognition.MusicRecognitionAutoStartRequestKey
 import moe.koiverse.archivetune.musicrecognition.MusicRecognitionRoute
@@ -126,6 +146,9 @@ import moe.koiverse.archivetune.shazamkit.Shazam
 import moe.koiverse.archivetune.shazamkit.ShazamSignatureGenerator
 import moe.koiverse.archivetune.shazamkit.models.RecognitionResult
 import moe.koiverse.archivetune.ui.utils.appBarScrollBehavior
+import moe.koiverse.archivetune.utils.dataStore
+import java.text.DateFormat
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,6 +161,14 @@ fun MusicRecognitionScreen(
 
     var state by remember { mutableStateOf<MusicRecognitionState>(MusicRecognitionState.Ready) }
     var recognitionJob by remember { mutableStateOf<Job?>(null) }
+    var showHistorySheet by rememberSaveable { mutableStateOf(false) }
+    val historySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val historyItems by remember(context) {
+        context.dataStore.data.map { preferences ->
+            decodeRecognitionHistory(preferences[MusicRecognitionHistoryJsonKey])
+        }
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
+    val historyCollection = remember(historyItems) { RecognitionHistoryCollection(historyItems) }
     val backStackEntry = remember(navController) { navController.getBackStackEntry(MusicRecognitionRoute) }
     val autoStartRequestId by backStackEntry.savedStateHandle
         .getStateFlow(MusicRecognitionAutoStartRequestKey, 0L)
@@ -152,15 +183,23 @@ fun MusicRecognitionScreen(
             )
         }
 
+    fun handleRecognitionState(nextState: MusicRecognitionState) {
+        state = nextState
+        if (nextState is MusicRecognitionState.Success) {
+            scope.launch(Dispatchers.IO) {
+                insertRecognitionHistory(context, nextState.result)
+            }
+        }
+    }
+
     val requestPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) {
                 launchRecognition(
                     scope = scope,
                     strings = strings,
-                    onState = { state = it },
+                    onState = ::handleRecognitionState,
                     onHaptic = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
-                    onSearch = { query -> navController.navigate("search/${Uri.encode(query)}") },
                     onReplaceJob = {
                         recognitionJob?.cancel()
                         recognitionJob = it
@@ -185,9 +224,8 @@ fun MusicRecognitionScreen(
             launchRecognition(
                 scope = scope,
                 strings = strings,
-                onState = { state = it },
+                onState = ::handleRecognitionState,
                 onHaptic = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
-                onSearch = { query -> navController.navigate("search/${Uri.encode(query)}") },
                 onReplaceJob = {
                     recognitionJob?.cancel()
                     recognitionJob = it
@@ -239,6 +277,22 @@ fun MusicRecognitionScreen(
                         containerColor = Color.Transparent,
                         scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                     ),
+                actions = {
+                    IconButton(onClick = { showHistorySheet = true }) {
+                        Surface(
+                            modifier = Modifier.size(40.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(R.drawable.history),
+                                    contentDescription = stringResource(R.string.music_recognition_history),
+                                )
+                            }
+                        }
+                    }
+                },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -331,6 +385,350 @@ fun MusicRecognitionScreen(
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
+            }
+        }
+    }
+
+    if (showHistorySheet) {
+        RecognitionHistoryBottomSheet(
+            history = historyCollection,
+            sheetState = historySheetState,
+            isWide = useWideContent,
+            onDismiss = { showHistorySheet = false },
+            onSearch = { query ->
+                showHistorySheet = false
+                navController.navigate("search/${Uri.encode(query)}")
+            },
+        )
+    }
+}
+
+@Composable
+private fun RecognitionHistoryBottomSheet(
+    history: RecognitionHistoryCollection,
+    sheetState: SheetState,
+    isWide: Boolean,
+    onDismiss: () -> Unit,
+    onSearch: (String) -> Unit,
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val normalizedQuery = remember(query) { query.trim() }
+    val filteredItems by remember(history, normalizedQuery) {
+        derivedStateOf { history.items.filter { it.matches(normalizedQuery) } }
+    }
+
+    LaunchedEffect(history) {
+        if (history.items.isEmpty()) query = ""
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = Modifier.fillMaxSize(),
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp, bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(R.string.music_recognition_history),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        painter = painterResource(R.drawable.close),
+                        contentDescription = stringResource(R.string.close),
+                    )
+                }
+            }
+
+            SearchBar(
+                inputField = {
+                    SearchBarDefaults.InputField(
+                        query = query,
+                        onQueryChange = { query = it },
+                        onSearch = {},
+                        expanded = false,
+                        onExpandedChange = {},
+                        placeholder = { Text(stringResource(R.string.music_recognition_history_search)) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.search),
+                                contentDescription = null,
+                            )
+                        },
+                        trailingIcon =
+                            if (query.isNotBlank()) {
+                                {
+                                    IconButton(onClick = { query = "" }) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.close),
+                                            contentDescription = stringResource(R.string.clear),
+                                        )
+                                    }
+                                }
+                            } else {
+                                null
+                            },
+                    )
+                },
+                expanded = false,
+                onExpandedChange = {},
+                windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 18.dp),
+            ) {}
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                when {
+                    history.items.isEmpty() -> {
+                        item(key = "empty_history", contentType = "empty_history") {
+                            RecognitionHistoryEmptyState(
+                                iconRes = R.drawable.history,
+                                title = stringResource(R.string.music_recognition_history_empty_title),
+                                body = stringResource(R.string.music_recognition_history_empty_body),
+                            )
+                        }
+                    }
+                    filteredItems.isEmpty() -> {
+                        item(key = "empty_search", contentType = "empty_search") {
+                            RecognitionHistoryEmptyState(
+                                iconRes = R.drawable.search_off,
+                                title = stringResource(R.string.music_recognition_history_no_results_title),
+                                body = stringResource(R.string.music_recognition_history_no_results_body),
+                            )
+                        }
+                    }
+                    else -> {
+                        items(
+                            items = filteredItems,
+                            key = { it.stableKey },
+                            contentType = { "recognition_history_item" },
+                        ) { item ->
+                            RecognitionHistoryCard(
+                                item = item,
+                                isWide = isWide,
+                                onSearch = { onSearch(item.searchQuery) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecognitionHistoryEmptyState(
+    iconRes: Int,
+    title: String,
+    body: String,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 2.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Surface(
+                modifier = Modifier.size(64.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(30.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecognitionHistoryCard(
+    item: RecognitionHistoryItem,
+    isWide: Boolean,
+    onSearch: () -> Unit,
+) {
+    val context = LocalContext.current
+    val cover = item.coverArtHqUrl ?: item.coverArtUrl
+    val recognizedAt =
+        remember(item.recognizedAtEpochMillis) {
+            DateFormat
+                .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                .format(Date(item.recognizedAtEpochMillis))
+        }
+    val primary = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.secondary
+    val surfaceContainerHigh = MaterialTheme.colorScheme.surfaceContainerHigh
+    val cardBrush =
+        remember(primary, secondary, surfaceContainerHigh) {
+            Brush.verticalGradient(
+                colors =
+                    listOf(
+                        primary.copy(alpha = 0.24f),
+                        secondary.copy(alpha = 0.14f),
+                        surfaceContainerHigh,
+                    ),
+            )
+        }
+    val coverSize = if (isWide) 104.dp else 88.dp
+
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors =
+            CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
+    ) {
+        Column {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(cardBrush)
+                        .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                CoverArt(
+                    coverUrl = cover,
+                    modifier = Modifier.size(coverSize),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.title,
+                        style = if (isWide) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = item.artist,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    StatusPill(
+                        label = stringResource(R.string.music_recognition_history_recognized_at, recognizedAt),
+                        iconRes = R.drawable.calendar_today,
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                FlowChips(
+                    album = item.album,
+                    genre = item.genre,
+                    releaseDate = item.releaseDate,
+                    isrc = item.isrc,
+                )
+
+                if (!item.label.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ResultInfoBlock(
+                        iconRes = R.drawable.info,
+                        title = item.label,
+                        body = item.label,
+                        maxLines = 1,
+                        showTitleBody = false,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (!item.shazamUrl.isNullOrBlank()) {
+                        RecognitionHistoryActionIcon(
+                            iconRes = R.drawable.link,
+                            contentDescription = stringResource(R.string.music_recognition_open_shazam),
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(item.shazamUrl)),
+                                )
+                            },
+                        )
+                    }
+                    RecognitionHistoryActionIcon(
+                        iconRes = R.drawable.search,
+                        contentDescription = stringResource(R.string.search),
+                        onClick = onSearch,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecognitionHistoryActionIcon(
+    iconRes: Int,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick) {
+        Surface(
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.secondaryContainer,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = contentDescription,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
             }
         }
     }
@@ -461,12 +859,107 @@ private data class MusicRecognitionStrings(
     val recognitionFailedFallback: String,
 )
 
+@Serializable
+@Immutable
+private data class RecognitionHistoryItem(
+    val trackId: String,
+    val title: String,
+    val artist: String,
+    val album: String?,
+    val coverArtUrl: String?,
+    val coverArtHqUrl: String?,
+    val genre: String?,
+    val releaseDate: String?,
+    val label: String?,
+    val shazamUrl: String?,
+    val isrc: String?,
+    val recognizedAtEpochMillis: Long,
+) {
+    val stableKey: String
+        get() = recognitionIdentity(trackId, title, artist, isrc)
+
+    val searchQuery: String
+        get() = "$title $artist".trim()
+}
+
+@Immutable
+private data class RecognitionHistoryCollection(
+    val items: List<RecognitionHistoryItem>,
+)
+
+private val MusicRecognitionHistoryJsonKey = stringPreferencesKey("musicRecognitionHistoryJson")
+private const val MusicRecognitionHistoryLimit = 50
+
+private val MusicRecognitionHistoryJson =
+    Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = false
+    }
+
+private fun decodeRecognitionHistory(raw: String?): List<RecognitionHistoryItem> =
+    raw
+        ?.takeIf { it.isNotBlank() }
+        ?.let {
+            runCatching {
+                MusicRecognitionHistoryJson.decodeFromString<List<RecognitionHistoryItem>>(it)
+            }.getOrDefault(emptyList())
+        }
+        ?: emptyList()
+
+private suspend fun insertRecognitionHistory(
+    context: Context,
+    result: RecognitionResult,
+) {
+    val entry = result.toRecognitionHistoryItem(System.currentTimeMillis())
+    context.dataStore.edit { preferences ->
+        val current = decodeRecognitionHistory(preferences[MusicRecognitionHistoryJsonKey])
+        val next =
+            buildList {
+                add(entry)
+                addAll(current.filterNot { it.stableKey == entry.stableKey })
+            }.take(MusicRecognitionHistoryLimit)
+        preferences[MusicRecognitionHistoryJsonKey] = MusicRecognitionHistoryJson.encodeToString(next)
+    }
+}
+
+private fun RecognitionResult.toRecognitionHistoryItem(recognizedAtEpochMillis: Long): RecognitionHistoryItem =
+    RecognitionHistoryItem(
+        trackId = trackId,
+        title = title,
+        artist = artist,
+        album = album,
+        coverArtUrl = coverArtUrl,
+        coverArtHqUrl = coverArtHqUrl,
+        genre = genre,
+        releaseDate = releaseDate,
+        label = label,
+        shazamUrl = shazamUrl,
+        isrc = isrc,
+        recognizedAtEpochMillis = recognizedAtEpochMillis,
+    )
+
+private fun recognitionIdentity(
+    trackId: String,
+    title: String,
+    artist: String,
+    isrc: String?,
+): String =
+    trackId.takeIf { it.isNotBlank() }
+        ?: listOf(title, artist, isrc.orEmpty())
+            .joinToString("|") { it.trim().lowercase() }
+
+private fun RecognitionHistoryItem.matches(query: String): Boolean {
+    if (query.isBlank()) return true
+    return listOf(title, artist, album, genre, releaseDate, isrc)
+        .filterNotNull()
+        .any { it.contains(query, ignoreCase = true) }
+}
+
 private fun launchRecognition(
     scope: kotlinx.coroutines.CoroutineScope,
     strings: MusicRecognitionStrings,
     onState: (MusicRecognitionState) -> Unit,
     onHaptic: () -> Unit,
-    onSearch: (String) -> Unit,
     onReplaceJob: (Job) -> Unit,
 ) {
     onReplaceJob(
@@ -475,7 +968,6 @@ private fun launchRecognition(
                 strings = strings,
                 onState = onState,
                 onHaptic = onHaptic,
-                onSearch = onSearch,
             )
         },
     )
@@ -485,7 +977,6 @@ private suspend fun runRecognitionFlow(
     strings: MusicRecognitionStrings,
     onState: (MusicRecognitionState) -> Unit,
     onHaptic: () -> Unit,
-    onSearch: (String) -> Unit,
 ) {
     onHaptic()
     onState(MusicRecognitionState.Listening)
