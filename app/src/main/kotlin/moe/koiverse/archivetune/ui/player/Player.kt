@@ -314,6 +314,11 @@ fun BottomSheetPlayer(
     val queueWindows by playerConnection.queueWindows.collectAsState()
     val currentWindowIndex by playerConnection.currentWindowIndex.collectAsState()
     val playerVolume = playerConnection.service.playerVolume.collectAsState()
+    val onPlayerVolumeChange = remember(playerConnection) {
+        { volume: Float ->
+            playerConnection.service.playerVolume.value = volume.coerceIn(0f, 1f)
+        }
+    }
 
     val repeatMode by playerConnection.repeatMode.collectAsState()
 
@@ -1102,8 +1107,31 @@ fun BottomSheetPlayer(
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                                 .nestedScroll(state.preUpPostDownNestedScrollConnection),
                         ) {
-                            enrichedMetadata?.let {
-                                controlsContent(it)
+                            enrichedMetadata?.let { metadata ->
+                                V8PlayerControlsContent(
+                                    mediaMetadata = metadata,
+                                    queueTitle = queueTitle,
+                                    playbackState = playbackState,
+                                    isPlaying = isPlaying,
+                                    isLoading = isLoading,
+                                    canSkipPrevious = canSkipPrevious,
+                                    canSkipNext = canSkipNext,
+                                    currentSongLiked = currentSongLiked,
+                                    sliderPosition = sliderPosition,
+                                    position = position,
+                                    duration = duration,
+                                    volume = playerVolume.value,
+                                    currentFormat = currentFormat,
+                                    playerConnection = playerConnection,
+                                    navController = navController,
+                                    state = state,
+                                    menuState = menuState,
+                                    bottomSheetPageState = bottomSheetPageState,
+                                    onSliderValueChange = onSliderValueChange,
+                                    onSliderValueChangeFinished = onSliderValueChangeFinished,
+                                    onVolumeChange = onPlayerVolumeChange,
+                                    landscape = true,
+                                )
                             }
 
                             Spacer(Modifier.height(16.dp))
@@ -1141,9 +1169,7 @@ fun BottomSheetPlayer(
                                 canvasFallbackUrl = artworkCanvas?.videoUrl,
                                 onSliderValueChange = onSliderValueChange,
                                 onSliderValueChangeFinished = onSliderValueChangeFinished,
-                                onVolumeChange = {
-                                    playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
-                                },
+                                onVolumeChange = onPlayerVolumeChange,
                                 landscape = true,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -1335,8 +1361,30 @@ fun BottomSheetPlayer(
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                                 .nestedScroll(state.preUpPostDownNestedScrollConnection),
                         ) {
-                            enrichedMetadata?.let {
-                                controlsContent(it)
+                            enrichedMetadata?.let { metadata ->
+                                V8PlayerControlsContent(
+                                    mediaMetadata = metadata,
+                                    queueTitle = queueTitle,
+                                    playbackState = playbackState,
+                                    isPlaying = isPlaying,
+                                    isLoading = isLoading,
+                                    canSkipPrevious = canSkipPrevious,
+                                    canSkipNext = canSkipNext,
+                                    currentSongLiked = currentSongLiked,
+                                    sliderPosition = sliderPosition,
+                                    position = position,
+                                    duration = duration,
+                                    volume = playerVolume.value,
+                                    currentFormat = currentFormat,
+                                    playerConnection = playerConnection,
+                                    navController = navController,
+                                    state = state,
+                                    menuState = menuState,
+                                    bottomSheetPageState = bottomSheetPageState,
+                                    onSliderValueChange = onSliderValueChange,
+                                    onSliderValueChangeFinished = onSliderValueChangeFinished,
+                                    onVolumeChange = onPlayerVolumeChange,
+                                )
                             }
 
                             Spacer(Modifier.height(24.dp))
@@ -1374,9 +1422,7 @@ fun BottomSheetPlayer(
                                 canvasFallbackUrl = artworkCanvas?.videoUrl,
                                 onSliderValueChange = onSliderValueChange,
                                 onSliderValueChangeFinished = onSliderValueChangeFinished,
-                                onVolumeChange = {
-                                    playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
-                                },
+                                onVolumeChange = onPlayerVolumeChange,
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(bottom = queueSheetState.collapsedBound)

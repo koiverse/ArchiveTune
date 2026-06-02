@@ -648,65 +648,7 @@ fun PlayerTopActions(
             }
         }
 
-        PlayerDesignStyle.V7 -> {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (currentSongLiked) textBackgroundColor.copy(alpha = 0.2f)
-                            else Color.Transparent
-                        )
-                        .clickable { playerConnection.toggleLike() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            if (currentSongLiked) R.drawable.favorite
-                            else R.drawable.favorite_border
-                        ),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = if (currentSongLiked) 1f else 0.7f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .clickable {
-                            menuState.show {
-                                PlayerMenu(
-                                    mediaMetadata = mediaMetadata,
-                                    navController = navController,
-                                    playerBottomSheetState = state,
-                                    onShowDetailsDialog = {
-                                        bottomSheetPageState.show {
-                                            ShowMediaInfo(mediaMetadata.id)
-                                        }
-                                    },
-                                    onDismiss = menuState::dismiss
-                                )
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_horiz),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        }
-
-        PlayerDesignStyle.V8, PlayerDesignStyle.V9 -> Unit
+        PlayerDesignStyle.V7, PlayerDesignStyle.V8, PlayerDesignStyle.V9 -> Unit
     }
 }
 
@@ -1647,101 +1589,7 @@ fun PlayerPlaybackControls(
             }
         }
 
-        PlayerDesignStyle.V7 -> {
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding)
-            ) {
-                Surface(
-                    onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToPrevious() },
-                    enabled = canSkipPrevious,
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.skip_previous),
-                            contentDescription = null,
-                            tint = textBackgroundColor.copy(
-                                alpha = if (canSkipPrevious) 1f else 0.4f
-                            ),
-                            modifier = Modifier.size(44.dp)
-                        )
-                    }
-                }
-
-                Surface(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                if (playbackState == STATE_ENDED) {
-                            playerConnection.player.seekTo(0, 0)
-                            playerConnection.player.playWhenReady = true
-                        } else {
-                            playerConnection.player.togglePlayPause()
-                        }
-                    },
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(72.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isLoading) {
-                            CircularWavyProgressIndicator(
-                                modifier = Modifier.size(44.dp),
-                                color = textBackgroundColor,
-                            )
-                        } else {
-                            Icon(
-                                painter = painterResource(
-                                    when {
-                                        playbackState == STATE_ENDED -> R.drawable.replay
-                                        isPlaying -> R.drawable.pause
-                                        else -> R.drawable.play
-                                    }
-                                ),
-                                contentDescription = null,
-                                tint = textBackgroundColor,
-                                modifier = Modifier.size(52.dp)
-                            )
-                        }
-                    }
-                }
-
-                Surface(
-                    onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); playerConnection.seekToNext() },
-                    enabled = canSkipNext,
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.skip_next),
-                            contentDescription = null,
-                            tint = textBackgroundColor.copy(
-                                alpha = if (canSkipNext) 1f else 0.4f
-                            ),
-                            modifier = Modifier.size(44.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        PlayerDesignStyle.V8, PlayerDesignStyle.V9 -> Unit
+        PlayerDesignStyle.V7, PlayerDesignStyle.V8, PlayerDesignStyle.V9 -> Unit
     }
 }
 
@@ -1900,6 +1748,169 @@ fun PlayerControlsContent(
         playerConnection = playerConnection,
         currentSongLiked = currentSongLiked
     )
+}
+
+@Composable
+fun V8PlayerControlsContent(
+    mediaMetadata: MediaMetadata,
+    queueTitle: String?,
+    playbackState: Int,
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    currentSongLiked: Boolean,
+    sliderPosition: Long?,
+    position: Long,
+    duration: Long,
+    volume: Float,
+    currentFormat: FormatEntity?,
+    playerConnection: PlayerConnection,
+    navController: NavController,
+    state: BottomSheetState,
+    menuState: MenuState,
+    bottomSheetPageState: BottomSheetPageState,
+    onSliderValueChange: (Long) -> Unit,
+    onSliderValueChangeFinished: () -> Unit,
+    onVolumeChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    landscape: Boolean = false,
+) {
+    val foreground = Color.White
+    val secondaryForeground = foreground.copy(alpha = 0.72f)
+    val artists = remember(mediaMetadata.artists) {
+        mediaMetadata.artists.joinToString(", ") { it.name }
+    }
+    val onMenuClick = remember(mediaMetadata, navController, state, menuState, bottomSheetPageState) {
+        {
+            menuState.show {
+                PlayerMenu(
+                    mediaMetadata = mediaMetadata,
+                    navController = navController,
+                    playerBottomSheetState = state,
+                    onShowDetailsDialog = {
+                        bottomSheetPageState.show {
+                            ShowMediaInfo(mediaMetadata.id)
+                        }
+                    },
+                    onDismiss = menuState::dismiss
+                )
+            }
+        }
+    }
+    val onTitleClick = remember(mediaMetadata.album, navController, state) {
+        {
+            if (mediaMetadata.album != null) {
+                state.snapTo(state.collapsedBound)
+                navController.navigate("album/${mediaMetadata.album.id}")
+            }
+        }
+    }
+    val firstArtistId = mediaMetadata.artists.firstOrNull()?.id
+    val onArtistClick = remember(firstArtistId, navController, state) {
+        {
+            if (!firstArtistId.isNullOrBlank()) {
+                state.collapseSoft()
+                navController.navigate("artist/$firstArtistId")
+            }
+        }
+    }
+    val onPlayPauseClick = remember(playbackState, playerConnection) {
+        {
+            if (playbackState == STATE_ENDED) {
+                playerConnection.player.seekTo(0, 0)
+                playerConnection.player.playWhenReady = true
+            } else {
+                playerConnection.player.togglePlayPause()
+            }
+        }
+    }
+    val onToggleLike = remember(playerConnection) {
+        { playerConnection.toggleLike() }
+    }
+    val onPreviousClick = remember(playerConnection) {
+        { playerConnection.seekToPrevious() }
+    }
+    val onNextClick = remember(playerConnection) {
+        { playerConnection.seekToNext() }
+    }
+
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val horizontalPadding = if (landscape) 36.dp else if (maxWidth < 380.dp) 22.dp else 24.dp
+        val contentGap = if (landscape) 14.dp else 18.dp
+        val progressToTransportGap = if (landscape) 12.dp else 18.dp
+        val transportToVolumeGap = if (landscape) 12.dp else 18.dp
+        val subtitle = queueTitle ?: mediaMetadata.album?.title.orEmpty()
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = horizontalPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (subtitle.isNotBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = secondaryForeground,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .basicMarquee(),
+                )
+
+                Spacer(Modifier.height(contentGap))
+            }
+
+            V8MetadataActions(
+                title = mediaMetadata.title,
+                artists = artists,
+                liked = currentSongLiked,
+                foreground = foreground,
+                onMenuClick = onMenuClick,
+                onToggleLike = onToggleLike,
+                onTitleClick = onTitleClick,
+                onArtistClick = onArtistClick,
+            )
+
+            Spacer(Modifier.height(contentGap))
+
+            V8PlaybackProgress(
+                sliderPosition = sliderPosition,
+                position = position,
+                duration = duration,
+                currentFormat = currentFormat,
+                foreground = foreground,
+                onSliderValueChange = onSliderValueChange,
+                onSliderValueChangeFinished = onSliderValueChangeFinished,
+            )
+
+            Spacer(Modifier.height(progressToTransportGap))
+
+            V8TransportControls(
+                playbackState = playbackState,
+                isPlaying = isPlaying,
+                isLoading = isLoading,
+                canSkipPrevious = canSkipPrevious,
+                canSkipNext = canSkipNext,
+                foreground = foreground,
+                onPreviousClick = onPreviousClick,
+                onPlayPauseClick = onPlayPauseClick,
+                onNextClick = onNextClick,
+            )
+
+            Spacer(Modifier.height(transportToVolumeGap))
+
+            V8VolumeControls(
+                volume = volume,
+                foreground = foreground,
+                secondaryForeground = secondaryForeground,
+                onVolumeChange = onVolumeChange,
+            )
+        }
+    }
 }
 
 @Composable
