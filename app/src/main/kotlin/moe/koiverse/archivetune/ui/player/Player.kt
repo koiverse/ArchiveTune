@@ -1723,8 +1723,7 @@ private fun V7PlayerBackdrop(
     val backdropFloor = remember(backdropPalette) {
         Brush.verticalGradient(
             colorStops = arrayOf(
-                0f to Color.Transparent,
-                0.42f to backdropPalette.bottom.copy(alpha = 0.95f),
+                0f to backdropPalette.bottom,
                 V7BackdropFloorBlackStartFraction to backdropPalette.bottom,
                 1f to backdropPalette.bottom,
             )
