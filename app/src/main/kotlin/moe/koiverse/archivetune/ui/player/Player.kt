@@ -219,7 +219,6 @@ private const val V7BackdropMaxArtworkSizePx = 2_048
 private const val V7BackdropBlurDp = 44
 private const val V7BackdropBlurScale = 1.18f
 private const val V7BackdropArtworkOverscanFactor = 1.15f
-private const val V7CanvasZoomScale = 1.02f
 private const val V7SharpStagePortraitFraction = 0.62f
 private const val V7SharpStageLandscapeFraction = 0.58f
 private const val V7BackdropOverlapDp = 72
@@ -1794,10 +1793,6 @@ private fun V7PlayerBackdrop(
     val canvasStageModifier = remember {
         Modifier
             .fillMaxSize()
-            .graphicsLayer {
-                scaleX = V7CanvasZoomScale
-                scaleY = V7CanvasZoomScale
-            }
     }
 
     BoxWithConstraints(
