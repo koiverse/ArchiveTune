@@ -120,6 +120,12 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AppBarHeight
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_ALBUM
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_ARTIST
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_HEADER
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_LIST
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_PLAYLIST
+import moe.koiverse.archivetune.constants.CONTENT_TYPE_SONG
 import moe.koiverse.archivetune.constants.DisableBlurKey
 import moe.koiverse.archivetune.constants.HideExplicitKey
 import moe.koiverse.archivetune.db.entities.ArtistEntity
@@ -749,7 +755,8 @@ fun ArtistScreen(
 
                         itemsIndexed(
                             items = filteredLibrarySongs.take(5),
-                            key = { index, item -> "local_song_${item.id}_$index" }
+                            key = { _, item -> "local_song_${item.id}" },
+                            contentType = { _, _ -> CONTENT_TYPE_SONG },
                         ) { index, song ->
                             SongListItem(
                                 song = song,
@@ -857,7 +864,8 @@ fun ArtistScreen(
                             ) {
                                 items(
                                     items = filteredLibraryAlbums,
-                                    key = { album -> "local_album_${album.id}_${filteredLibraryAlbums.indexOf(album)}" }
+                                    key = { album -> "local_album_${album.id}" },
+                                    contentType = { CONTENT_TYPE_ALBUM },
                                 ) { album ->
                                     AlbumGridItem(
                                         album = album,
@@ -890,7 +898,10 @@ fun ArtistScreen(
                     // YouTube/Remote content sections
                     artistPage?.sections?.fastForEach { section ->
                         if (section.items.isNotEmpty()) {
-                            item {
+                            item(
+                                key = "youtube_section_header_${section.title}_${section.items.firstOrNull()?.id.orEmpty()}_${section.moreEndpoint?.browseId.orEmpty()}",
+                                contentType = CONTENT_TYPE_HEADER,
+                            ) {
                                 NavigationTitle(
                                     title = section.title,
                                     onClick = section.moreEndpoint?.let {
@@ -902,11 +913,11 @@ fun ArtistScreen(
                             }
                         }
 
-                        if ((section.items.firstOrNull() as? SongItem)?.album != null) {
-                            // Song items with album info - display as list
+                        if (section.items.all { it is SongItem }) {
                             items(
                                 items = section.items.distinctBy { it.id },
                                 key = { "youtube_song_${it.id}" },
+                                contentType = { CONTENT_TYPE_SONG },
                             ) { song ->
                                 YouTubeListItem(
                                     item = song as SongItem,
@@ -960,8 +971,10 @@ fun ArtistScreen(
                                 )
                             }
                         } else {
-                            // Grid items (albums, playlists, etc.)
-                            item {
+                            item(
+                                key = "youtube_section_grid_${section.title}_${section.items.firstOrNull()?.id.orEmpty()}_${section.moreEndpoint?.browseId.orEmpty()}",
+                                contentType = CONTENT_TYPE_LIST,
+                            ) {
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -977,6 +990,15 @@ fun ArtistScreen(
                                                 else -> "item"
                                             }
                                             "youtube_${type}_${it.id}"
+                                        },
+                                        contentType = {
+                                            when (it) {
+                                                is SongItem -> CONTENT_TYPE_SONG
+                                                is AlbumItem -> CONTENT_TYPE_ALBUM
+                                                is ArtistItem -> CONTENT_TYPE_ARTIST
+                                                is PlaylistItem -> CONTENT_TYPE_PLAYLIST
+                                                else -> CONTENT_TYPE_LIST
+                                            }
                                         },
                                     ) { item ->
                                         YouTubeGridItem(
