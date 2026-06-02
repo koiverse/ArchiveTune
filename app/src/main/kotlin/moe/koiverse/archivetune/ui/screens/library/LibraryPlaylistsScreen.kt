@@ -180,12 +180,6 @@ fun LibraryPlaylistsScreen(
     val spotifyIsRefreshing by spotifyLibraryViewModel.isRefreshing.collectAsState()
     val spotifyErrorMessage by spotifyLibraryViewModel.errorMessage.collectAsState()
 
-    LaunchedEffect(showSpotifyPlaylists) {
-        if (showSpotifyPlaylists && spotifyPlaylists.isEmpty()) {
-            spotifyLibraryViewModel.refreshPlaylists()
-        }
-    }
-
     val shortcuts = buildList {
         if (showLiked) {
             add(
@@ -307,7 +301,7 @@ fun LibraryPlaylistsScreen(
     val summary = pluralStringResource(R.plurals.n_playlist, visiblePlaylists.size, visiblePlaylists.size)
 
     ExpressivePullToRefreshBox(
-        isRefreshing = isRefreshing,
+        isRefreshing = isRefreshing || spotifyIsRefreshing,
         onRefresh = {
             if (showSpotifyPlaylists) {
                 spotifyLibraryViewModel.refreshPlaylists()
