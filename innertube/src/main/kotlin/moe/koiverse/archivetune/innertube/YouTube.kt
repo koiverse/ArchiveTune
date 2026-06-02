@@ -1322,8 +1322,11 @@ object YouTube {
         innerTube.moveSongPlaylist(WEB_REMIX, playlistId, setVideoId, successorSetVideoId)
     }
 
-    suspend fun createPlaylist(title: String) = runCatching {
-        innerTube.createPlaylist(WEB_REMIX, title).body<CreatePlaylistResponse>().playlistId
+    suspend fun createPlaylist(
+        title: String,
+        videoIds: List<String> = emptyList(),
+    ) = runCatching {
+        innerTube.createPlaylist(WEB_REMIX, title, videoIds).body<CreatePlaylistResponse>().playlistId
     }
 
     suspend fun renamePlaylist(playlistId: String, name: String) = runCatching {

@@ -14,8 +14,8 @@ import kotlinx.serialization.Serializable
 data class CreatePlaylistBody(
     val context: Context,
     val title: String,
-    val privacyStatus: String = PrivacyStatus.PRIVATE,
-    val videoIds: List<String>? = null
+    val videoIds: List<String>,
+    val privacyStatus: String = PrivacyStatus.PRIVATE
 ) {
     object PrivacyStatus {
         const val PRIVATE = "PRIVATE"

@@ -709,13 +709,15 @@ class InnerTube {
     suspend fun createPlaylist(
         client: YouTubeClient,
         title: String,
+        videoIds: List<String> = emptyList(),
     ) = withRetry {
         httpClient.post("playlist/create") {
             ytClient(client, true)
             setBody(
                 CreatePlaylistBody(
                     context = client.toContext(locale, visitorData, dataSyncId),
-                    title = title
+                    title = title,
+                    videoIds = videoIds,
                 )
             )
         }
