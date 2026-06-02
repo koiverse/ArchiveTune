@@ -13,3 +13,12 @@ data class AccountInfo(
     val channelHandle: String?,
     val thumbnailUrl: String?,
 )
+
+data class AccountChannel(
+    val name: String,
+    val byline: String?,
+    val channelHandle: String?,
+    val thumbnailUrl: String?,
+    val dataSyncId: String,
+    val isSelected: Boolean,
+)

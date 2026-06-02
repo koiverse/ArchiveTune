@@ -8,10 +8,12 @@
 package moe.koiverse.archivetune.viewmodels
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import moe.koiverse.archivetune.innertube.YouTube
+import moe.koiverse.archivetune.innertube.models.AccountChannel
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.WatchEndpoint
 import moe.koiverse.archivetune.innertube.models.YTItem
@@ -48,12 +50,38 @@ import moe.koiverse.archivetune.utils.reportException
 import moe.koiverse.archivetune.utils.toPlaybackAuthState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import timber.log.Timber
 import javax.inject.Inject
+
+sealed interface AccountChannelsState {
+    data object Loading : AccountChannelsState
+
+    data class Success(val channels: AccountChannelCollection) : AccountChannelsState
+
+    data object Empty : AccountChannelsState
+
+    data class Error(val message: String) : AccountChannelsState
+}
+
+@Immutable
+data class AccountChannelCollection(
+    val items: List<AccountChannelUiModel>,
+)
+
+@Immutable
+data class AccountChannelUiModel(
+    val name: String,
+    val byline: String,
+    val channelHandle: String,
+    val thumbnailUrl: String?,
+    val dataSyncId: String,
+    val isSelected: Boolean,
+)
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -91,6 +119,7 @@ class HomeViewModel @Inject constructor(
     val accountImageUrl = MutableStateFlow<String?>(null)
     val isAccountLoading = MutableStateFlow(true)
     val isAccountLoggedIn = MutableStateFlow(false)
+    val accountChannelsState = MutableStateFlow<AccountChannelsState>(AccountChannelsState.Empty)
     
     // Track last processed cookie to avoid unnecessary updates
     private var lastProcessedCookie: String? = null
@@ -343,6 +372,7 @@ class HomeViewModel @Inject constructor(
         accountName.value = ""
         accountImageUrl.value = null
         accountPlaylists.value = null
+        accountChannelsState.value = AccountChannelsState.Empty
     }
 
     private fun prepareYouTubeAccount(cookie: String): Boolean {
@@ -358,6 +388,7 @@ class HomeViewModel @Inject constructor(
     private suspend fun refreshAccountIdentity() {
         accountName.value = ""
         accountImageUrl.value = null
+        accountChannelsState.value = AccountChannelsState.Loading
 
         try {
             YouTube.accountInfo().onSuccess { info ->
@@ -366,10 +397,37 @@ class HomeViewModel @Inject constructor(
             }.onFailure { error ->
                 Timber.w(error, "Failed to fetch account info")
             }
+
+            YouTube.accountChannels().onSuccess { channels ->
+                accountChannelsState.value = channels
+                    .map { it.toUiModel() }
+                    .takeIf { it.size > 1 }
+                    ?.let { AccountChannelsState.Success(AccountChannelCollection(it)) }
+                    ?: AccountChannelsState.Empty
+            }.onFailure { error ->
+                Timber.w(error, "Failed to fetch account channels")
+                reportException(error)
+                accountChannelsState.value = AccountChannelsState.Error(error.message.orEmpty())
+            }
+        } catch (e: CancellationException) {
+            accountChannelsState.value = AccountChannelsState.Empty
+            throw e
         } catch (e: Exception) {
             Timber.e(e, "Exception fetching account info")
+            reportException(e)
+            accountChannelsState.value = AccountChannelsState.Error(e.message.orEmpty())
         }
     }
+
+    private fun AccountChannel.toUiModel(): AccountChannelUiModel =
+        AccountChannelUiModel(
+            name = name,
+            byline = byline.orEmpty(),
+            channelHandle = channelHandle.orEmpty(),
+            thumbnailUrl = thumbnailUrl,
+            dataSyncId = dataSyncId,
+            isSelected = isSelected,
+        )
 
     private suspend fun refreshAccountPlaylistsInternal() {
         try {
@@ -500,6 +558,44 @@ class HomeViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Error switching account")
                 reportException(e)
+            }
+        }
+    }
+
+    fun switchToAccountChannel(
+        channel: AccountChannelUiModel,
+        forceSyncOnSwitch: Boolean,
+    ) {
+        if (channel.dataSyncId.isBlank()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                accountChannelsState.value = AccountChannelsState.Loading
+
+                context.dataStore.edit { preferences ->
+                    preferences[DataSyncIdKey] = channel.dataSyncId
+                    preferences[AccountNameKey] = channel.name
+                    preferences[AccountChannelHandleKey] = channel.channelHandle
+                    if (channel.byline.contains("@")) {
+                        preferences[AccountEmailKey] = channel.byline
+                    }
+                }
+
+                val authState = context.dataStore.data.first().toPlaybackAuthState()
+                YouTube.authState = authState
+
+                refreshAccountIdentity()
+                refreshAccountPlaylistsInternal()
+
+                if (forceSyncOnSwitch && context.dataStore.get(YtmSyncKey, true) && authState.hasLoginCookie) {
+                    syncUtils.performFullSync(authoritative = true)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "Error switching account channel")
+                reportException(e)
+                accountChannelsState.value = AccountChannelsState.Error(e.message.orEmpty())
             }
         }
     }

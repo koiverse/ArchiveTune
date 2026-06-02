@@ -8,6 +8,7 @@
 package moe.koiverse.archivetune.innertube
 
 import moe.koiverse.archivetune.innertube.models.AccountInfo
+import moe.koiverse.archivetune.innertube.models.AccountChannel
 import moe.koiverse.archivetune.innertube.models.YTItem
 import moe.koiverse.archivetune.innertube.models.AlbumItem
 import moe.koiverse.archivetune.innertube.models.Artist
@@ -81,6 +82,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
@@ -102,6 +105,7 @@ object YouTube {
     private const val BROWSE_ID_MOODS_AND_GENRES = "FEmusic_moods_and_genres"
 
     private val innerTube = InnerTube()
+    private val accountSwitcherClient = WEB.copy(loginSupported = true)
     private val mutableAuthState = MutableStateFlow(PlaybackAuthState.EMPTY)
 
     val authStateFlow: StateFlow<PlaybackAuthState> = mutableAuthState.asStateFlow()
@@ -1531,6 +1535,136 @@ object YouTube {
             ?.toAccountInfo()
         accountInfo ?: throw IllegalStateException("Failed to get account info - user may not be logged in")
     }
+
+    suspend fun accountChannels(): Result<List<AccountChannel>> = runCatching {
+        val response = Json.parseToJsonElement(
+            innerTube.accountChannels(accountSwitcherClient).bodyAsText()
+        )
+
+        response
+            .objectsNamed("accountItemRenderer")
+            .mapNotNull(::parseAccountChannel)
+            .sortedByDescending(AccountChannel::isSelected)
+            .distinctBy(AccountChannel::dataSyncId)
+            .toList()
+    }
+
+    private fun parseAccountChannel(renderer: JsonObject): AccountChannel? {
+        val isDisabled = renderer.booleanValue("isDisabled") ?: false
+        val hasChannel = renderer.booleanValue("hasChannel") ?: true
+        if (isDisabled || !hasChannel) return null
+
+        val dataSyncId = renderer["serviceEndpoint"]
+            ?.findDelegationValue()
+            ?.normalizeAccountChannelDataSyncId()
+            ?: return null
+
+        val name = renderer["accountName"].textValue() ?: return null
+        val byline = renderer["accountByline"].textValue()
+        val channelHandle = renderer["channelHandle"].textValue()
+        val thumbnailUrl = renderer["accountPhoto"].thumbnailUrl()
+
+        return AccountChannel(
+            name = name,
+            byline = byline,
+            channelHandle = channelHandle,
+            thumbnailUrl = thumbnailUrl,
+            dataSyncId = dataSyncId,
+            isSelected = renderer.booleanValue("isSelected") ?: false,
+        )
+    }
+
+    private fun JsonElement.objectsNamed(name: String): Sequence<JsonObject> = sequence {
+        when (val element = this@objectsNamed) {
+            is JsonObject -> {
+                element[name]?.jsonObjectOrNull()?.let { yield(it) }
+                element.values.forEach { yieldAll(it.objectsNamed(name)) }
+            }
+            is kotlinx.serialization.json.JsonArray -> {
+                element.forEach { yieldAll(it.objectsNamed(name)) }
+            }
+            else -> Unit
+        }
+    }
+
+    private fun JsonElement?.textValue(): String? {
+        val obj = this as? JsonObject ?: return null
+        obj["simpleText"]?.jsonPrimitiveOrNull()?.contentOrNull?.let { return it.trim().takeIf(String::isNotBlank) }
+        return obj["runs"]
+            ?.jsonArrayOrNull()
+            ?.joinToString(separator = "") { run ->
+                run.jsonObjectOrNull()
+                    ?.get("text")
+                    ?.jsonPrimitiveOrNull()
+                    ?.contentOrNull
+                    .orEmpty()
+            }
+            ?.trim()
+            ?.takeIf(String::isNotBlank)
+    }
+
+    private fun JsonElement?.thumbnailUrl(): String? {
+        val thumbnails = (this as? JsonObject)
+            ?.get("thumbnails")
+            ?.jsonArrayOrNull()
+            ?: return null
+        return thumbnails
+            .asSequence()
+            .mapNotNull { thumbnail ->
+                thumbnail.jsonObjectOrNull()
+                    ?.get("url")
+                    ?.jsonPrimitiveOrNull()
+                    ?.contentOrNull
+            }
+            .lastOrNull()
+            ?.let { url -> if (url.startsWith("//")) "https:$url" else url }
+    }
+
+    private fun JsonElement.findDelegationValue(): String? {
+        val directKeys = setOf(
+            "onBehalfOfUser",
+            "obfuscatedSelectedGaiaId",
+            "obfuscatedGaiaId",
+            "accountId",
+            "delegatedSessionId",
+        )
+        val fallbackKeys = setOf(
+            "selectedSerializedDelegationContext",
+            "serializedDelegationContext",
+        )
+        return findStringValue(directKeys) ?: findStringValue(fallbackKeys)
+    }
+
+    private fun JsonElement.findStringValue(keys: Set<String>): String? {
+        return when (this) {
+            is JsonObject -> {
+                keys.firstNotNullOfOrNull { key ->
+                    this[key]
+                        ?.jsonPrimitiveOrNull()
+                        ?.contentOrNull
+                        ?.trim()
+                        ?.takeIf(String::isNotBlank)
+                } ?: values.firstNotNullOfOrNull { it.findStringValue(keys) }
+            }
+            is kotlinx.serialization.json.JsonArray -> firstNotNullOfOrNull { it.findStringValue(keys) }
+            else -> null
+        }
+    }
+
+    private fun JsonObject.booleanValue(key: String): Boolean? =
+        this[key]?.jsonPrimitiveOrNull()?.contentOrNull?.toBooleanStrictOrNull()
+
+    private fun JsonElement?.jsonObjectOrNull(): JsonObject? = this as? JsonObject
+
+    private fun JsonElement?.jsonArrayOrNull(): kotlinx.serialization.json.JsonArray? =
+        this as? kotlinx.serialization.json.JsonArray
+
+    private fun JsonElement?.jsonPrimitiveOrNull(): JsonPrimitive? = this as? JsonPrimitive
+
+    private fun String.normalizeAccountChannelDataSyncId(): String =
+        takeIf { !it.contains("||") }
+            ?: takeIf { it.endsWith("||") }?.substringBefore("||")
+            ?: substringAfter("||")
 
     suspend fun getMediaInfo(videoId: String): Result<MediaInfo> = runCatching {
         return innerTube.getMediaInfo(videoId)

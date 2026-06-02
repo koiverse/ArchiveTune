@@ -79,8 +79,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -105,6 +105,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import moe.koiverse.archivetune.App.Companion.forgetAccount
@@ -139,6 +140,8 @@ import moe.koiverse.archivetune.utils.putLegacyPoToken
 import moe.koiverse.archivetune.utils.rememberPreference
 import java.util.UUID
 import moe.koiverse.archivetune.viewmodels.HomeViewModel
+import moe.koiverse.archivetune.viewmodels.AccountChannelUiModel
+import moe.koiverse.archivetune.viewmodels.AccountChannelsState
 
 private val CardShape = RoundedCornerShape(28.dp)
 private val InnerTileShape = RoundedCornerShape(22.dp)
@@ -146,6 +149,11 @@ private val AvatarSize = 88.dp
 private val QuickTileIconSize = 48.dp
 private val RowIconSize = 42.dp
 private const val PressScale = 0.96f
+
+@Immutable
+private data class SavedAccountCollection(
+    val accounts: List<SavedAccount>,
+)
 
 @Composable
 fun AccountSettings(
@@ -176,7 +184,9 @@ fun AccountSettings(
         rememberPreference(ForceSyncOnAccountSwitchKey, false)
     val (selectedYtmPlaylists, _) = rememberPreference(SelectedYtmPlaylistsKey, "")
     val (savedAccountsJson, onSavedAccountsJsonChange) = rememberPreference(SavedAccountsKey, "")
-    val savedAccounts = remember(savedAccountsJson) { decodeSavedAccounts(savedAccountsJson) }
+    val savedAccounts = remember(savedAccountsJson) {
+        SavedAccountCollection(decodeSavedAccounts(savedAccountsJson))
+    }
 
     val onLegacyPoTokenChange: (String) -> Unit = { value ->
         PreferenceStore.launchEdit(context.dataStore) {
@@ -193,8 +203,9 @@ fun AccountSettings(
     }
 
     val viewModel: HomeViewModel = hiltViewModel()
-    val accountNameFromViewModel by viewModel.accountName.collectAsState()
-    val accountImageUrl by viewModel.accountImageUrl.collectAsState()
+    val accountNameFromViewModel by viewModel.accountName.collectAsStateWithLifecycle()
+    val accountImageUrl by viewModel.accountImageUrl.collectAsStateWithLifecycle()
+    val accountChannelsState by viewModel.accountChannelsState.collectAsStateWithLifecycle()
 
     val displayName = when {
         accountNameFromViewModel.isNotBlank() -> accountNameFromViewModel
@@ -241,6 +252,13 @@ fun AccountSettings(
     val switchToAccount: (SavedAccount) -> Unit = { account ->
         viewModel.switchToAccount(
             account = account,
+            forceSyncOnSwitch = forceSyncOnAccountSwitch,
+        )
+    }
+
+    val switchToAccountChannel: (AccountChannelUiModel) -> Unit = { channel ->
+        viewModel.switchToAccountChannel(
+            channel = channel,
             forceSyncOnSwitch = forceSyncOnAccountSwitch,
         )
     }
@@ -352,6 +370,8 @@ fun AccountSettings(
                     accountImageUrl = accountImageUrl,
                     savedAccounts = savedAccounts,
                     activeInnerTubeCookie = innerTubeCookie,
+                    activeDataSyncId = dataSyncId,
+                    accountChannelsState = accountChannelsState,
                     onPrimaryAction = {
                         if (isLoggedIn) {
                             navController.navigate("account")
@@ -370,6 +390,7 @@ fun AccountSettings(
                     },
                     onSaveAccount = saveCurrentAccount,
                     onSwitchAccount = switchToAccount,
+                    onSwitchAccountChannel = switchToAccountChannel,
                     onRemoveAccount = removeAccount,
                 )
             }
@@ -500,12 +521,15 @@ private fun ProfileIdentityCard(
     accountEmail: String,
     accountHandle: String,
     accountImageUrl: String?,
-    savedAccounts: List<SavedAccount>,
+    savedAccounts: SavedAccountCollection,
     activeInnerTubeCookie: String,
+    activeDataSyncId: String,
+    accountChannelsState: AccountChannelsState,
     onPrimaryAction: () -> Unit,
     onSecondaryAction: () -> Unit,
     onSaveAccount: () -> Unit,
     onSwitchAccount: (SavedAccount) -> Unit,
+    onSwitchAccountChannel: (AccountChannelUiModel) -> Unit,
     onRemoveAccount: (SavedAccount) -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -721,7 +745,7 @@ private fun ProfileIdentityCard(
                             SplitButtonDefaults.ElevatedTrailingButton(
                                 checked = accountMenuExpanded,
                                 onCheckedChange = { accountMenuExpanded = it },
-                                enabled = isLoggedIn || savedAccounts.isNotEmpty(),
+                                enabled = isLoggedIn || savedAccounts.accounts.isNotEmpty(),
                                 colors = ButtonDefaults.elevatedButtonColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -745,6 +769,60 @@ private fun ProfileIdentityCard(
                         expanded = accountMenuExpanded,
                         onDismissRequest = { accountMenuExpanded = false },
                     ) {
+                        val accountChannels = (accountChannelsState as? AccountChannelsState.Success)?.channels
+                        if (accountChannels != null && accountChannels.items.size > 1) {
+                            Text(
+                                text = stringResource(R.string.youtube_channels),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                            )
+                            accountChannels.items.forEach { channel ->
+                                val isActive = channel.isSelected || channel.dataSyncId == activeDataSyncId
+                                DropdownMenuItem(
+                                    text = {
+                                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                            Text(
+                                                text = channel.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            val channelSubtitle = channel.channelHandle.ifBlank { channel.byline }
+                                            if (channelSubtitle.isNotBlank()) {
+                                                Text(
+                                                    text = channelSubtitle,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            }
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.account),
+                                            contentDescription = null,
+                                            tint = if (isActive) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    },
+                                    onClick = {
+                                        if (!isActive) onSwitchAccountChannel(channel)
+                                        accountMenuExpanded = false
+                                    },
+                                )
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        }
+
                         Text(
                             text = stringResource(R.string.saved_accounts),
                             style = MaterialTheme.typography.labelSmall,
@@ -752,7 +830,7 @@ private fun ProfileIdentityCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                         )
-                        if (savedAccounts.isEmpty()) {
+                        if (savedAccounts.accounts.isEmpty()) {
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -765,7 +843,7 @@ private fun ProfileIdentityCard(
                                 enabled = false,
                             )
                         } else {
-                            savedAccounts.forEach { account ->
+                            savedAccounts.accounts.forEach { account ->
                                 val isActive = account.innerTubeCookie == activeInnerTubeCookie
                                 DropdownMenuItem(
                                     text = {
