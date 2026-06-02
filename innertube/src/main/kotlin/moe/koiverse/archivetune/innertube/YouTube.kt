@@ -732,7 +732,7 @@ object YouTube {
                 isEditable = editable
             ),
             songs = songContents.getItems().mapNotNull {
-                PlaylistPage.fromMusicResponsiveListItemRenderer(it)
+                PlaylistPage.fromMusicResponsiveListItemRenderer(it, playlistId)
             },
             songsContinuation = songsContinuation,
             continuation = secondarySection?.continuations?.getContinuation()
@@ -740,7 +740,10 @@ object YouTube {
         )
     }
 
-    suspend fun playlistContinuation(continuation: String): Result<PlaylistContinuationPage> = runCatching {
+    suspend fun playlistContinuation(
+        continuation: String,
+        playlistId: String? = null,
+    ): Result<PlaylistContinuationPage> = runCatching {
         val response = innerTube.browse(
             client = WEB_REMIX,
             continuation = continuation,
@@ -748,7 +751,7 @@ object YouTube {
             setLogin = true
         ).body<BrowseResponse>()
 
-        playlistContinuationPageFromResponse(response)
+        playlistContinuationPageFromResponse(response, playlistId)
     }
 
     suspend fun home(continuation: String? = null, params: String? = null): Result<HomePage> = runCatching {
@@ -1231,13 +1234,18 @@ object YouTube {
     }
 
     suspend fun addToPlaylist(playlistId: String, videoId: String) = runCatching {
-        innerTube
+        val result = innerTube
             .addToPlaylist(WEB_REMIX, playlistId, videoId)
             .body<AddItemYouTubePlaylistResponse>()
             .playlistEditResults
-            .firstOrNull()
+            .firstOrNull { result ->
+                result.playlistEditVideoAddedResultData.videoId == videoId
+            }
             ?.playlistEditVideoAddedResultData
-            ?.setVideoId
+        require(result?.setVideoId?.isNotBlank() == true) {
+            "Playlist edit did not confirm added video $videoId"
+        }
+        result.setVideoId
     }
 
     suspend fun addSongsToPlaylist(
@@ -1264,10 +1272,13 @@ object YouTube {
             if (batchResponse.isSuccess) {
                 val resultByVideoId = batchResponse.getOrThrow().playlistEditResults
                     .map { it.playlistEditVideoAddedResultData }
+                    .filter { result -> result.setVideoId.isNotBlank() }
                     .associateBy { it.videoId }
 
                 batch.forEach { videoId ->
-                    setVideoIds += resultByVideoId[videoId]?.setVideoId
+                    val setVideoId = resultByVideoId[videoId]?.setVideoId
+                        ?: throw IllegalStateException("Playlist edit did not confirm added video $videoId")
+                    setVideoIds += setVideoId
                     completedSongs += 1
                 }
             } else if (batch.size == 1) {
@@ -1306,7 +1317,7 @@ object YouTube {
         var continuation = playlistPage.songsContinuation?.takeUnless(String::isBlank)
             ?: playlistPage.continuation?.takeUnless(String::isBlank)
         while (continuation != null) {
-            val continuationPage = playlistContinuation(continuation).getOrThrow()
+            val continuationPage = playlistContinuation(continuation, playlistId).getOrThrow()
             collectSetVideoIds(continuationPage.songs)
             continuation = continuationPage.continuation?.takeUnless(String::isBlank)
         }
@@ -1802,7 +1813,10 @@ private fun SectionListRenderer.Content.playlistSongContinuation(): String? =
         }
     }
 
-internal fun playlistContinuationPageFromResponse(response: BrowseResponse): PlaylistContinuationPage {
+internal fun playlistContinuationPageFromResponse(
+    response: BrowseResponse,
+    playlistId: String? = null,
+): PlaylistContinuationPage {
     val appendedContents = response.onResponseReceivedActions
         ?.firstOrNull()
         ?.appendContinuationItemsAction
@@ -1853,7 +1867,9 @@ internal fun playlistContinuationPageFromResponse(response: BrowseResponse): Pla
         candidate.copy(
             songs = candidate.contents
                 .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
-                .mapNotNull(PlaylistPage::fromMusicResponsiveListItemRenderer)
+                .mapNotNull { renderer ->
+                    PlaylistPage.fromMusicResponsiveListItemRenderer(renderer, playlistId)
+                }
         )
     }
 

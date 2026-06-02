@@ -26,10 +26,25 @@ data class PlaylistPage(
     val continuation: String?,
 ) {
     companion object {
-        fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): SongItem? {
+        fun fromMusicResponsiveListItemRenderer(
+            renderer: MusicResponsiveListItemRenderer,
+            playlistId: String? = null,
+        ): SongItem? {
+            if (playlistId != null && !renderer.belongsToPlaylist(playlistId)) return null
             return renderer.toSongItem(albumColumnIndex = 2)
         }
     }
+}
+
+private fun MusicResponsiveListItemRenderer.belongsToPlaylist(playlistId: String): Boolean {
+    val expectedPlaylistId = playlistId.removePrefix("VL")
+    val endpoint = watchEndpoint()
+    val endpointPlaylistId = endpoint?.playlistId?.removePrefix("VL")
+    if (playlistItemData?.playlistSetVideoId?.isNotBlank() == true) {
+        return endpointPlaylistId == null || endpointPlaylistId == expectedPlaylistId
+    }
+    if (endpointPlaylistId != expectedPlaylistId) return false
+    return endpoint?.playlistSetVideoId?.isNotBlank() == true || endpoint?.index != null
 }
 
 internal fun MusicResponsiveListItemRenderer.toSongItem(

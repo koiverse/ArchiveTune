@@ -19,8 +19,9 @@ import java.security.MessageDigest
 
 @JvmName("completedLibrary")
 suspend fun Result<PlaylistPage>.completed(): Result<PlaylistPage> = runCatching {
-    completePlaylistPage(getOrThrow()) { continuation ->
-        YouTube.playlistContinuation(continuation).getOrNull()
+    val page = getOrThrow()
+    completePlaylistPage(page) { continuation ->
+        YouTube.playlistContinuation(continuation, page.playlist.id).getOrNull()
     }
 }
 

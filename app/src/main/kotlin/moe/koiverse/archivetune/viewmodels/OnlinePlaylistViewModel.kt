@@ -85,7 +85,7 @@ class OnlinePlaylistViewModel @Inject constructor(
         continuation?.let {
             viewModelScope.launch(Dispatchers.IO) {
                 _isLoadingMore.value = true
-                YouTube.playlistContinuation(it)
+                YouTube.playlistContinuation(it, playlistId)
                     .onSuccess { playlistContinuationPage ->
                         val currentSongs = _playlistSongs.value.toMutableList()
                         currentSongs.addAll(playlistContinuationPage.songs)

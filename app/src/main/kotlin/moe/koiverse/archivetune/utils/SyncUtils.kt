@@ -712,7 +712,10 @@ class SyncUtils @Inject constructor(
                 return@coroutineScope
             }
         if (!isSyncStillEnabled(gen)) return@coroutineScope
-        val songs = page.songs.orEmpty().map(SongItem::toMediaMetadata)
+        val songs = page.songs
+            .orEmpty()
+            .filter { song -> song.setVideoId?.isNotBlank() == true }
+            .map(SongItem::toMediaMetadata)
         Timber.d("syncPlaylist: Fetched ${songs.size} songs from remote")
 
         if (songs.isEmpty()) {
