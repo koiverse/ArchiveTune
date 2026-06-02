@@ -11,8 +11,12 @@ import moe.koiverse.archivetune.innertube.models.Album
 import moe.koiverse.archivetune.innertube.models.Artist
 import moe.koiverse.archivetune.innertube.models.MusicResponsiveListItemRenderer
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
+import moe.koiverse.archivetune.innertube.models.Run
 import moe.koiverse.archivetune.innertube.models.SongItem
+import moe.koiverse.archivetune.innertube.models.WatchEndpoint
+import moe.koiverse.archivetune.innertube.models.clean
 import moe.koiverse.archivetune.innertube.models.oddElements
+import moe.koiverse.archivetune.innertube.models.splitBySeparator
 import moe.koiverse.archivetune.innertube.utils.parseTime
 
 data class PlaylistPage(
@@ -23,31 +27,127 @@ data class PlaylistPage(
 ) {
     companion object {
         fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): SongItem? {
-            return SongItem(
-                id = renderer.playlistItemData?.videoId ?: return null,
-                title = renderer.flexColumns.firstOrNull()
-                    ?.musicResponsiveListItemFlexColumnRenderer?.text
-                    ?.runs?.firstOrNull()?.text ?: return null,
-                artists = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.oddElements()?.map {
-                    Artist(
-                        name = it.text,
-                        id = it.navigationEndpoint?.browseEndpoint?.browseId,
-                    )
-                }.orEmpty(),
-                album = renderer.flexColumns.getOrNull(2)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.let {
-                    Album(
-                        name = it.text,
-                        id = it.navigationEndpoint?.browseEndpoint?.browseId ?: return@let null
-                    )
-                },
-                duration = renderer.fixedColumns?.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.text?.parseTime(),
-                thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
-                explicit = renderer.badges?.find {
-                    it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
-                } != null,
-                endpoint = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint,
-                setVideoId = renderer.playlistItemData.playlistSetVideoId
-            )
+            return renderer.toSongItem(albumColumnIndex = 2)
         }
     }
+}
+
+internal fun MusicResponsiveListItemRenderer.toSongItem(
+    albumColumnIndex: Int? = 2,
+): SongItem? {
+    val endpoint = watchEndpoint()
+    val videoId = playlistItemData?.videoId ?: endpoint?.videoId ?: return null
+    val metadataGroups = metadataGroups()
+    return SongItem(
+        id = videoId,
+        title = titleText ?: return null,
+        artists = artistsFromColumn(1).ifEmpty { metadataGroups.firstOrNull().toArtists() },
+        album = albumColumnIndex?.let(::albumFromColumn)
+            ?: metadataGroups.drop(1).firstNotNullOfOrNull { it.toAlbum() },
+        duration = fixedDuration ?: metadataGroups.duration(),
+        thumbnail = thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+        explicit = isExplicit,
+        endpoint = endpoint,
+        setVideoId = playlistItemData?.playlistSetVideoId ?: endpoint?.playlistSetVideoId
+    )
+}
+
+private val MusicResponsiveListItemRenderer.titleText: String?
+    get() =
+        flexColumns
+            .firstOrNull()
+            ?.musicResponsiveListItemFlexColumnRenderer
+            ?.text
+            ?.runs
+            ?.joinToString(separator = "") { it.text }
+            ?.takeIf { it.isNotBlank() }
+
+private val MusicResponsiveListItemRenderer.isExplicit: Boolean
+    get() =
+        badges?.any {
+            it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
+        } == true
+
+private val MusicResponsiveListItemRenderer.fixedDuration: Int?
+    get() =
+        fixedColumns
+            ?.firstOrNull()
+            ?.musicResponsiveListItemFlexColumnRenderer
+            ?.text
+            ?.runs
+            ?.firstOrNull()
+            ?.text
+            ?.parseTime()
+
+private fun MusicResponsiveListItemRenderer.watchEndpoint(): WatchEndpoint? =
+    navigationEndpoint?.anyWatchEndpoint
+        ?: overlay
+            ?.musicItemThumbnailOverlayRenderer
+            ?.content
+            ?.musicPlayButtonRenderer
+            ?.playNavigationEndpoint
+            ?.anyWatchEndpoint
+
+private fun MusicResponsiveListItemRenderer.metadataGroups(): List<List<Run>> =
+    flexColumns
+        .drop(1)
+        .flatMap {
+            it.musicResponsiveListItemFlexColumnRenderer.text?.runs?.splitBySeparator().orEmpty()
+        }
+        .clean()
+
+private fun MusicResponsiveListItemRenderer.artistsFromColumn(index: Int): List<Artist> =
+    flexColumns
+        .getOrNull(index)
+        ?.musicResponsiveListItemFlexColumnRenderer
+        ?.text
+        ?.runs
+        ?.splitBySeparator()
+        ?.clean()
+        ?.firstOrNull()
+        .toArtists()
+
+private fun MusicResponsiveListItemRenderer.albumFromColumn(index: Int): Album? =
+    flexColumns
+        .getOrNull(index)
+        ?.musicResponsiveListItemFlexColumnRenderer
+        ?.text
+        ?.runs
+        ?.toAlbum()
+
+private fun List<Run>?.toArtists(): List<Artist> =
+    this
+        ?.oddElements()
+        ?.mapNotNull { run ->
+            run.text
+                .takeIf { it.isNotBlank() && it.parseTime() == null }
+                ?.let { name ->
+                    Artist(
+                        name = name,
+                        id = run.navigationEndpoint?.browseEndpoint?.browseId
+                    )
+                }
+        }
+        .orEmpty()
+
+private fun List<Run>.toAlbum(): Album? =
+    firstNotNullOfOrNull { run ->
+        val browseId = run.navigationEndpoint?.browseEndpoint?.browseId ?: return@firstNotNullOfOrNull null
+        run.text
+            .takeIf { it.isNotBlank() && it.parseTime() == null }
+            ?.let { name ->
+                Album(
+                    name = name,
+                    id = browseId
+                )
+            }
+    }
+
+private fun List<List<Run>>.duration(): Int? {
+    for (group in asReversed()) {
+        for (run in group.asReversed()) {
+            run.text.parseTime()?.let { return it }
+        }
+    }
+    return null
 }
