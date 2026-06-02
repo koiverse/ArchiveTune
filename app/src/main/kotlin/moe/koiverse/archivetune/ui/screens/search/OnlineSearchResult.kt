@@ -11,18 +11,21 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -48,7 +51,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -73,7 +75,6 @@ import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.AppBarHeight
-import moe.koiverse.archivetune.constants.SearchFilterHeight
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
@@ -237,142 +238,158 @@ fun OnlineSearchResult(
         )
     }
 
-    LazyColumn(
-        state = lazyListState,
-        contentPadding =
-        LocalPlayerAwareWindowInsets.current
-            .add(WindowInsets(top = SearchFilterHeight + 8.dp))
-            .asPaddingValues(),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        if (searchFilter == null) {
-            allModeSections.forEachIndexed { index, summary ->
-                if (index > 0) {
-                    item(key = "divider_$index") {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                            thickness = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                        )
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            shadowElevation = 1.dp,
+            modifier = Modifier
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))
+                .fillMaxWidth()
+        ) {
+            ChipsRow(
+                chips =
+                listOf(
+                    null to stringResource(R.string.filter_all),
+                    FILTER_SONG to stringResource(R.string.filter_songs),
+                    FILTER_VIDEO to stringResource(R.string.filter_videos),
+                    FILTER_ALBUM to stringResource(R.string.filter_albums),
+                    FILTER_ARTIST to stringResource(R.string.filter_artists),
+                    FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
+                    FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
+                ),
+                currentValue = searchFilter,
+                onValueUpdate = {
+                    if (viewModel.filter.value != it) {
+                        viewModel.filter.value = it
                     }
-                }
-
-                item(key = "section_header_${summary.title}_$index") {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .width(3.dp)
-                                .height(18.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = summary.title,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
+                    coroutineScope.launch {
+                        lazyListState.animateScrollToItem(0)
                     }
-                }
-
-                itemsIndexed(
-                    items = summary.items,
-                    key = { itemIndex, item -> "${summary.title}/${item.id}/$itemIndex" },
-                ) { _, item ->
-                    ytItemContent(item)
-                }
-
-                item(key = "section_spacer_${summary.title}_$index") {
-                    Spacer(Modifier.height(4.dp))
-                }
-            }
-
-            if (allModeSections.isEmpty() && isAllModeLoaded) {
-                item {
-                    EmptyPlaceholder(
-                        icon = R.drawable.search,
-                        text = stringResource(R.string.no_results_found),
-                    )
-                }
-            }
-        } else {
-            items(
-                items = itemsPage?.items.orEmpty().distinctBy { it.id },
-                key = { "filtered_${it.id}" },
-                itemContent = ytItemContent,
+                },
+                icons = mapOf(
+                    null to R.drawable.search,
+                    FILTER_SONG to R.drawable.music_note,
+                    FILTER_VIDEO to R.drawable.slow_motion_video,
+                    FILTER_ALBUM to R.drawable.album,
+                    FILTER_ARTIST to R.drawable.person,
+                    FILTER_COMMUNITY_PLAYLIST to R.drawable.queue_music,
+                    FILTER_FEATURED_PLAYLIST to R.drawable.playlist_play,
+                ),
             )
+        }
 
-            if (itemsPage?.continuation != null) {
-                item(key = "loading") {
+        LazyColumn(
+            state = lazyListState,
+            contentPadding =
+                LocalPlayerAwareWindowInsets.current
+                    .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                    .add(WindowInsets(top = 8.dp))
+                    .asPaddingValues(),
+            modifier = Modifier.weight(1f),
+        ) {
+            if (searchFilter == null) {
+                allModeSections.forEachIndexed { index, summary ->
+                    if (index > 0) {
+                        item(key = "divider_$index", contentType = "divider") {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                                thickness = 0.5.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+
+                    item(
+                        key = "section_header_${summary.title}_$index",
+                        contentType = "section_header",
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(18.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = summary.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+
+                    itemsIndexed(
+                        items = summary.items,
+                        key = { itemIndex, item -> "${summary.title}/${item.id}/$itemIndex" },
+                        contentType = { _, _ -> "search_result" },
+                    ) { _, item ->
+                        ytItemContent(item)
+                    }
+
+                    item(
+                        key = "section_spacer_${summary.title}_$index",
+                        contentType = "section_spacer",
+                    ) {
+                        Spacer(Modifier.height(4.dp))
+                    }
+                }
+
+                if (allModeSections.isEmpty() && isAllModeLoaded) {
+                    item(key = "empty_all", contentType = "empty") {
+                        EmptyPlaceholder(
+                            icon = R.drawable.search,
+                            text = stringResource(R.string.no_results_found),
+                        )
+                    }
+                }
+            } else {
+                items(
+                    items = itemsPage?.items.orEmpty().distinctBy { it.id },
+                    key = { "filtered_${it.id}" },
+                    contentType = { "search_result" },
+                    itemContent = ytItemContent,
+                )
+
+                if (itemsPage?.continuation != null) {
+                    item(key = "loading", contentType = "loading") {
+                        ShimmerHost {
+                            repeat(3) {
+                                ListItemPlaceHolder()
+                            }
+                        }
+                    }
+                }
+
+                if (itemsPage?.items?.isEmpty() == true) {
+                    item(key = "empty_filtered", contentType = "empty") {
+                        EmptyPlaceholder(
+                            icon = R.drawable.search,
+                            text = stringResource(R.string.no_results_found),
+                        )
+                    }
+                }
+            }
+
+            if (searchFilter == null && allModeSections.isEmpty() && !isAllModeLoaded || searchFilter != null && itemsPage == null) {
+                item(key = "initial_loading", contentType = "loading") {
                     ShimmerHost {
-                        repeat(3) {
+                        repeat(8) {
                             ListItemPlaceHolder()
                         }
                     }
                 }
             }
-
-            if (itemsPage?.items?.isEmpty() == true) {
-                item {
-                    EmptyPlaceholder(
-                        icon = R.drawable.search,
-                        text = stringResource(R.string.no_results_found),
-                    )
-                }
-            }
         }
-
-        if (searchFilter == null && allModeSections.isEmpty() && !isAllModeLoaded || searchFilter != null && itemsPage == null) {
-            item {
-                ShimmerHost {
-                    repeat(8) {
-                        ListItemPlaceHolder()
-                    }
-                }
-            }
-        }
-    }
-
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 1.dp,
-        modifier = Modifier
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))
-            .fillMaxWidth()
-    ) {
-        ChipsRow(
-            chips =
-            listOf(
-                null to stringResource(R.string.filter_all),
-                FILTER_SONG to stringResource(R.string.filter_songs),
-                FILTER_VIDEO to stringResource(R.string.filter_videos),
-                FILTER_ALBUM to stringResource(R.string.filter_albums),
-                FILTER_ARTIST to stringResource(R.string.filter_artists),
-                FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-                FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-            ),
-            currentValue = searchFilter,
-            onValueUpdate = {
-                if (viewModel.filter.value != it) {
-                    viewModel.filter.value = it
-                }
-                coroutineScope.launch {
-                    lazyListState.animateScrollToItem(0)
-                }
-            },
-            icons = mapOf(
-                null to R.drawable.search,
-                FILTER_SONG to R.drawable.music_note,
-                FILTER_VIDEO to R.drawable.slow_motion_video,
-                FILTER_ALBUM to R.drawable.album,
-                FILTER_ARTIST to R.drawable.person,
-                FILTER_COMMUNITY_PLAYLIST to R.drawable.queue_music,
-                FILTER_FEATURED_PLAYLIST to R.drawable.playlist_play,
-            ),
-        )
     }
 }
