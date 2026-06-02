@@ -666,7 +666,11 @@ object YouTube {
             browseId = "VL$playlistId",
             setLogin = true
         ).body<BrowseResponse>()
-        val base = response.contents?.twoColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()
+        val allFirstColumnContents = response.contents?.twoColumnBrowseResultsRenderer?.tabs
+            ?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents.orEmpty()
+        val base = allFirstColumnContents.firstOrNull {
+            it.musicResponsiveHeaderRenderer != null || it.musicEditablePlaylistDetailHeaderRenderer != null
+        }
         val header = base?.musicResponsiveHeaderRenderer ?: base?.musicEditablePlaylistDetailHeaderRenderer?.header?.musicResponsiveHeaderRenderer
         if (header == null) throw IllegalStateException("PLAYLIST_PRIVATE")
 
@@ -679,13 +683,29 @@ object YouTube {
         val headerMenuItems =
             header.buttons.firstOrNull { it.menuRenderer != null }?.menuRenderer?.items.orEmpty()
 
-        val allFirstColumnContents = response.contents?.twoColumnBrowseResultsRenderer?.tabs
-            ?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents.orEmpty()
         val description = base?.musicEditablePlaylistDetailHeaderRenderer?.header
             ?.musicDetailHeaderRenderer?.description?.runs?.joinToString("") { it.text }
             ?: allFirstColumnContents.firstNotNullOfOrNull {
                 it.musicDescriptionShelfRenderer?.description?.runs?.joinToString("") { run -> run.text }
             }
+        val secondarySection = response.contents
+            ?.twoColumnBrowseResultsRenderer
+            ?.secondaryContents
+            ?.sectionListRenderer
+        val secondaryContents = secondarySection?.contents.orEmpty()
+        val songContents = buildList {
+            secondaryContents.forEach { content ->
+                addAll(content.musicPlaylistShelfRenderer?.contents.orEmpty())
+                addAll(content.musicShelfRenderer?.contents.orEmpty())
+            }
+        }
+        val songsContinuation = secondaryContents.firstNotNullOfOrNull { content ->
+            content.musicPlaylistShelfRenderer?.let { shelf ->
+                shelf.contents.getContinuation() ?: shelf.continuations?.getContinuation()
+            } ?: content.musicShelfRenderer?.let { shelf ->
+                shelf.contents.orEmpty().getContinuation() ?: shelf.continuations?.getContinuation()
+            }
+        }
 
         PlaylistPage(
             playlist = PlaylistItem(
@@ -707,16 +727,11 @@ object YouTube {
                 }?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint,
                 isEditable = editable
             ),
-            songs = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
-                ?.contents?.firstOrNull()?.musicPlaylistShelfRenderer?.contents?.getItems()?.mapNotNull {
-                    PlaylistPage.fromMusicResponsiveListItemRenderer(it)
-                } ?: emptyList(),
-            songsContinuation = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
-                ?.contents?.firstOrNull()?.musicPlaylistShelfRenderer?.let { shelf ->
-                    shelf.contents.getContinuation() ?: shelf.continuations?.getContinuation()
-                },
-            continuation = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
-                ?.continuations?.getContinuation()
+            songs = songContents.getItems().mapNotNull {
+                PlaylistPage.fromMusicResponsiveListItemRenderer(it)
+            },
+            songsContinuation = songsContinuation,
+            continuation = secondarySection?.continuations?.getContinuation()
         )
     }
 
