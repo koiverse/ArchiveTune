@@ -397,7 +397,7 @@ object YTPlayerUtils {
 
         var authState = YouTube.currentPlaybackAuthState()
         val hasLoginCookie = authState.hasLoginCookie
-        val canUseLoggedInPlayback = authState.hasPlaybackLoginContext
+        var canUseLoggedInPlayback = authState.hasPlaybackLoginContext
         if (!canUseLoggedInPlayback) {
             if (hasLoginCookie) {
                 Timber.tag(logTag).w(
@@ -441,7 +441,7 @@ object YTPlayerUtils {
         val metadataClient = MAIN_CLIENT
 
         Timber.tag(logTag).i("Fetching metadata response using client: ${metadataClient.clientName}")
-        var metadataPlayerResponse =
+        var metadataResult =
             YouTube.player(
                 videoId = videoId,
                 playlistId = playlistId,
@@ -449,7 +449,33 @@ object YTPlayerUtils {
                 signatureTimestamp = signatureTimestamp,
                 setLogin = canUseLoggedInPlayback,
                 authState = authState,
-            ).getPlaybackPlayerResponseOrThrow(videoId, authState)
+            )
+        val metadataFailure = metadataResult.exceptionOrNull()
+        if (metadataFailure != null && canUseLoggedInPlayback && metadataFailure.isInvalidPlaybackLoginContextFailure()) {
+            Timber.tag(logTag).w(
+                metadataFailure,
+                "Logged-in playback context is stale for %s; retrying metadata with visitor playback",
+                videoId,
+            )
+            authState = ensureVisitorDataReady(
+                videoId = videoId,
+                authState = authState.copy(dataSyncId = null).normalized(),
+                forceRefresh = true,
+                reason = "stale logged-in playback context",
+            )
+            canUseLoggedInPlayback = false
+            clearPlaybackAuthCaches()
+            metadataResult =
+                YouTube.player(
+                    videoId = videoId,
+                    playlistId = playlistId,
+                    client = metadataClient,
+                    signatureTimestamp = signatureTimestamp,
+                    setLogin = false,
+                    authState = authState,
+                )
+        }
+        var metadataPlayerResponse = metadataResult.getPlaybackPlayerResponseOrThrow(videoId, authState)
         var expectedDurationMs =
             metadataPlayerResponse.videoDetails?.lengthSeconds
                 ?.toLongOrNull()

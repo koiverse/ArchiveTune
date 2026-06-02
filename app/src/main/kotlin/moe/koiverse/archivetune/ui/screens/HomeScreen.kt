@@ -38,7 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.innertube.utils.hasYouTubeLoginCookie
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
@@ -93,7 +93,7 @@ fun HomeScreen(
     val (showHomeCategoryChips) = rememberPreference(ShowHomeCategoryChipsKey, true)
     val (quickPicksDisplayMode) = rememberEnumPreference(QuickPicksDisplayModeKey, QuickPicksDisplayMode.CARD)
     val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+        hasYouTubeLoginCookie(innerTubeCookie)
     }
     val url = if (isLoggedIn) accountImageUrl else null
 

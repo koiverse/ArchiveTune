@@ -14,7 +14,7 @@ import moe.koiverse.archivetune.constants.InnerTubeCookieKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.get
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.innertube.utils.hasYouTubeLoginCookie
 
 fun Context.isSyncEnabled(): Boolean {
     return dataStore.get(YtmSyncKey, true) && isUserLoggedIn()
@@ -22,7 +22,7 @@ fun Context.isSyncEnabled(): Boolean {
 
 fun Context.isUserLoggedIn(): Boolean {
     val cookie = dataStore[InnerTubeCookieKey] ?: ""
-    return "SAPISID" in parseCookieString(cookie) && isInternetConnected()
+    return hasYouTubeLoginCookie(cookie) && isInternetConnected()
 }
 
 fun Context.isInternetConnected(): Boolean {

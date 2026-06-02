@@ -124,7 +124,7 @@ import moe.koiverse.archivetune.constants.UseLoginForBrowse
 import moe.koiverse.archivetune.constants.VisitorDataKey
 import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.innertube.YouTube
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.innertube.utils.hasYouTubeLoginCookie
 import moe.koiverse.archivetune.ui.component.IconButton
 import moe.koiverse.archivetune.ui.component.InfoLabel
 import moe.koiverse.archivetune.ui.component.TextFieldDialog
@@ -195,7 +195,7 @@ fun AccountSettings(
     }
 
     val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+        hasYouTubeLoginCookie(innerTubeCookie)
     }
 
     LaunchedEffect(useLoginForBrowse) {
@@ -1299,7 +1299,7 @@ private fun TokenEditorDialog(
         singleLine = false,
         maxLines = 20,
         isInputValid = {
-            it.isNotEmpty() && "SAPISID" in parseCookieString(it)
+            hasYouTubeLoginCookie(it)
         },
         extraContent = {
             InfoLabel(text = stringResource(R.string.token_adv_login_description))

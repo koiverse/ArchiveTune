@@ -8,7 +8,7 @@
 package moe.koiverse.archivetune.innertube
 
 import moe.koiverse.archivetune.innertube.models.YouTubeClient
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.innertube.utils.hasYouTubeLoginCookie
 import moe.koiverse.archivetune.innertube.utils.sha1
 import java.util.Locale
 
@@ -22,10 +22,7 @@ data class PlaybackAuthState(
     val webClientPoTokenEnabled: Boolean = false,
 ) {
     val hasLoginCookie: Boolean
-        get() {
-            val currentCookie = cookie ?: return false
-            return "SAPISID" in parseCookieString(currentCookie)
-        }
+        get() = hasYouTubeLoginCookie(cookie)
 
     val hasPlaybackLoginContext: Boolean
         get() = hasLoginCookie && !dataSyncId.isNullOrBlank()

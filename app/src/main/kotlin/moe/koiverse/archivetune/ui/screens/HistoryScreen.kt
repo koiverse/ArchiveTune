@@ -103,7 +103,7 @@ import moe.koiverse.archivetune.extensions.metadata
 import moe.koiverse.archivetune.extensions.toMediaItem
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.innertube.pages.HistoryPage
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.innertube.utils.hasYouTubeLoginCookie
 import moe.koiverse.archivetune.models.toMediaMetadata
 import moe.koiverse.archivetune.playback.queues.ListQueue
 import moe.koiverse.archivetune.playback.queues.YouTubeQueue
@@ -145,7 +145,7 @@ fun HistoryScreen(
 
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
+        hasYouTubeLoginCookie(innerTubeCookie)
     }
 
     var isSearching by rememberSaveable { mutableStateOf(false) }

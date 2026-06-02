@@ -792,7 +792,6 @@ fun AutoPlaylistScreen(
                     }
                 }
             }
-        }
 
         DraggableScrollbar(
             modifier = Modifier

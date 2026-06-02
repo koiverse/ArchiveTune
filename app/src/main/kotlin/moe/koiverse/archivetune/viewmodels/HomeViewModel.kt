@@ -22,7 +22,7 @@ import moe.koiverse.archivetune.innertube.models.filterVideo
 import moe.koiverse.archivetune.innertube.pages.ExplorePage
 import moe.koiverse.archivetune.innertube.pages.HomePage
 import moe.koiverse.archivetune.innertube.utils.completed
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.innertube.utils.hasYouTubeLoginCookie
 import moe.koiverse.archivetune.constants.AccountChannelHandleKey
 import moe.koiverse.archivetune.constants.AccountEmailKey
 import moe.koiverse.archivetune.constants.AccountNameKey
@@ -437,8 +437,11 @@ class HomeViewModel @Inject constructor(
                 }
                 accountPlaylists.value = lists
             }.onFailure { error ->
+                if (error is CancellationException) throw error
                 Timber.w(error, "Failed to fetch account playlists")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Timber.e(e, "Exception fetching account playlists")
         }
@@ -511,7 +514,7 @@ class HomeViewModel @Inject constructor(
             isAccountLoading.value = true
             try {
                 val cookie = context.dataStore.get(InnerTubeCookieKey, "")
-                val loggedIn = cookie.isNotEmpty() && "SAPISID" in parseCookieString(cookie)
+                val loggedIn = hasYouTubeLoginCookie(cookie)
                 isAccountLoggedIn.value = loggedIn
 
                 if (loggedIn && prepareYouTubeAccount(cookie)) {
@@ -634,7 +637,7 @@ class HomeViewModel @Inject constructor(
                     isAccountLoading.value = true
                     
                     try {
-                        val isLoggedIn = cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
+                        val isLoggedIn = hasYouTubeLoginCookie(cookie)
                         val loginTransition = isLoggedIn && !wasLoggedIn
                         wasLoggedIn = isLoggedIn
                         isAccountLoggedIn.value = isLoggedIn

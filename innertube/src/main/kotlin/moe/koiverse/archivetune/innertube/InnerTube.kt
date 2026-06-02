@@ -15,8 +15,8 @@ import moe.koiverse.archivetune.innertube.models.YouTubeClient
 import moe.koiverse.archivetune.innertube.models.YouTubeLocale
 import moe.koiverse.archivetune.innertube.models.body.*
 import moe.koiverse.archivetune.innertube.models.response.NextResponse
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
 import moe.koiverse.archivetune.innertube.utils.sha1
+import moe.koiverse.archivetune.innertube.utils.youtubeLoginCookieValue
 import io.ktor.client.*
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.*
@@ -178,7 +178,6 @@ class InnerTube {
     ) {
         val requestOrigin = client.requestOrigin()
         val requestReferer = client.requestReferer()
-        val cookieMap = authState.cookie?.let(::parseCookieString).orEmpty()
         contentType(ContentType.Application.Json)
         headers {
             append("X-Goog-Api-Format-Version", "1")
@@ -190,9 +189,9 @@ class InnerTube {
             if (setLogin && client.loginSupported) {
                 authState.cookie?.let { cookie ->
                     append("cookie", cookie)
-                    if ("SAPISID" !in cookieMap) return@let
+                    val loginCookieValue = youtubeLoginCookieValue(cookie) ?: return@let
                     val currentTime = System.currentTimeMillis() / 1000
-                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} $requestOrigin")
+                    val sapisidHash = sha1("$currentTime $loginCookieValue $requestOrigin")
                     append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
                 }
             }

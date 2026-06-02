@@ -926,37 +926,14 @@ object YouTube {
         val tabs = response.contents?.singleColumnBrowseResultsRenderer?.tabs
 
         val contents = if (tabs != null && tabIndex >= 0 && tabIndex < tabs.size) {
-            tabs[tabIndex].tabRenderer.content?.sectionListRenderer?.contents?.firstOrNull()
+            tabs[tabIndex].tabRenderer.content?.sectionListRenderer?.contents.orEmpty()
         } else {
-            null
+            emptyList()
         }
-
-        when {
-            contents?.gridRenderer != null -> {
-                LibraryPage(
-                    items = contents.gridRenderer.items.orEmpty()
-                        .mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
-                        .mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) },
-                    continuation = contents.gridRenderer.continuations?.getContinuation()
-                )
-            }
-
-            contents?.musicShelfRenderer?.contents != null -> {
-                LibraryPage(
-                    items = contents.musicShelfRenderer.contents
-                        .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
-                        .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) },
-                    continuation = contents.musicShelfRenderer.continuations?.getContinuation()
-                )
-            }
-
-            else -> {
-                LibraryPage(
-                    items = emptyList(),
-                    continuation = null
-                )
-            }
-        }
+        LibraryPage(
+            items = contents.flatMap { it.libraryItems() },
+            continuation = contents.firstNotNullOfOrNull { it.libraryContinuation() }
+        )
     }
 
     suspend fun libraryContinuation(continuation: String) = runCatching {
@@ -967,35 +944,32 @@ object YouTube {
         ).body<BrowseResponse>()
 
         val contents = response.continuationContents
-
-        when {
-            contents?.gridContinuation != null -> {
-                val items = contents.gridContinuation.items
-                    .mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
-                    .mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) }
-                LibraryContinuationPage(
-                    items = items,
-                    continuation = if (items.isEmpty()) null else contents.gridContinuation.continuations?.getContinuation()
-                )
+        val sectionContents = contents?.sectionListContinuation?.contents.orEmpty()
+        val sectionItems = sectionContents.flatMap { it.libraryItems() }
+        val gridItems = contents?.gridContinuation?.items.orEmpty()
+            .mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
+            .mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) }
+        val shelfItems = contents?.musicShelfContinuation?.contents.orEmpty()
+            .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
+            .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) }
+        val playlistShelfItems = contents?.musicPlaylistShelfContinuation?.contents.orEmpty()
+            .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
+            .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) }
+        val items = sectionItems + gridItems + shelfItems + playlistShelfItems
+        LibraryContinuationPage(
+            items = items,
+            continuation = if (items.isEmpty()) {
+                null
+            } else {
+                sectionContents.firstNotNullOfOrNull { it.libraryContinuation() }
+                    ?: contents?.sectionListContinuation?.continuations?.getContinuation()
+                    ?: contents?.gridContinuation?.continuations?.getContinuation()
+                    ?: contents?.musicShelfContinuation?.contents.orEmpty().getContinuation()
+                    ?: contents?.musicShelfContinuation?.continuations?.getContinuation()
+                    ?: contents?.musicPlaylistShelfContinuation?.contents.orEmpty().getContinuation()
+                    ?: contents?.musicPlaylistShelfContinuation?.continuations?.getContinuation()
             }
-
-            contents?.musicShelfContinuation?.contents != null -> {
-                val items = contents.musicShelfContinuation.contents
-                    .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
-                    .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) }
-                LibraryContinuationPage(
-                    items = items,
-                    continuation = if (items.isEmpty()) null else contents.musicShelfContinuation.continuations?.getContinuation()
-                )
-            }
-
-            else -> {
-                LibraryContinuationPage(
-                    items = emptyList(),
-                    continuation = null
-                )
-            }
-        }
+        )
     }
 
     suspend fun libraryRecentActivity(): Result<LibraryPage> = runCatching {
@@ -1716,6 +1690,69 @@ object YouTube {
 
     private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
 }
+
+private fun SectionListRenderer.Content.libraryItems(): List<YTItem> =
+    buildList {
+        addAll(
+            gridRenderer
+                ?.items
+                .orEmpty()
+                .mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
+                .mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) }
+        )
+        addAll(
+            musicCarouselShelfRenderer
+                ?.contents
+                .orEmpty()
+                .mapNotNull(MusicCarouselShelfRenderer.Content::musicTwoRowItemRenderer)
+                .mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) }
+        )
+        addAll(
+            musicShelfRenderer
+                ?.contents
+                .orEmpty()
+                .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
+                .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) }
+        )
+        addAll(
+            musicPlaylistShelfRenderer
+                ?.contents
+                .orEmpty()
+                .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
+                .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) }
+        )
+        itemSectionRenderer?.contents.orEmpty().forEach { content ->
+            content.musicResponsiveListItemRenderer
+                ?.let { LibraryPage.fromMusicResponsiveListItemRenderer(it) }
+                ?.let(::add)
+            addAll(
+                content.musicShelfRenderer
+                    ?.contents
+                    .orEmpty()
+                    .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
+                    .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) }
+            )
+            addAll(
+                content.gridRenderer
+                    ?.items
+                    .orEmpty()
+                    .mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
+                    .mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) }
+            )
+        }
+    }
+
+private fun SectionListRenderer.Content.libraryContinuation(): String? =
+    gridRenderer?.continuations?.getContinuation()
+        ?: musicShelfRenderer?.contents.orEmpty().getContinuation()
+        ?: musicShelfRenderer?.continuations?.getContinuation()
+        ?: musicPlaylistShelfRenderer?.contents.orEmpty().getContinuation()
+        ?: musicPlaylistShelfRenderer?.continuations?.getContinuation()
+        ?: itemSectionRenderer?.contents.orEmpty().firstNotNullOfOrNull { content ->
+            content.musicShelfRenderer?.contents.orEmpty().getContinuation()
+                ?: content.musicShelfRenderer?.continuations?.getContinuation()
+                ?: content.gridRenderer?.continuations?.getContinuation()
+        }
 
 private fun SectionListRenderer.Content.playlistSongContents(): List<MusicShelfRenderer.Content> =
     buildList {

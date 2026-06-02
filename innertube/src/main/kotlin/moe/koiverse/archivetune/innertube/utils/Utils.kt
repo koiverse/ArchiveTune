@@ -117,6 +117,23 @@ fun parseCookieString(cookie: String): Map<String, String> =
         }
         .toMap()
 
+fun hasYouTubeLoginCookie(cookie: String?): Boolean =
+    youtubeLoginCookieValue(cookie) != null
+
+fun youtubeLoginCookieValue(cookie: String?): String? {
+    val cookieMap = cookie?.let(::parseCookieString).orEmpty()
+    return YOUTUBE_LOGIN_COOKIE_NAMES.firstNotNullOfOrNull { cookieName ->
+        cookieMap[cookieName]?.takeIf(String::isNotBlank)
+    }
+}
+
+private val YOUTUBE_LOGIN_COOKIE_NAMES = listOf(
+    "SAPISID",
+    "__Secure-3PAPISID",
+    "__Secure-1PAPISID",
+    "APISID"
+)
+
 fun String.parseTime(): Int? {
     val normalized =
         buildString(length) {

@@ -18,7 +18,7 @@ import moe.koiverse.archivetune.innertube.models.ArtistItem
 import moe.koiverse.archivetune.innertube.models.PlaylistItem
 import moe.koiverse.archivetune.innertube.models.SongItem
 import moe.koiverse.archivetune.innertube.utils.completed
-import moe.koiverse.archivetune.innertube.utils.parseCookieString
+import moe.koiverse.archivetune.innertube.utils.hasYouTubeLoginCookie
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.ArtistEntity
 import moe.koiverse.archivetune.db.entities.Playlist
@@ -186,14 +186,11 @@ class SyncUtils @Inject constructor(
                 copies.reduce(::preferredPlaylistCopy)
             }
     
-    /**
-     * Check if user is properly logged in with a valid SAPISID cookie
-     */
     private suspend fun isLoggedIn(): Boolean {
         val cookie = context.dataStore.data
             .map { it[InnerTubeCookieKey] }
             .first()
-        return cookie?.let { "SAPISID" in parseCookieString(it) } ?: false
+        return hasYouTubeLoginCookie(cookie)
     }
 
     private suspend fun isYtmSyncEnabled(): Boolean {
