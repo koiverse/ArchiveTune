@@ -283,7 +283,6 @@ class MusicService :
     private var wasAutoPausedByDeviceMute = false
     private var muteRecoveryObserver: ContentObserver? = null
     private var hasAudioFocus = false
-    private var duckingRecoveryJob: Job? = null
     private var autoStartOnBluetoothEnabled = false
     private var bluetoothReceiverRegistered = false
     private var wakeLock: PowerManager.WakeLock? = null
@@ -1106,22 +1105,6 @@ class MusicService :
             withContext(Dispatchers.Main) {
                 queueRestoreCompleted.value = true
             }
-
-            val shouldCheckBluetooth = withContext(Dispatchers.Main) {
-                player.mediaItemCount > 0 && !player.playWhenReady
-            }
-            if (shouldCheckBluetooth) {
-                val btAutoStart = withContext(Dispatchers.IO) {
-                    dataStore.get(AutoStartOnBluetoothKey, false)
-                }
-                if (btAutoStart) {
-                    withContext(Dispatchers.Main) {
-                        if (isBluetoothAudioConnected()) {
-                            handleBluetoothAutoStart()
-                        }
-                    }
-                }
-            }
         }
 
         scope.launch {
@@ -1250,13 +1233,8 @@ class MusicService :
                 player.seekTo(index, playerState.currentPosition.coerceAtLeast(0L))
             }
 
-            val shouldResumePlayback =
-                playerState.playWhenReady && player.mediaItemCount > 0
-            if (shouldResumePlayback) {
-                promoteToStartedService()
-                ensureStartedAsForeground()
-            }
-            player.playWhenReady = shouldResumePlayback
+            player.playWhenReady = false
+            abandonAudioFocus()
 
             currentMediaMetadata.value = player.currentMetadata.takeIf { player.mediaItemCount > 0 }
             updateNotification()
@@ -1376,8 +1354,10 @@ class MusicService :
             "Recovering audio route after output change at index=$mediaItemIndex position=$playbackPosition resume=$shouldResumePlayback"
         )
 
-        if (shouldResumePlayback) {
-            requestAudioFocus()
+        if (shouldResumePlayback && !requestAudioFocus()) {
+            wasPlayingBeforeAudioFocusLoss = true
+            player.playWhenReady = false
+            return
         }
 
         player.playWhenReady = false
@@ -1385,7 +1365,12 @@ class MusicService :
         player.seekTo(mediaItemIndex, playbackPosition)
         delay(AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS)
 
-        if (shouldResumePlayback && player.currentMediaItem != null && player.playbackState != Player.STATE_ENDED) {
+        if (
+            shouldResumePlayback &&
+            player.currentMediaItem != null &&
+            player.playbackState != Player.STATE_ENDED &&
+            requestAudioFocus()
+        ) {
             player.playWhenReady = true
         }
     }
@@ -1942,35 +1927,27 @@ class MusicService :
     }
 
     private fun restoreAudioFocusVolume() {
-        duckingRecoveryJob?.cancel()
-        duckingRecoveryJob = null
         audioFocusVolumeFactor.value = 1f
         hasAudioFocus = true
         lastAudioFocusState = AudioManager.AUDIOFOCUS_GAIN
     }
 
-    private fun scheduleDuckingRecovery() {
-        duckingRecoveryJob?.cancel()
-        duckingRecoveryJob = scope.launch {
-            delay(AUDIO_FOCUS_DUCKING_RECOVERY_DELAY_MS)
-            if (!isActive) return@launch
-            if (lastAudioFocusState != AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) return@launch
-            if (audioFocusVolumeFactor.value >= 1f || !shouldKeepPlaybackAudible()) return@launch
-            val focusGranted = requestAudioFocus()
-            if (!focusGranted &&
-                lastAudioFocusState == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK &&
-                shouldKeepPlaybackAudible()
-            ) {
-                audioFocusVolumeFactor.value = 1f
-                lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
-            }
+    private fun pauseForAudioFocusLoss(resumeWhenFocusReturns: Boolean) {
+        audioFocusVolumeFactor.value = 1f
+        wasPlayingBeforeAudioFocusLoss = resumeWhenFocusReturns && player.playWhenReady
+        if (player.playWhenReady) {
+            player.pause()
         }
     }
 
-    private fun handleAudioFocusChange(focusChange: Int) {
-        duckingRecoveryJob?.cancel()
-        duckingRecoveryJob = null
+    private fun ensureAudioFocusForActivePlayback(): Boolean {
+        if (!player.playWhenReady) return true
+        if (requestAudioFocus()) return true
+        pauseForAudioFocusLoss(resumeWhenFocusReturns = true)
+        return false
+    }
 
+    private fun handleAudioFocusChange(focusChange: Int) {
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 hasAudioFocus = true
@@ -1986,12 +1963,7 @@ class MusicService :
 
             AudioManager.AUDIOFOCUS_LOSS -> {
                 hasAudioFocus = false
-                audioFocusVolumeFactor.value = 1f
-                wasPlayingBeforeAudioFocusLoss = false
-
-                if (player.isPlaying) {
-                    player.pause()
-                }
+                pauseForAudioFocusLoss(resumeWhenFocusReturns = false)
 
                 abandonAudioFocus()
 
@@ -2000,27 +1972,16 @@ class MusicService :
 
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 hasAudioFocus = false
-                audioFocusVolumeFactor.value = 1f
-                wasPlayingBeforeAudioFocusLoss = player.isPlaying
-
-                if (player.isPlaying) {
-                    player.pause()
-                }
+                pauseForAudioFocusLoss(resumeWhenFocusReturns = true)
 
                 lastAudioFocusState = focusChange
             }
 
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-
                 hasAudioFocus = false
-
-                wasPlayingBeforeAudioFocusLoss = player.isPlaying
-
-                audioFocusVolumeFactor.value = AUDIO_FOCUS_DUCK_VOLUME_FACTOR
+                pauseForAudioFocusLoss(resumeWhenFocusReturns = true)
 
                 lastAudioFocusState = focusChange
-
-                scheduleDuckingRecovery()
             }
 
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
@@ -2065,8 +2026,6 @@ class MusicService :
     }
 
     private fun abandonAudioFocus() {
-        duckingRecoveryJob?.cancel()
-        duckingRecoveryJob = null
         if (hasAudioFocus) {
             audioFocusRequest?.let { request ->
                 audioManager.abandonAudioFocusRequest(request)
@@ -2211,17 +2170,6 @@ class MusicService :
             unregisterReceiver(bluetoothReceiver)
         } catch (_: Exception) {}
         bluetoothReceiverRegistered = false
-    }
-
-    private fun isBluetoothAudioConnected(): Boolean {
-        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-        return devices.any {
-            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
-                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                    (it.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
-                        it.type == AudioDeviceInfo.TYPE_BLE_SPEAKER))
-        }
     }
 
     private fun waitOnNetworkError() {
@@ -4891,7 +4839,7 @@ private fun onMediaItemTransitionInternal() {
         val keepAudioEffectSessionOpen =
             playbackState == Player.STATE_BUFFERING || playbackState == Player.STATE_READY
         if (player.playWhenReady && keepAudioEffectSessionOpen) {
-            requestAudioFocus()
+            ensureAudioFocusForActivePlayback()
         }
         if (keepAudioEffectSessionOpen) {
             openAudioEffectSession()
@@ -6050,10 +5998,6 @@ private fun onMediaItemTransitionInternal() {
         val stopMusicOnTaskClearEnabled = dataStore.get(StopMusicOnTaskClearKey, false)
 
         try {
-            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
-                runBlocking { saveQueueToDisk() }
-            }
-
             val state = togetherSessionState.value
             val isHostSessionActive =
                 state is moe.koiverse.archivetune.together.TogetherSessionState.Hosting ||
@@ -6064,25 +6008,22 @@ private fun onMediaItemTransitionInternal() {
             val isPlaybackInactive = player.playbackState == Player.STATE_IDLE || player.mediaItemCount == 0
 
             if (shouldStopServiceOnTaskRemoved(stopMusicOnTaskClearEnabled, isHostSessionActive, isPlaybackInactive)) {
+                if (stopMusicOnTaskClearEnabled) {
+                    runCatching { stopAndClearPlayback(clearPersistentState = true) }
+                    stopForegroundAndSelf()
+                    return
+                }
+
                 if (isHostSessionActive && isPlaybackInactive) {
                     runCatching { scope.launch { stopTogetherInternal() } }
                     runCatching { togetherSessionState.value = moe.koiverse.archivetune.together.TogetherSessionState.Idle }
                     stopSelf()
                     return
                 }
+            }
 
-                if (stopMusicOnTaskClearEnabled) {
-                    runCatching { stopAndClearPlayback() }
-                    runCatching {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        } else {
-                            stopForeground(true)
-                        }
-                    }
-                    stopSelf()
-                    return
-                }
+            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                runBlocking { saveQueueToDisk() }
             }
         } catch (_: Exception) {}
     }
@@ -6172,8 +6113,6 @@ private fun onMediaItemTransitionInternal() {
         const val AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS = 200L
         const val AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS = 1_500L
         const val AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS = 150L
-        const val AUDIO_FOCUS_DUCKING_RECOVERY_DELAY_MS = 4_000L
-        const val AUDIO_FOCUS_DUCK_VOLUME_FACTOR = 0.35f
         const val MIN_AUDIO_FOCUS_VOLUME_FACTOR = 0.2f
         const val MIN_AUDIO_NORMALIZATION_FACTOR = 0.25f
         const val MIN_CROSSFADE_DURATION_MS = 500L
