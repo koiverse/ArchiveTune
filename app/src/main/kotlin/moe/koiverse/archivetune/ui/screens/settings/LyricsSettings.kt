@@ -70,7 +70,6 @@ import moe.koiverse.archivetune.constants.EnableBetterLyricsKey
 import moe.koiverse.archivetune.constants.EnableKugouKey
 import moe.koiverse.archivetune.constants.EnableLrcLibKey
 import moe.koiverse.archivetune.constants.EnablePaxsenixAppleMusicLyricsKey
-import moe.koiverse.archivetune.constants.EnablePaxsenixKuGouLyricsKey
 import moe.koiverse.archivetune.constants.EnablePaxsenixLyricsKey
 import moe.koiverse.archivetune.constants.EnablePaxsenixMusixmatchLyricsKey
 import moe.koiverse.archivetune.constants.EnablePaxsenixNeteaseLyricsKey
@@ -163,7 +162,6 @@ fun LyricsSettings(
     val (enablePaxsenixNeteaseLyrics, onEnablePaxsenixNeteaseLyricsChange) = rememberPreference(key = EnablePaxsenixNeteaseLyricsKey, defaultValue = true)
     val (enablePaxsenixSpotifyLyrics, onEnablePaxsenixSpotifyLyricsChange) = rememberPreference(key = EnablePaxsenixSpotifyLyricsKey, defaultValue = true)
     val (enablePaxsenixMusixmatchLyrics, onEnablePaxsenixMusixmatchLyricsChange) = rememberPreference(key = EnablePaxsenixMusixmatchLyricsKey, defaultValue = true)
-    val (enablePaxsenixKuGouLyrics, onEnablePaxsenixKuGouLyricsChange) = rememberPreference(key = EnablePaxsenixKuGouLyricsKey, defaultValue = true)
     val (enableUnisonLyrics, onEnableUnisonLyricsChange) = rememberPreference(key = EnableUnisonLyricsKey, defaultValue = true)
     val (providerOrderStr, onProviderOrderStrChange) = rememberPreference(
         key = LyricsProviderOrderKey,
@@ -506,15 +504,6 @@ fun LyricsSettings(
                 )
             }
 
-            item(visible = enablePaxsenixLyrics) {
-                SwitchPreference(
-                    title = { Text("Paxsenix: KuGou") },
-                    icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                    checked = enablePaxsenixKuGouLyrics,
-                    onCheckedChange = onEnablePaxsenixKuGouLyricsChange,
-                )
-            }
-
             item {
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
@@ -633,7 +622,6 @@ private fun PreferredLyricsProvider.displayName(): String = when (this) {
     PreferredLyricsProvider.PAXSENIX_NETEASE -> "Paxsenix: NetEase"
     PreferredLyricsProvider.PAXSENIX_SPOTIFY -> "Paxsenix: Spotify"
     PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> "Paxsenix: Musixmatch"
-    PreferredLyricsProvider.PAXSENIX_KUGOU -> "Paxsenix: KuGou"
     PreferredLyricsProvider.UNISON -> "Unison"
 }
 
