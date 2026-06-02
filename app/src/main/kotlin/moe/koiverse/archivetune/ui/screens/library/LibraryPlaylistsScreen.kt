@@ -180,6 +180,12 @@ fun LibraryPlaylistsScreen(
     val spotifyIsRefreshing by spotifyLibraryViewModel.isRefreshing.collectAsState()
     val spotifyErrorMessage by spotifyLibraryViewModel.errorMessage.collectAsState()
 
+    LaunchedEffect(showSpotifyPlaylists) {
+        if (showSpotifyPlaylists && spotifyPlaylists.isEmpty()) {
+            spotifyLibraryViewModel.refreshPlaylists()
+        }
+    }
+
     val shortcuts = buildList {
         if (showLiked) {
             add(

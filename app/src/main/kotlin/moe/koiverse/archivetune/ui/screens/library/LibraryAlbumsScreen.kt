@@ -72,6 +72,8 @@ import moe.koiverse.archivetune.ui.component.SortHeader
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LibraryAlbumsViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -127,6 +129,15 @@ fun LibraryAlbumsScreen(
                 },
                 modifier = Modifier.weight(1f),
             )
+        }
+    }
+
+
+    LaunchedEffect(Unit) {
+        if (ytmSync) {
+            withContext(Dispatchers.IO) {
+                viewModel.sync()
+            }
         }
     }
 
