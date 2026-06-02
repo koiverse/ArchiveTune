@@ -218,13 +218,11 @@ private const val V7BackdropMinArtworkSizePx = 1_024
 private const val V7BackdropMaxArtworkSizePx = 2_048
 private const val V7BackdropOverscanFactor = 1.15f
 private const val V7BackdropSharpArtworkScale = 1.04f
-private const val V7BackdropMaskStartFraction = 0.60f
-private const val V7BackdropMaskMidFraction = 0.65f
-private const val V7BackdropMaskSolidFraction = 0.71f
-private const val V7BackdropArtworkHeightFraction =
-    (V7BackdropMaskStartFraction + V7BackdropMaskSolidFraction) / 2f
-private const val V7BackdropArtworkScrimStartFraction = 0.74f
-private const val V7BackdropArtworkScrimMidFraction = 0.88f
+private const val V7BackdropMaskStartFraction = 0.50f
+private const val V7BackdropMaskMidFraction = 0.72f
+private const val V7BackdropMaskSolidFraction = 0.92f
+private const val V7BackdropArtworkScrimStartFraction = 0.52f
+private const val V7BackdropArtworkScrimMidFraction = 0.78f
 private const val V8BackdropArtworkSizePx = 1_024
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -847,6 +845,7 @@ fun BottomSheetPlayer(
             archiveTuneCanvasEnabled &&
                 !lowDataModeActive &&
                 playerDesignStyle == PlayerDesignStyle.V7 &&
+                mediaMetadata?.thumbnailUrl.isNullOrBlank() &&
                 !aodModeEnabled
         val shouldUseArtworkCanvas =
             archiveTuneCanvasEnabled &&
@@ -1660,9 +1659,10 @@ private fun V7PlayerBackdrop(
         val canvasPrimary = canvasPrimaryUrl?.takeIf { it.isNotBlank() }
         val canvasFallback = canvasFallbackUrl?.takeIf { it.isNotBlank() }
         val canvasStatic = canvasStaticUrl?.takeIf { it.isNotBlank() }
-        val artworkUrl = canvasStatic ?: thumbnailUrl?.takeIf { it.isNotBlank() }
+        val coverArtworkUrl = thumbnailUrl?.takeIf { it.isNotBlank() }
+        val artworkUrl = coverArtworkUrl ?: canvasStatic
         val hasCanvas = !canvasPrimary.isNullOrBlank() || !canvasFallback.isNullOrBlank()
-        val paletteArtworkUrl = thumbnailUrl?.takeIf { it.isNotBlank() } ?: artworkUrl
+        val paletteArtworkUrl = coverArtworkUrl ?: artworkUrl
         var backdropPalette by remember(paletteArtworkUrl, fallbackColor) {
             mutableStateOf(V7BackdropPalette.fromColors(emptyList(), fallbackColor))
         }
@@ -1721,7 +1721,7 @@ private fun V7PlayerBackdrop(
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
         ) {
-            val artworkStageHeight = maxHeight * V7BackdropArtworkHeightFraction
+            val artworkStageHeight = maxHeight
             val artworkScrim = remember(backdropPalette) {
                 Brush.verticalGradient(
                     colorStops = arrayOf(
@@ -1767,13 +1767,25 @@ private fun V7PlayerBackdrop(
                         )
                     }
 
-                    if (hasCanvas) {
+                    if (hasCanvas && coverArtworkUrl == null) {
                         CanvasArtworkPlayer(
                             primaryUrl = backdrop.canvasPrimaryUrl,
                             fallbackUrl = backdrop.canvasFallbackUrl,
                             isPlaying = isPlaying,
                             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .let {
+                                    if (disableBlur) {
+                                        it
+                                    } else {
+                                        it.blur(44.dp)
+                                    }
+                                }
+                                .graphicsLayer {
+                                    scaleX = backdropScale
+                                    scaleY = backdropScale
+                                },
                         )
                     }
 
@@ -1792,21 +1804,23 @@ private fun V7PlayerBackdrop(
                 .background(Color.Black.copy(alpha = 0.06f))
         )
 
+        val maskScrim = remember(backdropPalette) {
+            Brush.verticalGradient(
+                colorStops = arrayOf(
+                    0f to Color.Black.copy(alpha = 0.18f),
+                    0.24f to Color.Transparent,
+                    V7BackdropMaskStartFraction to Color.Transparent,
+                    V7BackdropMaskMidFraction to backdropPalette.top.copy(alpha = 0.18f),
+                    V7BackdropMaskSolidFraction to backdropPalette.mid.copy(alpha = 0.36f),
+                    1f to backdropPalette.bottom.copy(alpha = 0.68f),
+                )
+            )
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.18f),
-                            0.24f to Color.Transparent,
-                            V7BackdropMaskStartFraction to Color.Transparent,
-                            V7BackdropMaskMidFraction to backdropPalette.top.copy(alpha = 0.18f),
-                            V7BackdropMaskSolidFraction to backdropPalette.mid.copy(alpha = 0.36f),
-                            1f to backdropPalette.bottom.copy(alpha = 0.68f),
-                        )
-                    )
-                )
+                .background(maskScrim)
         )
     }
 }
@@ -1816,20 +1830,22 @@ private fun V7ExtractedColorBackdrop(
     palette: V7BackdropPalette,
     modifier: Modifier = Modifier,
 ) {
+    val backdropBrush = remember(palette) {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0f to palette.top.copy(alpha = 0.94f),
+                0.34f to palette.top.copy(alpha = 0.96f),
+                0.42f to palette.mid.copy(alpha = 0.98f),
+                V7BackdropMaskStartFraction to palette.mid.copy(alpha = 1f),
+                V7BackdropMaskSolidFraction to palette.bottom.copy(alpha = 1f),
+                1f to palette.shadow,
+            )
+        )
+    }
+
     Box(
         modifier = modifier
-            .background(
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0f to palette.top.copy(alpha = 0.94f),
-                        0.34f to palette.top.copy(alpha = 0.96f),
-                        0.42f to palette.mid.copy(alpha = 0.98f),
-                        V7BackdropMaskStartFraction to palette.mid.copy(alpha = 1f),
-                        V7BackdropMaskSolidFraction to palette.bottom.copy(alpha = 1f),
-                        1f to palette.shadow,
-                    )
-                )
-            )
+            .background(backdropBrush)
     )
 }
 
