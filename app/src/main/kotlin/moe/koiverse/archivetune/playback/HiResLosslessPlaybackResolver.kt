@@ -29,7 +29,7 @@ object HiResLosslessPlaybackResolver {
             ).map { stream -> stream.toPlaybackData() }
 
     private fun NewPipeUtils.ExternalAudioStream.toPlaybackData(): YTPlayerUtils.PlaybackData {
-        val resolvedBitrate = maxOf(bitrate, averageBitrate)
+        val resolvedBitrate = maxOf(bitrate, averageBitrate, estimatedBitrate)
         val resolvedItag =
             itag.takeIf { it > 0 }
                 ?: when (source) {
@@ -53,7 +53,7 @@ object HiResLosslessPlaybackResolver {
                     quality = quality ?: source.name,
                     fps = null,
                     qualityLabel = null,
-                    averageBitrate = averageBitrate.takeIf { it > 0 },
+                    averageBitrate = maxOf(averageBitrate, estimatedBitrate).takeIf { it > 0 },
                     audioQuality = source.name,
                     approxDurationMs = durationSeconds.takeIf { it > 0L }?.times(1000L)?.toString(),
                     audioSampleRate = null,

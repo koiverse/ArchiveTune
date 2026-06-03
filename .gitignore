@@ -107,3 +107,7 @@ core.*
 # AI code review
 /.qodo/
 /.github/copilot-instructions.md
+/skills
+/.openclaw
+/AGENTS.md
+/SOUL.md

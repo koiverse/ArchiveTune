@@ -40,6 +40,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -98,6 +99,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.exoplayer.offline.Download
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
@@ -109,6 +111,7 @@ import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.LocalDatabase
+import moe.koiverse.archivetune.LocalDownloadUtil
 import moe.koiverse.archivetune.LocalPlayerAwareWindowInsets
 import moe.koiverse.archivetune.LocalPlayerConnection
 import moe.koiverse.archivetune.R
@@ -137,9 +140,19 @@ import moe.koiverse.archivetune.ui.menu.SelectionMediaMetadataMenu
 import moe.koiverse.archivetune.ui.menu.YouTubePlaylistMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeSongMenu
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
+import moe.koiverse.archivetune.ui.utils.DownloadProgressFloatingToolbar
+import moe.koiverse.archivetune.ui.utils.DownloadProgressToolbarState
+import moe.koiverse.archivetune.ui.utils.HeaderDownloadItem
+import moe.koiverse.archivetune.ui.utils.HeaderDownloadState
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.formatCompactCount
+import moe.koiverse.archivetune.ui.utils.headerDownloadState
+import moe.koiverse.archivetune.ui.utils.hasActiveDownloads
+import moe.koiverse.archivetune.ui.utils.sendAddMissingDownloads
+import moe.koiverse.archivetune.ui.utils.sendPauseDownloads
+import moe.koiverse.archivetune.ui.utils.sendRemoveDownloads
+import moe.koiverse.archivetune.ui.utils.sendResumeDownloads
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.OnlinePlaylistViewModel
 
@@ -166,6 +179,10 @@ fun OnlinePlaylistScreen(
     val isLoadingMore by viewModel.isLoadingMore.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val downloadUtil = LocalDownloadUtil.current
+    var downloads by remember { mutableStateOf<Map<String, Download>>(emptyMap()) }
+    var downloadState by remember { mutableStateOf<HeaderDownloadState>(HeaderDownloadState.None) }
+    var downloadsPaused by remember { mutableStateOf(false) }
 
     var selection by remember { mutableStateOf(false) }
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
@@ -215,6 +232,25 @@ fun OnlinePlaylistScreen(
     val wrappedSongs =
         remember(filteredSongs) { filteredSongs.map { item -> ItemWrapper(item) } }
             .toMutableStateList()
+
+    LaunchedEffect(songs) {
+        val songIds = songs.map { it.id }
+        if (songIds.isEmpty()) {
+            downloads = emptyMap()
+            downloadState = HeaderDownloadState.None
+            return@LaunchedEffect
+        }
+        downloadUtil.downloads.collect { currentDownloads ->
+            downloads = currentDownloads
+            downloadState = headerDownloadState(songIds, currentDownloads)
+        }
+    }
+
+    LaunchedEffect(downloadState) {
+        if (downloadState !is HeaderDownloadState.Partial) {
+            downloadsPaused = false
+        }
+    }
 
     val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
 
@@ -669,8 +705,13 @@ fun OnlinePlaylistScreen(
                                     val hasPlay = playlist.playEndpoint != null
                                     val hasShuffle = playlist.shuffleEndpoint != null
                                     val hasRadio = playlist.radioEndpoint != null
-                                    val buttonSlots = listOf(hasLike, hasPlay, hasShuffle, hasRadio, true)
-                                    val activeIndices = buttonSlots.withIndex().filter { it.value }.map { it.index }
+                                    val activeIndices =
+                                        remember(hasLike, hasPlay, hasShuffle, hasRadio) {
+                                            listOf(hasLike, hasPlay, hasShuffle, hasRadio, true, true)
+                                                .withIndex()
+                                                .filter { it.value }
+                                                .map { it.index }
+                                        }
 
                                     @Composable
                                     fun shapeFor(slotIndex: Int) = when {
@@ -727,7 +768,7 @@ fun OnlinePlaylistScreen(
                                                     }
                                                 }
                                             },
-                                            modifier = Modifier.size(48.dp),
+                                            modifier = Modifier.size(56.dp),
                                             shapes = shapeFor(0),
                                             colors = ToggleButtonDefaults.toggleButtonColors(
                                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -744,7 +785,7 @@ fun OnlinePlaylistScreen(
                                                         else R.drawable.favorite_border
                                                     ),
                                                 contentDescription = null,
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(28.dp)
                                             )
                                         }
                                     }
@@ -757,7 +798,7 @@ fun OnlinePlaylistScreen(
                                                     YouTubeQueue.playlist(playEndpoint)
                                                 )
                                             },
-                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            modifier = Modifier.weight(1f).height(56.dp),
                                             shapes = shapeFor(1),
                                             colors = ToggleButtonDefaults.toggleButtonColors(
                                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -770,7 +811,7 @@ fun OnlinePlaylistScreen(
                                                 painter = painterResource(R.drawable.play),
                                                 contentDescription =
                                                     stringResource(R.string.play),
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(28.dp)
                                             )
                                         }
                                     }
@@ -783,7 +824,7 @@ fun OnlinePlaylistScreen(
                                                     YouTubeQueue.playlist(shuffleEndpoint)
                                                 )
                                             },
-                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            modifier = Modifier.weight(1f).height(56.dp),
                                             shapes = shapeFor(2),
                                             colors = ToggleButtonDefaults.toggleButtonColors(
                                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -796,7 +837,7 @@ fun OnlinePlaylistScreen(
                                                 painter = painterResource(R.drawable.shuffle),
                                                 contentDescription =
                                                     stringResource(R.string.shuffle),
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(28.dp)
                                             )
                                         }
                                     }
@@ -809,7 +850,7 @@ fun OnlinePlaylistScreen(
                                                     YouTubeQueue(radioEndpoint)
                                                 )
                                             },
-                                            modifier = Modifier.weight(1f).height(48.dp),
+                                            modifier = Modifier.weight(1f).height(56.dp),
                                             shapes = shapeFor(3),
                                             colors = ToggleButtonDefaults.toggleButtonColors(
                                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -821,8 +862,65 @@ fun OnlinePlaylistScreen(
                                             Icon(
                                                 painter = painterResource(R.drawable.radio),
                                                 contentDescription = stringResource(R.string.radio),
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(28.dp)
                                             )
+                                        }
+                                    }
+
+                                    ToggleButton(
+                                        checked = downloadState == HeaderDownloadState.Completed,
+                                        onCheckedChange = {
+                                            when (downloadState) {
+                                                HeaderDownloadState.Completed -> sendRemoveDownloads(
+                                                    context = context,
+                                                    songIds = songs.map { it.id },
+                                                )
+                                                else -> sendAddMissingDownloads(
+                                                    context = context,
+                                                    songs = songs.map { song ->
+                                                        HeaderDownloadItem(
+                                                            id = song.id,
+                                                            title = song.title,
+                                                        )
+                                                    },
+                                                    downloads = downloads,
+                                                )
+                                            }
+                                        },
+                                        modifier = Modifier.size(56.dp),
+                                        shapes = shapeFor(4),
+                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            checkedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            checkedContentColor = MaterialTheme.colorScheme.primary,
+                                        ),
+                                    ) {
+                                        val state = downloadState
+                                        when (state) {
+                                            HeaderDownloadState.Completed -> {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.offline),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(28.dp)
+                                                )
+                                            }
+                                            is HeaderDownloadState.Partial -> {
+                                                CircularProgressIndicator(
+                                                    progress = { state.progress },
+                                                    modifier = Modifier.size(36.dp),
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    trackColor = MaterialTheme.colorScheme.outlineVariant,
+                                                    strokeWidth = 3.dp,
+                                                )
+                                            }
+                                            HeaderDownloadState.None -> {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.download),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(28.dp)
+                                                )
+                                            }
                                         }
                                     }
 
@@ -841,8 +939,8 @@ fun OnlinePlaylistScreen(
                                                 )
                                             }
                                         },
-                                        modifier = Modifier.size(48.dp),
-                                        shapes = shapeFor(4),
+                                        modifier = Modifier.size(56.dp),
+                                        shapes = shapeFor(5),
                                         colors = ToggleButtonDefaults.toggleButtonColors(
                                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -853,7 +951,7 @@ fun OnlinePlaylistScreen(
                                         Icon(
                                             painter = painterResource(R.drawable.more_vert),
                                             contentDescription = null,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(28.dp)
                                         )
                                     }
                                 }
@@ -882,7 +980,7 @@ fun OnlinePlaylistScreen(
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.mix),
-                                                contentDescription = "Start Mix",
+                                                contentDescription = stringResource(R.string.start_radio),
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
@@ -1198,6 +1296,38 @@ fun OnlinePlaylistScreen(
                 }
             }
         )
+
+        val currentDownloadState = downloadState
+        if (currentDownloadState is HeaderDownloadState.Partial && songs.isNotEmpty()) {
+            val songIds = remember(songs) { songs.map { it.id } }
+            DownloadProgressFloatingToolbar(
+                state = DownloadProgressToolbarState(
+                    progress = currentDownloadState.progress,
+                    paused = downloadsPaused,
+                    canPause = hasActiveDownloads(songIds, downloads),
+                ),
+                onPauseResume = {
+                    if (downloadsPaused) {
+                        sendResumeDownloads(context, songIds)
+                    } else {
+                        sendPauseDownloads(context, songIds)
+                    }
+                    downloadsPaused = !downloadsPaused
+                },
+                onStop = {
+                    sendRemoveDownloads(
+                        context = context,
+                        songIds = songIds,
+                    )
+                    downloadsPaused = false
+                },
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
+                        .padding(bottom = 16.dp),
+            )
+        }
 
         SnackbarHost(
             hostState = snackbarHostState,

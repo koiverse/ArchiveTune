@@ -113,6 +113,7 @@
     <string name="action_download">Download</string>
     <string name="downloading">Downloading</string>
     <string name="remove_download">Remove download</string>
+    <string name="download_progress_percent">%1$d%%</string>
     <string name="import_playlist">Import playlist</string>
     <string name="import_failed">Import failed</string>
     <string name="update_button">Update</string>

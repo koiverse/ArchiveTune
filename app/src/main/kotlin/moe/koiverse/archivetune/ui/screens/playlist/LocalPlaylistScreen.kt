@@ -165,14 +165,19 @@ import moe.koiverse.archivetune.ui.menu.removeSongFromRemotePlaylist
 import moe.koiverse.archivetune.ui.menu.SongMenu
 import moe.koiverse.archivetune.ui.screens.playlist.PlaylistSuggestionsSection
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
+import moe.koiverse.archivetune.ui.utils.DownloadProgressFloatingToolbar
+import moe.koiverse.archivetune.ui.utils.DownloadProgressToolbarState
 import moe.koiverse.archivetune.ui.utils.HeaderDownloadItem
 import moe.koiverse.archivetune.ui.utils.HeaderDownloadState
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.formatCompactCount
 import moe.koiverse.archivetune.ui.utils.headerDownloadState
+import moe.koiverse.archivetune.ui.utils.hasActiveDownloads
 import moe.koiverse.archivetune.ui.utils.sendAddMissingDownloads
+import moe.koiverse.archivetune.ui.utils.sendPauseDownloads
 import moe.koiverse.archivetune.ui.utils.sendRemoveDownloads
+import moe.koiverse.archivetune.ui.utils.sendResumeDownloads
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.LocalPlaylistViewModel
@@ -272,6 +277,7 @@ fun LocalPlaylistScreen(
     val downloadUtil = LocalDownloadUtil.current
     var downloads by remember { mutableStateOf<Map<String, Download>>(emptyMap()) }
     var downloadState by remember { mutableStateOf<HeaderDownloadState>(HeaderDownloadState.None) }
+    var downloadsPaused by remember { mutableStateOf(false) }
 
     val editable: Boolean = playlist?.playlist?.isEditable == true
 
@@ -289,6 +295,12 @@ fun LocalPlaylistScreen(
         downloadUtil.downloads.collect { currentDownloads ->
             downloads = currentDownloads
             downloadState = headerDownloadState(songIds, currentDownloads)
+        }
+    }
+
+    LaunchedEffect(downloadState) {
+        if (downloadState !is HeaderDownloadState.Partial) {
+            downloadsPaused = false
         }
     }
 
@@ -862,7 +874,7 @@ fun LocalPlaylistScreen(
                                             Icon(
                                                 painter = painterResource(R.drawable.delete),
                                                 contentDescription = null,
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(28.dp)
                                             )
                                         }
                                     } else {
@@ -888,7 +900,7 @@ fun LocalPlaylistScreen(
                                                     if (liked) R.drawable.favorite else R.drawable.favorite_border
                                                 ),
                                                 contentDescription = null,
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(28.dp)
                                             )
                                         }
                                     }
@@ -917,7 +929,7 @@ fun LocalPlaylistScreen(
                                         Icon(
                                             painter = painterResource(R.drawable.play),
                                             contentDescription = stringResource(R.string.play),
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(28.dp)
                                         )
                                     }
 
@@ -945,7 +957,7 @@ fun LocalPlaylistScreen(
                                         Icon(
                                             painter = painterResource(R.drawable.shuffle),
                                             contentDescription = stringResource(R.string.shuffle),
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(28.dp)
                                         )
                                     }
 
@@ -985,13 +997,13 @@ fun LocalPlaylistScreen(
                                                 Icon(
                                                     painter = painterResource(R.drawable.offline),
                                                     contentDescription = null,
-                                                    modifier = Modifier.size(24.dp)
+                                                    modifier = Modifier.size(28.dp)
                                                 )
                                             }
                                             is HeaderDownloadState.Partial -> {
                                                 CircularProgressIndicator(
                                                     progress = { state.progress },
-                                                    modifier = Modifier.size(24.dp),
+                                                    modifier = Modifier.size(28.dp),
                                                     color = MaterialTheme.colorScheme.onSurface,
                                                     trackColor = MaterialTheme.colorScheme.outlineVariant,
                                                     strokeWidth = 2.dp,
@@ -1001,7 +1013,7 @@ fun LocalPlaylistScreen(
                                                 Icon(
                                                     painter = painterResource(R.drawable.download),
                                                     contentDescription = null,
-                                                    modifier = Modifier.size(24.dp)
+                                                    modifier = Modifier.size(28.dp)
                                                 )
                                             }
                                         }
@@ -1052,7 +1064,7 @@ fun LocalPlaylistScreen(
                                                 if (editable) R.drawable.edit else R.drawable.sync
                                             ),
                                             contentDescription = null,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(28.dp)
                                         )
                                     }
                                 }
@@ -1083,7 +1095,7 @@ fun LocalPlaylistScreen(
                                         Icon(
                                             painter = painterResource(R.drawable.mix),
                                             contentDescription = "Start Mix",
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(28.dp)
                                         )
                                     }
                                 }
@@ -1572,6 +1584,37 @@ fun LocalPlaylistScreen(
                 }
             }
         )
+
+        val currentDownloadState = downloadState
+        if (currentDownloadState is HeaderDownloadState.Partial && songs.isNotEmpty()) {
+            val songIds = remember(songs) { songs.map { it.song.id } }
+            DownloadProgressFloatingToolbar(
+                state = DownloadProgressToolbarState(
+                    progress = currentDownloadState.progress,
+                    paused = downloadsPaused,
+                    canPause = hasActiveDownloads(songIds, downloads),
+                ),
+                onPauseResume = {
+                    if (downloadsPaused) {
+                        sendResumeDownloads(context, songIds)
+                    } else {
+                        sendPauseDownloads(context, songIds)
+                    }
+                    downloadsPaused = !downloadsPaused
+                },
+                onStop = {
+                    sendRemoveDownloads(
+                        context = context,
+                        songIds = songIds,
+                    )
+                    downloadsPaused = false
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
+                    .padding(bottom = 16.dp),
+            )
+        }
 
         SnackbarHost(
             hostState = snackbarHostState,

@@ -50,6 +50,10 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 class InnerTube {
     private var httpClient = createClient()
 
+    private companion object {
+        const val PLAYBACK_TELEMETRY_VER = "2"
+    }
+
     var locale = YouTubeLocale(
         gl = Locale.getDefault().country,
         hl = Locale.getDefault().toLanguageTag()
