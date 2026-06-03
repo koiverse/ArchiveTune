@@ -40,6 +40,7 @@ import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
@@ -100,6 +101,11 @@ object YTPlayerUtils {
         }
         val client = OkHttpClient.Builder()
             .proxy(current)
+            .connectTimeout(STREAM_PROBE_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(STREAM_PROBE_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .callTimeout(STREAM_PROBE_CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .followSslRedirects(true)
             .build()
         streamClientPair = current to client
         return client
@@ -1118,4 +1124,8 @@ object YTPlayerUtils {
         )
 
     private fun describeClient(client: YouTubeClient): String = "${client.clientName}@${client.clientVersion}"
+
+    private const val STREAM_PROBE_CONNECT_TIMEOUT_SECONDS = 4L
+    private const val STREAM_PROBE_READ_TIMEOUT_SECONDS = 4L
+    private const val STREAM_PROBE_CALL_TIMEOUT_SECONDS = 6L
 }
