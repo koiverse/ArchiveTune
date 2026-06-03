@@ -85,6 +85,13 @@ suspend fun <T> Context.retryWithoutPlaybackLoginContext(
 ): Result<T> {
     val initialAuthState = YouTube.currentPlaybackAuthState()
     val initialResult = block()
+    if (initialResult.isSuccess) {
+        persistPlaybackAuthRepair(
+            initialAuthState = initialAuthState,
+            repairedAuthState = YouTube.currentPlaybackAuthState(),
+        )
+        return initialResult
+    }
     val failure = initialResult.exceptionOrNull()
 
     val currentAuthState = YouTube.currentPlaybackAuthState()
@@ -94,7 +101,34 @@ suspend fun <T> Context.retryWithoutPlaybackLoginContext(
 
     YouTube.authState = currentAuthState.withoutPlaybackLoginContext()
     YTPlayerUtils.clearPlaybackAuthCaches()
-    return block()
+    dataStore.edit { preferences ->
+        preferences.remove(DataSyncIdKey)
+    }
+    val retryResult = block()
+    if (retryResult.isSuccess) {
+        persistPlaybackAuthRepair(
+            initialAuthState = currentAuthState,
+            repairedAuthState = YouTube.currentPlaybackAuthState(),
+        )
+    }
+    return retryResult
+}
+
+private suspend fun Context.persistPlaybackAuthRepair(
+    initialAuthState: PlaybackAuthState,
+    repairedAuthState: PlaybackAuthState,
+) {
+    if (initialAuthState.cookie != repairedAuthState.cookie) return
+    if (initialAuthState.fingerprint == repairedAuthState.fingerprint) return
+
+    dataStore.edit { preferences ->
+        repairedAuthState.visitorData
+            ?.takeIf { it.isNotBlank() && it != initialAuthState.visitorData }
+            ?.let { preferences[VisitorDataKey] = it }
+        repairedAuthState.dataSyncId
+            ?.takeIf { it.isNotBlank() && it != initialAuthState.dataSyncId }
+            ?.let { preferences[DataSyncIdKey] = it }
+    }
 }
 
 internal fun shouldRetryWithoutPlaybackLoginContext(

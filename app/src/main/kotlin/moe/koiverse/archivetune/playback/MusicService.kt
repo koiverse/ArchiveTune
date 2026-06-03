@@ -5143,6 +5143,17 @@ private fun onMediaItemTransitionInternal() {
             }
         }
 
+        if (!isLocalMedia && !isFullyCachedMedia && YTPlayerUtils.isBotDetectionException(error)) {
+            playbackUrlCache.remove(currentMediaId)
+            YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
+            YTPlayerUtils.clearPlaybackAuthCaches()
+            if (playbackStreamRecoveryTracker.registerRetryAttempt(currentMediaId)) {
+                Timber.tag("MusicService").i("Retrying playback for %s after bot-detection source error", currentMediaId)
+                player.prepare()
+                return
+            }
+        }
+
         if (!isLocalMedia && !isFullyCachedMedia && isRetryableRemoteParserFailure(error)) {
             playbackUrlCache.remove(currentMediaId)
             YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)

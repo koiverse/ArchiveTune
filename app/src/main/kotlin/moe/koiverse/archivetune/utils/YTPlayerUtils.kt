@@ -190,6 +190,52 @@ object YTPlayerUtils {
         return authState
     }
 
+    private suspend fun repairAuthStateAfterBotDetection(
+        videoId: String,
+        authState: PlaybackAuthState,
+        reason: String,
+    ): PlaybackAuthState {
+        var repairedAuthState = authState
+
+        if (authState.hasLoginCookie) {
+            val activeChannel =
+                YouTube.accountChannels()
+                    .onFailure {
+                        Timber.tag(logTag).w(it, "Failed to refresh playback account channel for $videoId")
+                        reportException(it)
+                    }
+                    .getOrNull()
+                    ?.let { channels ->
+                        channels.firstOrNull { it.isSelected } ?: channels.firstOrNull()
+                    }
+
+            val refreshedDataSyncId = activeChannel?.dataSyncId?.takeIf { it.isNotBlank() }
+            if (refreshedDataSyncId != null && refreshedDataSyncId != repairedAuthState.dataSyncId) {
+                Timber.tag(logTag).i("Refreshed playback dataSyncId for %s after bot detection", videoId)
+                repairedAuthState = repairedAuthState.copy(dataSyncId = refreshedDataSyncId).normalized()
+            }
+        }
+
+        if (
+            repairedAuthState.visitorData.isNullOrBlank() ||
+            !hasCompleteWebPlaybackPoToken(repairedAuthState)
+        ) {
+            repairedAuthState = ensureVisitorDataReady(
+                videoId = videoId,
+                authState = repairedAuthState,
+                forceRefresh = true,
+                reason = reason,
+            )
+        }
+
+        if (repairedAuthState.fingerprint != authState.fingerprint) {
+            YouTube.authState = repairedAuthState
+            clearPlaybackAuthCaches()
+        }
+
+        return repairedAuthState
+    }
+
     internal fun shouldPreferWebRemixForLoggedInPlayback(
         preferredStreamClient: PlayerStreamClient,
         isLoggedIn: Boolean,
@@ -202,6 +248,12 @@ object YTPlayerUtils {
             webClientPoTokenEnabled &&
             hasPlayerPoToken &&
             hasGvsPoToken
+    }
+
+    private fun hasCompleteWebPlaybackPoToken(authState: PlaybackAuthState): Boolean {
+        return authState.webClientPoTokenEnabled &&
+            !authState.resolvePlayerPoToken(WEB_REMIX).isNullOrBlank() &&
+            !authState.resolveGvsPoToken(WEB_REMIX).isNullOrBlank()
     }
 
     internal fun shouldSkipCipheredWebPlaybackCandidate(
@@ -286,16 +338,13 @@ object YTPlayerUtils {
         preferredStreamClient: PlayerStreamClient,
         authState: PlaybackAuthState,
     ): YouTubeClient {
-        val hasPlayerPoToken = !authState.resolvePlayerPoToken(WEB_REMIX).isNullOrBlank()
-        val hasGvsPoToken = !authState.resolveGvsPoToken(WEB_REMIX).isNullOrBlank()
-
         if (
             shouldPreferWebRemixForLoggedInPlayback(
                 preferredStreamClient = preferredStreamClient,
                 isLoggedIn = authState.hasPlaybackLoginContext,
                 webClientPoTokenEnabled = authState.webClientPoTokenEnabled,
-                hasPlayerPoToken = hasPlayerPoToken,
-                hasGvsPoToken = hasGvsPoToken,
+                hasPlayerPoToken = !authState.resolvePlayerPoToken(WEB_REMIX).isNullOrBlank(),
+                hasGvsPoToken = !authState.resolveGvsPoToken(WEB_REMIX).isNullOrBlank(),
             )
         ) {
             return WEB_REMIX
@@ -329,6 +378,9 @@ object YTPlayerUtils {
 
         return buildList {
             lastSuccessfulClient?.let { add(it) }
+            if (authState.hasPlaybackLoginContext && hasCompleteWebPlaybackPoToken(authState)) {
+                add(WEB_REMIX)
+            }
             add(preferredYouTubeClient)
             addAll(orderedFallbackClients)
             if (preferredYouTubeClient != MAIN_CLIENT) add(MAIN_CLIENT)
@@ -431,6 +483,7 @@ object YTPlayerUtils {
         var streamExpiresInSeconds: Int? = null
         var streamPlayerResponse: PlayerResponse? = null
         var streamClientUsed: YouTubeClient? = null
+        var didRepairAuthAfterBotDetection = false
 
         val preferredYouTubeClient = resolvePreferredPlaybackClient(preferredStreamClient, authState)
         if (
@@ -502,15 +555,15 @@ object YTPlayerUtils {
 
         val botDetectedClients = mutableSetOf<String>()
         var gateFailure: PlaybackGateFailure? = null
-        var didRefreshVisitorDataAfterBotDetection = false
-        val authMode =
+        fun authMode(): String =
             when {
                 canUseLoggedInPlayback -> "logged-in"
                 hasLoginCookie -> "cookie-only"
                 else -> "visitor"
             }
 
-        for ((index, client) in streamClients.withIndex()) {
+        for ((index, candidateClient) in streamClients.withIndex()) {
+            var client = candidateClient
             format = null
             streamUrl = null
             streamClientUsed = null
@@ -522,7 +575,7 @@ object YTPlayerUtils {
             )
 
             if (client != MAIN_CLIENT && client.loginRequired && !canUseLoggedInPlayback) {
-                Timber.tag(logTag).i("Skipping client ${describeClient(client)} - requires login but auth mode is $authMode")
+                Timber.tag(logTag).i("Skipping client ${describeClient(client)} - requires login but auth mode is ${authMode()}")
                 continue
             }
 
@@ -549,20 +602,25 @@ object YTPlayerUtils {
                 var isLoginRecovery = isLoginRecoveryError(reason)
                 var isBotDetection = isBotDetectionError(reason)
 
-                if (!canUseLoggedInPlayback && isBotDetection && !didRefreshVisitorDataAfterBotDetection) {
-                    val refreshedVisitorData =
-                        ensureVisitorDataReady(
+                if (isBotDetection && !didRepairAuthAfterBotDetection) {
+                    val repairedAuthState =
+                        repairAuthStateAfterBotDetection(
                             videoId = videoId,
                             authState = authState,
-                            forceRefresh = true,
                             reason = "bot-detection recovery on ${client.clientName}",
                         )
+                    val shouldUseWebRemix =
+                        repairedAuthState.hasPlaybackLoginContext &&
+                            hasCompleteWebPlaybackPoToken(repairedAuthState) &&
+                            client != WEB_REMIX
 
-                    if (!refreshedVisitorData.visitorData.isNullOrBlank()) {
-                        authState = refreshedVisitorData
-                        didRefreshVisitorDataAfterBotDetection = true
+                    if (repairedAuthState.fingerprint != authState.fingerprint || shouldUseWebRemix) {
+                        authState = repairedAuthState
+                        canUseLoggedInPlayback = authState.hasPlaybackLoginContext
+                        client = if (shouldUseWebRemix) WEB_REMIX else client
+                        didRepairAuthAfterBotDetection = true
                         Timber.tag(logTag).i(
-                            "Retrying %s for %s after refreshing visitorData",
+                            "Retrying %s for %s after repairing playback auth",
                             describeClient(client),
                             videoId,
                         )
@@ -595,12 +653,12 @@ object YTPlayerUtils {
                                 ?.times(1000L)
                     }
                     Timber.tag(logTag).i(
-                        "Recovered playback with %s after visitorData refresh",
+                        "Recovered playback with %s after auth repair",
                         describeClient(client),
                     )
                 } else {
                     val statusMessage =
-                        "Player response status not OK for ${describeClient(client)} [auth=$authMode]: " +
+                        "Player response status not OK for ${describeClient(client)} [auth=${authMode()}]: " +
                             "${playabilityStatus.status}, reason: $reason, loginRecovery: $isLoginRecovery, botDetection: $isBotDetection"
                     if (isLoginRecovery) {
                         Timber.tag(logTag).i(statusMessage)
@@ -699,7 +757,7 @@ object YTPlayerUtils {
             if (botDetectedClients.isNotEmpty()) {
                 Timber.tag(logTag).e("Bot detection triggered on clients: $botDetectedClients - all clients failed")
                 throw PlaybackException(
-                    "Sign in to confirm you're not a bot",
+                    "Playback authorization failed after repairing YouTube cookies and PoToken",
                     null,
                     PlaybackException.ERROR_CODE_REMOTE_ERROR
                 )
