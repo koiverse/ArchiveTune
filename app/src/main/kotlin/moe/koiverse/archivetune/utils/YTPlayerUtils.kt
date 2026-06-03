@@ -354,6 +354,7 @@ object YTPlayerUtils {
             PlayerStreamClient.ANDROID_VR ->
                 if (authState.hasPlaybackLoginContext) ANDROID_MUSIC else ANDROID_VR_NO_AUTH
             PlayerStreamClient.WEB_REMIX -> WEB_REMIX
+            PlayerStreamClient.HI_RES_LOSSLESS -> WEB_REMIX
             PlayerStreamClient.IOS -> IOS
             PlayerStreamClient.TVHTML5 -> TVHTML5
             PlayerStreamClient.ANDROID_MUSIC -> ANDROID_MUSIC

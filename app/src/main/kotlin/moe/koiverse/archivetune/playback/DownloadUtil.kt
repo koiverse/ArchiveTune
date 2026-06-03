@@ -43,6 +43,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -156,8 +157,13 @@ constructor(
             }
             val lowDataModeActive = context.isLowDataModeActive()
             val requestedAudioQuality = resolveDownloadAudioQuality(lowDataModeActive)
-            val streamCacheKey = buildSongUrlCacheKey(mediaId, requestedAudioQuality)
-            val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+            val streamCacheKey = buildSongUrlCacheKey(mediaId, requestedAudioQuality, preferredStreamClient)
+            val authFingerprint =
+                if (preferredStreamClient == PlayerStreamClient.HI_RES_LOSSLESS) {
+                    HiResLosslessPlaybackResolver.EXTERNAL_AUTH_FINGERPRINT
+                } else {
+                    YouTube.currentPlaybackAuthState().fingerprint
+                }
             songUrlCache[streamCacheKey]
                 ?.takeIf {
                     it.isValidFor(
@@ -173,14 +179,18 @@ constructor(
                     spaceOutStreamInfoRequests()
 
                     val result =
-                        context.retryWithoutPlaybackLoginContext {
-                            YTPlayerUtils.playerResponseForPlayback(
-                                mediaId,
-                                audioQuality = requestedAudioQuality,
-                                preferredStreamClient = preferredStreamClient,
-                                connectivityManager = connectivityManager,
-                                networkMetered = lowDataModeActive,
-                            )
+                        if (preferredStreamClient == PlayerStreamClient.HI_RES_LOSSLESS) {
+                            resolveHiResLosslessPlayback(mediaId)
+                        } else {
+                            context.retryWithoutPlaybackLoginContext {
+                                YTPlayerUtils.playerResponseForPlayback(
+                                    mediaId,
+                                    audioQuality = requestedAudioQuality,
+                                    preferredStreamClient = preferredStreamClient,
+                                    connectivityManager = connectivityManager,
+                                    networkMetered = lowDataModeActive,
+                                )
+                            }
                         }
 
                     if (result.isSuccess) {
@@ -268,8 +278,49 @@ constructor(
     private fun resolveDownloadAudioQuality(lowDataModeActive: Boolean): AudioQuality =
         if (lowDataModeActive) AudioQuality.LOW else audioQuality
 
-    private fun buildSongUrlCacheKey(mediaId: String, requestedAudioQuality: AudioQuality): String =
-        "$mediaId:${requestedAudioQuality.name}"
+    private fun buildSongUrlCacheKey(
+        mediaId: String,
+        requestedAudioQuality: AudioQuality,
+        streamClient: PlayerStreamClient,
+    ): String = "$mediaId:${requestedAudioQuality.name}:${streamClient.name}"
+
+    private suspend fun resolveHiResLosslessPlayback(mediaId: String): Result<YTPlayerUtils.PlaybackData> =
+        runCatching {
+            val song = database.song(mediaId).first()
+            val fallbackMetadata =
+                if (song == null) {
+                    YTPlayerUtils
+                        .playerResponseForMetadata(mediaId)
+                        .getOrNull()
+                        ?.videoDetails
+                } else {
+                    null
+                }
+            val title =
+                song?.song?.title?.takeIf { it.isNotBlank() }
+                    ?: fallbackMetadata?.title?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("Missing track title for external stream lookup")
+            val artists =
+                song?.artists?.map { it.name }
+                    ?.filter { it.isNotBlank() }
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: fallbackMetadata?.author
+                        ?.split(',', '&')
+                        ?.mapNotNull { it.trim().takeIf(String::isNotEmpty) }
+                        .orEmpty()
+            val durationSeconds =
+                song?.song?.duration?.takeIf { it > 0 }
+                    ?: fallbackMetadata?.lengthSeconds?.toIntOrNull()?.takeIf { it > 0 }
+
+            HiResLosslessPlaybackResolver
+                .resolve(
+                    HiResLosslessPlaybackResolver.TrackIdentity(
+                        title = title,
+                        artists = artists,
+                        durationSeconds = durationSeconds,
+                    )
+                ).getOrThrow()
+        }
 
     private fun persistPlaybackMetadata(
         mediaId: String,
@@ -278,7 +329,7 @@ constructor(
         downloadScope.launch {
             runCatching {
                 val format = playbackData.format
-                val contentLength = format.contentLength ?: return@runCatching
+                val contentLength = format.contentLength ?: 0L
                 val resolvedCodecs =
                     format.mimeType
                         .substringAfter("codecs=", "")

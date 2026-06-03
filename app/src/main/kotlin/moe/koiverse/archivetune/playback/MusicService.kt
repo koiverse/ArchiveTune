@@ -5339,7 +5339,13 @@ private fun onMediaItemTransitionInternal() {
         }
 
         val lowDataModeActive = isLowDataModeActive()
-        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+        val hiResLosslessSelected = preferredStreamClient == PlayerStreamClient.HI_RES_LOSSLESS
+        val authFingerprint =
+            if (hiResLosslessSelected) {
+                HiResLosslessPlaybackResolver.EXTERNAL_AUTH_FINGERPRINT
+            } else {
+                YouTube.currentPlaybackAuthState().fingerprint
+            }
         playbackUrlCache[mediaId]
             ?.takeUnless { lowDataModeActive }
             ?.takeIf {
@@ -5364,14 +5370,18 @@ private fun onMediaItemTransitionInternal() {
         }
 
         val playbackData = runBlocking(Dispatchers.IO) {
-            retryWithoutPlaybackLoginContext {
-                YTPlayerUtils.playerResponseForPlayback(
-                    mediaId,
-                    audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
-                    connectivityManager = connectivityManager,
-                    preferredStreamClient = preferredStreamClient,
-                    networkMetered = lowDataModeActive,
-                )
+            if (hiResLosslessSelected) {
+                resolveHiResLosslessPlayback(mediaId)
+            } else {
+                retryWithoutPlaybackLoginContext {
+                    YTPlayerUtils.playerResponseForPlayback(
+                        mediaId,
+                        audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
+                        connectivityManager = connectivityManager,
+                        preferredStreamClient = preferredStreamClient,
+                        networkMetered = lowDataModeActive,
+                    )
+                }
             }
         }.getOrElse { throwable ->
             when {
@@ -5483,6 +5493,43 @@ private fun onMediaItemTransitionInternal() {
             resolvedDataSpec.subrange(0L, nonNullLength)
         } ?: resolvedDataSpec
     }
+
+    private suspend fun resolveHiResLosslessPlayback(mediaId: String): Result<YTPlayerUtils.PlaybackData> =
+        runCatching {
+            val song = database.song(mediaId).first()
+            val mediaMetadata =
+                player.findNextMediaItemById(mediaId)?.metadata
+                    ?: player.currentMediaItem?.takeIf { it.mediaId == mediaId }?.metadata
+            val mediaItemMetadata =
+                player.findNextMediaItemById(mediaId)?.mediaMetadata
+                    ?: player.currentMediaItem?.takeIf { it.mediaId == mediaId }?.mediaMetadata
+            val title =
+                song?.song?.title?.takeIf { it.isNotBlank() }
+                    ?: mediaMetadata?.title?.takeIf { it.isNotBlank() }
+                    ?: mediaItemMetadata?.title?.toString()?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("Missing track title for external stream lookup")
+            val artists =
+                song?.artists?.map { it.name }
+                    ?.filter { it.isNotBlank() }
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: mediaMetadata?.artists?.map { it.name }?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }
+                    ?: mediaItemMetadata?.artist?.toString()
+                        ?.split(',', '&')
+                        ?.mapNotNull { it.trim().takeIf(String::isNotEmpty) }
+                        .orEmpty()
+            val durationSeconds =
+                song?.song?.duration?.takeIf { it > 0 }
+                    ?: mediaMetadata?.duration?.takeIf { it > 0 }
+
+            HiResLosslessPlaybackResolver
+                .resolve(
+                    HiResLosslessPlaybackResolver.TrackIdentity(
+                        title = title,
+                        artists = artists,
+                        durationSeconds = durationSeconds,
+                    )
+                ).getOrThrow()
+        }
 
     private fun isCurrentlyNetworkConnected(): Boolean =
         runCatching { connectivityObserver.isCurrentlyConnected() }

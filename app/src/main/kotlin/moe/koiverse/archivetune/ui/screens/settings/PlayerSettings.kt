@@ -245,17 +245,25 @@ fun PlayerSettings(
                     description = stringResource(R.string.player_stream_client_desc),
                     icon = { Icon(painterResource(R.drawable.integration), null) },
                     selectedValue = playerStreamClient,
-                    values = remember { listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX) },
+                    values = remember {
+                        listOf(
+                            PlayerStreamClient.ANDROID_VR,
+                            PlayerStreamClient.WEB_REMIX,
+                            PlayerStreamClient.HI_RES_LOSSLESS,
+                        )
+                    },
                     onValueSelected = onPlayerStreamClientChange,
                     valueText = {
                         when (it) {
                             PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
+                            PlayerStreamClient.HI_RES_LOSSLESS -> stringResource(R.string.player_stream_client_hi_res_lossless)
                             else -> stringResource(R.string.player_stream_client_web_remix)
                         }
                     },
                     valueDescription = {
                         when (it) {
                             PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
+                            PlayerStreamClient.HI_RES_LOSSLESS -> stringResource(R.string.player_stream_client_hi_res_lossless_desc)
                             else -> stringResource(R.string.player_stream_client_web_remix_desc)
                         }
                     },

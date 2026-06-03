@@ -16,16 +16,23 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.ServiceList
+import org.schabi.newpipe.extractor.StreamingService
 import org.schabi.newpipe.extractor.downloader.Downloader
 import org.schabi.newpipe.extractor.downloader.Request
 import org.schabi.newpipe.extractor.downloader.Response
 import org.schabi.newpipe.extractor.exceptions.ParsingException
 import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
 import org.schabi.newpipe.extractor.services.youtube.YoutubeJavaScriptPlayerManager
+import org.schabi.newpipe.extractor.stream.AudioStream
+import org.schabi.newpipe.extractor.stream.StreamInfo
+import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.io.IOException
 import java.net.Proxy
 import java.net.SocketTimeoutException
+import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 
 private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
 
@@ -86,9 +93,56 @@ private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
 
 object NewPipeUtils {
 
+    enum class ExternalAudioService {
+        BANDCAMP,
+        SOUNDCLOUD,
+    }
+
+    data class ExternalAudioQuery(
+        val title: String,
+        val artists: List<String>,
+        val durationSeconds: Int?,
+    )
+
+    data class ExternalAudioStream(
+        val source: ExternalAudioService,
+        val streamUrl: String,
+        val durationSeconds: Long,
+        val mimeType: String,
+        val bitrate: Int,
+        val averageBitrate: Int,
+        val quality: String?,
+        val itag: Int,
+    )
+
     init {
         NewPipe.init(NewPipeDownloaderImpl(YouTube.proxy))
     }
+
+    fun getHiResLosslessAudioStream(query: ExternalAudioQuery): Result<ExternalAudioStream> =
+        runCatching {
+            val normalizedQuery = query.normalized()
+            val errors = mutableListOf<Throwable>()
+            val services =
+                listOf(
+                    ServiceList.Bandcamp to ExternalAudioService.BANDCAMP,
+                    ServiceList.SoundCloud to ExternalAudioService.SOUNDCLOUD,
+                )
+
+            for ((service, source) in services) {
+                resolveExternalAudioStream(
+                    service = service,
+                    source = source,
+                    query = normalizedQuery,
+                ).onSuccess { return@runCatching it }
+                    .onFailure { errors += it }
+            }
+
+            throw IllegalStateException(
+                "No Bandcamp or SoundCloud stream found for ${normalizedQuery.title}",
+                errors.lastOrNull(),
+            )
+        }
 
     fun getSignatureTimestamp(videoId: String): Result<Int> = runCatching {
         YoutubeJavaScriptPlayerManager.getSignatureTimestamp(videoId)
@@ -161,6 +215,137 @@ object NewPipeUtils {
             )
         }
 
+    private fun resolveExternalAudioStream(
+        service: StreamingService,
+        source: ExternalAudioService,
+        query: ExternalAudioQuery,
+    ): Result<ExternalAudioStream> =
+        runCatching {
+            val candidates =
+                query.searchQueries()
+                    .asSequence()
+                    .flatMap { searchQuery ->
+                        runCatching {
+                            service
+                                .getSearchExtractor(searchQuery)
+                                .apply { fetchPage() }
+                                .getInitialPage()
+                                .getItems()
+                                .asSequence()
+                                .filterIsInstance<StreamInfoItem>()
+                        }.getOrElse { emptySequence() }
+                    }
+                    .distinctBy { it.getUrl() }
+                    .filter { candidate -> query.matchesDuration(candidate.getDuration()) }
+                    .sortedByDescending { candidate -> query.score(candidate) }
+                    .take(MAX_EXTERNAL_SEARCH_CANDIDATES)
+                    .toList()
+
+            for (candidate in candidates) {
+                val streamInfo = runCatching { StreamInfo.getInfo(candidate.getUrl()) }.getOrNull() ?: continue
+                val audioStream = selectExternalAudioStream(streamInfo.getAudioStreams()) ?: continue
+                val content =
+                    audioStream.getContent()
+                        .takeIf { audioStream.isUrl() && it.startsWith("http", ignoreCase = true) }
+                        ?: continue
+
+                return@runCatching ExternalAudioStream(
+                    source = source,
+                    streamUrl = content,
+                    durationSeconds = streamInfo.getDuration(),
+                    mimeType = audioStream.getFormat()?.getMimeType() ?: FALLBACK_EXTERNAL_AUDIO_MIME_TYPE,
+                    bitrate = audioStream.getBitrate().takeUnless { it == AudioStream.UNKNOWN_BITRATE } ?: 0,
+                    averageBitrate = audioStream.getAverageBitrate().takeUnless { it == AudioStream.UNKNOWN_BITRATE } ?: 0,
+                    quality = audioStream.getQuality(),
+                    itag = audioStream.getItag(),
+                )
+            }
+
+            throw IllegalStateException("No playable ${source.name.lowercase(Locale.US)} audio stream found")
+        }
+
+    private fun selectExternalAudioStream(streams: List<AudioStream>): AudioStream? =
+        streams
+            .asSequence()
+            .filter { stream -> stream.isUrl() && stream.getContent().startsWith("http", ignoreCase = true) }
+            .sortedWith(
+                compareByDescending<AudioStream> { it.losslessRank() }
+                    .thenByDescending { it.getAverageBitrate().takeUnless { bitrate -> bitrate == AudioStream.UNKNOWN_BITRATE } ?: 0 }
+                    .thenByDescending { it.getBitrate().takeUnless { bitrate -> bitrate == AudioStream.UNKNOWN_BITRATE } ?: 0 }
+            )
+            .firstOrNull()
+
+    private fun AudioStream.losslessRank(): Int {
+        val formatName = getFormat()?.getName().orEmpty()
+        val mimeType = getFormat()?.getMimeType().orEmpty()
+        val codecName = getCodec().orEmpty()
+        return when {
+            listOf(formatName, mimeType, codecName).any { value ->
+                value.contains("flac", ignoreCase = true) ||
+                    value.contains("alac", ignoreCase = true) ||
+                    value.contains("wav", ignoreCase = true) ||
+                    value.contains("aiff", ignoreCase = true)
+            } -> 3
+            codecName.contains("opus", ignoreCase = true) -> 2
+            else -> 1
+        }
+    }
+
+    private fun ExternalAudioQuery.normalized(): ExternalAudioQuery =
+        copy(
+            title = title.trim(),
+            artists = artists.mapNotNull { it.trim().takeIf(String::isNotEmpty) }.distinct(),
+            durationSeconds = durationSeconds?.takeIf { it > 0 },
+        )
+
+    private fun ExternalAudioQuery.searchQueries(): List<String> {
+        val primaryArtist = artists.firstOrNull().orEmpty()
+        return buildList {
+            if (primaryArtist.isNotBlank()) add("$primaryArtist $title")
+            add(title)
+        }.map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+    }
+
+    private fun ExternalAudioQuery.matchesDuration(candidateDurationSeconds: Long): Boolean {
+        val expected = durationSeconds ?: return true
+        if (candidateDurationSeconds <= 0L) return true
+        val tolerance = maxOf(EXTERNAL_DURATION_MIN_TOLERANCE_SECONDS, (expected * EXTERNAL_DURATION_TOLERANCE_PERCENT) / 100)
+        return abs(candidateDurationSeconds - expected) <= tolerance
+    }
+
+    private fun ExternalAudioQuery.score(candidate: StreamInfoItem): Int {
+        val titleScore = tokenOverlap(title, candidate.getName()) * 4
+        val artistScore =
+            artists.maxOfOrNull { artist ->
+                maxOf(
+                    tokenOverlap(artist, candidate.getUploaderName().orEmpty()),
+                    tokenOverlap(artist, candidate.getName()),
+                )
+            } ?: 0
+        val durationScore =
+            durationSeconds?.let { expected ->
+                val actual = candidate.getDuration()
+                if (actual <= 0L) 0 else maxOf(0, 20 - abs(actual - expected).toInt())
+            } ?: 0
+        return titleScore + (artistScore * 3) + durationScore
+    }
+
+    private fun tokenOverlap(left: String, right: String): Int {
+        val leftTokens = left.normalizedTokens()
+        if (leftTokens.isEmpty()) return 0
+        val rightTokens = right.normalizedTokens()
+        return leftTokens.count { it in rightTokens }
+    }
+
+    private fun String.normalizedTokens(): Set<String> =
+        lowercase(Locale.US)
+            .replace(Regex("[^a-z0-9]+"), " ")
+            .split(' ')
+            .mapNotNull { it.trim().takeIf { token -> token.length > 1 } }
+            .toSet()
+
     private inline fun <T> retryWithBackoff(
         maxAttempts: Int,
         initialDelayMs: Long,
@@ -193,5 +378,10 @@ object NewPipeUtils {
         }
         throw lastError ?: IllegalStateException("Retry attempts exhausted")
     }
+
+    private const val MAX_EXTERNAL_SEARCH_CANDIDATES = 8
+    private const val EXTERNAL_DURATION_MIN_TOLERANCE_SECONDS = 8
+    private const val EXTERNAL_DURATION_TOLERANCE_PERCENT = 12
+    private const val FALLBACK_EXTERNAL_AUDIO_MIME_TYPE = "audio/mpeg"
 
 }
