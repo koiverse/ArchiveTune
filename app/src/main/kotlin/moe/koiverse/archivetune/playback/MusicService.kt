@@ -454,7 +454,7 @@ class MusicService :
 
     private data class RemotePlaybackTracking(
         val playbackUrl: String,
-        val watchtimeUrl: String,
+        val watchtimeUrl: String?,
         val atrUrl: String?,
     )
 
@@ -466,7 +466,6 @@ class MusicService :
         val watchtimeUrl = videostatsWatchtimeUrl?.baseUrl
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
-            ?: return null
         val atrTrackingUrl = atrUrl?.baseUrl
             ?.trim()
             ?.takeIf { it.isNotEmpty() }

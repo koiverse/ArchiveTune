@@ -204,6 +204,31 @@ class InnerTube {
         parameter("prettyPrint", false)
     }
 
+    private fun HttpRequestBuilder.ytPlaybackTrackingClient(
+        client: YouTubeClient,
+        authState: PlaybackAuthState = currentAuthState(),
+    ) {
+        val requestOrigin = client.requestOrigin()
+        headers {
+            append("X-Goog-Api-Format-Version", "1")
+            append("X-YouTube-Client-Name", client.clientId)
+            append("X-YouTube-Client-Version", client.clientVersion)
+            append("X-Origin", requestOrigin)
+            append("Referer", client.requestReferer())
+            authState.visitorData?.let { append("X-Goog-Visitor-Id", it) }
+            if (client.loginSupported) {
+                authState.cookie?.let { cookie ->
+                    append("cookie", cookie)
+                    val loginCookieValue = youtubeLoginCookieValue(cookie) ?: return@let
+                    val currentTime = System.currentTimeMillis() / 1000
+                    val sapisidHash = sha1("$currentTime $loginCookieValue $requestOrigin")
+                    append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
+                }
+            }
+        }
+        userAgent(client.userAgent)
+    }
+
     private suspend fun <T> withRetry(
         maxAttempts: Int = 3,
         initialDelay: Long = 500L,
@@ -357,21 +382,16 @@ class InnerTube {
         url: String,
         cpn: String,
         playlistId: String?,
-        poToken: String? = null,
         elapsedSeconds: Double? = null,
         state: String? = null,
         client: YouTubeClient = YouTubeClient.WEB_REMIX,
         authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
         httpClient.get(url) {
-            ytClient(client, true, authState = authState)
+            ytPlaybackTrackingClient(client, authState = authState)
             parameterIfMissing(url, "ver", "2")
             parameterIfMissing(url, "c", client.clientName)
             parameterIfMissing(url, "cpn", cpn)
-
-            if (!poToken.isNullOrBlank()) {
-                parameterIfMissing(url, "pot", poToken)
-            }
 
             if (elapsedSeconds != null) {
                 val seconds = elapsedSeconds.coerceAtLeast(0.0)
