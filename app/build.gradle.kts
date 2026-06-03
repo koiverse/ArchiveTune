@@ -302,7 +302,9 @@ dependencies {
 
     implementation(libs.hilt)
     implementation(libs.re2j)
+    annotationProcessor(libs.kotlin.metadata.jvm)
     ksp(libs.hilt.compiler)
+    ksp(libs.kotlin.metadata.jvm)
 
     implementation(project(":innertube"))
     implementation(project(":kugou"))
@@ -367,5 +369,6 @@ configurations.configureEach {
         "androidx.compose.ui:ui-util:${libs.versions.compose.get()}",
         "androidx.compose.ui:ui-tooling:${libs.versions.compose.get()}",
         "androidx.compose.animation:animation-graphics:${libs.versions.compose.get()}",
+        "org.jetbrains.kotlin:kotlin-metadata-jvm:${libs.versions.kotlinMetadata.get()}",
     )
 }
