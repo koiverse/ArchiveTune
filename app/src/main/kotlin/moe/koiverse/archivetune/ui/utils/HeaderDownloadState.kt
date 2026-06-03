@@ -61,6 +61,17 @@ fun headerDownloadState(
                 progressTotal += progress.coerceIn(0f, 1f)
                 hasAnyDownload = true
             }
+
+            Download.STATE_STOPPED -> {
+                if (download.stopReason != DOWNLOAD_STOP_REASON_NONE) {
+                    val progress = download.percentDownloaded
+                        .takeIf { it >= 0f }
+                        ?.div(100f)
+                        ?: 0f
+                    progressTotal += progress.coerceIn(0f, 1f)
+                    hasAnyDownload = true
+                }
+            }
         }
     }
 
@@ -111,6 +122,50 @@ fun sendRemoveDownloads(
     }
 }
 
+fun sendPauseDownloads(
+    context: Context,
+    songIds: List<String>,
+) {
+    songIds.distinct().forEach { songId ->
+        DownloadService.sendSetStopReason(
+            context,
+            ExoDownloadService::class.java,
+            songId,
+            COLLECTION_PAUSE_STOP_REASON,
+            false,
+        )
+    }
+}
+
+fun sendResumeDownloads(
+    context: Context,
+    songIds: List<String>,
+) {
+    songIds.distinct().forEach { songId ->
+        DownloadService.sendSetStopReason(
+            context,
+            ExoDownloadService::class.java,
+            songId,
+            DOWNLOAD_STOP_REASON_NONE,
+            false,
+        )
+    }
+}
+
+fun hasActiveDownloads(
+    songIds: List<String>,
+    downloads: Map<String, Download>,
+): Boolean =
+    songIds.distinct().any { songId ->
+        when (downloads[songId]?.state) {
+            Download.STATE_QUEUED,
+            Download.STATE_DOWNLOADING,
+            Download.STATE_RESTARTING -> true
+            Download.STATE_STOPPED -> downloads[songId]?.stopReason != DOWNLOAD_STOP_REASON_NONE
+            else -> false
+        }
+    }
+
 private fun Int?.shouldRequestDownload(): Boolean =
     when (this) {
         Download.STATE_COMPLETED,
@@ -119,3 +174,6 @@ private fun Int?.shouldRequestDownload(): Boolean =
         Download.STATE_RESTARTING -> false
         else -> true
     }
+
+private const val DOWNLOAD_STOP_REASON_NONE = 0
+private const val COLLECTION_PAUSE_STOP_REASON = 1

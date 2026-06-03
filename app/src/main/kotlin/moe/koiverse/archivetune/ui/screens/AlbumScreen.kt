@@ -51,7 +51,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,6 +86,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.exoplayer.offline.Download
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
@@ -123,13 +123,18 @@ import moe.koiverse.archivetune.ui.menu.SelectionSongMenu
 import moe.koiverse.archivetune.ui.menu.SongMenu
 import moe.koiverse.archivetune.ui.menu.YouTubeAlbumMenu
 import moe.koiverse.archivetune.ui.theme.PlayerColorExtractor
+import moe.koiverse.archivetune.ui.utils.DownloadProgressFloatingToolbar
+import moe.koiverse.archivetune.ui.utils.DownloadProgressToolbarState
 import moe.koiverse.archivetune.ui.utils.HeaderDownloadItem
 import moe.koiverse.archivetune.ui.utils.HeaderDownloadState
 import moe.koiverse.archivetune.ui.utils.ItemWrapper
 import moe.koiverse.archivetune.ui.utils.backToMain
 import moe.koiverse.archivetune.ui.utils.headerDownloadState
+import moe.koiverse.archivetune.ui.utils.hasActiveDownloads
 import moe.koiverse.archivetune.ui.utils.sendAddMissingDownloads
+import moe.koiverse.archivetune.ui.utils.sendPauseDownloads
 import moe.koiverse.archivetune.ui.utils.sendRemoveDownloads
+import moe.koiverse.archivetune.ui.utils.sendResumeDownloads
 import moe.koiverse.archivetune.utils.makeTimeString
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.viewmodels.AlbumUiState
@@ -151,13 +156,12 @@ fun AlbumScreen(
 
     val scope = rememberCoroutineScope()
 
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsStateWithLifecycle()
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
 
-    val playlistId by viewModel.playlistId.collectAsState()
-    val albumWithSongs by viewModel.albumWithSongs.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
-    val otherVersions by viewModel.otherVersions.collectAsState()
+    val albumWithSongs by viewModel.albumWithSongs.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val otherVersions by viewModel.otherVersions.collectAsStateWithLifecycle()
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
@@ -225,6 +229,7 @@ fun AlbumScreen(
     val downloadUtil = LocalDownloadUtil.current
     var downloads by remember { mutableStateOf<Map<String, Download>>(emptyMap()) }
     var downloadState by remember { mutableStateOf<HeaderDownloadState>(HeaderDownloadState.None) }
+    var downloadsPaused by remember { mutableStateOf(false) }
 
     LaunchedEffect(albumWithSongs) {
         val songIds = albumWithSongs?.songs?.map { it.id }.orEmpty()
@@ -236,6 +241,12 @@ fun AlbumScreen(
         downloadUtil.downloads.collect { currentDownloads ->
             downloads = currentDownloads
             downloadState = headerDownloadState(songIds, currentDownloads)
+        }
+    }
+
+    LaunchedEffect(downloadState) {
+        if (downloadState !is HeaderDownloadState.Partial) {
+            downloadsPaused = false
         }
     }
 
@@ -518,7 +529,7 @@ fun AlbumScreen(
                                         update(albumWithSongs.album.toggleLike())
                                     }
                                 },
-                                modifier = Modifier.size(48.dp),
+                                modifier = Modifier.size(56.dp),
                                 shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
                                 colors = ToggleButtonDefaults.toggleButtonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -532,7 +543,7 @@ fun AlbumScreen(
                                         if (isBookmarked) R.drawable.favorite else R.drawable.favorite_border
                                     ),
                                     contentDescription = null,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
 
@@ -545,7 +556,7 @@ fun AlbumScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp),
+                                    .height(56.dp),
                                 shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
                                 colors = ToggleButtonDefaults.toggleButtonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
@@ -557,7 +568,7 @@ fun AlbumScreen(
                                 Icon(
                                     painter = painterResource(R.drawable.play),
                                     contentDescription = stringResource(R.string.play),
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
 
@@ -570,7 +581,7 @@ fun AlbumScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp),
+                                    .height(56.dp),
                                 shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
                                 colors = ToggleButtonDefaults.toggleButtonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
@@ -582,7 +593,7 @@ fun AlbumScreen(
                                 Icon(
                                     painter = painterResource(R.drawable.shuffle),
                                     contentDescription = stringResource(R.string.shuffle),
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
 
@@ -608,7 +619,7 @@ fun AlbumScreen(
                                         }
                                     }
                                 },
-                                modifier = Modifier.size(48.dp),
+                                modifier = Modifier.size(56.dp),
                                 shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
                                 colors = ToggleButtonDefaults.toggleButtonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -623,23 +634,23 @@ fun AlbumScreen(
                                         Icon(
                                             painter = painterResource(R.drawable.offline),
                                             contentDescription = null,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(28.dp)
                                         )
                                     }
                                     is HeaderDownloadState.Partial -> {
                                         CircularProgressIndicator(
                                             progress = { state.progress },
-                                            modifier = Modifier.size(24.dp),
+                                            modifier = Modifier.size(36.dp),
                                             color = MaterialTheme.colorScheme.onSurface,
                                             trackColor = MaterialTheme.colorScheme.outlineVariant,
-                                            strokeWidth = 2.dp,
+                                            strokeWidth = 3.dp,
                                         )
                                     }
                                     else -> {
                                         Icon(
                                             painter = painterResource(R.drawable.download),
                                             contentDescription = null,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(28.dp)
                                         )
                                     }
                                 }
@@ -659,7 +670,7 @@ fun AlbumScreen(
                                         )
                                     }
                                 },
-                                modifier = Modifier.size(48.dp),
+                                modifier = Modifier.size(56.dp),
                                 shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                                 colors = ToggleButtonDefaults.toggleButtonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -671,7 +682,7 @@ fun AlbumScreen(
                                 Icon(
                                     painter = painterResource(R.drawable.more_vert),
                                     contentDescription = null,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
                         }
@@ -1038,6 +1049,40 @@ fun AlbumScreen(
                 }
             }
         )
+
+        val currentAlbumWithSongs = albumWithSongs
+        val currentDownloadState = downloadState
+        if (currentAlbumWithSongs != null && currentDownloadState is HeaderDownloadState.Partial) {
+            val songIds = remember(currentAlbumWithSongs) {
+                currentAlbumWithSongs.songs.map { it.id }
+            }
+            DownloadProgressFloatingToolbar(
+                state = DownloadProgressToolbarState(
+                    progress = currentDownloadState.progress,
+                    paused = downloadsPaused,
+                    canPause = hasActiveDownloads(songIds, downloads),
+                ),
+                onPauseResume = {
+                    if (downloadsPaused) {
+                        sendResumeDownloads(context, songIds)
+                    } else {
+                        sendPauseDownloads(context, songIds)
+                    }
+                    downloadsPaused = !downloadsPaused
+                },
+                onStop = {
+                    sendRemoveDownloads(
+                        context = context,
+                        songIds = songIds,
+                    )
+                    downloadsPaused = false
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
+                    .padding(bottom = 16.dp),
+            )
+        }
     }
 }
 
