@@ -56,6 +56,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -128,6 +129,7 @@ import moe.koiverse.archivetune.ui.component.shimmer.TextPlaceholder
 import moe.koiverse.archivetune.utils.rememberEnumPreference
 import moe.koiverse.archivetune.utils.rememberPreference
 import moe.koiverse.archivetune.utils.reportException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.abs
 import kotlin.math.roundToLong
 import kotlin.math.roundToInt
@@ -230,9 +232,13 @@ fun LyricsEnhanced(
     var syncedLyrics by remember(lyricsEntries, isTtmlFormat) {
         mutableStateOf(buildSyncedLyrics(lyricsEntries, isTtmlFormat, emptyMap()))
     }
+    var syncedLyricsRenderVersion by remember(lyricsEntries, isTtmlFormat) {
+        mutableIntStateOf(0)
+    }
 
     LaunchedEffect(lyricsEntries, romanizationPreferences) {
         syncedLyrics = buildSyncedLyrics(lyricsEntries, isTtmlFormat, emptyMap())
+        syncedLyricsRenderVersion += 1
         if (!romanizationPreferences.isEnabled) return@LaunchedEffect
 
         val toRomanize = lyricsEntries.mapIndexedNotNull { index, entry ->
@@ -261,6 +267,8 @@ fun LyricsEnhanced(
                                 ?: romanizeLyricsLine(entry.text, romanizationPreferences)
                         )
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     reportException(e)
                     if (isTtmlFormat && entry.words != null) {
@@ -277,6 +285,7 @@ fun LyricsEnhanced(
             tempMap[index] = romanized
         }
         syncedLyrics = buildSyncedLyrics(lyricsEntries, isTtmlFormat, tempMap)
+        syncedLyricsRenderVersion += 1
     }
 
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
@@ -560,7 +569,7 @@ fun LyricsEnhanced(
                 ) {
                     val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
 
-                    key(lyricsSessionKey) {
+                    key(lyricsSessionKey, syncedLyricsRenderVersion) {
                         KaraokeLyricsView(
                             listState = listState,
                             lyrics = syncedLyrics,
