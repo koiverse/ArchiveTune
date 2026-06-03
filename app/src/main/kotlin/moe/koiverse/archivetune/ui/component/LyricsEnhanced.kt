@@ -140,6 +140,7 @@ private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private const val MANUAL_SCROLL_DEBOUNCE_MS = 50L
 private const val LYRIC_FOCUS_ANCHOR_RATIO = 0.42f
+private const val LYRIC_LINE_SYNC_TOP_ANCHOR_RATIO = 0.35f
 private const val LYRIC_FOCUS_TOP_GUARD_RATIO = 0.18f
 private const val LYRIC_FOCUS_BOTTOM_GUARD_RATIO = 0.24f
 private const val LYRIC_FOCUS_MIN_SCROLL_PX = 6
@@ -438,6 +439,7 @@ fun LyricsEnhanced(
                     index = index,
                     animateToNearbyItem = !forceNextScroll,
                     force = forceNextScroll,
+                    alignByItemCenter = isTtmlFormat,
                 )
                 forceNextScroll = false
             }
@@ -878,6 +880,7 @@ private suspend fun LazyListState.scrollLyricIntoFocus(
     index: Int,
     animateToNearbyItem: Boolean,
     force: Boolean,
+    alignByItemCenter: Boolean,
 ) {
     val itemCount = layoutInfo.totalItemsCount
     if (itemCount == 0) return
@@ -902,13 +905,22 @@ private suspend fun LazyListState.scrollLyricIntoFocus(
     val viewportHeight = viewportEnd - viewportStart
     if (viewportHeight <= 0) return
 
-    val itemCenter = itemInfo.offset + itemInfo.size / 2
+    val itemFocusPoint = if (alignByItemCenter) {
+        itemInfo.offset + itemInfo.size / 2
+    } else {
+        itemInfo.offset
+    }
     val topGuard = viewportStart + (viewportHeight * LYRIC_FOCUS_TOP_GUARD_RATIO).roundToInt()
     val bottomGuard = viewportEnd - (viewportHeight * LYRIC_FOCUS_BOTTOM_GUARD_RATIO).roundToInt()
-    if (!force && itemCenter in topGuard..bottomGuard) return
+    if (!force && itemFocusPoint in topGuard..bottomGuard) return
 
-    val targetCenter = viewportStart + (viewportHeight * LYRIC_FOCUS_ANCHOR_RATIO).roundToInt()
-    val scrollDelta = itemCenter - targetCenter
+    val anchorRatio = if (alignByItemCenter) {
+        LYRIC_FOCUS_ANCHOR_RATIO
+    } else {
+        LYRIC_LINE_SYNC_TOP_ANCHOR_RATIO
+    }
+    val targetFocusPoint = viewportStart + (viewportHeight * anchorRatio).roundToInt()
+    val scrollDelta = itemFocusPoint - targetFocusPoint
     if (abs(scrollDelta) > LYRIC_FOCUS_MIN_SCROLL_PX) {
         animateScrollBy(
             value = scrollDelta.toFloat(),
