@@ -279,6 +279,11 @@ constructor(
             runCatching {
                 val format = playbackData.format
                 val contentLength = format.contentLength ?: return@runCatching
+                val resolvedCodecs =
+                    format.mimeType
+                        .substringAfter("codecs=", "")
+                        .removeSurrounding("\"")
+                        .substringBefore("\"")
 
                 database.query {
                     upsert(
@@ -286,7 +291,7 @@ constructor(
                             id = mediaId,
                             itag = format.itag,
                             mimeType = format.mimeType.split(";")[0],
-                            codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
+                            codecs = resolvedCodecs,
                             bitrate = format.bitrate,
                             sampleRate = format.audioSampleRate,
                             contentLength = contentLength,
