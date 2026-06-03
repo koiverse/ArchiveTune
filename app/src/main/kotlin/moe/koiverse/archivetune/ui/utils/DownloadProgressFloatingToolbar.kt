@@ -51,18 +51,21 @@ fun DownloadProgressFloatingToolbar(
     onStop: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val percent = remember(state.progress) {
-        (state.progress.coerceIn(0f, 1f) * 100f).roundToInt().coerceIn(0, 100)
+    val progress = remember(state.progress) {
+        state.progress.coerceIn(0f, 1f)
     }
+    val percent = remember(progress) {
+        (progress * 100f).roundToInt().coerceIn(0, 100)
+    }
+    val colorScheme = MaterialTheme.colorScheme
     val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-        toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        toolbarContainerColor = colorScheme.surfaceContainerHigh,
     )
 
     HorizontalFloatingToolbar(
         expanded = true,
         modifier = modifier.widthIn(max = 360.dp),
         colors = toolbarColors,
-        animationSpec = FloatingToolbarDefaults.animationSpec(),
     ) {
         Row(
             modifier = Modifier
@@ -76,16 +79,16 @@ fun DownloadProgressFloatingToolbar(
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator(
-                    progress = { state.progress.coerceIn(0f, 1f) },
+                    progress = { progress },
                     modifier = Modifier.size(48.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.outlineVariant,
+                    color = colorScheme.primary,
+                    trackColor = colorScheme.outlineVariant,
                     strokeWidth = 4.dp,
                 )
                 Text(
                     text = stringResource(R.string.download_progress_percent, percent),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
             }
@@ -107,8 +110,8 @@ fun DownloadProgressFloatingToolbar(
                 onClick = onStop,
                 modifier = Modifier.size(56.dp),
                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    containerColor = colorScheme.errorContainer,
+                    contentColor = colorScheme.onErrorContainer,
                 ),
             ) {
                 Icon(
