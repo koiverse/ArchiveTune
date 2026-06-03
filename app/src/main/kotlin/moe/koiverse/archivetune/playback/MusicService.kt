@@ -2243,6 +2243,24 @@ class MusicService :
         return null
     }
 
+    private fun isRetryableRemoteParserFailure(error: PlaybackException): Boolean {
+        if (
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+        ) {
+            return true
+        }
+
+        var throwable: Throwable? = error.cause
+        while (throwable != null) {
+            if (throwable.message?.contains("Skipping atom with length", ignoreCase = true) == true) {
+                return true
+            }
+            throwable = throwable.cause
+        }
+        return false
+    }
+
     private fun retryPlaybackAfterStreamFailure(
         mediaId: String,
         isFullyCachedMedia: Boolean,
@@ -5125,11 +5143,15 @@ private fun onMediaItemTransitionInternal() {
             }
         }
 
-        if (error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED && !isFullyCachedMedia) {
+        if (!isLocalMedia && !isFullyCachedMedia && isRetryableRemoteParserFailure(error)) {
             playbackUrlCache.remove(currentMediaId)
             YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
             if (playbackStreamRecoveryTracker.registerRetryAttempt(currentMediaId)) {
-                Timber.tag("MusicService").i("Retrying playback for %s after malformed container error", currentMediaId)
+                Timber.tag("MusicService").i(
+                    "Retrying playback for %s after parser source error %d",
+                    currentMediaId,
+                    error.errorCode,
+                )
                 player.prepare()
                 return
             }
@@ -5245,10 +5267,11 @@ private fun onMediaItemTransitionInternal() {
             return dataSpec
         }
         val mediaId = dataSpec.key ?: return dataSpec
+        val storedFormat = runBlocking(Dispatchers.IO) {
+            database.format(mediaId).first()
+        }
         val knownContentLength =
-            contentLengthCache[mediaId] ?: runBlocking(Dispatchers.IO) {
-                database.format(mediaId).first()?.contentLength
-            } ?: runCatching {
+            contentLengthCache[mediaId] ?: storedFormat?.contentLength?.takeIf { it > 0L } ?: runCatching {
                 downloadCache
                     .getContentMetadata(mediaId)
                     .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
@@ -5263,7 +5286,7 @@ private fun onMediaItemTransitionInternal() {
                 downloadCache.getCachedSpans(mediaId).takeIf { it.isNotEmpty() }?.sumOf { it.length }
             }.getOrNull()?.takeIf { it > 0L }
 
-        knownContentLength?.let { contentLengthCache[mediaId] = it }
+        knownContentLength?.takeIf { it > 0L }?.let { contentLengthCache[mediaId] = it }
 
         if (allowCacheShortCircuit && !isCurrentlyNetworkConnected()) {
             resolveCachedOnlyDataSpec(
@@ -5322,6 +5345,7 @@ private fun onMediaItemTransitionInternal() {
                     position = dataSpec.position,
                     knownContentLength = knownContentLength,
                     chunkLength = CHUNK_LENGTH,
+                    mimeType = storedFormat?.mimeType,
                 )
             return length?.let { nonNullLength ->
                 resolvedDataSpec.subrange(0L, nonNullLength)
@@ -5392,6 +5416,13 @@ private fun onMediaItemTransitionInternal() {
         val format = nonNullPlayback.format
         val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
         val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
+        val resolvedContentLength = format.contentLength ?: knownContentLength ?: 0L
+        val resolvedCodecs =
+            format.mimeType
+                .substringAfter("codecs=", "")
+                .removeSurrounding("\"")
+                .substringBefore("\"")
+        resolvedContentLength.takeIf { it > 0L }?.let { contentLengthCache[mediaId] = it }
 
         Timber.tag("AudioNormalization").d("Storing format for $mediaId with loudnessDb: $loudnessDb, perceptualLoudnessDb: $perceptualLoudnessDb")
         if (loudnessDb == null && perceptualLoudnessDb == null) {
@@ -5404,10 +5435,10 @@ private fun onMediaItemTransitionInternal() {
                     id = mediaId,
                     itag = format.itag,
                     mimeType = format.mimeType.split(";")[0],
-                    codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
+                    codecs = resolvedCodecs,
                     bitrate = format.bitrate,
                     sampleRate = format.audioSampleRate,
-                    contentLength = format.contentLength!!,
+                    contentLength = resolvedContentLength,
                     loudnessDb = loudnessDb,
                     perceptualLoudnessDb = perceptualLoudnessDb,
                     playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
@@ -5435,6 +5466,7 @@ private fun onMediaItemTransitionInternal() {
                 position = dataSpec.position,
                 knownContentLength = knownContentLength ?: format.contentLength,
                 chunkLength = CHUNK_LENGTH,
+                mimeType = format.mimeType,
             )
         return length?.let { nonNullLength ->
             resolvedDataSpec.subrange(0L, nonNullLength)
