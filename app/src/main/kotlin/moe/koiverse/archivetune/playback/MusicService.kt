@@ -5497,12 +5497,12 @@ private fun onMediaItemTransitionInternal() {
     private suspend fun resolveHiResLosslessPlayback(mediaId: String): Result<YTPlayerUtils.PlaybackData> =
         runCatching {
             val song = database.song(mediaId).first()
-            val mediaMetadata =
-                player.findNextMediaItemById(mediaId)?.metadata
-                    ?: player.currentMediaItem?.takeIf { it.mediaId == mediaId }?.metadata
-            val mediaItemMetadata =
-                player.findNextMediaItemById(mediaId)?.mediaMetadata
-                    ?: player.currentMediaItem?.takeIf { it.mediaId == mediaId }?.mediaMetadata
+            val mediaItem = withContext(Dispatchers.Main) {
+                player.findNextMediaItemById(mediaId)
+                    ?: player.currentMediaItem?.takeIf { it.mediaId == mediaId }
+            }
+            val mediaMetadata = mediaItem?.metadata
+            val mediaItemMetadata = mediaItem?.mediaMetadata
             val title =
                 song?.song?.title?.takeIf { it.isNotBlank() }
                     ?: mediaMetadata?.title?.takeIf { it.isNotBlank() }
