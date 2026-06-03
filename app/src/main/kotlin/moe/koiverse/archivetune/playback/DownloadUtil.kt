@@ -180,7 +180,17 @@ constructor(
 
                     val result =
                         if (preferredStreamClient == PlayerStreamClient.HI_RES_LOSSLESS) {
-                            resolveHiResLosslessPlayback(mediaId)
+                            resolveHiResLosslessPlayback(mediaId).recoverCatching {
+                                context.retryWithoutPlaybackLoginContext {
+                                    YTPlayerUtils.playerResponseForPlayback(
+                                        mediaId,
+                                        audioQuality = requestedAudioQuality,
+                                        preferredStreamClient = PlayerStreamClient.WEB_REMIX,
+                                        connectivityManager = connectivityManager,
+                                        networkMetered = lowDataModeActive,
+                                    )
+                                }.getOrThrow()
+                            }
                         } else {
                             context.retryWithoutPlaybackLoginContext {
                                 YTPlayerUtils.playerResponseForPlayback(

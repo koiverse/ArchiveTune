@@ -25,6 +25,7 @@ import org.schabi.newpipe.extractor.exceptions.ParsingException
 import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
 import org.schabi.newpipe.extractor.services.youtube.YoutubeJavaScriptPlayerManager
 import org.schabi.newpipe.extractor.stream.AudioStream
+import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.io.IOException
@@ -92,6 +93,18 @@ private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
 }
 
 object NewPipeUtils {
+
+    private val externalProbeClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .proxy(YouTube.proxy)
+            .retryOnConnectionFailure(true)
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .callTimeout(15, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .build()
+    }
 
     enum class ExternalAudioService {
         BANDCAMP,
@@ -248,6 +261,7 @@ object NewPipeUtils {
                     audioStream.getContent()
                         .takeIf { audioStream.isUrl() && it.startsWith("http", ignoreCase = true) }
                         ?: continue
+                if (!isPlayableProgressiveAudioUrl(content, audioStream.getFormat()?.getMimeType())) continue
 
                 return@runCatching ExternalAudioStream(
                     source = source,
@@ -267,13 +281,105 @@ object NewPipeUtils {
     private fun selectExternalAudioStream(streams: List<AudioStream>): AudioStream? =
         streams
             .asSequence()
-            .filter { stream -> stream.isUrl() && stream.getContent().startsWith("http", ignoreCase = true) }
+            .filter { stream ->
+                stream.isUrl() &&
+                    stream.getDeliveryMethod() == DeliveryMethod.PROGRESSIVE_HTTP &&
+                    stream.getContent().startsWith("http", ignoreCase = true) &&
+                    !stream.getContent().isManifestLikeUrl()
+            }
             .sortedWith(
                 compareByDescending<AudioStream> { it.losslessRank() }
                     .thenByDescending { it.getAverageBitrate().takeUnless { bitrate -> bitrate == AudioStream.UNKNOWN_BITRATE } ?: 0 }
                     .thenByDescending { it.getBitrate().takeUnless { bitrate -> bitrate == AudioStream.UNKNOWN_BITRATE } ?: 0 }
             )
             .firstOrNull()
+
+    private fun isPlayableProgressiveAudioUrl(
+        url: String,
+        expectedMimeType: String?,
+    ): Boolean {
+        if (url.isManifestLikeUrl()) return false
+        return runCatching {
+            val request = okhttp3.Request.Builder()
+                .url(url)
+                .get()
+                .header("Range", "bytes=0-31")
+                .header("User-Agent", YouTubeClient.USER_AGENT_WEB)
+                .build()
+
+            externalProbeClient.newCall(request).execute().use { response ->
+                if (response.code !in 200..399) return@use false
+                val contentType = response.header("Content-Type").orEmpty().lowercase(Locale.US)
+                if (contentType.isNonProgressiveMediaContentType()) return@use false
+
+                val source = response.body.source()
+                source.request(EXTERNAL_PROBE_BYTES)
+                val bytes = source.buffer.clone().readByteArray().take(EXTERNAL_PROBE_BYTES.toInt()).toByteArray()
+                if (bytes.hasAudioContainerSignature()) return@use true
+                if (contentType.startsWith("audio/") && !contentType.contains("mpegurl")) return@use true
+
+                val expected = expectedMimeType.orEmpty().lowercase(Locale.US)
+                expected.startsWith("audio/") && !expected.contains("mpegurl") && contentType.isBlank()
+            }
+        }.getOrDefault(false)
+    }
+
+    private fun String.isManifestLikeUrl(): Boolean {
+        val normalized = lowercase(Locale.US)
+        return normalized.contains(".m3u8") ||
+            normalized.contains(".mpd") ||
+            normalized.contains("manifest")
+    }
+
+    private fun String.isNonProgressiveMediaContentType(): Boolean =
+        startsWith("text/") ||
+            startsWith("application/json") ||
+            startsWith("application/xml") ||
+            startsWith("application/dash+xml") ||
+            startsWith("application/vnd.apple.mpegurl") ||
+            startsWith("audio/mpegurl") ||
+            startsWith("audio/x-mpegurl")
+
+    private fun ByteArray.hasAudioContainerSignature(): Boolean {
+        if (size >= 3 && this[0] == 'I'.code.toByte() && this[1] == 'D'.code.toByte() && this[2] == '3'.code.toByte()) {
+            return true
+        }
+        if (size >= 4 &&
+            this[0] == 'f'.code.toByte() &&
+            this[1] == 'L'.code.toByte() &&
+            this[2] == 'a'.code.toByte() &&
+            this[3] == 'C'.code.toByte()
+        ) {
+            return true
+        }
+        if (size >= 4 &&
+            this[0] == 'O'.code.toByte() &&
+            this[1] == 'g'.code.toByte() &&
+            this[2] == 'g'.code.toByte() &&
+            this[3] == 'S'.code.toByte()
+        ) {
+            return true
+        }
+        if (size >= 4 &&
+            this[0] == 'R'.code.toByte() &&
+            this[1] == 'I'.code.toByte() &&
+            this[2] == 'F'.code.toByte() &&
+            this[3] == 'F'.code.toByte()
+        ) {
+            return true
+        }
+        if (size >= 8 &&
+            this[4] == 'f'.code.toByte() &&
+            this[5] == 't'.code.toByte() &&
+            this[6] == 'y'.code.toByte() &&
+            this[7] == 'p'.code.toByte()
+        ) {
+            return true
+        }
+        return size >= 2 &&
+            (this[0].toInt() and 0xFF) == 0xFF &&
+            (this[1].toInt() and 0xF0) == 0xF0
+    }
 
     private fun AudioStream.losslessRank(): Int {
         val formatName = getFormat()?.getName().orEmpty()
@@ -382,6 +488,7 @@ object NewPipeUtils {
     private const val MAX_EXTERNAL_SEARCH_CANDIDATES = 8
     private const val EXTERNAL_DURATION_MIN_TOLERANCE_SECONDS = 8
     private const val EXTERNAL_DURATION_TOLERANCE_PERCENT = 12
+    private const val EXTERNAL_PROBE_BYTES = 32L
     private const val FALLBACK_EXTERNAL_AUDIO_MIME_TYPE = "audio/mpeg"
 
 }

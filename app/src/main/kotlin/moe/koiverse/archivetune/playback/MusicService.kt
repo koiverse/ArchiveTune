@@ -5371,7 +5371,22 @@ private fun onMediaItemTransitionInternal() {
 
         val playbackData = runBlocking(Dispatchers.IO) {
             if (hiResLosslessSelected) {
-                resolveHiResLosslessPlayback(mediaId)
+                resolveHiResLosslessPlayback(mediaId).recoverCatching { externalFailure ->
+                    Timber.tag("MusicService").w(
+                        externalFailure,
+                        "Hi-Res external stream failed for %s; falling back to Web Remix",
+                        mediaId,
+                    )
+                    retryWithoutPlaybackLoginContext {
+                        YTPlayerUtils.playerResponseForPlayback(
+                            mediaId,
+                            audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
+                            connectivityManager = connectivityManager,
+                            preferredStreamClient = PlayerStreamClient.WEB_REMIX,
+                            networkMetered = lowDataModeActive,
+                        )
+                    }.getOrThrow()
+                }
             } else {
                 retryWithoutPlaybackLoginContext {
                     YTPlayerUtils.playerResponseForPlayback(
