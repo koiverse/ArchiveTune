@@ -87,7 +87,7 @@ object DiscordOAuthRepository {
         val scopes = listOf(
             "openid",
             "identify",
-            "sdk.social_layer_presence",
+            "rpc.activities.write",
         ).joinToString(separator = " ")
 
         val uri = Uri.parse(AUTHORIZATION_ENDPOINT)

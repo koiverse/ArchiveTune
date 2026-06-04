@@ -44,7 +44,7 @@ import moe.koiverse.archivetune.discord.DiscordPresenceActivity
 import moe.koiverse.archivetune.discord.DiscordPresenceAssets
 import moe.koiverse.archivetune.discord.DiscordPresenceButton
 import moe.koiverse.archivetune.discord.DiscordPresenceTimestamps
-import moe.koiverse.archivetune.discord.DiscordSocialPresenceClient
+import moe.koiverse.archivetune.discord.DiscordGatewayClient
 import moe.koiverse.archivetune.discord.DiscordStatusDisplayType
 import timber.log.Timber
 
@@ -63,17 +63,19 @@ class DiscordRPC(
     private val translationCache: MutableMap<String, String> = mutableMapOf()
     private var lastSongId: String? = null
 
-    fun isRpcRunning(): Boolean = DiscordSocialPresenceClient.isStarted
+    fun isRpcRunning(): Boolean = DiscordGatewayClient.isConnected
 
     suspend fun stopActivity() {
-        DiscordSocialPresenceClient.clearPresence().getOrElse {
+        DiscordGatewayClient.clearPresence().getOrElse {
             Timber.tag(TAG).v(it, "clearPresence failed")
         }
     }
 
     suspend fun closeRPC() {
-        DiscordSocialPresenceClient.close().getOrElse {
-            Timber.tag(TAG).v(it, "close failed")
+        runCatching {
+            DiscordGatewayClient.disconnect()
+        }.onFailure {
+            Timber.tag(TAG).v(it, "disconnect failed")
         }
     }
 
@@ -197,14 +199,13 @@ class DiscordRPC(
             onlineStatus = status,
         )
 
-        DiscordSocialPresenceClient.updatePresence(
-            context = context,
-            accessToken = accessToken,
-            activity = activity,
-        ).getOrThrow()
+        if (!DiscordGatewayClient.isConnected) {
+            DiscordGatewayClient.connect(accessToken).getOrThrow()
+        }
+        DiscordGatewayClient.updatePresence(activity).getOrThrow()
 
         Timber.tag(TAG).i(
-            "Updated Discord presence via Social SDK name=%s details=%s state=%s",
+            "Updated Discord presence via Gateway name=%s details=%s state=%s",
             activityName,
             activityDetails,
             activityState,

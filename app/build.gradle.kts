@@ -15,8 +15,6 @@ if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
 
-val discordSocialSdkAar = file("libs/discord_partner_sdk.aar")
-val discordSocialSdkAvailable = discordSocialSdkAar.exists()
 val discordApplicationId =
     (
         localProperties.getProperty("DISCORD_APPLICATION_ID")
@@ -81,39 +79,22 @@ android {
             dimension = "distribution"
             isDefault = true
             buildConfigField("String", "DISTRIBUTION", "\"gms\"")
-            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", discordSocialSdkAvailable.toString())
+            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "true")
             buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
             buildConfigField("String", "DISCORD_APPLICATION_ID", "\"$discordApplicationId\"")
             buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
             buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
             manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
-            externalNativeBuild {
-                cmake {
-                    arguments += "-DARCHIVETUNE_ENABLE_DISCORD_SOCIAL_SDK=${if (discordSocialSdkAvailable) "ON" else "OFF"}"
-                }
-            }
         }
         create("foss") {
             dimension = "distribution"
             buildConfigField("String", "DISTRIBUTION", "\"foss\"")
-            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
             buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
-            externalNativeBuild {
-                cmake {
-                    arguments += "-DARCHIVETUNE_ENABLE_DISCORD_SOCIAL_SDK=OFF"
-                }
-            }
         }
         create("izzy") {
             dimension = "distribution"
             buildConfigField("String", "DISTRIBUTION", "\"izzy\"")
-            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
             buildConfigField("boolean", "UPDATER_AVAILABLE", "false")
-            externalNativeBuild {
-                cmake {
-                    arguments += "-DARCHIVETUNE_ENABLE_DISCORD_SOCIAL_SDK=OFF"
-                }
-            }
         }
         create("mobile") {
             dimension = "device"
@@ -185,7 +166,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-        prefab = true
     }
 
     dependenciesInfo {
@@ -220,11 +200,6 @@ android {
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
-    }
 }
 
 kotlin {
@@ -341,9 +316,6 @@ dependencies {
     implementation(libs.accompanist.lyrics.ui)
     implementation(libs.accompanist.lyrics.core)
 
-    if (discordSocialSdkAvailable) {
-        "gmsImplementation"(files(discordSocialSdkAar))
-    }
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
