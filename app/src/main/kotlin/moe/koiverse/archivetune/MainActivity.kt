@@ -148,6 +148,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -1138,17 +1139,43 @@ class MainActivity : ComponentActivity() {
                             playerConnection?.player ?: return@DisposableEffect onDispose { }
                         val listener =
                             object : Player.Listener {
-                                override fun onMediaItemTransition(
-                                    mediaItem: MediaItem?,
-                                    reason: Int,
-                                ) {
-                                    if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED &&
-                                        mediaItem != null &&
+                                private fun collapseDismissedMiniPlayerForActivePlayback() {
+                                    if (
+                                        player.mediaItemCount > 0 &&
+                                        player.currentMediaItem != null &&
+                                        player.playWhenReady &&
+                                        player.playbackState != Player.STATE_IDLE &&
+                                        player.playbackState != Player.STATE_ENDED &&
                                         currentPlayerBottomSheetState.value.isDismissed &&
                                         !currentIsYearInMusicScreen.value
                                     ) {
                                         currentPlayerBottomSheetState.value.collapseSoft()
                                     }
+                                }
+
+                                override fun onMediaItemTransition(
+                                    mediaItem: MediaItem?,
+                                    reason: Int,
+                                ) {
+                                    collapseDismissedMiniPlayerForActivePlayback()
+                                }
+
+                                override fun onTimelineChanged(
+                                    timeline: Timeline,
+                                    reason: Int,
+                                ) {
+                                    collapseDismissedMiniPlayerForActivePlayback()
+                                }
+
+                                override fun onPlaybackStateChanged(playbackState: Int) {
+                                    collapseDismissedMiniPlayerForActivePlayback()
+                                }
+
+                                override fun onPlayWhenReadyChanged(
+                                    playWhenReady: Boolean,
+                                    reason: Int,
+                                ) {
+                                    collapseDismissedMiniPlayerForActivePlayback()
                                 }
                             }
                         player.addListener(listener)
