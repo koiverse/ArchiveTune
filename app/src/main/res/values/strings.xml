@@ -181,6 +181,7 @@
     <string name="copied">Copied to clipboard</string>
     <string name="edit_lyrics">Edit lyrics</string>
     <string name="search_lyrics">Search lyrics</string>
+    <string name="lyrics_synced_badge">Synced</string>
     <string name="edit_song">Edit song</string>
     <string name="song_title">Song title</string>
     <string name="song_artists">Song artists</string>
