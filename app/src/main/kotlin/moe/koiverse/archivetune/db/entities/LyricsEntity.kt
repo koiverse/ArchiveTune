@@ -7,6 +7,7 @@
 
 package moe.koiverse.archivetune.db.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -14,8 +15,19 @@ import androidx.room.PrimaryKey
 data class LyricsEntity(
     @PrimaryKey val id: String,
     val lyrics: String,
+    @ColumnInfo(defaultValue = "'REMOTE'")
+    val source: String = Source.REMOTE.value,
+    @ColumnInfo(defaultValue = "0")
+    val updatedAt: Long = System.currentTimeMillis(),
 ) {
     companion object {
         const val LYRICS_NOT_FOUND = "LYRICS_NOT_FOUND"
+    }
+
+    enum class Source(val value: String) {
+        REMOTE("REMOTE"),
+        USER_SELECTION("USER_SELECTION"),
+        USER_EDIT("USER_EDIT"),
+        AI_TRANSLATION("AI_TRANSLATION"),
     }
 }

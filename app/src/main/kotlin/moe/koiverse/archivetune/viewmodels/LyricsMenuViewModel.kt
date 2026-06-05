@@ -111,15 +111,17 @@ constructor(
 
     fun refetchLyrics(
         mediaMetadata: MediaMetadata,
-        lyricsEntity: LyricsEntity?,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             isRefetching.value = true
             try {
                 val lyrics = lyricsHelper.getLyrics(mediaMetadata)
                 database.query {
-                    lyricsEntity?.let(::delete)
-                    upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                    replaceLyrics(
+                        id = mediaMetadata.id,
+                        lyrics = lyrics,
+                        source = LyricsEntity.Source.REMOTE.value,
+                    )
                 }
             } catch (_: Exception) {
             } finally {
@@ -131,10 +133,15 @@ constructor(
     fun updateLyrics(
         mediaMetadata: MediaMetadata,
         lyrics: String,
+        source: LyricsEntity.Source = LyricsEntity.Source.USER_EDIT,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             database.query {
-                upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                replaceLyrics(
+                    id = mediaMetadata.id,
+                    lyrics = lyrics,
+                    source = source.value,
+                )
             }
         }
     }
@@ -163,7 +170,11 @@ constructor(
                     targetLanguage = prefs[TranslatorTargetLangKey].orEmpty().ifBlank { "ENGLISH" },
                 )
                 database.query {
-                    upsert(LyricsEntity(mediaMetadata.id, translatedLyrics))
+                    replaceLyrics(
+                        id = mediaMetadata.id,
+                        lyrics = translatedLyrics,
+                        source = LyricsEntity.Source.AI_TRANSLATION.value,
+                    )
                 }
                 context.dataStore.edit { settings ->
                     settings[AiApiValidationStatusKey] = AiApiValidationStatus.SUCCESS.name

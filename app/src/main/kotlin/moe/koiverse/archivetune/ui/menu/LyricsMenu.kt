@@ -332,7 +332,11 @@ fun LyricsMenu(
                     onClick = {
                         onDismiss()
                         viewModel.cancelSearch()
-                        viewModel.updateLyrics(searchMediaMetadata, result.lyrics)
+                        viewModel.updateLyrics(
+                            mediaMetadata = searchMediaMetadata,
+                            lyrics = result.lyrics,
+                            source = LyricsEntity.Source.USER_SELECTION,
+                        )
                     }
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -728,7 +732,11 @@ fun LyricsMenu(
 
                                         out.joinToString("\n")
                                     }
-                                    viewModel.updateLyrics(mediaMetadataProvider(), translatedLyrics)
+                                    viewModel.updateLyrics(
+                                        mediaMetadata = mediaMetadataProvider(),
+                                        lyrics = translatedLyrics,
+                                        source = LyricsEntity.Source.AI_TRANSLATION,
+                                    )
                                     showTranslateDialog = false
                                 } catch (e: Exception) {
                                     Toast.makeText(
@@ -840,7 +848,7 @@ fun LyricsMenu(
                             text = stringResource(R.string.refetch),
                             onClick = {
                                 showRefetchLoadingDialog = true
-                                viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
+                                viewModel.refetchLyrics(mediaMetadataProvider())
                             }
                         ),
                         NewAction(

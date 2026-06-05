@@ -1618,6 +1618,43 @@ interface DatabaseDao {
     @Upsert
     fun upsert(lyrics: LyricsEntity)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insert(lyrics: LyricsEntity): Long
+
+    @Transaction
+    fun insertLyricsIfAbsent(
+        id: String,
+        lyrics: String,
+        source: String = LyricsEntity.Source.REMOTE.value,
+        updatedAt: Long = System.currentTimeMillis(),
+    ) {
+        insert(
+            LyricsEntity(
+                id = id,
+                lyrics = lyrics,
+                source = source,
+                updatedAt = updatedAt,
+            ),
+        )
+    }
+
+    @Transaction
+    fun replaceLyrics(
+        id: String,
+        lyrics: String,
+        source: String,
+        updatedAt: Long = System.currentTimeMillis(),
+    ) {
+        upsert(
+            LyricsEntity(
+                id = id,
+                lyrics = lyrics,
+                source = source,
+                updatedAt = updatedAt,
+            ),
+        )
+    }
+
     @Upsert
     fun upsert(format: FormatEntity)
 

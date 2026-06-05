@@ -143,13 +143,10 @@ class LyricsPreloadManager @Inject constructor(
                     try {
                         val lyrics = fetchLyricsForSong(song)
                         if (lyrics != null && lyrics != LyricsEntity.LYRICS_NOT_FOUND) {
-                            // Save to database using query block
                             database.query {
-                                upsert(
-                                    LyricsEntity(
-                                        id = song.id,
-                                        lyrics = lyrics
-                                    )
+                                insertLyricsIfAbsent(
+                                    id = song.id,
+                                    lyrics = lyrics,
                                 )
                             }
                             Log.d(TAG, "Pre-loaded lyrics for: ${song.title}")

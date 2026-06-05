@@ -142,7 +142,6 @@ import moe.koiverse.archivetune.constants.YtmSyncKey
 import moe.koiverse.archivetune.db.MusicDatabase
 import moe.koiverse.archivetune.db.entities.Event
 import moe.koiverse.archivetune.db.entities.FormatEntity
-import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.db.entities.RelatedSongMap
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.db.entities.SongEntity
@@ -896,11 +895,9 @@ class MusicService :
             ) {
                 val lyrics = lyricsHelper.getLyrics(mediaMetadata)
                 database.query {
-                    upsert(
-                        LyricsEntity(
-                            id = mediaMetadata.id,
-                            lyrics = lyrics,
-                        ),
+                    insertLyricsIfAbsent(
+                        id = mediaMetadata.id,
+                        lyrics = lyrics,
                     )
                 }
             }

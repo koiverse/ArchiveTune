@@ -103,7 +103,6 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 import moe.koiverse.archivetune.constants.LyricsMode
 import moe.koiverse.archivetune.constants.LyricsModeKey
-import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.LocalMenuState
@@ -179,7 +178,10 @@ fun LyricsScreen(
             }
             withContext(Dispatchers.IO) {
                 database.query {
-                    upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                    insertLyricsIfAbsent(
+                        id = mediaMetadata.id,
+                        lyrics = lyrics,
+                    )
                 }
             }
         } catch (e: CancellationException) {
