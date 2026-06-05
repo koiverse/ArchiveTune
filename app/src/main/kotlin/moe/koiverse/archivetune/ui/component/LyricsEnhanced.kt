@@ -60,7 +60,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -70,16 +69,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -96,7 +92,6 @@ import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeAlignment
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeSyllable
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
-import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -165,7 +160,6 @@ fun LyricsEnhanced(
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
     val context = LocalContext.current
-    val density = LocalDensity.current
     val animationsDisabled = LocalAnimationsDisabled.current
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -426,7 +420,7 @@ fun LyricsEnhanced(
         }
     }
 
-    LaunchedEffect(lyricsSessionKey, syncedLyrics, isSynced) {
+    LaunchedEffect(lyricsSessionKey, syncedLyrics, isSynced, lyricsSourceText) {
         if (!isSynced || syncedLyrics.lines.isEmpty()) return@LaunchedEffect
         snapshotFlow {
             listState.layoutInfo.viewportEndOffset > listState.layoutInfo.viewportStartOffset
@@ -450,7 +444,7 @@ fun LyricsEnhanced(
                 }
 
                 listState.scrollLyricIntoFocus(
-                    index = index,
+                    index = index + if (lyricsSourceText != null) 1 else 0,
                     animateToNearbyItem = !forceNextScroll,
                     force = forceNextScroll,
                     alignByItemCenter = isTtmlFormat,
@@ -587,66 +581,15 @@ fun LyricsEnhanced(
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
-                        .nestedScroll(nestedScrollConnection)
-                        .clipToBounds(),
+                        .nestedScroll(nestedScrollConnection),
                 ) {
                     val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
-                    val lyricsViewportOffsetPx = remember(lyricsViewportOffset, density) {
-                        with(density) { lyricsViewportOffset.toPx() }
-                    }
-                    val sourceHeightPx = remember(
-                        density,
-                        sourceTextStyle.lineHeight,
-                        sourceTextStyle.fontSize,
-                    ) {
-                        with(density) {
-                            val lineHeightPx = sourceTextStyle.lineHeight.toPx()
-                            if (lineHeightPx > 0f) lineHeightPx else sourceTextStyle.fontSize.toPx()
-                        }
-                    }
-                    val sourceGapPx = remember(density) { with(density) { 10.dp.toPx() } }
-                    val measuredLyricItemHeights = remember(lyricsSessionKey) { mutableStateMapOf<Int, Int>() }
-                    LaunchedEffect(listState, lyricsSessionKey) {
-                        snapshotFlow { listState.layoutInfo.visibleItemsInfo.map { item -> item.index to item.size } }
-                            .collectLatest { visibleItems ->
-                                visibleItems.forEach { (index, size) ->
-                                    measuredLyricItemHeights[index] = size
-                                }
-                            }
-                    }
-                    val sourceOffsetY by remember(
-                        listState,
-                        lyricsViewportOffsetPx,
-                        measuredLyricItemHeights,
-                    ) {
-                        derivedStateOf<Float> {
-                            val visibleItems = listState.layoutInfo.visibleItemsInfo
-                            val firstVisibleItem = visibleItems.firstOrNull()
-                                ?: return@derivedStateOf Float.NEGATIVE_INFINITY
-                            val firstLyricOffset = visibleItems
-                                .firstOrNull { item -> item.index == 0 }
-                                ?.offset
-                                ?: run {
-                                    if (firstVisibleItem.index <= 0) {
-                                        return@derivedStateOf Float.NEGATIVE_INFINITY
-                                    }
-                                    var cumulativeHeight = 0
-                                    for (index in 0 until firstVisibleItem.index) {
-                                        val itemHeight = measuredLyricItemHeights[index]
-                                            ?: return@derivedStateOf Float.NEGATIVE_INFINITY
-                                        cumulativeHeight += itemHeight
-                                    }
-                                    firstVisibleItem.offset - cumulativeHeight
-                                }
-                            lyricsViewportOffsetPx + firstLyricOffset.toFloat() - sourceHeightPx - sourceGapPx
-                        }
-                    }
-
                     key(lyricsSessionKey, syncedLyricsRenderVersion) {
-                        KaraokeLyricsView(
+                        LyricsEnhancedKaraokeView(
                             listState = listState,
                             lyrics = syncedLyrics,
                             currentPosition = playbackSyncPosition,
+                            sourceText = lyricsSourceText,
                             onLineClicked = { line ->
                                 if (isSelectionModeActive) {
                                     toggleSelectedLine(line.selectionKey())
@@ -673,26 +616,13 @@ fun LyricsEnhanced(
                             useBlurEffect = lyricsLineBlur,
                             showTranslation = true,
                             showPhonetic = romanizationPreferences.isEnabled,
+                            sourceTextStyle = sourceTextStyle,
+                            sourceTextColor = textColor.copy(alpha = 0.52f),
                             offset = lyricsViewportOffset,
                             keepAliveZone = 72.dp,
+                            isManualScrolling = isManualScrolling,
                             modifier = Modifier.fillMaxSize(),
                         )
-                        lyricsSourceText?.let { sourceText ->
-                            if (sourceOffsetY != Float.NEGATIVE_INFINITY) {
-                                Text(
-                                    text = sourceText,
-                                    style = sourceTextStyle,
-                                    color = textColor.copy(alpha = 0.52f),
-                                    textAlign = TextAlign.Start,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp)
-                                        .graphicsLayer {
-                                            translationY = sourceOffsetY
-                                        },
-                                )
-                            }
-                        }
                     }
                 }
             }
