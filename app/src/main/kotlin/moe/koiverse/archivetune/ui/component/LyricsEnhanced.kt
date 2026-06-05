@@ -60,6 +60,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -495,8 +496,8 @@ fun LyricsEnhanced(
         fontWeight = FontWeight.Normal,
     )
     val sourceTextStyle = MaterialTheme.typography.headlineMedium.copy(
-        fontSize = (lyricsTextSize * 0.72f).sp,
-        lineHeight = (lyricsTextSize * 0.84f).sp,
+        fontSize = (lyricsTextSize * 0.50f).sp,
+        lineHeight = (lyricsTextSize * 0.90f).sp,
         fontWeight = FontWeight.SemiBold,
         fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
     )
@@ -591,22 +592,50 @@ fun LyricsEnhanced(
                     val lyricsViewportOffsetPx = remember(lyricsViewportOffset, density) {
                         with(density) { lyricsViewportOffset.toPx() }
                     }
-                    val sourceOffsetY by remember(
-                        listState,
-                        lyricsViewportOffsetPx,
+                    val sourceHeightPx = remember(
+                        density,
                         sourceTextStyle.lineHeight,
                         sourceTextStyle.fontSize,
                     ) {
+                        with(density) {
+                            val lineHeightPx = sourceTextStyle.lineHeight.toPx()
+                            if (lineHeightPx > 0f) lineHeightPx else sourceTextStyle.fontSize.toPx()
+                        }
+                    }
+                    val sourceGapPx = remember(density) { with(density) { 10.dp.toPx() } }
+                    val measuredLyricItemHeights = remember(lyricsSessionKey) { mutableStateMapOf<Int, Int>() }
+                    LaunchedEffect(listState, lyricsSessionKey) {
+                        snapshotFlow { listState.layoutInfo.visibleItemsInfo.map { item -> item.index to item.size } }
+                            .collectLatest { visibleItems ->
+                                visibleItems.forEach { (index, size) ->
+                                    measuredLyricItemHeights[index] = size
+                                }
+                            }
+                    }
+                    val sourceOffsetY by remember(
+                        listState,
+                        lyricsViewportOffsetPx,
+                        measuredLyricItemHeights,
+                    ) {
                         derivedStateOf<Float> {
-                            val firstLyricOffset = listState.layoutInfo.visibleItemsInfo
+                            val visibleItems = listState.layoutInfo.visibleItemsInfo
+                            val firstVisibleItem = visibleItems.firstOrNull()
+                                ?: return@derivedStateOf Float.NEGATIVE_INFINITY
+                            val firstLyricOffset = visibleItems
                                 .firstOrNull { item -> item.index == 0 }
                                 ?.offset
-                                ?: return@derivedStateOf Float.NEGATIVE_INFINITY
-                            val sourceHeightPx = with(density) {
-                                val lineHeightPx = sourceTextStyle.lineHeight.toPx()
-                                if (lineHeightPx > 0f) lineHeightPx else sourceTextStyle.fontSize.toPx()
-                            }
-                            val sourceGapPx = with(density) { 10.dp.toPx() }
+                                ?: run {
+                                    if (firstVisibleItem.index <= 0) {
+                                        return@derivedStateOf Float.NEGATIVE_INFINITY
+                                    }
+                                    var cumulativeHeight = 0
+                                    for (index in 0 until firstVisibleItem.index) {
+                                        val itemHeight = measuredLyricItemHeights[index]
+                                            ?: return@derivedStateOf Float.NEGATIVE_INFINITY
+                                        cumulativeHeight += itemHeight
+                                    }
+                                    firstVisibleItem.offset - cumulativeHeight
+                                }
                             lyricsViewportOffsetPx + firstLyricOffset.toFloat() - sourceHeightPx - sourceGapPx
                         }
                     }
