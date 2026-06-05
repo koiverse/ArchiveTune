@@ -76,6 +76,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -139,7 +140,7 @@ private const val TTML_LEAD_MS = 0L
 private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private const val MANUAL_SCROLL_DEBOUNCE_MS = 50L
-private const val LYRIC_FOCUS_ANCHOR_RATIO = 0.42f
+private const val LYRIC_FOCUS_ANCHOR_RATIO = 0.5f
 private const val LYRIC_LINE_SYNC_TOP_ANCHOR_RATIO = 0.35f
 private const val LYRIC_FOCUS_TOP_GUARD_RATIO = 0.18f
 private const val LYRIC_FOCUS_BOTTOM_GUARD_RATIO = 0.24f
@@ -160,6 +161,7 @@ fun LyricsEnhanced(
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
     val context = LocalContext.current
+    val density = LocalDensity.current
     val animationsDisabled = LocalAnimationsDisabled.current
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -290,6 +292,10 @@ fun LyricsEnhanced(
     }
 
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
+    val karaokeKeepAliveZone = remember { 72.dp }
+    val karaokeKeepAliveZonePx = remember(density, karaokeKeepAliveZone) {
+        with(density) { karaokeKeepAliveZone.roundToPx() }
+    }
 
     val latestSliderPositionProvider = rememberUpdatedState(sliderPositionProvider)
     val latestLyricsSyncOffset = rememberUpdatedState(lyricsSyncOffset)
@@ -447,7 +453,8 @@ fun LyricsEnhanced(
                     index = index + if (lyricsSourceText != null) 1 else 0,
                     animateToNearbyItem = !forceNextScroll,
                     force = forceNextScroll,
-                    alignByItemCenter = isTtmlFormat,
+                    visibleViewportInsetPx = karaokeKeepAliveZonePx,
+                    alignByItemCenter = true,
                 )
                 forceNextScroll = false
             }
@@ -619,7 +626,7 @@ fun LyricsEnhanced(
                             sourceTextStyle = sourceTextStyle,
                             sourceTextColor = textColor.copy(alpha = 0.52f),
                             offset = lyricsViewportOffset,
-                            keepAliveZone = 72.dp,
+                            keepAliveZone = karaokeKeepAliveZone,
                             isManualScrolling = isManualScrolling,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -897,6 +904,7 @@ private suspend fun LazyListState.scrollLyricIntoFocus(
     index: Int,
     animateToNearbyItem: Boolean,
     force: Boolean,
+    visibleViewportInsetPx: Int,
     alignByItemCenter: Boolean,
 ) {
     val itemCount = layoutInfo.totalItemsCount
@@ -917,8 +925,8 @@ private suspend fun LazyListState.scrollLyricIntoFocus(
 
     itemInfo ?: return
 
-    val viewportStart = layoutInfo.viewportStartOffset
-    val viewportEnd = layoutInfo.viewportEndOffset
+    val viewportStart = layoutInfo.viewportStartOffset + visibleViewportInsetPx
+    val viewportEnd = layoutInfo.viewportEndOffset - visibleViewportInsetPx
     val viewportHeight = viewportEnd - viewportStart
     if (viewportHeight <= 0) return
 
