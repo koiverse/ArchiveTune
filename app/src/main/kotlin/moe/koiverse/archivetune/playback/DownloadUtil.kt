@@ -200,6 +200,12 @@ constructor(
                                     connectivityManager = connectivityManager,
                                     networkMetered = lowDataModeActive,
                                 )
+                            }.recoverCatching { youtubeFailure ->
+                                if (youtubeFailure !is YTPlayerUtils.BotDetectionPlaybackException) throw youtubeFailure
+
+                                resolveHiResLosslessPlayback(mediaId).getOrElse {
+                                    throw youtubeFailure
+                                }
                             }
                         }
 
