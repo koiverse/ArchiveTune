@@ -333,7 +333,7 @@ fun AboutScreen(
 
     val leadDeveloper = TeamMember(
         avatarUrl = "https://avatars.githubusercontent.com/u/107134739?v=4",
-        name = "rukamori (るかもり)",
+        name = "rukamori「るかもり」",
         position = "Eh?",
         profileUrl = "https://github.com/koiverse",
         github = "https://github.com/koiverse",
