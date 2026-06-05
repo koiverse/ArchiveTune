@@ -53,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.key
@@ -71,10 +72,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -160,6 +163,7 @@ fun LyricsEnhanced(
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
     val context = LocalContext.current
+    val density = LocalDensity.current
     val animationsDisabled = LocalAnimationsDisabled.current
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -207,11 +211,11 @@ fun LyricsEnhanced(
     var showShareImageDialog by remember { mutableStateOf(false) }
 
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    val currentLyricsEntity = currentLyrics?.takeIf { lyricsEntity -> lyricsEntity.id == mediaMetadata?.id }
     val lyrics = remember(currentLyrics, mediaMetadata?.id) {
-        currentLyrics
-            ?.takeIf { lyricsEntity -> lyricsEntity.id == mediaMetadata?.id }
-            ?.lyrics
+        currentLyricsEntity?.lyrics
     }
+    val lyricsSourceText = lyricsSourceLabel(currentLyricsEntity, lyrics)
     val lyricsSessionKey = remember(mediaMetadata?.id, lyrics) {
         mediaMetadata?.id.orEmpty() to lyrics
     }
@@ -363,7 +367,6 @@ fun LyricsEnhanced(
         {
             (
                 playbackPositionMs.longValue +
-                    latestLyricsSyncOffset.value.toLong() +
                     latestLeadMs.value +
                     LYRIC_VISUAL_TUNING_OFFSET_MS
                 )
@@ -373,7 +376,16 @@ fun LyricsEnhanced(
     }
     val lineFocusPosition: () -> Int = remember(syncedLyrics) {
         {
-            syncedLyrics.positionForStableLineFocus(playbackSyncPosition())
+            syncedLyrics.positionForStableLineFocus(
+                (
+                    playbackPositionMs.longValue +
+                        latestLyricsSyncOffset.value.toLong() +
+                        latestLeadMs.value +
+                        LYRIC_VISUAL_TUNING_OFFSET_MS
+                    )
+                    .coerceIn(0L, Int.MAX_VALUE.toLong())
+                    .toInt()
+            )
         }
     }
 
@@ -482,6 +494,12 @@ fun LyricsEnhanced(
         fontSize = (lyricsTextSize * 0.55f).sp,
         fontWeight = FontWeight.Normal,
     )
+    val sourceTextStyle = MaterialTheme.typography.headlineMedium.copy(
+        fontSize = (lyricsTextSize * 0.72f).sp,
+        lineHeight = (lyricsTextSize * 0.84f).sp,
+        fontWeight = FontWeight.SemiBold,
+        fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
+    )
     val selectionLines = remember(syncedLyrics) {
         syncedLyrics.lines.mapIndexedNotNull { index, line ->
             val text = line.lineText()
@@ -570,6 +588,28 @@ fun LyricsEnhanced(
                         .nestedScroll(nestedScrollConnection),
                 ) {
                     val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
+                    val lyricsViewportOffsetPx = remember(lyricsViewportOffset, density) {
+                        with(density) { lyricsViewportOffset.toPx() }
+                    }
+                    val sourceOffsetY by remember(
+                        listState,
+                        lyricsViewportOffsetPx,
+                        sourceTextStyle.lineHeight,
+                        sourceTextStyle.fontSize,
+                    ) {
+                        derivedStateOf<Float> {
+                            val firstLyricOffset = listState.layoutInfo.visibleItemsInfo
+                                .firstOrNull { item -> item.index == 0 }
+                                ?.offset
+                                ?: return@derivedStateOf Float.NEGATIVE_INFINITY
+                            val sourceHeightPx = with(density) {
+                                val lineHeightPx = sourceTextStyle.lineHeight.toPx()
+                                if (lineHeightPx > 0f) lineHeightPx else sourceTextStyle.fontSize.toPx()
+                            }
+                            val sourceGapPx = with(density) { 10.dp.toPx() }
+                            lyricsViewportOffsetPx + firstLyricOffset.toFloat() - sourceHeightPx - sourceGapPx
+                        }
+                    }
 
                     key(lyricsSessionKey, syncedLyricsRenderVersion) {
                         KaraokeLyricsView(
@@ -606,6 +646,22 @@ fun LyricsEnhanced(
                             keepAliveZone = 72.dp,
                             modifier = Modifier.fillMaxSize(),
                         )
+                        lyricsSourceText?.let { sourceText ->
+                            if (sourceOffsetY != Float.NEGATIVE_INFINITY) {
+                                Text(
+                                    text = sourceText,
+                                    style = sourceTextStyle,
+                                    color = textColor.copy(alpha = 0.52f),
+                                    textAlign = TextAlign.Start,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp)
+                                        .graphicsLayer {
+                                            translationY = sourceOffsetY
+                                        },
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -104,6 +104,7 @@ import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 import moe.koiverse.archivetune.constants.LyricsMode
 import moe.koiverse.archivetune.constants.LyricsModeKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity
+import moe.koiverse.archivetune.lyrics.LyricsUtils.displayLyricsText
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.LocalMenuState
@@ -166,20 +167,59 @@ fun LyricsScreen(
         ).lyricsHelper()
     }
 
-    LaunchedEffect(mediaMetadata.id, currentLyrics?.lyrics) {
-        if (currentLyrics != null) return@LaunchedEffect
+    LaunchedEffect(mediaMetadata.id, currentLyrics?.lyrics, currentLyrics?.source) {
         try {
             val existingLyrics = withContext(Dispatchers.IO) {
                 database.lyrics(mediaMetadata.id).first()
             }
-            if (existingLyrics != null) return@LaunchedEffect
+            val shouldRefetchInvalidLyrics = existingLyrics != null &&
+                existingLyrics.source != LyricsEntity.Source.USER_EDIT.value &&
+                existingLyrics.source != LyricsEntity.Source.AI_TRANSLATION.value &&
+                displayLyricsText(existingLyrics.lyrics).isBlank()
 
-            val lyrics = withContext(Dispatchers.IO) {
-                lyricsHelper.getLyrics(mediaMetadata)
-            }
-            withContext(Dispatchers.IO) {
-                database.query {
-                    upsert(LyricsEntity(mediaMetadata.id, lyrics))
+            when {
+                existingLyrics == null || shouldRefetchInvalidLyrics -> {
+                    val lyricsResult = withContext(Dispatchers.IO) {
+                        lyricsHelper.getLyricsResult(mediaMetadata)
+                    }
+                    withContext(Dispatchers.IO) {
+                        database.query {
+                            if (existingLyrics == null) {
+                                insertLyricsIfAbsent(
+                                    id = mediaMetadata.id,
+                                    lyrics = lyricsResult.lyrics,
+                                    source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                                )
+                            } else {
+                                replaceLyrics(
+                                    id = existingLyrics.id,
+                                    lyrics = lyricsResult.lyrics,
+                                    source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                                    updatedAt = existingLyrics.updatedAt,
+                                )
+                            }
+                        }
+                    }
+                }
+                existingLyrics.hasGenericSource() -> {
+                    val providerName = withContext(Dispatchers.IO) {
+                        lyricsHelper.resolveStoredLyricsProviderName(
+                            mediaMetadata = mediaMetadata,
+                            lyrics = existingLyrics.lyrics,
+                        )
+                    }
+                    if (providerName != null) {
+                        withContext(Dispatchers.IO) {
+                            database.query {
+                                replaceLyrics(
+                                    id = existingLyrics.id,
+                                    lyrics = existingLyrics.lyrics,
+                                    source = providerName,
+                                    updatedAt = existingLyrics.updatedAt,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         } catch (e: CancellationException) {

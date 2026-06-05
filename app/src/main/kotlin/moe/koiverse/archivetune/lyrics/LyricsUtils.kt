@@ -13,6 +13,7 @@ import com.atilika.kuromoji.ipadic.Tokenizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import moe.koiverse.archivetune.betterlyrics.TTMLParser
+import moe.koiverse.archivetune.db.entities.LyricsEntity
 import java.lang.Character.UnicodeScript
 
 data class LyricsRomanizationPreferences(
@@ -31,6 +32,7 @@ object LyricsUtils {
     val LINE_REGEX = "((\\[\\d\\d:\\d\\d\\.\\d{2,3}\\] ?)+)(.+)".toRegex()
     val TIME_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\]".toRegex()
     private val WHITESPACE_REGEX = "\\s+".toRegex()
+    private const val NBSP = '\u00A0'
     private const val GENERIC_ROMANIZATION_TRANSFORM = "Any-Latin; Latin-ASCII"
     private val OTHER_ROMANIZATION_EXCLUDED_SCRIPTS = setOf(
         UnicodeScript.LATIN,
@@ -187,6 +189,31 @@ object LyricsUtils {
         }
         return result.sorted()
     }
+
+    fun displayLyricsText(lyrics: String): String {
+        val raw = lyrics
+            .replace("\uFEFF", "")
+            .trim { it.isWhitespace() || it == NBSP }
+
+        if (raw.isEmpty() || raw == LyricsEntity.LYRICS_NOT_FOUND) return ""
+
+        val visibleLines = when {
+            isTtml(raw) -> runCatching { parseTtml(raw).map { it.text } }.getOrElse { emptyList() }
+            raw.startsWith("[") -> runCatching { parseLyrics(raw).map { it.text } }.getOrElse { emptyList() }
+            else -> raw.lines()
+        }
+
+        return visibleLines
+            .map { line ->
+                line
+                    .replace(WHITESPACE_REGEX, " ")
+                    .trim { it.isWhitespace() || it == NBSP }
+            }
+            .filter { it.isNotEmpty() }
+            .joinToString("\n")
+    }
+
+    fun hasMeaningfulLyricsContent(lyrics: String): Boolean = displayLyricsText(lyrics).isNotEmpty()
 
     fun insertInstrumentalBreaks(entries: List<LyricsEntry>, songDurationMs: Long = 0L): List<LyricsEntry> {
         if (entries.isEmpty()) return entries

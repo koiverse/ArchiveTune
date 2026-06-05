@@ -285,6 +285,9 @@
     <string name="lyrics_text_size">Lyrics text size</string>
     <string name="lyrics_sync_offset">Lyrics sync offset</string>
     <string name="resume_autoscroll">Resume Autoscroll</string>
+    <string name="lyrics_source_format">Source: %1$s</string>
+    <string name="lyrics_source_user_edit">User edit</string>
+    <string name="lyrics_source_ai_translation">AI translation</string>
     <string name="lyrics_romanize_japanese">Romanize japanese lyrics</string>
     <string name="lyrics_romanize_korean">Romanize korean lyrics</string>
     <string name="lyrics_romanize_chinese">Romanize chinese lyrics</string>

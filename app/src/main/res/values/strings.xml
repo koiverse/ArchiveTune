@@ -181,6 +181,7 @@
     <string name="copied">Copied to clipboard</string>
     <string name="edit_lyrics">Edit lyrics</string>
     <string name="search_lyrics">Search lyrics</string>
+    <string name="lyrics_synced_badge">Synced</string>
     <string name="edit_song">Edit song</string>
     <string name="song_title">Song title</string>
     <string name="song_artists">Song artists</string>
@@ -481,7 +482,7 @@
     <string name="proxy_username">Username</string>
     <string name="proxy_password">Password</string>
     <string name="test_proxy_connection">Test proxy connection</string>
-    <string name="testing_proxy_connection">Testing proxy connectionâ€¦</string>
+    <string name="testing_proxy_connection">Testing proxy connection</string>
     <string name="proxy_connection_success">Proxy connection successful!</string>
     <string name="proxy_connection_failed">Proxy connection failed: %s</string>
     <string name="ip_rotation">IP Rotation</string>
@@ -537,7 +538,7 @@
     <string name="enter_symbol">Enter symbol</string>
     <string name="equalizer">Equalizer</string>
     <string name="tap_to_activate_equalizer">Tap to activate equalizer</string>
-    <string name="eq_waiting_for_audio_session">Waiting for audio sessionâ€¦</string>
+    <string name="eq_waiting_for_audio_session">Waiting for audio session</string>
     <string name="eq_open_system_equalizer">Open system equalizer</string>
     <string name="eq_presets">Presets</string>
     <string name="eq_system">System</string>
@@ -655,7 +656,7 @@
     <string name="scrobble_delay_minutes">Scrobble Delay (Seconds)</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
-    <string name="logging_in">Logging inâ€¦</string>
+    <string name="logging_in">Logging in</string>
     <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz scrobbling</string>
     <string name="listenbrainz_scrobbling_description">Enable submitting now-playing and finished listens to ListenBrainz</string>
@@ -777,7 +778,7 @@
     <string name="content_length_label">Content Length</string>
     <string name="unknown_content_length">Unknown content length</string>
     <string name="format_label">Format</string>
-    <string name="loading_format">Loading formatâ€¦</string>
+    <string name="loading_format">Loading format</string>
     <string name="buffer_health_label">Buffer Health</string>
     <string name="playback_speed_label">Playback Speed</string>
     <string name="state_label">State</string>
@@ -828,6 +829,7 @@
     <string name="recent_commits">Recent Commits</string>
     <string name="updates_nightly_title">Nightly delivery</string>
     <string name="updates_nightly_description">Nightly builds track the newest development commits and may include unfinished changes.</string>
+    <string name="updates_nightly_hosting_description">Automatically generated development builds are available from successful GitHub Actions runs.</string>
     <string name="updates_latest_commit">Latest commit: %s</string>
     <string name="updates_loading_commits">Loading recent commits</string>
     <string name="updates_recent_commits_count">%1$d recent commits</string>
@@ -906,7 +908,7 @@
     <string name="join">Join</string>
     <string name="joined">Joined</string>
     <string name="loading">Loading</string>
-    <string name="connecting">Connectingâ€¦</string>
+    <string name="connecting">Connecting</string>
     <string name="copy_link">Copy link</string>
 
     <string name="together_host_section">Host</string>
@@ -947,13 +949,13 @@
     <string name="regenerate_desc">Refresh all tokens</string>
     <string name="source_url">Source URL</string>
     <string name="source_url_placeholder">https://youtube.com/account</string>
-    <string name="generating_tokens">Generating tokensâ€¦</string>
+    <string name="generating_tokens">Generating tokens</string>
     <string name="tokens_generated">Tokens generated successfully</string>
     <string name="token_generation_failed">Token generation failed</string>
     <string name="open_account_before_extract">Open and sign in on youtube.com/account before extracting</string>
     <string name="token_copied">Token copied to clipboard</string>
     <string name="no_visitor_data">No visitor data available. Tokens cannot be generated.</string>
-    <string name="extracting_from_url">Extracting tokens from URLâ€¦</string>
+    <string name="extracting_from_url">Extracting tokens from URL</string>
     <string name="po_token_account_notice_title">Use the same account</string>
     <string name="po_token_account_notice_body">Sign in here with the same Google account that you already use for YouTube Music inside ArchiveTune before generating a PO token.</string>
     <string name="po_token_account_notice_same_account">If this WebView uses a different account, the generated token will not work correctly.</string>

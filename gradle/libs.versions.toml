@@ -36,7 +36,8 @@ junit = "4.13.2"
 turbine = "1.2.1"
 timber = "5.0.1"
 kuromojiIpadic = "0.9.0"
-extractor = "c46af33"
+extractor = "0.26.2"
+translator = "1.1.1"
 rhino = "1.9.1"
 markwon = "4.6.2"
 okhttp = "5.3.2"
@@ -126,9 +127,8 @@ turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
-newpipe-extractor = { module = "net.newpipe:extractor", version = "c46af33-SNAPSHOT" }
-#newpipe-extractor = { module = "com.github.libre-tube:NewPipeExtractor", version = "70be3a4" }
-#newpipe-extractor = { module = "com.github.teamnewpipe:NewPipeExtractor", version = "master-SNAPSHOT" }
+newpipe-extractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "extractor" }
+translator = { module = "com.github.therealbush:translator", version.ref = "translator" }
 
 kuromoji-ipadic = { module = "com.atilika.kuromoji:kuromoji-ipadic", version.ref = "kuromojiIpadic" }
 

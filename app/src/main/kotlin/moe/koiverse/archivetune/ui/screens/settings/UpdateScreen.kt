@@ -109,7 +109,7 @@ fun UpdateScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    val nightlyInstallUrl = "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-mobile-universal-release"
+    val nightlyInstallUrl = remember { Updater.getLatestNightlyDownloadUrl() }
 
     val (enableUpdateNotification, onEnableUpdateNotificationChange) = rememberPreference(
         EnableUpdateNotificationKey,
@@ -196,7 +196,7 @@ fun UpdateScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Automatically generated development builds hosted via nightly.link.",
+                            text = stringResource(R.string.updates_nightly_hosting_description),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
@@ -275,7 +275,7 @@ fun UpdateScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Automatically generated development builds hosted via nightly.link.",
+                            text = stringResource(R.string.updates_nightly_hosting_description),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(

@@ -30,6 +30,7 @@ import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.extensions.toEnum
 import moe.koiverse.archivetune.lyrics.LyricsHelper
 import moe.koiverse.archivetune.lyrics.LyricsResult
+import moe.koiverse.archivetune.lyrics.LyricsUtils.displayLyricsText
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import moe.koiverse.archivetune.utils.dataStore
@@ -96,8 +97,16 @@ constructor(
         job =
             viewModelScope.launch(Dispatchers.IO) {
                 lyricsHelper.getAllLyrics(mediaId, title, artist, album, duration) { result ->
-                    results.update {
-                        it + result
+                    if (displayLyricsText(result.lyrics).isBlank()) return@getAllLyrics
+                    results.update { currentResults ->
+                        if (currentResults.any { existing ->
+                                existing.providerName == result.providerName && existing.lyrics == result.lyrics
+                            }
+                        ) {
+                            currentResults
+                        } else {
+                            currentResults + result
+                        }
                     }
                 }
                 isLoading.value = false
@@ -111,15 +120,17 @@ constructor(
 
     fun refetchLyrics(
         mediaMetadata: MediaMetadata,
-        lyricsEntity: LyricsEntity?,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             isRefetching.value = true
             try {
-                val lyrics = lyricsHelper.getLyrics(mediaMetadata)
+                val lyricsResult = lyricsHelper.getLyricsResult(mediaMetadata)
                 database.query {
-                    lyricsEntity?.let(::delete)
-                    upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                    replaceLyrics(
+                        id = mediaMetadata.id,
+                        lyrics = lyricsResult.lyrics,
+                        source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                    )
                 }
             } catch (_: Exception) {
             } finally {
@@ -131,10 +142,27 @@ constructor(
     fun updateLyrics(
         mediaMetadata: MediaMetadata,
         lyrics: String,
+        source: LyricsEntity.Source = LyricsEntity.Source.USER_EDIT,
+    ) {
+        updateLyrics(
+            mediaMetadata = mediaMetadata,
+            lyrics = lyrics,
+            source = source.value,
+        )
+    }
+
+    fun updateLyrics(
+        mediaMetadata: MediaMetadata,
+        lyrics: String,
+        source: String,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             database.query {
-                upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                replaceLyrics(
+                    id = mediaMetadata.id,
+                    lyrics = lyrics,
+                    source = source,
+                )
             }
         }
     }
@@ -163,7 +191,11 @@ constructor(
                     targetLanguage = prefs[TranslatorTargetLangKey].orEmpty().ifBlank { "ENGLISH" },
                 )
                 database.query {
-                    upsert(LyricsEntity(mediaMetadata.id, translatedLyrics))
+                    replaceLyrics(
+                        id = mediaMetadata.id,
+                        lyrics = translatedLyrics,
+                        source = LyricsEntity.Source.AI_TRANSLATION.value,
+                    )
                 }
                 context.dataStore.edit { settings ->
                     settings[AiApiValidationStatusKey] = AiApiValidationStatus.SUCCESS.name
