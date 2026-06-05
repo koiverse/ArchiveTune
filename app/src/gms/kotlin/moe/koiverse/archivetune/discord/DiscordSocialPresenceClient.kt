@@ -1,3 +1,10 @@
+/*
+ * ArchiveTune (2026)
+ * © Chartreux Westia — github.com/koiverse
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
 package moe.koiverse.archivetune.discord
 
 import kotlinx.coroutines.*
@@ -31,7 +38,7 @@ object DiscordSocialPresenceClient {
             val connectResult = ensureConnected(token)
             if (connectResult.isFailure) return@withLock connectResult
 
-            val presenceJson = buildPresencePayload(activity)
+            val presenceJson = buildPresencePayload(token, activity)
             val sent = gateway?.sendPresenceUpdate(presenceJson) ?: false
             if (!sent) {
                 return@withLock Result.failure(Exception("Failed to send presence update"))
@@ -61,6 +68,7 @@ object DiscordSocialPresenceClient {
             scope?.cancel()
             scope = null
             activeToken = null
+            DiscordAssetRegistrar.clearCache()
             Result.success(Unit)
         }
     }
@@ -86,7 +94,16 @@ object DiscordSocialPresenceClient {
         }
     }
 
-    private fun buildPresencePayload(activity: DiscordPresenceActivity): JSONObject {
+    private suspend fun buildPresencePayload(
+        token: String,
+        activity: DiscordPresenceActivity,
+    ): JSONObject {
+        val (resolvedLarge, resolvedSmall) = DiscordAssetRegistrar.resolveImages(
+            accessToken = token,
+            largeImage = activity.assets.largeImage,
+            smallImage = activity.assets.smallImage,
+        )
+
         val activityJson = JSONObject()
 
         activityJson.put("name", activity.name ?: "ArchiveTune")
@@ -109,9 +126,9 @@ object DiscordSocialPresenceClient {
         }
 
         val assets = JSONObject()
-        activity.assets.largeImage?.let { assets.put("large_image", it) }
+        resolvedLarge?.let { assets.put("large_image", it) }
         activity.assets.largeText?.let { assets.put("large_text", it) }
-        activity.assets.smallImage?.let { assets.put("small_image", it) }
+        resolvedSmall?.let { assets.put("small_image", it) }
         activity.assets.smallText?.let { assets.put("small_text", it) }
         if (assets.length() > 0) {
             activityJson.put("assets", assets)
