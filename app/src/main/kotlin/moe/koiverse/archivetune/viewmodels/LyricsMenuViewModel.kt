@@ -115,12 +115,12 @@ constructor(
         viewModelScope.launch(Dispatchers.IO) {
             isRefetching.value = true
             try {
-                val lyrics = lyricsHelper.getLyrics(mediaMetadata)
+                val lyricsResult = lyricsHelper.getLyricsResult(mediaMetadata)
                 database.query {
                     replaceLyrics(
                         id = mediaMetadata.id,
-                        lyrics = lyrics,
-                        source = LyricsEntity.Source.REMOTE.value,
+                        lyrics = lyricsResult.lyrics,
+                        source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
                     )
                 }
             } catch (_: Exception) {
@@ -135,12 +135,24 @@ constructor(
         lyrics: String,
         source: LyricsEntity.Source = LyricsEntity.Source.USER_EDIT,
     ) {
+        updateLyrics(
+            mediaMetadata = mediaMetadata,
+            lyrics = lyrics,
+            source = source.value,
+        )
+    }
+
+    fun updateLyrics(
+        mediaMetadata: MediaMetadata,
+        lyrics: String,
+        source: String,
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             database.query {
                 replaceLyrics(
                     id = mediaMetadata.id,
                     lyrics = lyrics,
-                    source = source.value,
+                    source = source,
                 )
             }
         }

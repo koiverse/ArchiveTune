@@ -335,7 +335,7 @@ fun LyricsMenu(
                         viewModel.updateLyrics(
                             mediaMetadata = searchMediaMetadata,
                             lyrics = result.lyrics,
-                            source = LyricsEntity.Source.USER_SELECTION,
+                            source = result.providerName,
                         )
                     }
                 ) {
