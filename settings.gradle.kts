@@ -38,10 +38,17 @@ dependencyResolutionManagement {
                 includeModule("net.newpipe", "extractor")
             }
         }
-        maven {
-            setUrl("https://jitpack.io")
-            content {
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = "JitPack"
+                    setUrl("https://jitpack.io")
+                }
+            }
+            filter {
                 includeGroup("com.github.skydoves")
+                includeGroup("com.github.therealbush")
+                includeGroup("com.github.TeamNewPipe")
             }
         }
     }
