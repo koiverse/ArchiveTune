@@ -524,6 +524,7 @@ object YTPlayerUtils {
                 reason = "stale logged-in playback context",
             )
             canUseLoggedInPlayback = false
+            YouTube.authState = authState
             clearPlaybackAuthCaches()
             metadataResult =
                 YouTube.player(
