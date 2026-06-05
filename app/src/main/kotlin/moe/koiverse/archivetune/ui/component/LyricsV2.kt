@@ -344,7 +344,8 @@ fun LyricsV2(
 
     // ── Playback position tracking ──
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
-    var currentPositionMs by remember { mutableLongStateOf(0L) }
+    var currentLinePositionMs by remember { mutableLongStateOf(0L) }
+    var currentWordPositionMs by remember { mutableLongStateOf(0L) }
     var playbackPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
@@ -355,10 +356,16 @@ fun LyricsV2(
             val sliderPos = sliderPositionProvider()
             val pos = sliderPos ?: player.currentPosition
 
-            playbackPositionMs = (pos + lyricsSyncOffset.toLong()).coerceAtLeast(0L)
-            currentPositionMs = (playbackPositionMs + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
+            playbackPositionMs = pos.coerceAtLeast(0L)
+            currentWordPositionMs = (playbackPositionMs + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
+            currentLinePositionMs = (
+                playbackPositionMs +
+                    lyricsSyncOffset.toLong() +
+                    leadMs +
+                    LYRIC_VISUAL_TUNING_OFFSET_MS
+                ).coerceAtLeast(0L)
 
-            currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
+            currentLineIndex = findCurrentLineIndex(entriesWithWords, currentLinePositionMs, 0L)
             delay(pollIntervalMs)
         }
     }
@@ -615,7 +622,7 @@ fun LyricsV2(
                     ) {
                         InstrumentalBreakItem(
                             durationMs = item.durationMs,
-                            currentPositionMs = playbackPositionMs,
+                            currentPositionMs = currentLinePositionMs,
                             startTimeMs = startTimeMs,
                             textColor = textColor,
                             inactiveAlpha = inactiveAlpha,
@@ -783,7 +790,7 @@ fun LyricsV2(
                                 words = item.words!!,
                                 isActive = isActive,
                                 isPast = isPast,
-                                currentPositionMs = currentPositionMs,
+                                currentPositionMs = currentWordPositionMs,
                                 textColor = textColor,
                                 inactiveAlpha = inactiveAlpha,
                                 baseFontSize = lyricsTextSize,

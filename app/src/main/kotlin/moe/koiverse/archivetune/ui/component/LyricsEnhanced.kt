@@ -365,7 +365,6 @@ fun LyricsEnhanced(
         {
             (
                 playbackPositionMs.longValue +
-                    latestLyricsSyncOffset.value.toLong() +
                     latestLeadMs.value +
                     LYRIC_VISUAL_TUNING_OFFSET_MS
                 )
@@ -375,7 +374,16 @@ fun LyricsEnhanced(
     }
     val lineFocusPosition: () -> Int = remember(syncedLyrics) {
         {
-            syncedLyrics.positionForStableLineFocus(playbackSyncPosition())
+            syncedLyrics.positionForStableLineFocus(
+                (
+                    playbackPositionMs.longValue +
+                        latestLyricsSyncOffset.value.toLong() +
+                        latestLeadMs.value +
+                        LYRIC_VISUAL_TUNING_OFFSET_MS
+                    )
+                    .coerceIn(0L, Int.MAX_VALUE.toLong())
+                    .toInt()
+            )
         }
     }
 
