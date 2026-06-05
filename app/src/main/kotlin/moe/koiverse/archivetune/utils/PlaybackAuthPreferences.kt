@@ -128,6 +128,11 @@ private suspend fun Context.persistPlaybackAuthRepair(
         repairedAuthState.dataSyncId
             ?.takeIf { it.isNotBlank() && it != initialAuthState.dataSyncId }
             ?.let { preferences[DataSyncIdKey] = it }
+            ?: run {
+                if (!initialAuthState.dataSyncId.isNullOrBlank() && repairedAuthState.dataSyncId.isNullOrBlank()) {
+                    preferences.remove(DataSyncIdKey)
+                }
+            }
     }
 }
 
@@ -139,6 +144,7 @@ internal fun shouldRetryWithoutPlaybackLoginContext(
     if (failure !is YTPlayerUtils.InvalidPlaybackLoginContextException) return false
     if (!initialAuthState.hasPlaybackLoginContext) return false
     if (!currentAuthState.hasPlaybackLoginContext) return false
-    if (currentAuthState.fingerprint != initialAuthState.fingerprint) return false
+    if (currentAuthState.cookie != initialAuthState.cookie) return false
+    if (currentAuthState.dataSyncId != initialAuthState.dataSyncId) return false
     return true
 }
