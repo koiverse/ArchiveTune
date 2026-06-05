@@ -27,20 +27,6 @@ dependencyResolutionManagement {
         exclusiveContent {
             forRepository {
                 maven {
-                    name = "Central Portal Snapshots"
-                    setUrl("https://central.sonatype.com/repository/maven-snapshots/")
-                    mavenContent {
-                        snapshotsOnly()
-                    }
-                }
-            }
-            filter {
-                includeModule("net.newpipe", "extractor")
-            }
-        }
-        exclusiveContent {
-            forRepository {
-                maven {
                     name = "JitPack"
                     setUrl("https://jitpack.io")
                 }
@@ -81,9 +67,9 @@ include(":spotifycore")
 // From:
 //      implementation(libs.newpipe.extractor)
 // To:
-//      implementation("com.github.teamnewpipe:NewPipeExtractor")
+//      implementation("com.github.TeamNewPipe:NewPipeExtractor")
 //includeBuild("../NewPipeExtractor") {
 //    dependencySubstitution {
-//        substitute(module("com.github.teamnewpipe:NewPipeExtractor")).using(project(":extractor"))
+//        substitute(module("com.github.TeamNewPipe:NewPipeExtractor")).using(project(":extractor"))
 //    }
 //}
