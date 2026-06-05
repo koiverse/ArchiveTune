@@ -588,14 +588,16 @@ fun LyricsEnhanced(
                         .nestedScroll(nestedScrollConnection),
                 ) {
                     val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
+                    val lyricsViewportOffsetPx = remember(lyricsViewportOffset, density) {
+                        with(density) { lyricsViewportOffset.toPx() }
+                    }
                     val sourceOffsetY by remember(
                         listState,
-                        density,
-                        lyricsViewportOffset,
+                        lyricsViewportOffsetPx,
                         sourceTextStyle.lineHeight,
                         sourceTextStyle.fontSize,
                     ) {
-                        derivedStateOf {
+                        derivedStateOf<Float> {
                             val firstLyricOffset = listState.layoutInfo.visibleItemsInfo
                                 .firstOrNull { item -> item.index == 0 }
                                 ?.offset
@@ -605,7 +607,7 @@ fun LyricsEnhanced(
                                 if (lineHeightPx > 0f) lineHeightPx else sourceTextStyle.fontSize.toPx()
                             }
                             val sourceGapPx = with(density) { 10.dp.toPx() }
-                            (lyricsViewportOffset + firstLyricOffset) - sourceHeightPx - sourceGapPx
+                            lyricsViewportOffsetPx + firstLyricOffset.toFloat() - sourceHeightPx - sourceGapPx
                         }
                     }
 
