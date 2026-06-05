@@ -228,8 +228,15 @@ fun LyricsScreen(
         }
     }
 
+    val metadataDurationMs = remember(mediaMetadata.id, mediaMetadata.duration) {
+        mediaMetadata.duration
+            .takeIf { it > 0 }
+            ?.toLong()
+            ?.times(1000L)
+            ?: C.TIME_UNSET
+    }
     val positionState = remember(mediaMetadata.id) { mutableLongStateOf(0L) }
-    val durationState = remember(mediaMetadata.id) { mutableLongStateOf(C.TIME_UNSET) }
+    val durationState = remember(mediaMetadata.id) { mutableLongStateOf(metadataDurationMs) }
     var sliderPosition by remember(mediaMetadata.id) { mutableStateOf<Long?>(null) }
     var lyricsSyncOffset by remember(mediaMetadata.id) { mutableIntStateOf(0) }
     var gradientColors by remember(mediaMetadata.thumbnailUrl) { mutableStateOf(AppleMusicFallbackGradient) }
@@ -290,12 +297,30 @@ fun LyricsScreen(
         gradientColorsCache[thumbnailUrl] = gradientColors
     }
 
-    LaunchedEffect(player, playbackState) {
-        if (playbackState != STATE_READY && playbackState != STATE_BUFFERING) return@LaunchedEffect
+    LaunchedEffect(player, mediaMetadata.id, metadataDurationMs, playbackState) {
         while (isActive) {
-            positionState.longValue = player.currentPosition.coerceAtLeast(0L)
-            durationState.longValue = player.duration
-            delay(250)
+            val isCurrentMedia = player.currentMediaItem?.mediaId == mediaMetadata.id
+            val playerDuration = player.duration
+            val resolvedDuration = when {
+                playerDuration > 0L && playerDuration != C.TIME_UNSET -> playerDuration
+                metadataDurationMs > 0L && metadataDurationMs != C.TIME_UNSET -> metadataDurationMs
+                else -> C.TIME_UNSET
+            }
+
+            durationState.longValue = resolvedDuration
+            positionState.longValue = if (isCurrentMedia) {
+                player.currentPosition.coerceAtLeast(0L)
+            } else {
+                0L
+            }
+
+            delay(
+                if (playbackState == STATE_READY || playbackState == STATE_BUFFERING) {
+                    250L
+                } else {
+                    500L
+                }
+            )
         }
     }
 
