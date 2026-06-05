@@ -499,14 +499,14 @@ fun LyricsEnhanced(
         fontWeight = FontWeight.SemiBold,
         fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
     )
-    val sourceOffsetY by remember(listState, density, lyricsTextSize) {
+    val sourceOffsetY by remember(listState, density) {
         derivedStateOf {
-            val firstItemOffset = listState.layoutInfo.visibleItemsInfo
-                .firstOrNull { item -> item.index == 0 }
+            val firstVisibleItemOffset = listState.layoutInfo.visibleItemsInfo
+                .firstOrNull()
                 ?.offset
                 ?: return@derivedStateOf Float.NEGATIVE_INFINITY
-            val sourceGapPx = with(density) { (lyricsTextSize * 1.45f).dp.toPx() }
-            firstItemOffset - sourceGapPx
+            val sourceGapPx = with(density) { 12.dp.toPx() }
+            (firstVisibleItemOffset.toFloat() - sourceGapPx).coerceAtLeast(0f)
         }
     }
     val selectionLines = remember(syncedLyrics) {

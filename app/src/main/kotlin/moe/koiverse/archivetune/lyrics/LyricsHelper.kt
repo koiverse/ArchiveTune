@@ -97,6 +97,31 @@ constructor(
         return result
     }
 
+    suspend fun resolveStoredLyricsProviderName(
+        mediaMetadata: MediaMetadata,
+        lyrics: String,
+    ): String? {
+        val normalizedLyrics = lyrics.trim()
+        if (normalizedLyrics.isEmpty() || normalizedLyrics == LYRICS_NOT_FOUND) return null
+        val cacheKey = mediaMetadata.lyricsCacheKey
+        cache.get(cacheKey)
+            ?.firstOrNull { cachedResult -> cachedResult.lyrics.trim() == normalizedLyrics }
+            ?.providerName
+            ?.takeIf { providerName -> providerName.isNotBlank() }
+            ?.let { providerName -> return providerName }
+
+        singleLyricsCache.get(cacheKey)
+            ?.takeIf { cachedResult -> cachedResult.lyrics.trim() == normalizedLyrics }
+            ?.providerName
+            ?.takeIf { providerName -> providerName.isNotBlank() }
+            ?.let { providerName -> return providerName }
+
+        val result = getLyricsResult(mediaMetadata)
+        return result.providerName?.takeIf { providerName ->
+            providerName.isNotBlank() && result.lyrics.trim() == normalizedLyrics
+        }
+    }
+
     suspend fun getAllLyrics(
         mediaId: String,
         songTitle: String,

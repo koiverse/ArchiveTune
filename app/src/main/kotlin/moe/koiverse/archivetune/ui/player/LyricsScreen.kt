@@ -166,24 +166,46 @@ fun LyricsScreen(
         ).lyricsHelper()
     }
 
-    LaunchedEffect(mediaMetadata.id, currentLyrics?.lyrics) {
-        if (currentLyrics != null) return@LaunchedEffect
+    LaunchedEffect(mediaMetadata.id, currentLyrics?.lyrics, currentLyrics?.source) {
         try {
             val existingLyrics = withContext(Dispatchers.IO) {
                 database.lyrics(mediaMetadata.id).first()
             }
-            if (existingLyrics != null) return@LaunchedEffect
 
-            val lyricsResult = withContext(Dispatchers.IO) {
-                lyricsHelper.getLyricsResult(mediaMetadata)
-            }
-            withContext(Dispatchers.IO) {
-                database.query {
-                    insertLyricsIfAbsent(
-                        id = mediaMetadata.id,
-                        lyrics = lyricsResult.lyrics,
-                        source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
-                    )
+            when {
+                existingLyrics == null -> {
+                    val lyricsResult = withContext(Dispatchers.IO) {
+                        lyricsHelper.getLyricsResult(mediaMetadata)
+                    }
+                    withContext(Dispatchers.IO) {
+                        database.query {
+                            insertLyricsIfAbsent(
+                                id = mediaMetadata.id,
+                                lyrics = lyricsResult.lyrics,
+                                source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                            )
+                        }
+                    }
+                }
+                existingLyrics.hasGenericSource() -> {
+                    val providerName = withContext(Dispatchers.IO) {
+                        lyricsHelper.resolveStoredLyricsProviderName(
+                            mediaMetadata = mediaMetadata,
+                            lyrics = existingLyrics.lyrics,
+                        )
+                    }
+                    if (providerName != null) {
+                        withContext(Dispatchers.IO) {
+                            database.query {
+                                replaceLyrics(
+                                    id = existingLyrics.id,
+                                    lyrics = existingLyrics.lyrics,
+                                    source = providerName,
+                                    updatedAt = existingLyrics.updatedAt,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         } catch (e: CancellationException) {

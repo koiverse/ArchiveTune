@@ -891,16 +891,35 @@ class MusicService :
         ) { mediaMetadata, showLyrics ->
             mediaMetadata to showLyrics
         }.collectLatest(ioScope) { (mediaMetadata, showLyrics) ->
-            if (showLyrics && mediaMetadata != null && database.lyrics(mediaMetadata.id)
-                    .first() == null
-            ) {
-                val lyricsResult = lyricsHelper.getLyricsResult(mediaMetadata)
-                database.query {
-                    insertLyricsIfAbsent(
-                        id = mediaMetadata.id,
-                        lyrics = lyricsResult.lyrics,
-                        source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
-                    )
+            if (showLyrics && mediaMetadata != null) {
+                val existingLyrics = database.lyrics(mediaMetadata.id).first()
+                when {
+                    existingLyrics == null -> {
+                        val lyricsResult = lyricsHelper.getLyricsResult(mediaMetadata)
+                        database.query {
+                            insertLyricsIfAbsent(
+                                id = mediaMetadata.id,
+                                lyrics = lyricsResult.lyrics,
+                                source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                            )
+                        }
+                    }
+                    existingLyrics.hasGenericSource() -> {
+                        val providerName = lyricsHelper.resolveStoredLyricsProviderName(
+                            mediaMetadata = mediaMetadata,
+                            lyrics = existingLyrics.lyrics,
+                        )
+                        if (providerName != null) {
+                            database.query {
+                                replaceLyrics(
+                                    id = existingLyrics.id,
+                                    lyrics = existingLyrics.lyrics,
+                                    source = providerName,
+                                    updatedAt = existingLyrics.updatedAt,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

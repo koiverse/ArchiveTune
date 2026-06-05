@@ -19,11 +19,10 @@ internal fun lyricsSourceLabel(
     lyrics: String?,
 ): String? {
     val sourceName = lyricsEntity?.source?.trim()?.takeIf { it.isNotEmpty() }?.let { source ->
-        when (source) {
-            LyricsEntity.Source.REMOTE.value,
-            LyricsEntity.Source.USER_SELECTION.value -> null
-            LyricsEntity.Source.USER_EDIT.value -> stringResource(R.string.lyrics_source_user_edit)
-            LyricsEntity.Source.AI_TRANSLATION.value -> stringResource(R.string.lyrics_source_ai_translation)
+        when {
+            lyricsEntity.hasGenericSource() -> null
+            source == LyricsEntity.Source.USER_EDIT.value -> stringResource(R.string.lyrics_source_user_edit)
+            source == LyricsEntity.Source.AI_TRANSLATION.value -> stringResource(R.string.lyrics_source_ai_translation)
             else -> source
         }
     }

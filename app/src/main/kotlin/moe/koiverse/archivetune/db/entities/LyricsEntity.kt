@@ -20,6 +20,8 @@ data class LyricsEntity(
     @ColumnInfo(defaultValue = "0")
     val updatedAt: Long = System.currentTimeMillis(),
 ) {
+    fun hasGenericSource(): Boolean = source == Source.REMOTE.value || source == Source.USER_SELECTION.value
+
     companion object {
         const val LYRICS_NOT_FOUND = "LYRICS_NOT_FOUND"
     }
