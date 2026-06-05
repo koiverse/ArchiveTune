@@ -89,9 +89,8 @@ import moe.koiverse.archivetune.constants.AiCustomEndpointKey
 import moe.koiverse.archivetune.constants.AiProvider
 import moe.koiverse.archivetune.constants.AiProviderKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity
+import moe.koiverse.archivetune.lyrics.LyricsUtils.displayLyricsText
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
-import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
-import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.ListDialog
@@ -313,6 +312,9 @@ fun LyricsMenu(
 
             itemsIndexed(results) { index, result ->
                 val isExpanded = index == expandedItemIndex
+                val displayLyrics = remember(result.lyrics) {
+                    displayLyricsText(result.lyrics)
+                }
 
                 Surface(
                     modifier = Modifier
@@ -330,6 +332,7 @@ fun LyricsMenu(
                     else
                         MaterialTheme.colorScheme.surfaceContainerLow,
                     onClick = {
+                        if (displayLyrics.isBlank()) return@Surface
                         onDismiss()
                         viewModel.cancelSearch()
                         viewModel.updateLyrics(
@@ -340,17 +343,6 @@ fun LyricsMenu(
                     }
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        val displayLyrics = remember(result.lyrics) {
-                            val raw = result.lyrics.trim()
-                            runCatching {
-                                when {
-                                    isTtml(raw) -> parseTtml(raw).joinToString("\n") { it.text }.trim()
-                                    raw.startsWith("[") -> parseLyrics(raw).joinToString("\n") { it.text }.trim()
-                                    else -> raw
-                                }
-                            }.getOrDefault(raw)
-                        }
-
                         Text(
                             text = displayLyrics,
                             style = MaterialTheme.typography.bodyMedium,

@@ -104,6 +104,7 @@ import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 import moe.koiverse.archivetune.constants.LyricsMode
 import moe.koiverse.archivetune.constants.LyricsModeKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity
+import moe.koiverse.archivetune.lyrics.LyricsUtils.displayLyricsText
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.LocalMenuState
@@ -171,19 +172,32 @@ fun LyricsScreen(
             val existingLyrics = withContext(Dispatchers.IO) {
                 database.lyrics(mediaMetadata.id).first()
             }
+            val shouldRefetchInvalidLyrics = existingLyrics != null &&
+                existingLyrics.source != LyricsEntity.Source.USER_EDIT.value &&
+                existingLyrics.source != LyricsEntity.Source.AI_TRANSLATION.value &&
+                displayLyricsText(existingLyrics.lyrics).isBlank()
 
             when {
-                existingLyrics == null -> {
+                existingLyrics == null || shouldRefetchInvalidLyrics -> {
                     val lyricsResult = withContext(Dispatchers.IO) {
                         lyricsHelper.getLyricsResult(mediaMetadata)
                     }
                     withContext(Dispatchers.IO) {
                         database.query {
-                            insertLyricsIfAbsent(
-                                id = mediaMetadata.id,
-                                lyrics = lyricsResult.lyrics,
-                                source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
-                            )
+                            if (existingLyrics == null) {
+                                insertLyricsIfAbsent(
+                                    id = mediaMetadata.id,
+                                    lyrics = lyricsResult.lyrics,
+                                    source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                                )
+                            } else {
+                                replaceLyrics(
+                                    id = existingLyrics.id,
+                                    lyrics = lyricsResult.lyrics,
+                                    source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                                    updatedAt = existingLyrics.updatedAt,
+                                )
+                            }
                         }
                     }
                 }

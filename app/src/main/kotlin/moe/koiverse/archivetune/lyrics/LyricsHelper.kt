@@ -15,6 +15,7 @@ import moe.koiverse.archivetune.constants.LyricsProviderOrderKey
 import moe.koiverse.archivetune.constants.PreferredLyricsProvider
 import moe.koiverse.archivetune.constants.deserializeLyricsProviderOrder
 import moe.koiverse.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
+import moe.koiverse.archivetune.lyrics.LyricsUtils.hasMeaningfulLyricsContent
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.utils.dataStore
 import moe.koiverse.archivetune.utils.reportException
@@ -279,13 +280,9 @@ constructor(
 
         if (normalized.isEmpty()) return false
         if (normalized == LYRICS_NOT_FOUND) return false
+        if (!hasMeaningfulLyricsContent(normalized)) return false
 
-        val remaining =
-            TIMESTAMP_REGEX
-                .replace(normalized, "")
-                .replace(INVISIBLE_CHARS_REGEX, "")
-                .trim { it.isWhitespace() || it == '\u00A0' }
-
+        val remaining = TIMESTAMP_REGEX.replace(normalized, "")
         return remaining.any { !it.isWhitespace() && it != '\u00A0' }
     }
 

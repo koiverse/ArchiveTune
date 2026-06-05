@@ -30,6 +30,7 @@ import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.extensions.toEnum
 import moe.koiverse.archivetune.lyrics.LyricsHelper
 import moe.koiverse.archivetune.lyrics.LyricsResult
+import moe.koiverse.archivetune.lyrics.LyricsUtils.displayLyricsText
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import moe.koiverse.archivetune.utils.dataStore
@@ -96,8 +97,16 @@ constructor(
         job =
             viewModelScope.launch(Dispatchers.IO) {
                 lyricsHelper.getAllLyrics(mediaId, title, artist, album, duration) { result ->
-                    results.update {
-                        it + result
+                    if (displayLyricsText(result.lyrics).isBlank()) return@getAllLyrics
+                    results.update { currentResults ->
+                        if (currentResults.any { existing ->
+                                existing.providerName == result.providerName && existing.lyrics == result.lyrics
+                            }
+                        ) {
+                            currentResults
+                        } else {
+                            currentResults + result
+                        }
                     }
                 }
                 isLoading.value = false
