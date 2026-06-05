@@ -71,6 +71,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,11 +81,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -99,6 +103,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Velocity
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.media3.common.Player
 import androidx.navigation.NavController
@@ -459,6 +464,38 @@ private fun LogViewerPanel() {
     }
 
     val listState = rememberLazyListState()
+    var isLogAutoScrollPaused by remember { mutableStateOf(false) }
+    val isLogAtBottom by remember(filtered.size) {
+        derivedStateOf {
+            if (filtered.isEmpty()) {
+                true
+            } else {
+                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == filtered.lastIndex
+            }
+        }
+    }
+    val logUserScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (source == NestedScrollSource.UserInput && (consumed.y != 0f || available.y != 0f)) {
+                    isLogAutoScrollPaused = true
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(
+                consumed: Velocity,
+                available: Velocity
+            ): Velocity {
+                isLogAutoScrollPaused = true
+                return Velocity.Zero
+            }
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -637,11 +674,16 @@ private fun LogViewerPanel() {
                         state = listState,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .nestedScroll(logUserScrollConnection)
                             .nestedScroll(rememberNestedScrollInteropConnection())
                             .padding(8.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        itemsIndexed(filtered) { _, entry ->
+                        itemsIndexed(
+                            items = filtered,
+                            key = { _, entry -> "${entry.time}_${entry.level}_${entry.tag}_${entry.message.hashCode()}" },
+                            contentType = { _, _ -> "log_entry" }
+                        ) { _, entry ->
                             LogEntryItem(
                                 entry = entry,
                                 clipboard = clipboard,
@@ -702,7 +744,15 @@ private fun LogViewerPanel() {
     }
 
     LaunchedEffect(filtered.size) {
-        if (filtered.isNotEmpty()) listState.animateScrollToItem(filtered.size - 1)
+        if (filtered.isNotEmpty() && !isLogAutoScrollPaused) {
+            listState.animateScrollToItem(filtered.size - 1)
+        }
+    }
+
+    LaunchedEffect(isLogAtBottom, filtered.size) {
+        if (isLogAtBottom) {
+            isLogAutoScrollPaused = false
+        }
     }
 }
 

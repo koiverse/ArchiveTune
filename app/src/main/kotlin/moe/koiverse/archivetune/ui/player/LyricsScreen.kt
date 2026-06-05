@@ -174,12 +174,16 @@ fun LyricsScreen(
             }
             if (existingLyrics != null) return@LaunchedEffect
 
-            val lyrics = withContext(Dispatchers.IO) {
-                lyricsHelper.getLyrics(mediaMetadata)
+            val lyricsResult = withContext(Dispatchers.IO) {
+                lyricsHelper.getLyricsResult(mediaMetadata)
             }
             withContext(Dispatchers.IO) {
                 database.query {
-                    upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                    insertLyricsIfAbsent(
+                        id = mediaMetadata.id,
+                        lyrics = lyricsResult.lyrics,
+                        source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                    )
                 }
             }
         } catch (e: CancellationException) {

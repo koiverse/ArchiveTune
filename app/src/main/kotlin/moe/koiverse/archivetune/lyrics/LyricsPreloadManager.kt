@@ -141,15 +141,13 @@ class LyricsPreloadManager @Inject constructor(
                     
                     // Fetch lyrics for this song
                     try {
-                        val lyrics = fetchLyricsForSong(song)
-                        if (lyrics != null && lyrics != LyricsEntity.LYRICS_NOT_FOUND) {
-                            // Save to database using query block
+                        val lyricsResult = fetchLyricsForSong(song)
+                        if (lyricsResult != null && lyricsResult.lyrics != LyricsEntity.LYRICS_NOT_FOUND) {
                             database.query {
-                                upsert(
-                                    LyricsEntity(
-                                        id = song.id,
-                                        lyrics = lyrics
-                                    )
+                                insertLyricsIfAbsent(
+                                    id = song.id,
+                                    lyrics = lyricsResult.lyrics,
+                                    source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
                                 )
                             }
                             Log.d(TAG, "Pre-loaded lyrics for: ${song.title}")
@@ -168,9 +166,9 @@ class LyricsPreloadManager @Inject constructor(
      * Fetch lyrics for a single song using the LyricsHelper.
      * This is a simplified version that gets lyrics from enabled providers.
      */
-    private suspend fun fetchLyricsForSong(song: MediaMetadata): String? {
+    private suspend fun fetchLyricsForSong(song: MediaMetadata): LyricsFetchResult? {
         return try {
-            lyricsHelper.getLyrics(song, preferredProviderOnly = true)
+            lyricsHelper.getLyricsResult(song, preferredProviderOnly = true)
         } catch (e: Exception) {
             Log.w(TAG, "Error fetching lyrics for ${song.title}: ${e.message}")
             null

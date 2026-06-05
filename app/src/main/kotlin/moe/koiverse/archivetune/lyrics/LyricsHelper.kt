@@ -55,20 +55,23 @@ constructor(
         )
 
     private val cache = LruCache<String, List<LyricsResult>>(MAX_CACHE_SIZE)
-    private val singleLyricsCache = LruCache<String, String>(MAX_CACHE_SIZE)
+    private val singleLyricsCache = LruCache<String, LyricsFetchResult>(MAX_CACHE_SIZE)
     private var currentLyricsJob: Job? = null
 
-    suspend fun getLyrics(mediaMetadata: MediaMetadata, preferredProviderOnly: Boolean = false): String {
+    suspend fun getLyrics(mediaMetadata: MediaMetadata, preferredProviderOnly: Boolean = false): String =
+        getLyricsResult(mediaMetadata, preferredProviderOnly).lyrics
+
+    suspend fun getLyricsResult(mediaMetadata: MediaMetadata, preferredProviderOnly: Boolean = false): LyricsFetchResult {
         val cacheKey = mediaMetadata.lyricsCacheKey
-        singleLyricsCache.get(cacheKey)?.let { lyrics ->
+        singleLyricsCache.get(cacheKey)?.let { result ->
             GlobalLog.append(Log.DEBUG, "LyricsHelper", "Found lyrics in cache for ${mediaMetadata.title}")
-            return lyrics
+            return result
         }
 
         val cached = cache.get(cacheKey)?.firstOrNull()
         if (cached != null) {
             GlobalLog.append(Log.DEBUG, "LyricsHelper", "Found lyrics in cache for ${mediaMetadata.title}")
-            return cached.lyrics
+            return LyricsFetchResult(cached.lyrics, cached.providerName)
         }
         
         GlobalLog.append(Log.DEBUG, "LyricsHelper", "Fetching lyrics for ${mediaMetadata.title} (Artist: ${mediaMetadata.artists.joinToString { it.name }}, Album: ${mediaMetadata.album?.title})")
@@ -81,17 +84,17 @@ constructor(
         
         if (!isNetworkAvailable) {
             GlobalLog.append(Log.WARN, "LyricsHelper", "Network unavailable, aborting lyrics fetch")
-            return LYRICS_NOT_FOUND
+            return LyricsFetchResult(LYRICS_NOT_FOUND, null)
         }
 
         val ordered = orderedProviders().filter { it.isEnabled(context) }
         val providers = if (preferredProviderOnly) ordered.take(1) else ordered
-        val lyrics = fetchPriorityLyrics(providers, mediaMetadata)
-        if (isMeaningfulLyrics(lyrics)) {
-            singleLyricsCache.put(cacheKey, lyrics)
+        val result = fetchPriorityLyrics(providers, mediaMetadata)
+        if (isMeaningfulLyrics(result.lyrics)) {
+            singleLyricsCache.put(cacheKey, result)
         }
 
-        return lyrics
+        return result
     }
 
     suspend fun getAllLyrics(
@@ -148,12 +151,13 @@ constructor(
     private suspend fun fetchPriorityLyrics(
         providers: List<LyricsProvider>,
         mediaMetadata: MediaMetadata,
-    ): String {
-        if (providers.isEmpty()) return LYRICS_NOT_FOUND
+    ): LyricsFetchResult {
+        if (providers.isEmpty()) return LyricsFetchResult(LYRICS_NOT_FOUND, null)
 
         val artist = mediaMetadata.artists.joinToString { it.name }
-        fetchProviderLyrics(providers.first(), mediaMetadata, artist)?.let { lyrics ->
-            return lyrics
+        val priorityProvider = providers.first()
+        fetchProviderLyrics(priorityProvider, mediaMetadata, artist)?.let { lyrics ->
+            return LyricsFetchResult(lyrics, priorityProvider.name)
         }
 
         return fetchFirstMeaningfulLyrics(providers.drop(1), mediaMetadata, artist)
@@ -163,32 +167,34 @@ constructor(
         providers: List<LyricsProvider>,
         mediaMetadata: MediaMetadata,
         artist: String,
-    ): String = supervisorScope {
+    ): LyricsFetchResult = supervisorScope {
         val requests =
             providers
                 .map { provider ->
                     async(Dispatchers.IO) {
-                        fetchProviderLyrics(provider, mediaMetadata, artist)
+                        fetchProviderLyrics(provider, mediaMetadata, artist)?.let { lyrics ->
+                            LyricsFetchResult(lyrics, provider.name)
+                        }
                     }
                 }
 
-        if (requests.isEmpty()) return@supervisorScope LYRICS_NOT_FOUND
+        if (requests.isEmpty()) return@supervisorScope LyricsFetchResult(LYRICS_NOT_FOUND, null)
 
         val pending = requests.toMutableSet()
         while (pending.isNotEmpty()) {
-            val (request, lyrics) = select<Pair<Deferred<String?>, String?>> {
+            val (request, result) = select<Pair<Deferred<LyricsFetchResult?>, LyricsFetchResult?>> {
                 pending.forEach { deferred ->
                     deferred.onAwait { result -> deferred to result }
                 }
             }
             pending.remove(request)
-            if (lyrics != null) {
+            if (result != null) {
                 pending.forEach { it.cancel() }
-                return@supervisorScope lyrics
+                return@supervisorScope result
             }
         }
 
-        LYRICS_NOT_FOUND
+        LyricsFetchResult(LYRICS_NOT_FOUND, null)
     }
 
     private suspend fun fetchProviderLyrics(
@@ -289,4 +295,9 @@ constructor(
 data class LyricsResult(
     val providerName: String,
     val lyrics: String,
+)
+
+data class LyricsFetchResult(
+    val lyrics: String,
+    val providerName: String?,
 )

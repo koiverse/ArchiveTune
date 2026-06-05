@@ -53,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.key
@@ -71,6 +72,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -207,11 +209,11 @@ fun LyricsEnhanced(
     var showShareImageDialog by remember { mutableStateOf(false) }
 
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    val currentLyricsEntity = currentLyrics?.takeIf { lyricsEntity -> lyricsEntity.id == mediaMetadata?.id }
     val lyrics = remember(currentLyrics, mediaMetadata?.id) {
-        currentLyrics
-            ?.takeIf { lyricsEntity -> lyricsEntity.id == mediaMetadata?.id }
-            ?.lyrics
+        currentLyricsEntity?.lyrics
     }
+    val lyricsSourceText = lyricsSourceLabel(currentLyricsEntity, lyrics)
     val lyricsSessionKey = remember(mediaMetadata?.id, lyrics) {
         mediaMetadata?.id.orEmpty() to lyrics
     }
@@ -482,6 +484,20 @@ fun LyricsEnhanced(
         fontSize = (lyricsTextSize * 0.55f).sp,
         fontWeight = FontWeight.Normal,
     )
+    val sourceTextStyle = MaterialTheme.typography.headlineMedium.copy(
+        fontSize = (lyricsTextSize * 0.72f).sp,
+        fontWeight = FontWeight.SemiBold,
+        fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
+    )
+    val sourceOffsetY by remember(listState) {
+        derivedStateOf {
+            if (listState.firstVisibleItemIndex == 0) {
+                -listState.firstVisibleItemScrollOffset.toFloat()
+            } else {
+                Float.NEGATIVE_INFINITY
+            }
+        }
+    }
     val selectionLines = remember(syncedLyrics) {
         syncedLyrics.lines.mapIndexedNotNull { index, line ->
             val text = line.lineText()
@@ -606,6 +622,22 @@ fun LyricsEnhanced(
                             keepAliveZone = 72.dp,
                             modifier = Modifier.fillMaxSize(),
                         )
+                        lyricsSourceText?.let { sourceText ->
+                            if (sourceOffsetY != Float.NEGATIVE_INFINITY) {
+                                Text(
+                                    text = sourceText,
+                                    style = sourceTextStyle,
+                                    color = textColor.copy(alpha = 0.52f),
+                                    textAlign = TextAlign.Start,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp)
+                                        .graphicsLayer {
+                                            translationY = sourceOffsetY
+                                        },
+                                )
+                            }
+                        }
                     }
                 }
             }
