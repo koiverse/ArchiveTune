@@ -19,9 +19,31 @@ dependencyResolutionManagement {
 
     repositories {
         google()
-        mavenCentral()
-        maven { setUrl("https://central.sonatype.com/repository/maven-snapshots/") }
-        maven { setUrl("https://jitpack.io") }
+        mavenCentral {
+            mavenContent {
+                releasesOnly()
+            }
+        }
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = "Central Portal Snapshots"
+                    setUrl("https://central.sonatype.com/repository/maven-snapshots/")
+                    mavenContent {
+                        snapshotsOnly()
+                    }
+                }
+            }
+            filter {
+                includeModule("net.newpipe", "extractor")
+            }
+        }
+        maven {
+            setUrl("https://jitpack.io")
+            content {
+                includeGroup("com.github.skydoves")
+            }
+        }
     }
 }
 
