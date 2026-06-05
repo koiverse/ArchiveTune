@@ -496,19 +496,10 @@ fun LyricsEnhanced(
     )
     val sourceTextStyle = MaterialTheme.typography.headlineMedium.copy(
         fontSize = (lyricsTextSize * 0.72f).sp,
+        lineHeight = (lyricsTextSize * 0.84f).sp,
         fontWeight = FontWeight.SemiBold,
         fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
     )
-    val sourceOffsetY by remember(listState, density) {
-        derivedStateOf {
-            val firstVisibleItemOffset = listState.layoutInfo.visibleItemsInfo
-                .firstOrNull()
-                ?.offset
-                ?: return@derivedStateOf Float.NEGATIVE_INFINITY
-            val sourceGapPx = with(density) { 12.dp.toPx() }
-            (firstVisibleItemOffset.toFloat() - sourceGapPx).coerceAtLeast(0f)
-        }
-    }
     val selectionLines = remember(syncedLyrics) {
         syncedLyrics.lines.mapIndexedNotNull { index, line ->
             val text = line.lineText()
@@ -597,6 +588,26 @@ fun LyricsEnhanced(
                         .nestedScroll(nestedScrollConnection),
                 ) {
                     val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
+                    val sourceOffsetY by remember(
+                        listState,
+                        density,
+                        lyricsViewportOffset,
+                        sourceTextStyle.lineHeight,
+                        sourceTextStyle.fontSize,
+                    ) {
+                        derivedStateOf {
+                            val firstLyricOffset = listState.layoutInfo.visibleItemsInfo
+                                .firstOrNull { item -> item.index == 0 }
+                                ?.offset
+                                ?: return@derivedStateOf Float.NEGATIVE_INFINITY
+                            val sourceHeightPx = with(density) {
+                                val lineHeightPx = sourceTextStyle.lineHeight.toPx()
+                                if (lineHeightPx > 0f) lineHeightPx else sourceTextStyle.fontSize.toPx()
+                            }
+                            val sourceGapPx = with(density) { 10.dp.toPx() }
+                            (lyricsViewportOffset + firstLyricOffset) - sourceHeightPx - sourceGapPx
+                        }
+                    }
 
                     key(lyricsSessionKey, syncedLyricsRenderVersion) {
                         KaraokeLyricsView(

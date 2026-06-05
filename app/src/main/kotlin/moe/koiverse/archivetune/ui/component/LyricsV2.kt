@@ -274,6 +274,7 @@ fun LyricsV2(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = currentLyrics?.lyrics
     val lyricsSourceText = lyricsSourceLabel(currentLyrics, lyrics)
+    val sourceBottomSpacing = remember(lyricsTextSize) { (lyricsTextSize * 0.35f).dp }
 
     // ── Parse lyrics into entries ──
     val isSynced = remember(lyrics) { lyrics != null && (lyrics!!.startsWith("[") || isTtml(lyrics!!)) }
@@ -515,7 +516,7 @@ fun LyricsV2(
                         textAlign = TextAlign.Start,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = (lyricsLineSpacing * 8).dp),
+                            .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = sourceBottomSpacing),
                     )
                 }
             }
@@ -548,7 +549,7 @@ fun LyricsV2(
                                 textAlign = TextAlign.Start,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(start = 12.dp, end = 12.dp, bottom = (lyricsLineSpacing * 8).dp),
+                                    .padding(start = 12.dp, end = 12.dp, bottom = sourceBottomSpacing),
                             )
                         }
                     }
