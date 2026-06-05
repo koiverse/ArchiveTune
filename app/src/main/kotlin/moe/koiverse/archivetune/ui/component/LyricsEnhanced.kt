@@ -77,6 +77,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -162,6 +163,7 @@ fun LyricsEnhanced(
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
     val context = LocalContext.current
+    val density = LocalDensity.current
     val animationsDisabled = LocalAnimationsDisabled.current
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -497,13 +499,14 @@ fun LyricsEnhanced(
         fontWeight = FontWeight.SemiBold,
         fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
     )
-    val sourceOffsetY by remember(listState) {
+    val sourceOffsetY by remember(listState, density, lyricsTextSize) {
         derivedStateOf {
-            if (listState.firstVisibleItemIndex == 0) {
-                -listState.firstVisibleItemScrollOffset.toFloat()
-            } else {
-                Float.NEGATIVE_INFINITY
-            }
+            val firstItemOffset = listState.layoutInfo.visibleItemsInfo
+                .firstOrNull { item -> item.index == 0 }
+                ?.offset
+                ?: return@derivedStateOf Float.NEGATIVE_INFINITY
+            val sourceGapPx = with(density) { (lyricsTextSize * 1.45f).dp.toPx() }
+            firstItemOffset - sourceGapPx
         }
     }
     val selectionLines = remember(syncedLyrics) {

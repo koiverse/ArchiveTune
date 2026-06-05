@@ -286,8 +286,6 @@
     <string name="lyrics_sync_offset">Lyrics sync offset</string>
     <string name="resume_autoscroll">Resume Autoscroll</string>
     <string name="lyrics_source_format">Source: %1$s</string>
-    <string name="lyrics_source_remote">Remote</string>
-    <string name="lyrics_source_user_selection">User selection</string>
     <string name="lyrics_source_user_edit">User edit</string>
     <string name="lyrics_source_ai_translation">AI translation</string>
     <string name="lyrics_romanize_japanese">Romanize japanese lyrics</string>

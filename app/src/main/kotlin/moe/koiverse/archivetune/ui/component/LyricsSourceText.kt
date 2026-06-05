@@ -20,8 +20,8 @@ internal fun lyricsSourceLabel(
 ): String? {
     val sourceName = lyricsEntity?.source?.trim()?.takeIf { it.isNotEmpty() }?.let { source ->
         when (source) {
-            LyricsEntity.Source.REMOTE.value -> stringResource(R.string.lyrics_source_remote)
-            LyricsEntity.Source.USER_SELECTION.value -> stringResource(R.string.lyrics_source_user_selection)
+            LyricsEntity.Source.REMOTE.value,
+            LyricsEntity.Source.USER_SELECTION.value -> null
             LyricsEntity.Source.USER_EDIT.value -> stringResource(R.string.lyrics_source_user_edit)
             LyricsEntity.Source.AI_TRANSLATION.value -> stringResource(R.string.lyrics_source_ai_translation)
             else -> source

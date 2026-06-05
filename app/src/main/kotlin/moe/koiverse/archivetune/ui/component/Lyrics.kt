@@ -505,7 +505,6 @@ fun Lyrics(
     val lyricsEntity by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = remember(lyricsEntity) { lyricsEntity?.lyrics?.trim() }
     val lyricsSourceText = lyricsSourceLabel(lyricsEntity, lyrics)
-    val lyricsHeaderOffset = if (lyricsSourceText != null) 1 else 0
 
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
@@ -641,11 +640,11 @@ fun Lyrics(
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(lifecycleOwner, lyricsHeaderOffset) {
+    DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) {
                 val visibleItemsInfo = lazyListState.layoutInfo.visibleItemsInfo
-                val isCurrentLineVisible = visibleItemsInfo.any { it.index == currentLineIndex + lyricsHeaderOffset }
+                val isCurrentLineVisible = visibleItemsInfo.any { it.index == currentLineIndex }
                 if (isCurrentLineVisible) {
                     initialScrollDone = false
                 }
@@ -714,7 +713,7 @@ fun Lyrics(
         }
     }
 
-    LaunchedEffect(currentLineIndex, lastPreviewTime, initialScrollDone, lyricsHeaderOffset) {
+    LaunchedEffect(currentLineIndex, lastPreviewTime, initialScrollDone) {
 
         fun calculateOffset() = with(density) {
             if (currentLineIndex < 0 || currentLineIndex >= lines.size) return@with 0
@@ -780,7 +779,7 @@ fun Lyrics(
 
         if((currentLineIndex == 0 && shouldScrollToFirstLine) || !initialScrollDone) {
             shouldScrollToFirstLine = false
-            val initialCenterIndex = kotlin.math.max(0, currentLineIndex + lyricsHeaderOffset)
+            val initialCenterIndex = kotlin.math.max(0, currentLineIndex)
             performSmoothPageScroll(initialCenterIndex)
             if(!isAppMinimized) {
                 initialScrollDone = true
@@ -788,11 +787,11 @@ fun Lyrics(
         } else if (currentLineIndex != -1) {
             deferredCurrentLineIndex = currentLineIndex
             if (isSeeking) {
-                val seekCenterIndex = kotlin.math.max(0, currentLineIndex + lyricsHeaderOffset)
+                val seekCenterIndex = kotlin.math.max(0, currentLineIndex)
                 performSmoothPageScroll(seekCenterIndex, isSeek = true)
             } else if ((lastPreviewTime == 0L || currentLineIndex != previousLineIndex) && scrollLyrics && !isManualScrolling) {
                 if (currentLineIndex != previousLineIndex) {
-                    val centerTargetIndex = kotlin.math.max(0, currentLineIndex + lyricsHeaderOffset)
+                    val centerTargetIndex = kotlin.math.max(0, currentLineIndex)
                     performSmoothPageScroll(centerTargetIndex)
                 }
             }
@@ -889,13 +888,13 @@ fun Lyrics(
                     }
                 }
             } else {
-                lyricsSourceText?.let { sourceText ->
+                if (lyricsSourceText != null && lines.firstOrNull() != LyricsEntry.HEAD_LYRICS_ENTRY) {
                     item(
-                        key = "lyrics_source_${sourceText.hashCode()}",
+                        key = "lyrics_source_${lyricsSourceText.hashCode()}",
                         contentType = "lyrics_source"
                     ) {
                         Text(
-                            text = sourceText,
+                            text = lyricsSourceText,
                             fontSize = (lyricsTextSize * 0.72f).sp,
                             color = lyricsBaseColor.copy(alpha = 0.52f),
                             textAlign = when (lyricsTextPosition) {
@@ -919,6 +918,26 @@ fun Lyrics(
                     contentType = { _, _ -> "lyric_line" }
                 ) { index, item ->
                     val isSelected = selectedIndices.contains(index)
+
+                    if (item == LyricsEntry.HEAD_LYRICS_ENTRY && lyricsSourceText != null) {
+                        Text(
+                            text = lyricsSourceText,
+                            fontSize = (lyricsTextSize * 0.72f).sp,
+                            color = lyricsBaseColor.copy(alpha = 0.52f),
+                            textAlign = when (lyricsTextPosition) {
+                                LyricsPosition.LEFT -> TextAlign.Start
+                                LyricsPosition.CENTER -> TextAlign.Center
+                                LyricsPosition.RIGHT -> TextAlign.End
+                            },
+                            fontWeight = FontWeight.SemiBold,
+                            lineHeight = (lyricsTextSize * lyricsLineSpacing * 0.72f).sp,
+                            fontFamily = lyricsFontFamily,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 8.dp)
+                        )
+                        return@itemsIndexed
+                    }
 
                     val distance = abs(index - displayedCurrentLineIndex)
 
@@ -996,7 +1015,7 @@ fun Lyrics(
                                 } else if (isSynced && changeLyrics) {
                                     playerConnection.player.seekTo(item.time)
                                     scope.launch {
-                                        val itemInfo = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index + lyricsHeaderOffset }
+                                        val itemInfo = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
                                         if (itemInfo != null) {
                                             val viewportHeight = lazyListState.layoutInfo.viewportEndOffset - lazyListState.layoutInfo.viewportStartOffset
                                             val center = lazyListState.layoutInfo.viewportStartOffset + (viewportHeight / 2)
@@ -1013,7 +1032,7 @@ fun Lyrics(
                                                 )
                                             }
                                         } else {
-                                            lazyListState.animateScrollToItem(index + lyricsHeaderOffset)
+                                            lazyListState.animateScrollToItem(index)
                                         }
                                     }
                                     lastPreviewTime = 0L
@@ -2172,7 +2191,7 @@ fun Lyrics(
                             if (currentLineIndex >= 0) {
                                 scope.launch {
                                     lazyListState.animateScrollToItem(
-                                        index = currentLineIndex + lyricsHeaderOffset,
+                                        index = currentLineIndex,
                                         scrollOffset = 0
                                     )
                                 }

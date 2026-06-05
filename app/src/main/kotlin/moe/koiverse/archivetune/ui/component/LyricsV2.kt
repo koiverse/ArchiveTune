@@ -274,7 +274,6 @@ fun LyricsV2(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = currentLyrics?.lyrics
     val lyricsSourceText = lyricsSourceLabel(currentLyrics, lyrics)
-    val lyricsHeaderOffset = if (lyricsSourceText != null) 1 else 0
 
     // ── Parse lyrics into entries ──
     val isSynced = remember(lyrics) { lyrics != null && (lyrics!!.startsWith("[") || isTtml(lyrics!!)) }
@@ -397,7 +396,7 @@ fun LyricsV2(
     }
 
     // Auto-scroll to active line
-    LaunchedEffect(currentLineIndex, isManualScrolling, lyricsScroll, lyricsHeaderOffset) {
+    LaunchedEffect(currentLineIndex, isManualScrolling, lyricsScroll) {
         if (!lyricsScroll || isManualScrolling || !isSynced) return@LaunchedEffect
         if (currentLineIndex < 0 || currentLineIndex >= entriesWithWords.size) return@LaunchedEffect
 
@@ -405,17 +404,16 @@ fun LyricsV2(
         val viewportHeight = visibleInfo.viewportSize.height
         val targetOffset = (viewportHeight * 0.35f).toInt() // Center bias at 35% from top
 
-        val currentLazyIndex = currentLineIndex + lyricsHeaderOffset
-        val distance = abs(currentLazyIndex - listState.firstVisibleItemIndex)
+        val distance = abs(currentLineIndex - listState.firstVisibleItemIndex)
         if (distance > 15) {
             // Far jump — snap first, then settle
             listState.scrollToItem(
-                (currentLazyIndex - 2).coerceAtLeast(0),
+                (currentLineIndex - 2).coerceAtLeast(0),
                 0
             )
         }
         listState.animateScrollToItem(
-            index = currentLazyIndex,
+            index = currentLineIndex,
             scrollOffset = -targetOffset
         )
     }
@@ -500,13 +498,13 @@ fun LyricsV2(
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            lyricsSourceText?.let { sourceText ->
+            if (lyricsSourceText != null && entriesWithWords.firstOrNull() != HEAD_LYRICS_ENTRY) {
                 item(
-                    key = "lyrics_source_${sourceText.hashCode()}",
+                    key = "lyrics_source_${lyricsSourceText.hashCode()}",
                     contentType = "lyrics_source"
                 ) {
                     Text(
-                        text = sourceText,
+                        text = lyricsSourceText,
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontSize = (lyricsTextSize * 0.72f).sp,
                             fontWeight = FontWeight.SemiBold,
@@ -535,7 +533,25 @@ fun LyricsV2(
                 },
             ) { index, item ->
                 if (item == HEAD_LYRICS_ENTRY) {
-                    Spacer(modifier = Modifier.height(120.dp))
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Spacer(modifier = Modifier.height(120.dp))
+                        lyricsSourceText?.let { sourceText ->
+                            Text(
+                                text = sourceText,
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = (lyricsTextSize * 0.72f).sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    lineHeight = (lyricsTextSize * lyricsLineSpacing * 0.72f).sp,
+                                    fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
+                                ),
+                                color = textColor.copy(alpha = 0.52f),
+                                textAlign = TextAlign.Start,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 12.dp, end = 12.dp, bottom = (lyricsLineSpacing * 8).dp),
+                            )
+                        }
+                    }
                     return@itemsIndexed
                 }
 
@@ -872,7 +888,7 @@ fun LyricsV2(
                     scope.launch {
                         val viewportHeight = listState.layoutInfo.viewportSize.height
                         listState.animateScrollToItem(
-                            index = currentLineIndex + lyricsHeaderOffset,
+                            index = currentLineIndex,
                             scrollOffset = -(viewportHeight * 0.35f).toInt()
                         )
                     }
