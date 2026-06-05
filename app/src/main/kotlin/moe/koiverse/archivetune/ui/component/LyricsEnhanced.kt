@@ -452,7 +452,7 @@ fun LyricsEnhanced(
                 listState.scrollLyricIntoFocus(
                     index = index + if (lyricsSourceText != null) 1 else 0,
                     animateToNearbyItem = !forceNextScroll,
-                    force = forceNextScroll,
+                    force = true,
                     visibleViewportInsetPx = karaokeKeepAliveZonePx,
                     alignByItemCenter = true,
                 )
