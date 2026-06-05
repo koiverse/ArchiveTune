@@ -70,6 +70,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -586,7 +587,8 @@ fun LyricsEnhanced(
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
-                        .nestedScroll(nestedScrollConnection),
+                        .nestedScroll(nestedScrollConnection)
+                        .clipToBounds(),
                 ) {
                     val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
                     val lyricsViewportOffsetPx = remember(lyricsViewportOffset, density) {
