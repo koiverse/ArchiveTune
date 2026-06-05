@@ -828,6 +828,7 @@
     <string name="recent_commits">Recent Commits</string>
     <string name="updates_nightly_title">Nightly delivery</string>
     <string name="updates_nightly_description">Nightly builds track the newest development commits and may include unfinished changes.</string>
+    <string name="updates_nightly_hosting_description">Automatically generated development builds are available from successful GitHub Actions runs.</string>
     <string name="updates_latest_commit">Latest commit: %s</string>
     <string name="updates_loading_commits">Loading recent commits</string>
     <string name="updates_recent_commits_count">%1$d recent commits</string>

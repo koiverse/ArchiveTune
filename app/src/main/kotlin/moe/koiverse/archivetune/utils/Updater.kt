@@ -48,6 +48,9 @@ private data class ReleasesNetworkResult(
 object Updater {
     private val client = HttpClient()
     private const val ReleaseCacheCheckIntervalMs: Long = 6 * 60 * 60 * 1000L
+    private const val StableDownloadUrl = "https://github.com/koiverse/ArchiveTune/releases/latest"
+    private const val NightlyDownloadUrl =
+        "https://github.com/koiverse/ArchiveTune/actions/workflows/build.yml?query=branch%3Adev+is%3Asuccess"
     var lastCheckTime = -1L
         private set
 
@@ -302,8 +305,15 @@ object Updater {
             return ""
         }
 
-        val baseUrl = "https://github.com/koiverse/ArchiveTune/releases/latest/download/"
-        return baseUrl + "app-${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release.apk"
+        return StableDownloadUrl
+    }
+
+    fun getLatestNightlyDownloadUrl(): String {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            return ""
+        }
+
+        return NightlyDownloadUrl
     }
 
     suspend fun getAllReleases(
