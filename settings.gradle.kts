@@ -46,7 +46,6 @@ dependencyResolutionManagement {
                 }
             }
             filter {
-                includeGroup("com.github.skydoves")
                 includeGroup("com.github.therealbush")
                 includeGroup("com.github.TeamNewPipe")
             }
