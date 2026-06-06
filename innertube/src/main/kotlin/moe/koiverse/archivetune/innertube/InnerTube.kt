@@ -179,6 +179,7 @@ class InnerTube {
         client: YouTubeClient,
         setLogin: Boolean = false,
         authState: PlaybackAuthState = currentAuthState(),
+        includeVisitorData: Boolean = true,
     ) {
         val requestOrigin = client.requestOrigin()
         val requestReferer = client.requestReferer()
@@ -189,7 +190,9 @@ class InnerTube {
             append("X-YouTube-Client-Version", client.clientVersion)
             append("X-Origin", requestOrigin)
             append("Referer", requestReferer)
-            authState.visitorData?.let { append("X-Goog-Visitor-Id", it) }
+            if (includeVisitorData) {
+                authState.visitorData?.let { append("X-Goog-Visitor-Id", it) }
+            }
             if (setLogin && client.loginSupported) {
                 authState.cookie?.let { cookie ->
                     append("cookie", cookie)
@@ -268,22 +271,27 @@ class InnerTube {
         query: String? = null,
         params: String? = null,
         continuation: String? = null,
+        useAccountContext: Boolean = true,
     ) = withRetry {
         httpClient.post("search") {
-        ytClient(client, setLogin = useLoginForBrowse)
-        setBody(
-            SearchBody(
-                context = client.toContext(
-                    locale,
-                    visitorData,
-                    if (useLoginForBrowse) dataSyncId else null
-                ),
-                query = query,
-                params = params
+            ytClient(
+                client = client,
+                setLogin = useAccountContext && useLoginForBrowse,
+                includeVisitorData = useAccountContext,
             )
-        )
-        parameter("continuation", continuation)
-        parameter("ctoken", continuation)
+            setBody(
+                SearchBody(
+                    context = client.toContext(
+                        locale,
+                        if (useAccountContext) visitorData else null,
+                        if (useAccountContext && useLoginForBrowse) dataSyncId else null
+                    ),
+                    query = query,
+                    params = params
+                )
+            )
+            parameter("continuation", continuation)
+            parameter("ctoken", continuation)
         }
     }
 

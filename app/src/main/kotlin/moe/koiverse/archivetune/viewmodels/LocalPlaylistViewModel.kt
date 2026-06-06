@@ -448,7 +448,11 @@ constructor(
         try {
             val searchFilter = YouTube.SearchFilter.FILTER_SONG
             
-            val result = YouTube.search(currentQuery.query, searchFilter).getOrNull()
+            val result = YouTube.search(
+                query = currentQuery.query,
+                filter = searchFilter,
+                useAccountContext = false,
+            ).getOrNull()
                 ?: return
             
             val filteredItems = filterSuggestionItems(result.items).shuffled().take(10)
@@ -497,7 +501,10 @@ constructor(
     
     private suspend fun loadMoreFromContinuation(continuation: String) {
         try {
-            val result = YouTube.searchContinuation(continuation).getOrNull()
+            val result = YouTube.searchContinuation(
+                continuation = continuation,
+                useAccountContext = false,
+            ).getOrNull()
                 ?: return
             
             val filteredItems = filterSuggestionItems(result.items).shuffled().take(10)

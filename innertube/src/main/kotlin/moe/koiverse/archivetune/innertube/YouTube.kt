@@ -331,8 +331,17 @@ object YouTube {
         )
     }
 
-    suspend fun search(query: String, filter: SearchFilter): Result<SearchResult> = runCatching {
-        val response = innerTube.search(WEB_REMIX, query, filter.value).body<SearchResponse>()
+    suspend fun search(
+        query: String,
+        filter: SearchFilter,
+        useAccountContext: Boolean = true,
+    ): Result<SearchResult> = runCatching {
+        val response = innerTube.search(
+            client = WEB_REMIX,
+            query = query,
+            params = filter.value,
+            useAccountContext = useAccountContext,
+        ).body<SearchResponse>()
         val contents =
             response.contents
                 ?.tabbedSearchResultsRenderer
@@ -373,8 +382,15 @@ object YouTube {
         )
     }
 
-    suspend fun searchContinuation(continuation: String): Result<SearchResult> = runCatching {
-        val response = innerTube.search(WEB_REMIX, continuation = continuation).body<SearchResponse>()
+    suspend fun searchContinuation(
+        continuation: String,
+        useAccountContext: Boolean = true,
+    ): Result<SearchResult> = runCatching {
+        val response = innerTube.search(
+            client = WEB_REMIX,
+            continuation = continuation,
+            useAccountContext = useAccountContext,
+        ).body<SearchResponse>()
         val continuationPage = response.continuationContents?.musicShelfContinuation
         val items =
             continuationPage
