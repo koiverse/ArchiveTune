@@ -171,9 +171,20 @@ fun AutoPlaylistScreen(
         else -> PlaylistType.OTHER
     }
 
-    val wrappedSongs = remember(songs) { songs.map { item -> ItemWrapper(item) }.toMutableStateList() }
+    val wrappedSongs = remember(songs) {
+        songs.map { item -> ItemWrapper(item) }.toMutableStateList()
+    }
 
     var selection by remember { mutableStateOf(false) }
+    val selectedCount by remember(wrappedSongs) {
+        derivedStateOf { wrappedSongs.count { it.isSelected } }
+    }
+
+    LaunchedEffect(selection, selectedCount) {
+        if (selection && selectedCount == 0) {
+            selection = false
+        }
+    }
 
     if (isSearching) {
         BackHandler {
@@ -183,6 +194,7 @@ fun AutoPlaylistScreen(
     } else if (selection) {
         BackHandler {
             selection = false
+            wrappedSongs.forEach { it.isSelected = false }
         }
     }
 
@@ -733,7 +745,7 @@ fun AutoPlaylistScreen(
                         items = filteredSongs,
                         key = { _, song -> song.item.id },
                         contentType = { _, _ -> CONTENT_TYPE_SONG },
-                    ) { _, songWrapper ->
+                    ) { index, songWrapper ->
                         SongListItem(
                             song = songWrapper.item,
                             isActive = songWrapper.item.song.id == mediaMetadata?.id,
@@ -762,15 +774,16 @@ fun AutoPlaylistScreen(
                                 .fillMaxWidth()
                                 .combinedClickable(
                                     onClick = {
-                                        if (!selection) {
+                                        if (!selection || selectedCount == 0) {
                                             if (songWrapper.item.song.id == mediaMetadata?.id) {
                                                 playerConnection.player.togglePlayPause()
                                             } else {
+                                                val visibleSongs = filteredSongs.map { it.item }
                                                 playerConnection.playQueue(
                                                     ListQueue(
                                                         title = playlist,
-                                                        items = songs.map { it.toMediaItem() },
-                                                        startIndex = songs.indexOfFirst { it.id == songWrapper.item.id }
+                                                        items = visibleSongs.map { it.toMediaItem() },
+                                                        startIndex = index,
                                                     ),
                                                 )
                                             }
@@ -784,6 +797,8 @@ fun AutoPlaylistScreen(
                                             selection = true
                                             wrappedSongs.forEach { it.isSelected = false }
                                             songWrapper.isSelected = true
+                                        } else {
+                                            songWrapper.isSelected = !songWrapper.isSelected
                                         }
                                     },
                                 )
@@ -812,9 +827,8 @@ fun AutoPlaylistScreen(
             title = {
                 when {
                     selection -> {
-                        val count = wrappedSongs.count { it.isSelected }
                         Text(
-                            text = pluralStringResource(R.plurals.n_song, count, count),
+                            text = pluralStringResource(R.plurals.n_song, selectedCount, selectedCount),
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
@@ -862,6 +876,7 @@ fun AutoPlaylistScreen(
                             }
                             selection -> {
                                 selection = false
+                                wrappedSongs.forEach { it.isSelected = false }
                             }
                             else -> {
                                 navController.navigateUp()
@@ -884,11 +899,11 @@ fun AutoPlaylistScreen(
             },
             actions = {
                 if (selection) {
-                    val count = wrappedSongs.count { it.isSelected }
                     androidx.compose.material3.IconButton(
                         onClick = {
-                            if (count == wrappedSongs.size) {
+                            if (selectedCount == wrappedSongs.size) {
                                 wrappedSongs.forEach { it.isSelected = false }
+                                selection = false
                             } else {
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
@@ -896,7 +911,7 @@ fun AutoPlaylistScreen(
                     ) {
                         Icon(
                             painter = painterResource(
-                                if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all
+                                if (selectedCount == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all
                             ),
                             contentDescription = null
                         )
@@ -909,7 +924,10 @@ fun AutoPlaylistScreen(
                                     songSelection = wrappedSongs.filter { it.isSelected }
                                         .map { it.item },
                                     onDismiss = menuState::dismiss,
-                                    clearAction = { selection = false },
+                                    clearAction = {
+                                        selection = false
+                                        wrappedSongs.forEach { it.isSelected = false }
+                                    },
                                 )
                             }
                         },
