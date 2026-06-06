@@ -7,6 +7,9 @@
 
 package moe.koiverse.archivetune.ui.component
 
+import android.view.KeyEvent.KEYCODE_DPAD_CENTER
+import android.view.KeyEvent.KEYCODE_ENTER
+import android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -38,6 +41,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.nativeKeyEvent
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -138,6 +145,18 @@ private fun TvNavigationRailItem(
             .width(104.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(containerColor)
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                when (event.nativeKeyEvent.keyCode) {
+                    KEYCODE_DPAD_CENTER,
+                    KEYCODE_ENTER,
+                    KEYCODE_NUMPAD_ENTER -> {
+                        onClick()
+                        true
+                    }
+                    else -> false
+                }
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

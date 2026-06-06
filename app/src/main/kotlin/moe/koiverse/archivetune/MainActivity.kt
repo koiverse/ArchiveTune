@@ -42,6 +42,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1915,6 +1916,7 @@ class MainActivity : ComponentActivity() {
                                             if (isTvDevice) Modifier
                                                 .focusRequester(contentAreaFocusRequester)
                                                 .focusGroup()
+                                                .focusable()
                                             else Modifier
                                         )
                                         .nestedScroll(
