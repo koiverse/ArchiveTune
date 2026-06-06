@@ -222,7 +222,7 @@ private const val V7BackdropArtworkOverscanFactor = 1.15f
 private const val V7SharpStagePortraitFraction = 0.62f
 private const val V7SharpStageLandscapeFraction = 0.58f
 private const val V7BackdropOverlapDp = 72
-private const val V7SharpStageBottomScrimStartFraction = 0.68f
+private const val V7SharpStageBottomScrimStartFraction = 0.40f
 private const val V7BackdropFloorBlackStartFraction = 0.88f
 private const val V8BackdropArtworkSizePx = 1_024
 
@@ -1701,19 +1701,24 @@ private fun V7PlayerBackdrop(
     val canvasFallback = canvasFallbackUrl?.takeIf { it.isNotBlank() }
     val canvasStatic = canvasStaticUrl?.takeIf { it.isNotBlank() }
     val coverArtworkUrl = thumbnailUrl?.takeIf { it.isNotBlank() }
-    val sharpArtworkUrl = coverArtworkUrl ?: canvasStatic
-    val backdropArtworkUrl = coverArtworkUrl ?: canvasStatic
     val hasCanvas = !canvasPrimary.isNullOrBlank() || !canvasFallback.isNullOrBlank()
-    var backdropPalette by remember(backdropArtworkUrl, fallbackColor) {
+    // When canvas is available, prefer its static image as the sharp-stage placeholder.
+    // This prevents the jarring YTM thumbnail → canvas video flash on expand.
+    val sharpArtworkUrl = if (hasCanvas) (canvasStatic ?: coverArtworkUrl) else (coverArtworkUrl ?: canvasStatic)
+    val backdropArtworkUrl = coverArtworkUrl ?: canvasStatic
+    // For palette extraction, use canvas static when canvas is active so the scrim
+    // gradient is derived from the canvas colors rather than the YTM thumbnail.
+    val paletteSourceUrl = if (hasCanvas && canvasStatic != null) canvasStatic else backdropArtworkUrl
+    var backdropPalette by remember(paletteSourceUrl, fallbackColor) {
         mutableStateOf(V7BackdropPalette.fromColors(emptyList(), fallbackColor))
     }
 
-    LaunchedEffect(backdropArtworkUrl, fallbackColor) {
+    LaunchedEffect(paletteSourceUrl, hasCanvas, fallbackColor) {
         backdropPalette = V7BackdropPalette.fromColors(emptyList(), fallbackColor)
-        if (backdropArtworkUrl == null) return@LaunchedEffect
+        if (paletteSourceUrl == null) return@LaunchedEffect
 
         val request = ImageRequest.Builder(context)
-            .data(backdropArtworkUrl)
+            .data(paletteSourceUrl)
             .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
             .allowHardware(false)
             .build()
@@ -1726,7 +1731,18 @@ private fun V7PlayerBackdrop(
                 null
             } else {
                 withContext(Dispatchers.Default) {
-                    val palette = Palette.from(image.toBitmap())
+                    val fullBitmap = image.toBitmap()
+                    // When canvas is active, extract from the bottom 30% of the static frame.
+                    // This gives us the actual colors at the canvas bottom edge, so the scrim
+                    // gradient blends seamlessly into the backdrop below.
+                    val bitmapForPalette = if (hasCanvas && fullBitmap.height > 4) {
+                        val startY = (fullBitmap.height * 0.70f).toInt().coerceAtLeast(0)
+                        val cropHeight = (fullBitmap.height - startY).coerceAtLeast(1)
+                        android.graphics.Bitmap.createBitmap(fullBitmap, 0, startY, fullBitmap.width, cropHeight)
+                    } else {
+                        fullBitmap
+                    }
+                    val palette = Palette.from(bitmapForPalette)
                         .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
                         .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
                         .generate()
@@ -1757,11 +1773,15 @@ private fun V7PlayerBackdrop(
         backdropArtworkUrl?.resize(backdropArtworkSizePx, backdropArtworkSizePx)
     }
     val sharpStageBottomScrim = remember(backdropPalette) {
+        val blendColor = backdropPalette.bottom
         Brush.verticalGradient(
             colorStops = arrayOf(
                 0f to Color.Transparent,
                 V7SharpStageBottomScrimStartFraction to Color.Transparent,
-                1f to backdropPalette.bottom,
+                0.60f to blendColor.copy(alpha = 0.18f),
+                0.76f to blendColor.copy(alpha = 0.52f),
+                0.88f to blendColor.copy(alpha = 0.82f),
+                1f to blendColor,
             )
         )
     }
@@ -1894,10 +1914,15 @@ private data class V7BackdropPalette(
 ) {
     companion object {
         fun fromColors(colors: List<Color>, fallbackColor: Int): V7BackdropPalette {
-            val fallback = Color(fallbackColor).v7BackdropTone(valueMin = 0.12f, valueMax = 0.42f)
-            val top = colors.getOrNull(0)?.v7BackdropTone(valueMin = 0.16f, valueMax = 0.88f) ?: fallback
-            val mid = colors.getOrNull(1)?.v7BackdropTone(valueMin = 0.14f, valueMax = 0.72f) ?: top
-            val bottom = colors.getOrNull(2)?.v7BackdropTone(valueMin = 0.10f, valueMax = 0.56f) ?: mid
+            // Only use the FIRST extracted color (dominant hue from the image).
+            // PlayerColorExtractor fills colors[1..N] with hue-shifted synthetic variants
+            // (e.g. red → green at +120°) which are wrong for a backdrop that should feel
+            // coherent. We derive mid/bottom by darkening the same hue instead.
+            val dominantColor = colors.firstOrNull()
+            val fallback = Color(fallbackColor).v7BackdropTone(valueMin = 0.12f, valueMax = 0.38f)
+            val top    = dominantColor?.v7BackdropTone(valueMin = 0.20f, valueMax = 0.72f) ?: fallback
+            val mid    = dominantColor?.v7BackdropTone(valueMin = 0.13f, valueMax = 0.48f) ?: top
+            val bottom = dominantColor?.v7BackdropTone(valueMin = 0.08f, valueMax = 0.32f) ?: mid
             return V7BackdropPalette(
                 top = top,
                 mid = mid,
