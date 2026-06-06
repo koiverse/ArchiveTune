@@ -894,12 +894,11 @@ class MusicService :
             if (showLyrics && mediaMetadata != null && database.lyrics(mediaMetadata.id)
                     .first() == null
             ) {
-                val lyricsResult = lyricsHelper.getLyricsResult(mediaMetadata)
+                val lyrics = lyricsHelper.getLyrics(mediaMetadata)
                 database.query {
                     insertLyricsIfAbsent(
                         id = mediaMetadata.id,
-                        lyrics = lyricsResult.lyrics,
-                        source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                        lyrics = lyrics,
                     )
                 }
             }
