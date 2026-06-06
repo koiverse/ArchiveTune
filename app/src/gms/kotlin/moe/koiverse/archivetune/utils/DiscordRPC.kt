@@ -198,13 +198,12 @@ class DiscordRPC(
         )
 
         DiscordSocialPresenceClient.updatePresence(
-            context = context,
             accessToken = accessToken,
             activity = activity,
         ).getOrThrow()
 
         Timber.tag(TAG).i(
-            "Updated Discord presence via Social SDK name=%s details=%s state=%s",
+            "Updated Discord presence via Gateway name=%s details=%s state=%s",
             activityName,
             activityDetails,
             activityState,

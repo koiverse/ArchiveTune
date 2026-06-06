@@ -7,26 +7,25 @@
 
 package moe.koiverse.archivetune.discord
 
-import android.content.Context
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import moe.koiverse.archivetune.BuildConfig
+import org.json.JSONArray
+import org.json.JSONObject
 import timber.log.Timber
 
 object DiscordSocialPresenceClient {
     private const val TAG = "DiscordSocialPresenceClient"
 
     private val mutex = Mutex()
-    private var activeApplicationId: Long? = null
-    private var activeAccessToken: String? = null
+    private var gateway: GatewayClient? = null
+    private var scope: CoroutineScope? = null
+    private var activeToken: String? = null
 
     val isStarted: Boolean
-        get() = activeApplicationId != null && activeAccessToken != null
+        get() = activeToken != null
 
     suspend fun updatePresence(
-        context: Context,
         accessToken: String,
         activity: DiscordPresenceActivity,
     ): Result<Unit> = withContext(Dispatchers.IO) {
@@ -36,57 +35,133 @@ object DiscordSocialPresenceClient {
                 return@withLock Result.failure(IllegalArgumentException("Discord access token is missing"))
             }
 
-            val appId = activity.applicationId
-            val startResult = ensureStarted(appId, token)
-            if (startResult.isFailure) {
-                return@withLock startResult
-            }
+            val connectResult = ensureConnected(token)
+            if (connectResult.isFailure) return@withLock connectResult
 
-            DiscordSocialNativeBridge.updatePresence(
-                applicationId = appId,
-                accessToken = token,
-                activity = activity,
-            ).onFailure {
-                Timber.tag(TAG).w(it, "Discord Social SDK updatePresence failed")
+            val presenceJson = buildPresencePayload(token, activity)
+            val sent = gateway?.sendPresenceUpdate(presenceJson) ?: false
+            if (!sent) {
+                return@withLock Result.failure(Exception("Failed to send presence update"))
             }
+            Result.success(Unit)
         }
     }
 
     suspend fun clearPresence(): Result<Unit> = withContext(Dispatchers.IO) {
         mutex.withLock {
-            DiscordSocialNativeBridge.clearPresence()
+            val g = gateway ?: return@withLock Result.failure(Exception("Not connected"))
+            val empty = JSONObject().apply {
+                put("activities", JSONArray())
+                put("afk", false)
+                put("since", JSONObject.NULL)
+                put("status", "online")
+            }
+            g.sendPresenceUpdate(empty)
+            Result.success(Unit)
         }
     }
 
     suspend fun close(): Result<Unit> = withContext(Dispatchers.IO) {
         mutex.withLock {
-            activeApplicationId = null
-            activeAccessToken = null
-            DiscordSocialNativeBridge.close()
+            gateway?.disconnect()
+            gateway = null
+            scope?.cancel()
+            scope = null
+            activeToken = null
+            DiscordAssetRegistrar.clearCache()
+            Result.success(Unit)
         }
     }
 
-    suspend fun runCallbacks(): Result<Unit> = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            DiscordSocialNativeBridge.runCallbacks()
+    private fun ensureConnected(token: String): Result<Unit> {
+        if (activeToken == token && gateway != null) return Result.success(Unit)
+
+        gateway?.disconnect()
+        gateway = null
+        scope?.cancel()
+        scope = null
+
+        val newScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val newGateway = GatewayClient()
+
+        return runCatching {
+            runBlocking {
+                newGateway.connect(token)
+            }
+            scope = newScope
+            gateway = newGateway
+            activeToken = token
         }
     }
 
-    private fun ensureStarted(applicationId: Long, accessToken: String): Result<Unit> {
-        if (activeApplicationId == applicationId && activeAccessToken == accessToken) {
-            return Result.success(Unit)
+    private suspend fun buildPresencePayload(
+        token: String,
+        activity: DiscordPresenceActivity,
+    ): JSONObject {
+        val (resolvedLarge, resolvedSmall) = DiscordAssetRegistrar.resolveImages(
+            accessToken = token,
+            largeImage = activity.assets.largeImage,
+            smallImage = activity.assets.smallImage,
+        )
+
+        val activityJson = JSONObject()
+
+        activityJson.put("name", activity.name ?: "ArchiveTune")
+        activityJson.put("type", activity.type.nativeValue)
+
+        activity.details?.let { activityJson.put("details", it) }
+        activity.state?.let { activityJson.put("state", it) }
+
+        activityJson.put("application_id", activity.applicationId)
+
+        val timestamps = JSONObject()
+        activity.timestamps.startEpochSeconds?.let {
+            timestamps.put("start", it * 1000L)
+        }
+        activity.timestamps.endEpochSeconds?.let {
+            timestamps.put("end", it * 1000L)
+        }
+        if (timestamps.length() > 0) {
+            activityJson.put("timestamps", timestamps)
         }
 
-        return DiscordSocialNativeBridge.start(
-            applicationId = applicationId.takeIf { it > 0L } ?: BuildConfig.DISCORD_APPLICATION_ID_LONG,
-            accessToken = accessToken,
-        ).onSuccess {
-            activeApplicationId = applicationId
-            activeAccessToken = accessToken
-        }.onFailure {
-            activeApplicationId = null
-            activeAccessToken = null
-            Timber.tag(TAG).w(it, "Discord Social SDK start failed")
+        val assets = JSONObject()
+        resolvedLarge?.let { assets.put("large_image", it) }
+        activity.assets.largeText?.let { assets.put("large_text", it) }
+        resolvedSmall?.let { assets.put("small_image", it) }
+        activity.assets.smallText?.let { assets.put("small_text", it) }
+        if (assets.length() > 0) {
+            activityJson.put("assets", assets)
         }
+
+        if (activity.buttons.isNotEmpty()) {
+            val buttonsArray = JSONArray()
+            val metadataUrls = JSONArray()
+            for (button in activity.buttons.take(2)) {
+                buttonsArray.put(button.label)
+                metadataUrls.put(button.url)
+            }
+            activityJson.put("buttons", buttonsArray)
+            val metadata = JSONObject()
+            metadata.put("button_urls", metadataUrls)
+            activityJson.put("metadata", metadata)
+        }
+
+        activityJson.put("platform", "android")
+
+        val activities = JSONArray()
+        activities.put(activityJson)
+
+        val payload = JSONObject()
+        payload.put("activities", activities)
+        payload.put("afk", false)
+        payload.put("since", JSONObject.NULL)
+        payload.put("status", when (activity.onlineStatus) {
+            DiscordOnlineStatus.Idle -> "idle"
+            DiscordOnlineStatus.Dnd -> "dnd"
+            else -> "online"
+        })
+
+        return payload
     }
 }

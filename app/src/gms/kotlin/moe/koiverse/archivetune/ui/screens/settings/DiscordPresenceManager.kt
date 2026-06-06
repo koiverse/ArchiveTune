@@ -18,7 +18,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import moe.koiverse.archivetune.db.entities.Song
 import moe.koiverse.archivetune.discord.DiscordOAuthRepository
-import moe.koiverse.archivetune.discord.DiscordSocialNativeBridge
 import moe.koiverse.archivetune.discord.DiscordSocialPresenceClient
 import moe.koiverse.archivetune.utils.DiscordRPC
 import moe.koiverse.archivetune.utils.DiscordImageResolver
@@ -29,7 +28,6 @@ object DiscordPresenceManager {
     private val started = AtomicBoolean(false)
     private var scope: CoroutineScope? = null
     private var job: Job? = null
-    private var callbacksJob: Job? = null
     private var lifecycleObserver: LifecycleEventObserver? = null
     private var rpcInstance: DiscordRPC? = null
     private var rpcToken: String? = null
@@ -177,16 +175,6 @@ object DiscordPresenceManager {
 
         resetFailureCount()
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        callbacksJob = if (DiscordSocialNativeBridge.isAvailable) {
-            scope!!.launch {
-                while (isActive) {
-                    DiscordSocialPresenceClient.runCallbacks()
-                    delay(1_000L)
-                }
-            }
-        } else {
-            null
-        }
         job = scope!!.launch {
             // Perform an immediate first update (or at the first second of the interval).
             try {
@@ -327,8 +315,6 @@ object DiscordPresenceManager {
         
         job?.cancel()
         job = null
-        callbacksJob?.cancel()
-        callbacksJob = null
         scope?.cancel()
         scope = null
         lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
