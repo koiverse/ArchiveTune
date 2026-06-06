@@ -392,20 +392,14 @@ object PaxsenixLyrics {
     }
 
     private fun convertAppleMusicToLrc(response: AppleMusicLyricsResponse): String {
-        return response.content.mapNotNull { line ->
-            val text = line.text
-                .joinToString(" ") { it.text.trim() }
-                .replace(Regex("\\s+"), " ")
-                .trim()
-                .takeIf { it.isNotEmpty() }
-                ?: return@mapNotNull null
-
+        return response.content.joinToString("\n") { line ->
             val minutes = line.timestamp / 1000 / 60
             val seconds = (line.timestamp / 1000) % 60
             val hundredths = (line.timestamp % 1000) / 10
             val time = String.format(Locale.US, "[%02d:%02d.%02d]", minutes, seconds, hundredths)
+            val text = line.text.joinToString(" ") { it.text.trim() }
             "$time$text"
-        }.joinToString("\n")
+        }
     }
 
     suspend fun getAllLyrics(
