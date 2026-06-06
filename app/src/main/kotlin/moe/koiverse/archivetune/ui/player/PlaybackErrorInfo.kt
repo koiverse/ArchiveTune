@@ -35,10 +35,10 @@ internal data class PlaybackErrorInfo(
     val recoveryAction: PlaybackRecoveryAction?,
 )
 
-internal fun PlaybackException.toPlaybackErrorInfo(currentMediaId: String? = null): PlaybackErrorInfo {
+internal fun PlaybackException.toPlaybackErrorInfo(): PlaybackErrorInfo {
     val httpCode = httpStatusCodeOrNull()
     val invalidPlaybackLoginContextUrl = invalidPlaybackLoginContextUrl()
-    val externalLoginRecoveryUrl = loginRecoveryUrl(currentMediaId)
+    val externalLoginRecoveryUrl = loginRecoveryUrl()
     val loginRecoveryUrl = invalidPlaybackLoginContextUrl ?: externalLoginRecoveryUrl
     val recoveryAction =
         when {
@@ -52,6 +52,7 @@ internal fun PlaybackException.toPlaybackErrorInfo(currentMediaId: String? = nul
             externalLoginRecoveryUrl != null -> PlaybackErrorKind.ConfirmationRequired
             errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED -> PlaybackErrorKind.NoInternet
             errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> PlaybackErrorKind.Timeout
+            YTPlayerUtils.isBotDetectionException(this) -> PlaybackErrorKind.NoStream
             httpCode in setOf(403, 404, 410, 416) -> PlaybackErrorKind.NoStream
             errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED -> PlaybackErrorKind.MalformedStream
             errorCode in setOf(
@@ -84,17 +85,8 @@ internal fun PlaybackException.invalidPlaybackLoginContextUrl(): String? {
     return findCause<YTPlayerUtils.InvalidPlaybackLoginContextException>()?.targetUrl
 }
 
-internal fun PlaybackException.loginRecoveryUrl(currentMediaId: String? = null): String? {
+internal fun PlaybackException.loginRecoveryUrl(): String? {
     findCause<YTPlayerUtils.LoginRequiredForPlaybackException>()?.let { return it.targetUrl }
-
-    if (YTPlayerUtils.isBotDetectionException(this)) {
-        val mediaId = currentMediaId?.trim().orEmpty()
-        return if (mediaId.isNotEmpty()) {
-            "https://music.youtube.com/watch?v=$mediaId"
-        } else {
-            "https://music.youtube.com"
-        }
-    }
 
     return null
 }

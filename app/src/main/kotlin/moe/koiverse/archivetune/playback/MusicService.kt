@@ -5427,6 +5427,22 @@ private fun onMediaItemTransitionInternal() {
                         preferredStreamClient = preferredStreamClient,
                         networkMetered = lowDataModeActive,
                     )
+                }.recoverCatching { youtubeFailure ->
+                    if (youtubeFailure !is YTPlayerUtils.BotDetectionPlaybackException) throw youtubeFailure
+
+                    Timber.tag("MusicService").w(
+                        youtubeFailure,
+                        "YouTube stream clients hit bot detection for %s; trying external audio fallback",
+                        mediaId,
+                    )
+                    resolveHiResLosslessPlayback(mediaId).getOrElse { externalFailure ->
+                        Timber.tag("MusicService").w(
+                            externalFailure,
+                            "External audio fallback failed after YouTube bot detection for %s",
+                            mediaId,
+                        )
+                        throw youtubeFailure
+                    }
                 }
             }
         }.getOrElse { throwable ->
@@ -5443,6 +5459,14 @@ private fun onMediaItemTransitionInternal() {
                 throwable is YTPlayerUtils.LoginRequiredForPlaybackException -> {
                     throw PlaybackException(
                         getString(R.string.playback_requires_youtube_music_confirmation),
+                        throwable,
+                        PlaybackException.ERROR_CODE_REMOTE_ERROR
+                    )
+                }
+
+                throwable is YTPlayerUtils.BotDetectionPlaybackException -> {
+                    throw PlaybackException(
+                        getString(R.string.error_no_stream),
                         throwable,
                         PlaybackException.ERROR_CODE_REMOTE_ERROR
                     )

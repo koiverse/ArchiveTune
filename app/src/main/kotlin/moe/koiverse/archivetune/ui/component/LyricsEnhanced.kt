@@ -72,7 +72,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -94,7 +93,6 @@ import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeAlignment
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeSyllable
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
-import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -142,7 +140,7 @@ private const val TTML_LEAD_MS = 0L
 private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private const val MANUAL_SCROLL_DEBOUNCE_MS = 50L
-private const val LYRIC_FOCUS_ANCHOR_RATIO = 0.42f
+private const val LYRIC_FOCUS_ANCHOR_RATIO = 0.5f
 private const val LYRIC_LINE_SYNC_TOP_ANCHOR_RATIO = 0.35f
 private const val LYRIC_FOCUS_TOP_GUARD_RATIO = 0.18f
 private const val LYRIC_FOCUS_BOTTOM_GUARD_RATIO = 0.24f
@@ -294,6 +292,10 @@ fun LyricsEnhanced(
     }
 
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
+    val karaokeKeepAliveZone = remember { 72.dp }
+    val karaokeKeepAliveZonePx = remember(density, karaokeKeepAliveZone) {
+        with(density) { karaokeKeepAliveZone.roundToPx() }
+    }
 
     val latestSliderPositionProvider = rememberUpdatedState(sliderPositionProvider)
     val latestLyricsSyncOffset = rememberUpdatedState(lyricsSyncOffset)
@@ -424,7 +426,7 @@ fun LyricsEnhanced(
         }
     }
 
-    LaunchedEffect(lyricsSessionKey, syncedLyrics, isSynced) {
+    LaunchedEffect(lyricsSessionKey, syncedLyrics, isSynced, lyricsSourceText) {
         if (!isSynced || syncedLyrics.lines.isEmpty()) return@LaunchedEffect
         snapshotFlow {
             listState.layoutInfo.viewportEndOffset > listState.layoutInfo.viewportStartOffset
@@ -448,10 +450,11 @@ fun LyricsEnhanced(
                 }
 
                 listState.scrollLyricIntoFocus(
-                    index = index,
+                    index = index + if (lyricsSourceText != null) 1 else 0,
                     animateToNearbyItem = !forceNextScroll,
-                    force = forceNextScroll,
-                    alignByItemCenter = isTtmlFormat,
+                    force = true,
+                    visibleViewportInsetPx = karaokeKeepAliveZonePx,
+                    alignByItemCenter = true,
                 )
                 forceNextScroll = false
             }
@@ -495,8 +498,8 @@ fun LyricsEnhanced(
         fontWeight = FontWeight.Normal,
     )
     val sourceTextStyle = MaterialTheme.typography.headlineMedium.copy(
-        fontSize = (lyricsTextSize * 0.72f).sp,
-        lineHeight = (lyricsTextSize * 0.84f).sp,
+        fontSize = (lyricsTextSize * 0.50f).sp,
+        lineHeight = (lyricsTextSize * 0.90f).sp,
         fontWeight = FontWeight.SemiBold,
         fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
     )
@@ -588,34 +591,12 @@ fun LyricsEnhanced(
                         .nestedScroll(nestedScrollConnection),
                 ) {
                     val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
-                    val lyricsViewportOffsetPx = remember(lyricsViewportOffset, density) {
-                        with(density) { lyricsViewportOffset.toPx() }
-                    }
-                    val sourceOffsetY by remember(
-                        listState,
-                        lyricsViewportOffsetPx,
-                        sourceTextStyle.lineHeight,
-                        sourceTextStyle.fontSize,
-                    ) {
-                        derivedStateOf<Float> {
-                            val firstLyricOffset = listState.layoutInfo.visibleItemsInfo
-                                .firstOrNull { item -> item.index == 0 }
-                                ?.offset
-                                ?: return@derivedStateOf Float.NEGATIVE_INFINITY
-                            val sourceHeightPx = with(density) {
-                                val lineHeightPx = sourceTextStyle.lineHeight.toPx()
-                                if (lineHeightPx > 0f) lineHeightPx else sourceTextStyle.fontSize.toPx()
-                            }
-                            val sourceGapPx = with(density) { 10.dp.toPx() }
-                            lyricsViewportOffsetPx + firstLyricOffset.toFloat() - sourceHeightPx - sourceGapPx
-                        }
-                    }
-
                     key(lyricsSessionKey, syncedLyricsRenderVersion) {
-                        KaraokeLyricsView(
+                        LyricsEnhancedKaraokeView(
                             listState = listState,
                             lyrics = syncedLyrics,
                             currentPosition = playbackSyncPosition,
+                            sourceText = lyricsSourceText,
                             onLineClicked = { line ->
                                 if (isSelectionModeActive) {
                                     toggleSelectedLine(line.selectionKey())
@@ -642,26 +623,13 @@ fun LyricsEnhanced(
                             useBlurEffect = lyricsLineBlur,
                             showTranslation = true,
                             showPhonetic = romanizationPreferences.isEnabled,
+                            sourceTextStyle = sourceTextStyle,
+                            sourceTextColor = textColor.copy(alpha = 0.52f),
                             offset = lyricsViewportOffset,
-                            keepAliveZone = 72.dp,
+                            keepAliveZone = karaokeKeepAliveZone,
+                            isManualScrolling = isManualScrolling,
                             modifier = Modifier.fillMaxSize(),
                         )
-                        lyricsSourceText?.let { sourceText ->
-                            if (sourceOffsetY != Float.NEGATIVE_INFINITY) {
-                                Text(
-                                    text = sourceText,
-                                    style = sourceTextStyle,
-                                    color = textColor.copy(alpha = 0.52f),
-                                    textAlign = TextAlign.Start,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp)
-                                        .graphicsLayer {
-                                            translationY = sourceOffsetY
-                                        },
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -936,6 +904,7 @@ private suspend fun LazyListState.scrollLyricIntoFocus(
     index: Int,
     animateToNearbyItem: Boolean,
     force: Boolean,
+    visibleViewportInsetPx: Int,
     alignByItemCenter: Boolean,
 ) {
     val itemCount = layoutInfo.totalItemsCount
@@ -956,8 +925,8 @@ private suspend fun LazyListState.scrollLyricIntoFocus(
 
     itemInfo ?: return
 
-    val viewportStart = layoutInfo.viewportStartOffset
-    val viewportEnd = layoutInfo.viewportEndOffset
+    val viewportStart = layoutInfo.viewportStartOffset + visibleViewportInsetPx
+    val viewportEnd = layoutInfo.viewportEndOffset - visibleViewportInsetPx
     val viewportHeight = viewportEnd - viewportStart
     if (viewportHeight <= 0) return
 

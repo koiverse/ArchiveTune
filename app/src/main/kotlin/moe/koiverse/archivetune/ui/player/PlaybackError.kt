@@ -46,7 +46,6 @@ import moe.koiverse.archivetune.utils.openYouTubeMusicUrl
 @Composable
 fun PlaybackError(
     error: PlaybackException,
-    mediaId: String?,
     retry: () -> Unit,
 ) {
     val clipboard = LocalClipboardManager.current
@@ -62,7 +61,7 @@ fun PlaybackError(
     val openYouTubeMusicText = stringResource(R.string.open_youtube_music)
     val loginText = stringResource(R.string.login)
     val couldNotOpenYouTubeMusicText = stringResource(R.string.could_not_open_youtube_music)
-    val errorInfo = remember(error, mediaId) { error.toPlaybackErrorInfo(mediaId) }
+    val errorInfo = remember(error) { error.toPlaybackErrorInfo() }
     val httpCode = errorInfo.httpCode
     val title =
         when (errorInfo.kind) {

@@ -437,7 +437,6 @@ fun Thumbnail(
             error?.let { playbackError ->
                 PlaybackError(
                     error = playbackError,
-                    mediaId = currentMediaItem?.mediaId,
                     retry = {
                         playerConnection.player.prepare()
                         playerConnection.player.play()

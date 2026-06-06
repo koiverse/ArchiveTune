@@ -86,6 +86,11 @@ object YTPlayerUtils {
         cause: Throwable,
     ) : IllegalStateException("Invalid YouTube Music playback login context", cause)
 
+    class BotDetectionPlaybackException(
+        val videoId: String,
+        val clients: Set<String>,
+    ) : IllegalStateException("YouTube playback bot detection blocked all stream clients")
+
     private data class PlaybackGateFailure(
         val clientName: String,
         val status: String,
@@ -424,6 +429,7 @@ object YTPlayerUtils {
             }.distinct()
 
         var lastError: Throwable? = null
+        var didRefreshIpRotationAfterBotDetection = false
         for (attempt in attempts) {
             val attemptResult =
                 runCatching {
@@ -438,8 +444,49 @@ object YTPlayerUtils {
                 }
             if (attemptResult.isSuccess) return@runCatching attemptResult.getOrThrow()
             lastError = attemptResult.exceptionOrNull()
+            if (
+                !didRefreshIpRotationAfterBotDetection &&
+                lastError is BotDetectionPlaybackException &&
+                refreshIpRotationForBotDetection(videoId, lastError)
+            ) {
+                didRefreshIpRotationAfterBotDetection = true
+                val rotatedAttemptResult =
+                    runCatching {
+                        playerResponseForPlaybackOnce(
+                            videoId = videoId,
+                            playlistId = playlistId,
+                            audioQuality = attempt,
+                            connectivityManager = connectivityManager,
+                            preferredStreamClient = preferredStreamClient,
+                            networkMetered = networkMetered,
+                        )
+                    }
+                if (rotatedAttemptResult.isSuccess) return@runCatching rotatedAttemptResult.getOrThrow()
+                lastError = rotatedAttemptResult.exceptionOrNull()
+            }
         }
         throw lastError ?: IllegalStateException("Failed to resolve stream")
+    }
+
+    private suspend fun refreshIpRotationForBotDetection(
+        videoId: String,
+        failure: BotDetectionPlaybackException?,
+    ): Boolean {
+        if (failure == null) return false
+        if (YouTube.ipRotationActiveCount.value <= 0) return false
+
+        return runCatching {
+            Timber.tag(logTag).w(
+                failure,
+                "Refreshing IP rotation after YouTube bot detection blocked playback for %s",
+                videoId,
+            )
+            YouTube.refreshIpRotation()
+            clearPlaybackAuthCaches()
+        }.onFailure {
+            Timber.tag(logTag).w(it, "Failed to refresh IP rotation after bot detection for %s", videoId)
+            reportException(it)
+        }.isSuccess
     }
 
     private suspend fun playerResponseForPlaybackOnce(
@@ -524,6 +571,7 @@ object YTPlayerUtils {
                 reason = "stale logged-in playback context",
             )
             canUseLoggedInPlayback = false
+            YouTube.authState = authState
             clearPlaybackAuthCaches()
             metadataResult =
                 YouTube.player(
@@ -757,10 +805,9 @@ object YTPlayerUtils {
             }
             if (botDetectedClients.isNotEmpty()) {
                 Timber.tag(logTag).e("Bot detection triggered on clients: $botDetectedClients - all clients failed")
-                throw PlaybackException(
-                    "Playback authorization failed after repairing YouTube cookies and PoToken",
-                    null,
-                    PlaybackException.ERROR_CODE_REMOTE_ERROR
+                throw BotDetectionPlaybackException(
+                    videoId = videoId,
+                    clients = botDetectedClients.toSet(),
                 )
             }
             Timber.tag(logTag).e("Bad stream player response - all clients failed")
@@ -1169,6 +1216,7 @@ object YTPlayerUtils {
         if (isBotDetectionError(message)) return true
         var cause: Throwable? = error.cause
         while (cause != null) {
+            if (cause is BotDetectionPlaybackException) return true
             if (isBotDetectionError(cause.message.orEmpty())) return true
             cause = cause.cause
         }

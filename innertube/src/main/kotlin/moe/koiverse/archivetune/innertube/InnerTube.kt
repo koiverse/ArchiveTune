@@ -316,7 +316,7 @@ class InnerTube {
                 playlistId = playlistId,
                 signatureTimestamp = signatureTimestamp,
                 poToken = poToken,
-                setLogin = setLogin,
+                setLogin = false,
                 authState = authState,
                 includeDataSyncId = false,
             )
