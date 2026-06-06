@@ -273,8 +273,6 @@ fun LyricsV2(
     // ── Lyrics data ──
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = currentLyrics?.lyrics
-    val lyricsSourceText = lyricsSourceLabel(currentLyrics, lyrics)
-    val sourceBottomSpacing = remember(lyricsTextSize) { (lyricsTextSize * 0.35f).dp }
 
     // ── Parse lyrics into entries ──
     val isSynced = remember(lyrics) { lyrics != null && (lyrics!!.startsWith("[") || isTtml(lyrics!!)) }
@@ -344,8 +342,7 @@ fun LyricsV2(
 
     // ── Playback position tracking ──
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
-    var currentLinePositionMs by remember { mutableLongStateOf(0L) }
-    var currentWordPositionMs by remember { mutableLongStateOf(0L) }
+    var currentPositionMs by remember { mutableLongStateOf(0L) }
     var playbackPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
@@ -356,16 +353,10 @@ fun LyricsV2(
             val sliderPos = sliderPositionProvider()
             val pos = sliderPos ?: player.currentPosition
 
-            playbackPositionMs = pos.coerceAtLeast(0L)
-            currentWordPositionMs = (playbackPositionMs + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
-            currentLinePositionMs = (
-                playbackPositionMs +
-                    lyricsSyncOffset.toLong() +
-                    leadMs +
-                    LYRIC_VISUAL_TUNING_OFFSET_MS
-                ).coerceAtLeast(0L)
+            playbackPositionMs = (pos + lyricsSyncOffset.toLong()).coerceAtLeast(0L)
+            currentPositionMs = (playbackPositionMs + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
 
-            currentLineIndex = findCurrentLineIndex(entriesWithWords, currentLinePositionMs, 0L)
+            currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
             delay(pollIntervalMs)
         }
     }
@@ -405,7 +396,7 @@ fun LyricsV2(
         val viewportHeight = visibleInfo.viewportSize.height
         val targetOffset = (viewportHeight * 0.35f).toInt() // Center bias at 35% from top
 
-        val distance = abs(currentLineIndex - listState.firstVisibleItemIndex)
+        val distance = abs(currentLineIndex - (listState.firstVisibleItemIndex))
         if (distance > 15) {
             // Far jump — snap first, then settle
             listState.scrollToItem(
@@ -499,28 +490,6 @@ fun LyricsV2(
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            if (lyricsSourceText != null && entriesWithWords.firstOrNull() != HEAD_LYRICS_ENTRY) {
-                item(
-                    key = "lyrics_source_${lyricsSourceText.hashCode()}",
-                    contentType = "lyrics_source"
-                ) {
-                    Text(
-                        text = lyricsSourceText,
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = (lyricsTextSize * 0.72f).sp,
-                            fontWeight = FontWeight.SemiBold,
-                            lineHeight = (lyricsTextSize * lyricsLineSpacing * 0.72f).sp,
-                            fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                        ),
-                        color = textColor.copy(alpha = 0.52f),
-                        textAlign = TextAlign.Start,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = sourceBottomSpacing),
-                    )
-                }
-            }
-
             itemsIndexed(
                 items = entriesWithWords,
                 key = { index, entry -> "${index}_${entry.time}" },
@@ -534,25 +503,7 @@ fun LyricsV2(
                 },
             ) { index, item ->
                 if (item == HEAD_LYRICS_ENTRY) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Spacer(modifier = Modifier.height(120.dp))
-                        lyricsSourceText?.let { sourceText ->
-                            Text(
-                                text = sourceText,
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontSize = (lyricsTextSize * 0.72f).sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    lineHeight = (lyricsTextSize * lyricsLineSpacing * 0.72f).sp,
-                                    fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                                ),
-                                color = textColor.copy(alpha = 0.52f),
-                                textAlign = TextAlign.Start,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 12.dp, end = 12.dp, bottom = sourceBottomSpacing),
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(120.dp))
                     return@itemsIndexed
                 }
 
@@ -639,7 +590,7 @@ fun LyricsV2(
                     ) {
                         InstrumentalBreakItem(
                             durationMs = item.durationMs,
-                            currentPositionMs = currentLinePositionMs,
+                            currentPositionMs = playbackPositionMs,
                             startTimeMs = startTimeMs,
                             textColor = textColor,
                             inactiveAlpha = inactiveAlpha,
@@ -807,7 +758,7 @@ fun LyricsV2(
                                 words = item.words!!,
                                 isActive = isActive,
                                 isPast = isPast,
-                                currentPositionMs = currentWordPositionMs,
+                                currentPositionMs = currentPositionMs,
                                 textColor = textColor,
                                 inactiveAlpha = inactiveAlpha,
                                 baseFontSize = lyricsTextSize,

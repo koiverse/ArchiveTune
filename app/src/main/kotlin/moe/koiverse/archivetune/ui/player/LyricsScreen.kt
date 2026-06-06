@@ -103,8 +103,6 @@ import moe.koiverse.archivetune.R
 import moe.koiverse.archivetune.constants.EnableHapticFeedbackKey
 import moe.koiverse.archivetune.constants.LyricsMode
 import moe.koiverse.archivetune.constants.LyricsModeKey
-import moe.koiverse.archivetune.db.entities.LyricsEntity
-import moe.koiverse.archivetune.lyrics.LyricsUtils.displayLyricsText
 import moe.koiverse.archivetune.extensions.togglePlayPause
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.LocalMenuState
@@ -167,59 +165,23 @@ fun LyricsScreen(
         ).lyricsHelper()
     }
 
-    LaunchedEffect(mediaMetadata.id, currentLyrics?.lyrics, currentLyrics?.source) {
+    LaunchedEffect(mediaMetadata.id, currentLyrics?.lyrics) {
+        if (currentLyrics != null) return@LaunchedEffect
         try {
             val existingLyrics = withContext(Dispatchers.IO) {
                 database.lyrics(mediaMetadata.id).first()
             }
-            val shouldRefetchInvalidLyrics = existingLyrics != null &&
-                existingLyrics.source != LyricsEntity.Source.USER_EDIT.value &&
-                existingLyrics.source != LyricsEntity.Source.AI_TRANSLATION.value &&
-                displayLyricsText(existingLyrics.lyrics).isBlank()
+            if (existingLyrics != null) return@LaunchedEffect
 
-            when {
-                existingLyrics == null || shouldRefetchInvalidLyrics -> {
-                    val lyricsResult = withContext(Dispatchers.IO) {
-                        lyricsHelper.getLyricsResult(mediaMetadata)
-                    }
-                    withContext(Dispatchers.IO) {
-                        database.query {
-                            if (existingLyrics == null) {
-                                insertLyricsIfAbsent(
-                                    id = mediaMetadata.id,
-                                    lyrics = lyricsResult.lyrics,
-                                    source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
-                                )
-                            } else {
-                                replaceLyrics(
-                                    id = existingLyrics.id,
-                                    lyrics = lyricsResult.lyrics,
-                                    source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
-                                    updatedAt = existingLyrics.updatedAt,
-                                )
-                            }
-                        }
-                    }
-                }
-                existingLyrics.hasGenericSource() -> {
-                    val providerName = withContext(Dispatchers.IO) {
-                        lyricsHelper.resolveStoredLyricsProviderName(
-                            mediaMetadata = mediaMetadata,
-                            lyrics = existingLyrics.lyrics,
-                        )
-                    }
-                    if (providerName != null) {
-                        withContext(Dispatchers.IO) {
-                            database.query {
-                                replaceLyrics(
-                                    id = existingLyrics.id,
-                                    lyrics = existingLyrics.lyrics,
-                                    source = providerName,
-                                    updatedAt = existingLyrics.updatedAt,
-                                )
-                            }
-                        }
-                    }
+            val lyrics = withContext(Dispatchers.IO) {
+                lyricsHelper.getLyrics(mediaMetadata)
+            }
+            withContext(Dispatchers.IO) {
+                database.query {
+                    insertLyricsIfAbsent(
+                        id = mediaMetadata.id,
+                        lyrics = lyrics,
+                    )
                 }
             }
         } catch (e: CancellationException) {
@@ -228,15 +190,8 @@ fun LyricsScreen(
         }
     }
 
-    val metadataDurationMs = remember(mediaMetadata.id, mediaMetadata.duration) {
-        mediaMetadata.duration
-            .takeIf { it > 0 }
-            ?.toLong()
-            ?.times(1000L)
-            ?: C.TIME_UNSET
-    }
     val positionState = remember(mediaMetadata.id) { mutableLongStateOf(0L) }
-    val durationState = remember(mediaMetadata.id) { mutableLongStateOf(metadataDurationMs) }
+    val durationState = remember(mediaMetadata.id) { mutableLongStateOf(C.TIME_UNSET) }
     var sliderPosition by remember(mediaMetadata.id) { mutableStateOf<Long?>(null) }
     var lyricsSyncOffset by remember(mediaMetadata.id) { mutableIntStateOf(0) }
     var gradientColors by remember(mediaMetadata.thumbnailUrl) { mutableStateOf(AppleMusicFallbackGradient) }
@@ -297,30 +252,12 @@ fun LyricsScreen(
         gradientColorsCache[thumbnailUrl] = gradientColors
     }
 
-    LaunchedEffect(player, mediaMetadata.id, metadataDurationMs, playbackState) {
+    LaunchedEffect(player, playbackState) {
+        if (playbackState != STATE_READY && playbackState != STATE_BUFFERING) return@LaunchedEffect
         while (isActive) {
-            val isCurrentMedia = player.currentMediaItem?.mediaId == mediaMetadata.id
-            val playerDuration = player.duration
-            val resolvedDuration = when {
-                playerDuration > 0L && playerDuration != C.TIME_UNSET -> playerDuration
-                metadataDurationMs > 0L && metadataDurationMs != C.TIME_UNSET -> metadataDurationMs
-                else -> C.TIME_UNSET
-            }
-
-            durationState.longValue = resolvedDuration
-            positionState.longValue = if (isCurrentMedia) {
-                player.currentPosition.coerceAtLeast(0L)
-            } else {
-                0L
-            }
-
-            delay(
-                if (playbackState == STATE_READY || playbackState == STATE_BUFFERING) {
-                    250L
-                } else {
-                    500L
-                }
-            )
+            positionState.longValue = player.currentPosition.coerceAtLeast(0L)
+            durationState.longValue = player.duration
+            delay(250)
         }
     }
 

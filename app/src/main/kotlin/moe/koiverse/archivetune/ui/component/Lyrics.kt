@@ -504,7 +504,6 @@ fun Lyrics(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val lyricsEntity by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = remember(lyricsEntity) { lyricsEntity?.lyrics?.trim() }
-    val lyricsSourceText = lyricsSourceLabel(lyricsEntity, lyrics)
 
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
@@ -888,56 +887,12 @@ fun Lyrics(
                     }
                 }
             } else {
-                if (lyricsSourceText != null && lines.firstOrNull() != LyricsEntry.HEAD_LYRICS_ENTRY) {
-                    item(
-                        key = "lyrics_source_${lyricsSourceText.hashCode()}",
-                        contentType = "lyrics_source"
-                    ) {
-                        Text(
-                            text = lyricsSourceText,
-                            fontSize = (lyricsTextSize * 0.72f).sp,
-                            color = lyricsBaseColor.copy(alpha = 0.52f),
-                            textAlign = when (lyricsTextPosition) {
-                                LyricsPosition.LEFT -> TextAlign.Start
-                                LyricsPosition.CENTER -> TextAlign.Center
-                                LyricsPosition.RIGHT -> TextAlign.End
-                            },
-                            fontWeight = FontWeight.SemiBold,
-                            lineHeight = (lyricsTextSize * lyricsLineSpacing * 0.72f).sp,
-                            fontFamily = lyricsFontFamily,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 8.dp)
-                        )
-                    }
-                }
-
                 itemsIndexed(
                     items = lines,
-                    key = { index, item -> "${index}_${item.time}_${item.text.hashCode()}" },
-                    contentType = { _, _ -> "lyric_line" }
+                    key = { index, item -> "${index}_${item.time}_${item.text.hashCode()}" }, // Stable keys for better recycling
+                    contentType = { _, _ -> "lyric_line" } // Enables better item recycling
                 ) { index, item ->
                     val isSelected = selectedIndices.contains(index)
-
-                    if (item == LyricsEntry.HEAD_LYRICS_ENTRY && lyricsSourceText != null) {
-                        Text(
-                            text = lyricsSourceText,
-                            fontSize = (lyricsTextSize * 0.72f).sp,
-                            color = lyricsBaseColor.copy(alpha = 0.52f),
-                            textAlign = when (lyricsTextPosition) {
-                                LyricsPosition.LEFT -> TextAlign.Start
-                                LyricsPosition.CENTER -> TextAlign.Center
-                                LyricsPosition.RIGHT -> TextAlign.End
-                            },
-                            fontWeight = FontWeight.SemiBold,
-                            lineHeight = (lyricsTextSize * lyricsLineSpacing * 0.72f).sp,
-                            fontFamily = lyricsFontFamily,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 8.dp)
-                        )
-                        return@itemsIndexed
-                    }
 
                     val distance = abs(index - displayedCurrentLineIndex)
 

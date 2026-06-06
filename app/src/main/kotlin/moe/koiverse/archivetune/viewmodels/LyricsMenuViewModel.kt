@@ -30,7 +30,6 @@ import moe.koiverse.archivetune.db.entities.LyricsEntity
 import moe.koiverse.archivetune.extensions.toEnum
 import moe.koiverse.archivetune.lyrics.LyricsHelper
 import moe.koiverse.archivetune.lyrics.LyricsResult
-import moe.koiverse.archivetune.lyrics.LyricsUtils.displayLyricsText
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.utils.NetworkConnectivityObserver
 import moe.koiverse.archivetune.utils.dataStore
@@ -97,16 +96,8 @@ constructor(
         job =
             viewModelScope.launch(Dispatchers.IO) {
                 lyricsHelper.getAllLyrics(mediaId, title, artist, album, duration) { result ->
-                    if (displayLyricsText(result.lyrics).isBlank()) return@getAllLyrics
-                    results.update { currentResults ->
-                        if (currentResults.any { existing ->
-                                existing.providerName == result.providerName && existing.lyrics == result.lyrics
-                            }
-                        ) {
-                            currentResults
-                        } else {
-                            currentResults + result
-                        }
+                    results.update {
+                        it + result
                     }
                 }
                 isLoading.value = false
@@ -124,12 +115,12 @@ constructor(
         viewModelScope.launch(Dispatchers.IO) {
             isRefetching.value = true
             try {
-                val lyricsResult = lyricsHelper.getLyricsResult(mediaMetadata)
+                val lyrics = lyricsHelper.getLyrics(mediaMetadata)
                 database.query {
                     replaceLyrics(
                         id = mediaMetadata.id,
-                        lyrics = lyricsResult.lyrics,
-                        source = lyricsResult.providerName ?: LyricsEntity.Source.REMOTE.value,
+                        lyrics = lyrics,
+                        source = LyricsEntity.Source.REMOTE.value,
                     )
                 }
             } catch (_: Exception) {
@@ -144,24 +135,12 @@ constructor(
         lyrics: String,
         source: LyricsEntity.Source = LyricsEntity.Source.USER_EDIT,
     ) {
-        updateLyrics(
-            mediaMetadata = mediaMetadata,
-            lyrics = lyrics,
-            source = source.value,
-        )
-    }
-
-    fun updateLyrics(
-        mediaMetadata: MediaMetadata,
-        lyrics: String,
-        source: String,
-    ) {
         viewModelScope.launch(Dispatchers.IO) {
             database.query {
                 replaceLyrics(
                     id = mediaMetadata.id,
                     lyrics = lyrics,
-                    source = source,
+                    source = source.value,
                 )
             }
         }

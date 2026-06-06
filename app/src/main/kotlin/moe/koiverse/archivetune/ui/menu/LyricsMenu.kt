@@ -21,8 +21,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,7 +59,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
@@ -92,8 +89,9 @@ import moe.koiverse.archivetune.constants.AiCustomEndpointKey
 import moe.koiverse.archivetune.constants.AiProvider
 import moe.koiverse.archivetune.constants.AiProviderKey
 import moe.koiverse.archivetune.db.entities.LyricsEntity
-import moe.koiverse.archivetune.lyrics.LyricsUtils.displayLyricsText
 import moe.koiverse.archivetune.lyrics.LyricsUtils.isTtml
+import moe.koiverse.archivetune.lyrics.LyricsUtils.parseLyrics
+import moe.koiverse.archivetune.lyrics.LyricsUtils.parseTtml
 import moe.koiverse.archivetune.models.MediaMetadata
 import moe.koiverse.archivetune.ui.component.DefaultDialog
 import moe.koiverse.archivetune.ui.component.ListDialog
@@ -108,11 +106,7 @@ import java.util.UUID
 import kotlin.math.roundToInt
 
 
-@OptIn(
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class,
-    ExperimentalLayoutApi::class,
-)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LyricsMenu(
     lyricsProvider: () -> LyricsEntity?,
@@ -319,9 +313,6 @@ fun LyricsMenu(
 
             itemsIndexed(results) { index, result ->
                 val isExpanded = index == expandedItemIndex
-                val displayLyrics = remember(result.lyrics) {
-                    displayLyricsText(result.lyrics)
-                }
 
                 Surface(
                     modifier = Modifier
@@ -339,17 +330,27 @@ fun LyricsMenu(
                     else
                         MaterialTheme.colorScheme.surfaceContainerLow,
                     onClick = {
-                        if (displayLyrics.isBlank()) return@Surface
                         onDismiss()
                         viewModel.cancelSearch()
                         viewModel.updateLyrics(
                             mediaMetadata = searchMediaMetadata,
                             lyrics = result.lyrics,
-                            source = result.providerName,
+                            source = LyricsEntity.Source.USER_SELECTION,
                         )
                     }
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        val displayLyrics = remember(result.lyrics) {
+                            val raw = result.lyrics.trim()
+                            runCatching {
+                                when {
+                                    isTtml(raw) -> parseTtml(raw).joinToString("\n") { it.text }.trim()
+                                    raw.startsWith("[") -> parseLyrics(raw).joinToString("\n") { it.text }.trim()
+                                    else -> raw
+                                }
+                            }.getOrDefault(raw)
+                        }
+
                         Text(
                             text = displayLyrics,
                             style = MaterialTheme.typography.bodyMedium,
@@ -361,50 +362,74 @@ fun LyricsMenu(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            FlowRow(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                SearchResultBadge(
-                                    text = result.providerName,
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                )
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                ) {
+                                    Text(
+                                        text = result.providerName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        maxLines = 1,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
 
                                 if (result.lyrics.startsWith("[") || isTtml(result.lyrics)) {
-                                    SearchResultBadge(
-                                        text = stringResource(R.string.lyrics_synced_badge),
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        leadingContent = {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.sync),
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                                 modifier = Modifier.size(14.dp)
                                             )
-                                        },
-                                    )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                text = "Synced",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            )
+                                        }
+                                    }
                                 }
 
                                 if (isTtml(result.lyrics)) {
-                                    SearchResultBadge(
-                                        text = stringResource(R.string.lyrics_word_sync),
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        leadingContent = {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer,
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.lyrics),
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                                 modifier = Modifier.size(14.dp)
                                             )
-                                        },
-                                    )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                text = stringResource(R.string.lyrics_word_sync),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
@@ -887,37 +912,6 @@ fun LyricsMenu(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun SearchResultBadge(
-    text: String,
-    containerColor: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier,
-    leadingContent: (@Composable () -> Unit)? = null,
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = containerColor,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        ) {
-            leadingContent?.invoke()
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall,
-                color = contentColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                softWrap = false,
-            )
         }
     }
 }

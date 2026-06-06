@@ -53,7 +53,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.key
@@ -76,7 +75,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -93,6 +91,7 @@ import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeAlignment
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeSyllable
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
+import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -140,7 +139,7 @@ private const val TTML_LEAD_MS = 0L
 private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private const val MANUAL_SCROLL_DEBOUNCE_MS = 50L
-private const val LYRIC_FOCUS_ANCHOR_RATIO = 0.5f
+private const val LYRIC_FOCUS_ANCHOR_RATIO = 0.42f
 private const val LYRIC_LINE_SYNC_TOP_ANCHOR_RATIO = 0.35f
 private const val LYRIC_FOCUS_TOP_GUARD_RATIO = 0.18f
 private const val LYRIC_FOCUS_BOTTOM_GUARD_RATIO = 0.24f
@@ -161,7 +160,6 @@ fun LyricsEnhanced(
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
     val context = LocalContext.current
-    val density = LocalDensity.current
     val animationsDisabled = LocalAnimationsDisabled.current
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -209,11 +207,11 @@ fun LyricsEnhanced(
     var showShareImageDialog by remember { mutableStateOf(false) }
 
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
-    val currentLyricsEntity = currentLyrics?.takeIf { lyricsEntity -> lyricsEntity.id == mediaMetadata?.id }
     val lyrics = remember(currentLyrics, mediaMetadata?.id) {
-        currentLyricsEntity?.lyrics
+        currentLyrics
+            ?.takeIf { lyricsEntity -> lyricsEntity.id == mediaMetadata?.id }
+            ?.lyrics
     }
-    val lyricsSourceText = lyricsSourceLabel(currentLyricsEntity, lyrics)
     val lyricsSessionKey = remember(mediaMetadata?.id, lyrics) {
         mediaMetadata?.id.orEmpty() to lyrics
     }
@@ -292,10 +290,6 @@ fun LyricsEnhanced(
     }
 
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
-    val karaokeKeepAliveZone = remember { 72.dp }
-    val karaokeKeepAliveZonePx = remember(density, karaokeKeepAliveZone) {
-        with(density) { karaokeKeepAliveZone.roundToPx() }
-    }
 
     val latestSliderPositionProvider = rememberUpdatedState(sliderPositionProvider)
     val latestLyricsSyncOffset = rememberUpdatedState(lyricsSyncOffset)
@@ -369,6 +363,7 @@ fun LyricsEnhanced(
         {
             (
                 playbackPositionMs.longValue +
+                    latestLyricsSyncOffset.value.toLong() +
                     latestLeadMs.value +
                     LYRIC_VISUAL_TUNING_OFFSET_MS
                 )
@@ -378,16 +373,7 @@ fun LyricsEnhanced(
     }
     val lineFocusPosition: () -> Int = remember(syncedLyrics) {
         {
-            syncedLyrics.positionForStableLineFocus(
-                (
-                    playbackPositionMs.longValue +
-                        latestLyricsSyncOffset.value.toLong() +
-                        latestLeadMs.value +
-                        LYRIC_VISUAL_TUNING_OFFSET_MS
-                    )
-                    .coerceIn(0L, Int.MAX_VALUE.toLong())
-                    .toInt()
-            )
+            syncedLyrics.positionForStableLineFocus(playbackSyncPosition())
         }
     }
 
@@ -426,7 +412,7 @@ fun LyricsEnhanced(
         }
     }
 
-    LaunchedEffect(lyricsSessionKey, syncedLyrics, isSynced, lyricsSourceText) {
+    LaunchedEffect(lyricsSessionKey, syncedLyrics, isSynced) {
         if (!isSynced || syncedLyrics.lines.isEmpty()) return@LaunchedEffect
         snapshotFlow {
             listState.layoutInfo.viewportEndOffset > listState.layoutInfo.viewportStartOffset
@@ -450,11 +436,10 @@ fun LyricsEnhanced(
                 }
 
                 listState.scrollLyricIntoFocus(
-                    index = index + if (lyricsSourceText != null) 1 else 0,
+                    index = index,
                     animateToNearbyItem = !forceNextScroll,
-                    force = true,
-                    visibleViewportInsetPx = karaokeKeepAliveZonePx,
-                    alignByItemCenter = true,
+                    force = forceNextScroll,
+                    alignByItemCenter = isTtmlFormat,
                 )
                 forceNextScroll = false
             }
@@ -496,12 +481,6 @@ fun LyricsEnhanced(
     val phoneticTextStyle = MaterialTheme.typography.bodyMedium.copy(
         fontSize = (lyricsTextSize * 0.55f).sp,
         fontWeight = FontWeight.Normal,
-    )
-    val sourceTextStyle = MaterialTheme.typography.headlineMedium.copy(
-        fontSize = (lyricsTextSize * 0.50f).sp,
-        lineHeight = (lyricsTextSize * 0.90f).sp,
-        fontWeight = FontWeight.SemiBold,
-        fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
     )
     val selectionLines = remember(syncedLyrics) {
         syncedLyrics.lines.mapIndexedNotNull { index, line ->
@@ -591,12 +570,12 @@ fun LyricsEnhanced(
                         .nestedScroll(nestedScrollConnection),
                 ) {
                     val lyricsViewportOffset = remember(maxHeight) { maxHeight * 0.38f }
+
                     key(lyricsSessionKey, syncedLyricsRenderVersion) {
-                        LyricsEnhancedKaraokeView(
+                        KaraokeLyricsView(
                             listState = listState,
                             lyrics = syncedLyrics,
                             currentPosition = playbackSyncPosition,
-                            sourceText = lyricsSourceText,
                             onLineClicked = { line ->
                                 if (isSelectionModeActive) {
                                     toggleSelectedLine(line.selectionKey())
@@ -623,11 +602,8 @@ fun LyricsEnhanced(
                             useBlurEffect = lyricsLineBlur,
                             showTranslation = true,
                             showPhonetic = romanizationPreferences.isEnabled,
-                            sourceTextStyle = sourceTextStyle,
-                            sourceTextColor = textColor.copy(alpha = 0.52f),
                             offset = lyricsViewportOffset,
-                            keepAliveZone = karaokeKeepAliveZone,
-                            isManualScrolling = isManualScrolling,
+                            keepAliveZone = 72.dp,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -904,7 +880,6 @@ private suspend fun LazyListState.scrollLyricIntoFocus(
     index: Int,
     animateToNearbyItem: Boolean,
     force: Boolean,
-    visibleViewportInsetPx: Int,
     alignByItemCenter: Boolean,
 ) {
     val itemCount = layoutInfo.totalItemsCount
@@ -925,8 +900,8 @@ private suspend fun LazyListState.scrollLyricIntoFocus(
 
     itemInfo ?: return
 
-    val viewportStart = layoutInfo.viewportStartOffset + visibleViewportInsetPx
-    val viewportEnd = layoutInfo.viewportEndOffset - visibleViewportInsetPx
+    val viewportStart = layoutInfo.viewportStartOffset
+    val viewportEnd = layoutInfo.viewportEndOffset
     val viewportHeight = viewportEnd - viewportStart
     if (viewportHeight <= 0) return
 
