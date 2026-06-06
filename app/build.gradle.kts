@@ -225,6 +225,7 @@ android {
             path = file("src/main/cpp/CMakeLists.txt")
         }
     }
+    ndkVersion = "28.2.13676358"
 }
 
 kotlin {
