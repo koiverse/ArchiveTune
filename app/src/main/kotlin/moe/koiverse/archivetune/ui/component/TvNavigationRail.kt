@@ -41,8 +41,9 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.nativeKeyEvent
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
@@ -147,10 +148,10 @@ private fun TvNavigationRailItem(
             .background(containerColor)
             .onKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
-                when (event.nativeKeyEvent.keyCode) {
-                    KEYCODE_DPAD_CENTER,
-                    KEYCODE_ENTER,
-                    KEYCODE_NUMPAD_ENTER -> {
+                when (event.key) {
+                    Key(KEYCODE_DPAD_CENTER.toLong()),
+                    Key(KEYCODE_ENTER.toLong()),
+                    Key(KEYCODE_NUMPAD_ENTER.toLong()) -> {
                         onClick()
                         true
                     }
