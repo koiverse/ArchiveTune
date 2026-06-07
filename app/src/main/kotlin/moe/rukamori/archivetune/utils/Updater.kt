@@ -279,7 +279,7 @@ object Updater {
             }
 
             val response =
-                client.get("https://api.github.com/repos/koiverse/ArchiveTune/commits?sha=$branch&per_page=$count")
+                client.get("https://api.github.com/repos/ArchiveTuneApp/ArchiveTune/commits?sha=$branch&per_page=$count")
                     .bodyAsText()
             val jsonArray = JSONArray(response)
             val commits = mutableListOf<GitCommit>()
