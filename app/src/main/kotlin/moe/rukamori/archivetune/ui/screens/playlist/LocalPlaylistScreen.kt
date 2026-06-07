@@ -175,6 +175,7 @@ import moe.rukamori.archivetune.ui.utils.formatCompactCount
 import moe.rukamori.archivetune.ui.utils.headerDownloadState
 import moe.rukamori.archivetune.ui.utils.hasActiveDownloads
 import moe.rukamori.archivetune.ui.utils.sendAddMissingDownloads
+import moe.rukamori.archivetune.ui.utils.sendCancelIncompleteDownloads
 import moe.rukamori.archivetune.ui.utils.sendPauseDownloads
 import moe.rukamori.archivetune.ui.utils.sendRemoveDownloads
 import moe.rukamori.archivetune.ui.utils.sendResumeDownloads
@@ -1603,9 +1604,10 @@ fun LocalPlaylistScreen(
                     downloadsPaused = !downloadsPaused
                 },
                 onStop = {
-                    sendRemoveDownloads(
+                    sendCancelIncompleteDownloads(
                         context = context,
                         songIds = songIds,
+                        downloads = downloads,
                     )
                     downloadsPaused = false
                 },

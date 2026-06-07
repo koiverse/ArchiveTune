@@ -122,6 +122,24 @@ fun sendRemoveDownloads(
     }
 }
 
+fun sendCancelIncompleteDownloads(
+    context: Context,
+    songIds: List<String>,
+    downloads: Map<String, Download>,
+) {
+    songIds
+        .distinct()
+        .filter { songId -> downloads[songId]?.state.shouldCancelIncompleteDownload() }
+        .forEach { songId ->
+            DownloadService.sendRemoveDownload(
+                context,
+                ExoDownloadService::class.java,
+                songId,
+                false,
+            )
+        }
+}
+
 fun sendPauseDownloads(
     context: Context,
     songIds: List<String>,
@@ -173,6 +191,16 @@ private fun Int?.shouldRequestDownload(): Boolean =
         Download.STATE_DOWNLOADING,
         Download.STATE_RESTARTING -> false
         else -> true
+    }
+
+private fun Int?.shouldCancelIncompleteDownload(): Boolean =
+    when (this) {
+        Download.STATE_QUEUED,
+        Download.STATE_DOWNLOADING,
+        Download.STATE_RESTARTING,
+        Download.STATE_STOPPED,
+        Download.STATE_FAILED -> true
+        else -> false
     }
 
 private const val DOWNLOAD_STOP_REASON_NONE = 0
