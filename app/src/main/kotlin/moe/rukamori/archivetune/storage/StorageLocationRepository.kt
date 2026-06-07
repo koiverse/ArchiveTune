@@ -132,7 +132,7 @@ constructor(
             targetRoot.resolve(kind.defaultDirectoryName)
         }
         if (!movedCache) {
-            releasePersistedPermission(uri.toString(), replacementUri = null)
+            releasePersistedPermission(uri.toString(), replacementUri = previousUri)
             return@withContext StorageFolderUpdateResult.NotWritable
         }
         context.dataStore.edit { preferences ->
