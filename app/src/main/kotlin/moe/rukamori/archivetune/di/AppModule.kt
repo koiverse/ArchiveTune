@@ -20,6 +20,8 @@ import androidx.media3.datasource.cache.SimpleCache
 import moe.rukamori.archivetune.constants.MaxSongCacheSizeKey
 import moe.rukamori.archivetune.db.InternalDatabase
 import moe.rukamori.archivetune.db.MusicDatabase
+import moe.rukamori.archivetune.storage.StorageFolderKind
+import moe.rukamori.archivetune.storage.StorageLocationRepository
 import moe.rukamori.archivetune.utils.dataStore
 import moe.rukamori.archivetune.utils.get
 import dagger.Module
@@ -137,7 +139,7 @@ object AppModule {
         }
         return LazyCache {
             SimpleCache(
-                context.filesDir.resolve("exoplayer"),
+                StorageLocationRepository.cacheDirectory(context, StorageFolderKind.SONG_CACHE),
                 evictor,
                 databaseProvider,
             )
@@ -152,6 +154,10 @@ object AppModule {
         databaseProvider: DatabaseProvider,
     ): Cache =
         LazyCache {
-            SimpleCache(context.filesDir.resolve("download"), NoOpCacheEvictor(), databaseProvider)
+            SimpleCache(
+                StorageLocationRepository.cacheDirectory(context, StorageFolderKind.DOWNLOADS),
+                NoOpCacheEvictor(),
+                databaseProvider,
+            )
         }
 }

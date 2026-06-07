@@ -40,6 +40,8 @@ import moe.rukamori.archivetune.kugou.KuGou
 import moe.rukamori.archivetune.lastfm.LastFM
 import moe.rukamori.archivetune.canvas.ArchiveTuneCanvas
 import moe.rukamori.archivetune.paxsenix.PaxsenixLyrics
+import moe.rukamori.archivetune.storage.StorageFolderKind
+import moe.rukamori.archivetune.storage.StorageLocationRepository
 import moe.rukamori.archivetune.ui.player.CanvasArtworkPlaybackCache
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -290,7 +292,7 @@ class App : Application(), SingletonImageLoader.Factory {
         val imageCacheConfig = resolveImageDiskCacheConfig(dataStore[MaxImageCacheSizeKey])
 
         val diskCache = DiskCache.Builder()
-            .directory(cacheDir.resolve("coil"))
+            .directory(StorageLocationRepository.cacheDirectory(this, StorageFolderKind.IMAGE_CACHE))
             .maxSizeBytes(imageCacheConfig.maxSizeBytes)
             .build()
 

@@ -150,6 +150,8 @@ import moe.rukamori.archivetune.db.entities.ArtistEntity
 import moe.rukamori.archivetune.db.entities.AlbumEntity
 import moe.rukamori.archivetune.di.DownloadCache
 import moe.rukamori.archivetune.di.PlayerCache
+import moe.rukamori.archivetune.storage.StorageFolderKind
+import moe.rukamori.archivetune.storage.StorageLocationRepository
 import moe.rukamori.archivetune.innertube.PlaybackAuthState
 import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
 import moe.rukamori.archivetune.extensions.SilentHandler
@@ -5176,7 +5178,7 @@ private fun onMediaItemTransitionInternal() {
         if (limitBytes <= 0L) return
 
         withContext(Dispatchers.IO) {
-            val cacheDir = filesDir.resolve("exoplayer")
+            val cacheDir = StorageLocationRepository.cacheDirectory(this@MusicService, StorageFolderKind.SONG_CACHE)
             val currentSpace = runCatching { playerCache.cacheSpace }.getOrNull() ?: 0L
             var totalBytes = if (currentSpace > 0L) currentSpace else cacheDir.directorySizeBytes()
             if (totalBytes <= limitBytes) return@withContext

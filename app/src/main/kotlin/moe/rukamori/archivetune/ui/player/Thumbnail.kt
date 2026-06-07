@@ -108,6 +108,8 @@ import kotlin.math.abs
 import androidx.compose.ui.platform.LocalView
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
 import android.content.Context
+import moe.rukamori.archivetune.storage.StorageFolderKind
+import moe.rukamori.archivetune.storage.StorageLocationRepository
 
 object CanvasArtworkPlaybackCache {
     private const val defaultMaxSize = 256
@@ -130,7 +132,7 @@ object CanvasArtworkPlaybackCache {
     private val mapSerializer = MapSerializer(String.serializer(), CanvasArtwork.serializer())
 
     fun init(context: Context) {
-        cacheFile = File(context.filesDir, PERSIST_FILE)
+        cacheFile = StorageLocationRepository.cacheFile(context, StorageFolderKind.CANVAS_CACHE, PERSIST_FILE)
         loadFromDisk()
     }
 
