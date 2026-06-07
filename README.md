@@ -29,10 +29,10 @@
   </p>
 
   <div align="center">
-    <img src="https://img.shields.io/github/v/release/koiverse/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Latest Version" />
-    <img src="https://img.shields.io/github/downloads/koiverse/ArchiveTune/total?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Downloads" />
-    <img src="https://img.shields.io/github/stars/koiverse/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Stars" />
-    <img src="https://img.shields.io/github/license/koiverse/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e" alt="License" />
+    <img src="https://img.shields.io/github/v/release/ArchiveTuneApp/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Latest Version" />
+    <img src="https://img.shields.io/github/downloads/ArchiveTuneApp/ArchiveTune/total?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Downloads" />
+    <img src="https://img.shields.io/github/stars/ArchiveTuneApp/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Stars" />
+    <img src="https://img.shields.io/github/license/ArchiveTuneApp/ArchiveTune?style=for-the-badge&color=6366f1&labelColor=1e1e2e" alt="License" />
     <img src="https://img.shields.io/badge/Architecture-MVVM-6366f1?style=for-the-badge&labelColor=1e1e2e&logo=kotlin" alt="MVVM Architecture" />
     <img src="https://img.shields.io/badge/Language-Kotlin-7f52ff?style=for-the-badge&logo=kotlin&color=6366f1&labelColor=1e1e2e" alt="Kotlin Language" />
     <img src="https://img.shields.io/badge/Toolkit-Jetpack_Compose-4285f4?style=for-the-badge&logo=jetpack-compose&color=6366f1&labelColor=1e1e2e" alt="Jetpack Compose Toolkit" />
@@ -189,7 +189,7 @@
       </td>
       <td align="center">
         <a href="https://apt.izzysoft.de/fdroid/index/apk/moe.rukamori.archivetune">
-          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/757d5932832e1da27ced56de98c5ad1275cf0db1/assets/IzzyOnDroidButtonBorder.svg" height="50" alt="Get ArchiveTune on IzzyOnDroid">
+          <img src="https://raw.githubusercontent.com/ArchiveTuneApp/ArchiveTune/757d5932832e1da27ced56de98c5ad1275cf0db1/assets/IzzyOnDroidButtonBorder.svg" height="50" alt="Get ArchiveTune on IzzyOnDroid">
         </a>
       </td>
     </tr>
@@ -199,7 +199,7 @@
     <tr>
       <td align="center" colspan="2">
         <a href="https://github.com/ArchiveTuneApp/ArchiveTune/releases/latest">
-          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/assets/badge_github.png" height="50" alt="Get ArchiveTune on GitHub">
+          <img src="https://raw.githubusercontent.com/ArchiveTuneApp/ArchiveTune/refs/heads/main/assets/badge_github.png" height="50" alt="Get ArchiveTune on GitHub">
         </a>
       </td>
     </tr>
@@ -215,7 +215,7 @@
       </td>
       <td align="center">
         <a href="https://unclouded.app/apps/archivetune/">
-          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_unclouded.png" height="50" alt="Get ArchiveTune on Unclouded">
+          <img src="https://raw.githubusercontent.com/ArchiveTuneApp/ArchiveTune/refs/heads/dev/assets/badge_unclouded.png" height="50" alt="Get ArchiveTune on Unclouded">
         </a>
       </td>
     </tr>
@@ -233,8 +233,8 @@
   <tbody>
     <tr>
       <td align="center">
-        <a href="https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-mobile-universal-release">
-          <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/assets/badge_github.png" height="50" alt="Download the latest ArchiveTune nightly build">
+        <a href="https://nightly.link/ArchiveTuneApp/ArchiveTune/workflows/build/dev/app-mobile-universal-release">
+          <img src="https://raw.githubusercontent.com/ArchiveTuneApp/ArchiveTune/refs/heads/main/assets/badge_github.png" height="50" alt="Download the latest ArchiveTune nightly build">
         </a>
       </td>
     </tr>
@@ -267,7 +267,7 @@ ArchiveTune belongs to everyone. Help us localize the experience for your region
 
 ### ✨ Project Contributors
 <a href="https://github.com/ArchiveTuneApp/ArchiveTune/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=koiverse/ArchiveTune&columns=6" />
+  <img src="https://contrib.rocks/image?repo=ArchiveTuneApp/ArchiveTune&columns=6" />
 </a>
 
 ### 🛠️ Development & Engineering
@@ -307,8 +307,8 @@ ArchiveTune is an independent third-party client.
 ---
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/fastlane/metadata/android/en-US/images/ArchiveTuneFull.png" alt="ArchiveTune Banner" style="width: 100%; max-width: 500px;">
+  <img src="https://raw.githubusercontent.com/ArchiveTuneApp/ArchiveTune/refs/heads/dev/fastlane/metadata/android/en-US/images/ArchiveTuneFull.png" alt="ArchiveTune Banner" style="width: 100%; max-width: 500px;">
   <p><b>If ArchiveTune elevated your music experience, please consider giving us a ⭐</b></p>
   <br />
-  <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/dev/assets/badge_part.png" alt="ArchiveTune Banner" style="width: 160px">
+  <img src="https://raw.githubusercontent.com/ArchiveTuneApp/ArchiveTune/refs/heads/dev/assets/badge_part.png" alt="ArchiveTune Banner" style="width: 160px">
 </div>
