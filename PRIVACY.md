@@ -113,8 +113,8 @@ This file should be reviewed whenever ArchiveTune changes its permissions, stora
 
 For questions or corrections, use the project repository and issue tracker.
 
-- Repository: [https://github.com/koiverse/ArchiveTune](https://github.com/koiverse/ArchiveTune)
-- Issues: [https://github.com/koiverse/ArchiveTune/issues](https://github.com/koiverse/ArchiveTune/issues)
+- Repository: [https://github.com/ArchiveTuneApp/ArchiveTune](https://github.com/ArchiveTuneApp/ArchiveTune)
+- Issues: [https://github.com/ArchiveTuneApp/ArchiveTune/issues](https://github.com/ArchiveTuneApp/ArchiveTune/issues)
 
 ## Technical Appendix
 
@@ -123,7 +123,7 @@ This appendix maps the main statements above to concrete implementation surfaces
 | Topic | What the code shows | Main files |
 | --- | --- | --- |
 | Permissions and backup behavior | The manifest declares network, media, microphone, Bluetooth, notification, boot, wake-lock, and foreground-service permissions. It also enables backup, cleartext traffic, and audio playback capture. Separate XML files exclude selected caches and internal playback database files from Android backup and device transfer. | `app/src/main/AndroidManifest.xml`, `app/src/main/res/xml/data_extraction_rules.xml`, `app/src/main/res/xml/backup_rules.xml` |
-| Local database contents | The Room schema includes songs, artists, albums, playlists, search history, lyrics, audio format metadata, and playback event records. | `app/schemas/moe.koiverse.archivetune.db.InternalDatabase/9.json` |
+| Local database contents | The Room schema includes songs, artists, albums, playlists, search history, lyrics, audio format metadata, and playback event records. | `app/schemas/moe.rukamori.archivetune.db.InternalDatabase/9.json` |
 | Settings and tokens stored locally | DataStore preference keys include UI settings, proxy settings, history toggles, Together values, YouTube session values, account name or email fields, Last.fm session values, ListenBrainz token values, Discord values, and update-cache keys. | `app/src/main/kotlin/moe/koiverse/archivetune/constants/PreferenceKeys.kt` |
 | YouTube signed-in state | The Innertube layer exposes visitor data, data sync ID, cookie, PO token values, proxy state, and login-for-browse behavior as part of the current playback auth state. | `innertube/src/main/kotlin/moe/koiverse/archivetune/innertube/YouTube.kt` |
 | Manual backup export | The backup view model writes app settings plus database files into a ZIP archive chosen by the user. | `app/src/main/kotlin/moe/koiverse/archivetune/viewmodels/BackupRestoreViewModel.kt` |

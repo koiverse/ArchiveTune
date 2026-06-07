@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" alt="ArchiveTune Logo" style="border-radius: 22%">
+  <img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" alt="ArchiveTune Logo" style="border-radius: 22%">
 
   <h1>ArchiveTune</h1>
 
@@ -25,7 +25,7 @@
     <a href="https://archivetune.koiiverse.cloud/privacy"><b>Privacy</b></a> •
     <a href="#download-now"><b>Download</b></a> •
     <a href="#screenshots"><b>Screenshots</b></a> •
-    <a href="https://github.com/koiverse/ArchiveTune/issues/new/choose"><b>Support</b></a>
+    <a href="https://github.com/ArchiveTuneApp/ArchiveTune/issues/new/choose"><b>Support</b></a>
   </p>
 
   <div align="center">
@@ -64,15 +64,15 @@
 
 <div align="center">
 
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_1.jpg" alt="Browse" width="30%" />
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_2.jpg" alt="Live Lyrics" width="30%" />
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_3.jpg" alt="Theme Customization" width="30%" />
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_4.jpg" alt="Live Statistics" width="30%" />
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_5.jpg" alt="Artist" width="30%" />
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_6.jpg" alt="Album" width="30%" />
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_7.jpg" alt="Player" width="30%" />
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_8.jpg" alt="Settings" width="30%" />
-<img src="https://github.com/koiverse/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_9.jpg" alt="Settings" width="30%" />
+<img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_1.jpg" alt="Browse" width="30%" />
+<img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_2.jpg" alt="Live Lyrics" width="30%" />
+<img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_3.jpg" alt="Theme Customization" width="30%" />
+<img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_4.jpg" alt="Live Statistics" width="30%" />
+<img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_5.jpg" alt="Artist" width="30%" />
+<img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_6.jpg" alt="Album" width="30%" />
+<img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_7.jpg" alt="Player" width="30%" />
+<img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_8.jpg" alt="Settings" width="30%" />
+<img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_9.jpg" alt="Settings" width="30%" />
 
 </div>
 
@@ -183,12 +183,12 @@
   <tbody>
     <tr>
       <td align="center">
-        <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/koiverse/ArchiveTune/">
+        <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/ArchiveTuneApp/ArchiveTune/">
           <img src="https://github.com/ImranR98/Obtainium/blob/main/assets/graphics/badge_obtainium.png" height="50" alt="Get ArchiveTune on Obtainium">
         </a>
       </td>
       <td align="center">
-        <a href="https://apt.izzysoft.de/fdroid/index/apk/moe.koiverse.archivetune">
+        <a href="https://apt.izzysoft.de/fdroid/index/apk/moe.rukamori.archivetune">
           <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/757d5932832e1da27ced56de98c5ad1275cf0db1/assets/IzzyOnDroidButtonBorder.svg" height="50" alt="Get ArchiveTune on IzzyOnDroid">
         </a>
       </td>
@@ -198,7 +198,7 @@
     </tr>
     <tr>
       <td align="center" colspan="2">
-        <a href="https://github.com/koiverse/ArchiveTune/releases/latest">
+        <a href="https://github.com/ArchiveTuneApp/ArchiveTune/releases/latest">
           <img src="https://raw.githubusercontent.com/koiverse/ArchiveTune/refs/heads/main/assets/badge_github.png" height="50" alt="Get ArchiveTune on GitHub">
         </a>
       </td>
@@ -209,7 +209,7 @@
     </tr>
     <tr>
       <td align="center">
-        <a href="https://www.openapk.net/archivetune/moe.koiverse.archivetune/">
+        <a href="https://www.openapk.net/archivetune/moe.rukamori.archivetune/">
           <img src="https://www.openapk.net/images/openapk-badge.png" height="75" alt="Get ArchiveTune on OpenAPK">
         </a>
       </td>
@@ -266,7 +266,7 @@ ArchiveTune belongs to everyone. Help us localize the experience for your region
 </div>
 
 ### ✨ Project Contributors
-<a href="https://github.com/koiverse/ArchiveTune/graphs/contributors">
+<a href="https://github.com/ArchiveTuneApp/ArchiveTune/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=koiverse/ArchiveTune&columns=6" />
 </a>
 
@@ -280,7 +280,7 @@ Interested in building the project or contributing? ArchiveTune is built on a hi
 ArchiveTune is free and open-source. If it brings you joy, consider supporting its development!
 ##### Tribe
 <a href="https://koiiverse.cloud/donate" target="_blank">
-  <img src="https://github.com/koiverse/ArchiveTune/blob/dev/assets/tribe.png?raw=true" alt="Buy Me a Coffee" width="160" />
+  <img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/dev/assets/tribe.png?raw=true" alt="Buy Me a Coffee" width="160" />
 </a>
 
 ---

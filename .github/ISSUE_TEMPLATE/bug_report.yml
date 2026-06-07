@@ -10,7 +10,7 @@ body:
         Before submitting, please ensure you have completed the following steps. 
         Incomplete reports or reports for versions other than the latest nightly build may be closed.
       options:
-        - label: I have tested this bug on the [latest nightly version](https://github.com/koiverse/ArchiveTune/actions).
+        - label: I have tested this bug on the [latest nightly version](https://github.com/ArchiveTuneApp/ArchiveTune/actions).
           required: true
         - label: I have searched existing issues (open and closed) to avoid duplicates.
           required: true

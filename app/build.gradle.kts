@@ -25,11 +25,11 @@ val discordApplicationIdLong = discordApplicationId.toLongOrNull() ?: 1165706613
 val discordRedirectScheme = "discord-$discordApplicationId"
 
 android {
-    namespace = "moe.koiverse.archivetune"
+    namespace = "moe.rukamori.archivetune"
     compileSdk = 37
 
     defaultConfig {
-    applicationId = "moe.koiverse.archivetune"
+    applicationId = "moe.rukamori.archivetune"
         minSdk = 26
         targetSdk = 37
         versionCode = 135
