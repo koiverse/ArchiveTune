@@ -147,6 +147,9 @@ object LyricsUtils {
                 trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true)
     }
 
+    fun isLineSyncedLrc(lyrics: String): Boolean =
+        lyrics.lineSequence().any { line -> LINE_REGEX.matches(line.trim()) }
+
     fun parseTtml(lyrics: String, durationSeconds: Int? = null): List<LyricsEntry> {
         val parsedLines = TTMLParser.parseTTML(lyrics)
         if (parsedLines.isEmpty()) return emptyList()
@@ -199,7 +202,7 @@ object LyricsUtils {
 
         val visibleLines = when {
             isTtml(raw) -> runCatching { parseTtml(raw).map { it.text } }.getOrElse { emptyList() }
-            raw.startsWith("[") -> runCatching { parseLyrics(raw).map { it.text } }.getOrElse { emptyList() }
+            isLineSyncedLrc(raw) -> runCatching { parseLyrics(raw).map { it.text } }.getOrElse { emptyList() }
             else -> raw.lines()
         }
 

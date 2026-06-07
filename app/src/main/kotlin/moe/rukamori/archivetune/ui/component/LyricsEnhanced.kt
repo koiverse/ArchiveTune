@@ -5,7 +5,11 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(
+    ExperimentalFoundationApi::class,
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+)
 
 package moe.rukamori.archivetune.ui.component
 
@@ -15,12 +19,15 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,6 +88,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
@@ -116,6 +124,7 @@ import moe.rukamori.archivetune.constants.UseSystemFontKey
 import moe.rukamori.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import moe.rukamori.archivetune.lyrics.LyricsEntry
 import moe.rukamori.archivetune.lyrics.LyricsRomanizationPreferences
+import moe.rukamori.archivetune.lyrics.LyricsUtils.isLineSyncedLrc
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isTtml
 import moe.rukamori.archivetune.lyrics.LyricsUtils.parseLyrics
 import moe.rukamori.archivetune.lyrics.LyricsUtils.parseTtml
@@ -216,14 +225,14 @@ fun LyricsEnhanced(
         mediaMetadata?.id.orEmpty() to lyrics
     }
 
-    val isSynced = remember(lyrics) { lyrics != null && (lyrics!!.startsWith("[") || isTtml(lyrics!!)) }
+    val isSynced = remember(lyrics) { lyrics != null && (isLineSyncedLrc(lyrics!!) || isTtml(lyrics!!)) }
     val isTtmlFormat = remember(lyrics) { lyrics != null && isTtml(lyrics!!) }
 
     val lyricsEntries: List<LyricsEntry> = remember(lyrics) {
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) return@remember emptyList()
         when {
             isTtml(lyrics!!) -> parseTtml(lyrics!!)
-            lyrics!!.startsWith("[") -> parseLyrics(lyrics!!)
+            isLineSyncedLrc(lyrics!!) -> parseLyrics(lyrics!!)
             else -> lyrics!!.lines()
                 .filter { it.isNotBlank() }
                 .map { line -> LyricsEntry(time = -1L, text = line.trim()) }
@@ -482,17 +491,48 @@ fun LyricsEnhanced(
         fontSize = (lyricsTextSize * 0.55f).sp,
         fontWeight = FontWeight.Normal,
     )
-    val selectionLines = remember(syncedLyrics) {
-        syncedLyrics.lines.mapIndexedNotNull { index, line ->
-            val text = line.lineText()
-            if (text.isBlank()) {
-                null
+    val plainLyrics = remember(lyricsEntries, isSynced) {
+        PlainLyrics(
+            items = if (isSynced) {
+                emptyList()
             } else {
-                val selectionId = line.selectionKey(text)
+                lyricsEntries.mapIndexedNotNull { index, entry ->
+                    val text = entry.text.trim()
+                    if (text.isBlank()) {
+                        null
+                    } else {
+                        val selectionId = "plain:$index:${text.hashCode()}"
+                        PlainLyricLine(
+                            itemId = "$selectionId#$index",
+                            selectionId = selectionId,
+                            text = text,
+                        )
+                    }
+                }
+            }
+        )
+    }
+    val selectionLines = remember(isSynced, syncedLyrics, plainLyrics) {
+        if (isSynced) {
+            syncedLyrics.lines.mapIndexedNotNull { index, line ->
+                val text = line.lineText()
+                if (text.isBlank()) {
+                    null
+                } else {
+                    val selectionId = line.selectionKey(text)
+                    LyricSelectionLine(
+                        itemId = "$selectionId#$index",
+                        selectionId = selectionId,
+                        text = text,
+                    )
+                }
+            }
+        } else {
+            plainLyrics.items.map { line ->
                 LyricSelectionLine(
-                    itemId = "$selectionId#$index",
-                    selectionId = selectionId,
-                    text = text,
+                    itemId = line.itemId,
+                    selectionId = line.selectionId,
+                    text = line.text,
                 )
             }
         }
@@ -553,7 +593,7 @@ fun LyricsEnhanced(
                     repeat(6) { TextPlaceholder() }
                 }
             }
-            syncedLyrics.lines.isEmpty() -> {
+            isSynced && syncedLyrics.lines.isEmpty() -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         text = stringResource(R.string.lyrics_not_found),
@@ -562,6 +602,39 @@ fun LyricsEnhanced(
                         textAlign = TextAlign.Center,
                     )
                 }
+            }
+            !isSynced && plainLyrics.items.isEmpty() -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = stringResource(R.string.lyrics_not_found),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = textColor.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+            !isSynced -> {
+                PlainLyricsView(
+                    lines = plainLyrics,
+                    listState = listState,
+                    selectedLineKeys = selectedLineKeySet,
+                    textColor = textColor,
+                    textStyle = normalTextStyle,
+                    onLineClicked = { lineKey ->
+                        if (isSelectionModeActive) toggleSelectedLine(lineKey)
+                    },
+                    onLinePressed = { lineKey ->
+                        if (!isSelectionModeActive) {
+                            isSelectionModeActive = true
+                            if (!selectedLineKeys.contains(lineKey)) {
+                                selectedLineKeys.add(lineKey)
+                            }
+                        } else if (!selectedLineKeys.contains(lineKey)) {
+                            toggleSelectedLine(lineKey)
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
             else -> {
                 BoxWithConstraints(
@@ -722,11 +795,96 @@ fun LyricsEnhanced(
 }
 
 @Immutable
+private data class PlainLyrics(
+    val items: List<PlainLyricLine>,
+)
+
+@Immutable
+private data class PlainLyricLine(
+    val itemId: String,
+    val selectionId: String,
+    val text: String,
+)
+
+@Immutable
 private data class LyricSelectionLine(
     val itemId: String,
     val selectionId: String,
     val text: String,
 )
+
+@Composable
+private fun PlainLyricsView(
+    lines: PlainLyrics,
+    listState: LazyListState,
+    selectedLineKeys: Set<String>,
+    textColor: Color,
+    textStyle: TextStyle,
+    onLineClicked: (String) -> Unit,
+    onLinePressed: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val contentPadding = remember {
+        PaddingValues(
+            start = 12.dp,
+            top = 120.dp,
+            end = 12.dp,
+            bottom = 96.dp,
+        )
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(
+            items = lines.items,
+            key = { line -> line.itemId },
+            contentType = { "plain_lyric_line" },
+        ) { line ->
+            PlainLyricLineItem(
+                line = line,
+                selected = line.selectionId in selectedLineKeys,
+                textColor = textColor,
+                textStyle = textStyle,
+                onLineClicked = onLineClicked,
+                onLinePressed = onLinePressed,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlainLyricLineItem(
+    line: PlainLyricLine,
+    selected: Boolean,
+    textColor: Color,
+    textStyle: TextStyle,
+    onLineClicked: (String) -> Unit,
+    onLinePressed: (String) -> Unit,
+) {
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        textColor
+    }
+
+    Text(
+        text = line.text,
+        style = textStyle,
+        color = contentColor,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .combinedClickable(
+                onClick = { onLineClicked(line.selectionId) },
+                onLongClick = { onLinePressed(line.selectionId) },
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    )
+}
 
 @Composable
 private fun LyricsSelectionBottomSheet(

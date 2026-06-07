@@ -89,9 +89,9 @@ import moe.rukamori.archivetune.constants.AiCustomEndpointKey
 import moe.rukamori.archivetune.constants.AiProvider
 import moe.rukamori.archivetune.constants.AiProviderKey
 import moe.rukamori.archivetune.db.entities.LyricsEntity
+import moe.rukamori.archivetune.lyrics.LyricsUtils.displayLyricsText
+import moe.rukamori.archivetune.lyrics.LyricsUtils.isLineSyncedLrc
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isTtml
-import moe.rukamori.archivetune.lyrics.LyricsUtils.parseLyrics
-import moe.rukamori.archivetune.lyrics.LyricsUtils.parseTtml
 import moe.rukamori.archivetune.models.MediaMetadata
 import moe.rukamori.archivetune.ui.component.DefaultDialog
 import moe.rukamori.archivetune.ui.component.ListDialog
@@ -342,13 +342,7 @@ fun LyricsMenu(
                     Column(modifier = Modifier.padding(16.dp)) {
                         val displayLyrics = remember(result.lyrics) {
                             val raw = result.lyrics.trim()
-                            runCatching {
-                                when {
-                                    isTtml(raw) -> parseTtml(raw).joinToString("\n") { it.text }.trim()
-                                    raw.startsWith("[") -> parseLyrics(raw).joinToString("\n") { it.text }.trim()
-                                    else -> raw
-                                }
-                            }.getOrDefault(raw)
+                            displayLyricsText(raw).ifBlank { raw }
                         }
 
                         Text(
@@ -382,7 +376,7 @@ fun LyricsMenu(
                                     )
                                 }
 
-                                if (result.lyrics.startsWith("[") || isTtml(result.lyrics)) {
+                                if (isLineSyncedLrc(result.lyrics) || isTtml(result.lyrics)) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
                                         color = MaterialTheme.colorScheme.primaryContainer,
@@ -399,7 +393,7 @@ fun LyricsMenu(
                                             )
                                             Spacer(Modifier.width(4.dp))
                                             Text(
-                                                text = "Synced",
+                                                text = stringResource(R.string.lyrics_synced_badge),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                             )

@@ -141,6 +141,7 @@ import moe.rukamori.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FO
 import moe.rukamori.archivetune.lyrics.LyricsEntry
 import moe.rukamori.archivetune.lyrics.LyricsRomanizationPreferences
 import moe.rukamori.archivetune.lyrics.LyricsUtils.findCurrentLineIndex
+import moe.rukamori.archivetune.lyrics.LyricsUtils.isLineSyncedLrc
 import moe.rukamori.archivetune.lyrics.LyricsUtils.providedRomanizedTextForEntry
 import moe.rukamori.archivetune.lyrics.LyricsUtils.romanizeLyricsLine
 import moe.rukamori.archivetune.lyrics.LyricsUtils.shouldRomanizeLyricsLine
@@ -275,14 +276,14 @@ fun LyricsV2(
     val lyrics = currentLyrics?.lyrics
 
     // ── Parse lyrics into entries ──
-    val isSynced = remember(lyrics) { lyrics != null && (lyrics!!.startsWith("[") || isTtml(lyrics!!)) }
+    val isSynced = remember(lyrics) { lyrics != null && (isLineSyncedLrc(lyrics!!) || isTtml(lyrics!!)) }
     val isTtmlFormat = remember(lyrics) { lyrics != null && isTtml(lyrics!!) }
 
     val lyricsEntries: List<LyricsEntry> = remember(lyrics) {
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) return@remember emptyList()
         val parsed = when {
             isTtml(lyrics!!) -> parseTtml(lyrics!!)
-            lyrics!!.startsWith("[") -> {
+            isLineSyncedLrc(lyrics!!) -> {
                 val dur = player.duration.takeIf { it > 0L } ?: 0L
                 insertInstrumentalBreaks(parseLyrics(lyrics!!), dur)
             }

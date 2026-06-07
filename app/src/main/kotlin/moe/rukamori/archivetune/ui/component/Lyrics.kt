@@ -181,6 +181,7 @@ import moe.rukamori.archivetune.lyrics.LyricsUtils.isChinese
 import moe.rukamori.archivetune.lyrics.LyricsUtils.findCurrentLineIndex
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isJapanese
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isKorean
+import moe.rukamori.archivetune.lyrics.LyricsUtils.isLineSyncedLrc
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isTtml
 import moe.rukamori.archivetune.lyrics.LyricsUtils.parseLyrics
 import moe.rukamori.archivetune.lyrics.LyricsUtils.parseTtml
@@ -519,7 +520,7 @@ fun Lyrics(
     val lines = remember(lyrics, mediaMetadata?.duration) {
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) {
             emptyList()
-        } else if (lyrics.startsWith("[")) {
+        } else if (isLineSyncedLrc(lyrics)) {
             listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + parseLyrics(lyrics)
         } else if (isTtml(lyrics)) {
             listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + parseTtml(lyrics, mediaMetadata?.duration)
@@ -561,7 +562,7 @@ fun Lyrics(
     }
     val isSynced =
         remember(lyrics) {
-            !lyrics.isNullOrEmpty() && (lyrics.startsWith("[") || isTtml(lyrics))
+            !lyrics.isNullOrEmpty() && (isLineSyncedLrc(lyrics) || isTtml(lyrics))
         }
 
     val lyricsBaseColor = if (useDarkTheme || playerBackground != PlayerBackgroundStyle.DEFAULT) Color.White else Color.Black
@@ -668,7 +669,7 @@ fun Lyrics(
     }
 
     LaunchedEffect(lyrics, lines, isAppMinimized) {
-        if (lyrics.isNullOrEmpty() || (!lyrics.startsWith("[") && !isTtml(lyrics))) {
+        if (lyrics.isNullOrEmpty() || (!isLineSyncedLrc(lyrics) && !isTtml(lyrics))) {
             currentLineIndex = -1
             currentPlaybackPosition = 0L
             return@LaunchedEffect
