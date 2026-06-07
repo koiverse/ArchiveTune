@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import moe.rukamori.archivetune.db.MusicDatabase
 import moe.rukamori.archivetune.db.entities.Album
 import moe.rukamori.archivetune.db.entities.Artist
+import moe.rukamori.archivetune.db.entities.ListeningTotals
 import moe.rukamori.archivetune.db.entities.Song
 import moe.rukamori.archivetune.db.entities.SongWithStats
 import moe.rukamori.archivetune.innertube.YouTube
@@ -98,19 +99,27 @@ constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    private val listeningTotals = selectedYear.flatMapLatest { year ->
+        database.listeningTotals(
+            fromTimestamp = getYearStartTimestamp(year),
+            toTimestamp = getYearEndTimestamp(year),
+        )
+    }.stateIn(viewModelScope, SharingStarted.Lazily, ListeningTotals(0, 0L))
+
     private val recapData = combine(
         topSongsStats,
         topSongs,
         topArtists,
         topAlbums,
-    ) { songStats, songs, artists, albums ->
+        listeningTotals,
+    ) { songStats, songs, artists, albums, totals ->
         YearInMusicRecapData(
             topSongsStats = songStats,
             topSongs = songs,
             topArtists = artists,
             topAlbums = albums,
-            totalListeningTime = songStats.sumOf { stat -> stat.timeListened ?: 0L },
-            totalSongsPlayed = songStats.sumOf { stat -> stat.songCountListened.toLong() },
+            totalListeningTime = totals.totalTimeListened,
+            totalSongsPlayed = totals.totalPlayCount.toLong(),
         )
     }
 

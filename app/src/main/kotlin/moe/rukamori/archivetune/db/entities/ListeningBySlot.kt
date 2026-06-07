@@ -16,6 +16,12 @@ data class ListeningBySlot(
 )
 
 @Immutable
+data class ListeningTotals(
+    val totalPlayCount: Int,
+    val totalTimeListened: Long,
+)
+
+@Immutable
 data class ListeningSummary(
     val totalPlayCount: Int,
     val totalTimeListened: Long,
