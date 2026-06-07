@@ -26,6 +26,7 @@ import android.view.View
 import android.view.WindowManager
 import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -1937,6 +1938,10 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
+                        }
+
+                        BackHandler(enabled = playerBottomSheetState.isExpanded) {
+                            playerBottomSheetState.collapseSoft()
                         }
 
                         BottomSheetMenu(
