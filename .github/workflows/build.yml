@@ -101,7 +101,7 @@ jobs:
           echo "abi=$ABI" >> "$GITHUB_OUTPUT"
           echo "device_cap=$DEVICE_CAP" >> "$GITHUB_OUTPUT"
           echo "abi_cap=$ABI_CAP" >> "$GITHUB_OUTPUT"
-          echo "gradle_task=assemble${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
+          echo "gradle_task=assembleGms${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
           echo "artifact_name=app-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
           echo "apk_name=app-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
 
@@ -147,6 +147,11 @@ jobs:
           DEVICE_CAP="${{ steps.variant.outputs.device_cap }}"
           ABI_CAP="${{ steps.variant.outputs.abi_cap }}"
           CANDIDATES=(
+            "app/build/outputs/apk/gms${DEVICE_CAP}${ABI_CAP}/release"
+            "app/build/outputs/apk/gms${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/gms/${DEVICE}/${ABI}/release"
+            "app/build/outputs/apk/gms/${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/gms/${DEVICE_CAP}${ABI_CAP}/release"
             "app/build/outputs/apk/${DEVICE}/${ABI}/release"
             "app/build/outputs/apk/${DEVICE}${ABI_CAP}/release"
             "app/build/outputs/apk/${DEVICE_CAP}${ABI_CAP}/release"
@@ -285,7 +290,7 @@ jobs:
           fi
 
       - name: Build Debug APK
-        run: ./gradlew assembleMobileUniversalDebug
+        run: ./gradlew assembleGmsMobileUniversalDebug
         env:
           PULL_REQUEST: 'false'
           GITHUB_EVENT_NAME: ${{ github.event_name }}
@@ -301,4 +306,6 @@ jobs:
           name: app-mobile-universal-debug
           path: |
             app/build/outputs/apk/mobile/universal/debug/*.apk
+            app/build/outputs/apk/gmsMobileUniversal/debug/*.apk
+            app/build/outputs/apk/gms/mobile/universal/debug/*.apk
             app/build/outputs/apk/mobileUniversal/debug/*.apk

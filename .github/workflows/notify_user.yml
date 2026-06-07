@@ -12,6 +12,7 @@ jobs:
 
     permissions:
       issues: write
+      pull-requests: write
       contents: read
 
     steps:
@@ -75,7 +76,17 @@ jobs:
               }
             };
 
-            await ensureLabelExists();
+            const tryEnsureLabelExists = async () => {
+              try {
+                await ensureLabelExists();
+                return true;
+              } catch (error) {
+                core.warning(`Skipping label creation check because GitHub rejected the request: ${error.message}`);
+                return false;
+              }
+            };
+
+            const canApplyLabel = await tryEnsureLabelExists();
 
             const failures = [];
 
@@ -87,12 +98,18 @@ jobs:
                   issue_number: issueNumber
                 });
 
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber,
-                  labels: [labelName]
-                });
+                if (canApplyLabel) {
+                  try {
+                    await github.rest.issues.addLabels({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issueNumber,
+                      labels: [labelName]
+                    });
+                  } catch (error) {
+                    core.warning(`Skipping label update for issue #${issueNumber}: ${error.message}`);
+                  }
+                }
 
                 const comments = await github.paginate(github.rest.issues.listComments, {
                   owner: context.repo.owner,

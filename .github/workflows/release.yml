@@ -96,6 +96,11 @@ jobs:
             local candidate
 
             for dir in \
+              "app/build/outputs/apk/gms${DEVICE_CAP}${ABI_CAP}/release" \
+              "app/build/outputs/apk/gms${DEVICE}${ABI_CAP}/release" \
+              "app/build/outputs/apk/gms/${DEVICE}/${ABI}/release" \
+              "app/build/outputs/apk/gms/${DEVICE}${ABI_CAP}/release" \
+              "app/build/outputs/apk/gms/${DEVICE_CAP}${ABI_CAP}/release" \
               "app/build/outputs/apk/${DEVICE}/${ABI}/release" \
               "app/build/outputs/apk/${DEVICE}${ABI_CAP}/release" \
               "app/build/outputs/apk/${DEVICE_CAP}${ABI_CAP}/release"
@@ -140,7 +145,7 @@ jobs:
             return 1
           }
 
-          ./gradlew clean assembleMobileUniversalRelease
+          ./gradlew clean assembleGmsMobileUniversalRelease
           APK_1="$(locate_universal_apk || true)"
           if [ -z "${APK_1:-}" ] || [ ! -f "$APK_1" ]; then
             echo "Could not find unsigned universal release APK (first build)."
@@ -151,7 +156,7 @@ jobs:
           SHA_1="$(sha256sum "$APK_1" | awk '{print $1}')"
           cp "$APK_1" /tmp/universal-1.apk
 
-          ./gradlew clean assembleMobileUniversalRelease
+          ./gradlew clean assembleGmsMobileUniversalRelease
           APK_2="$(locate_universal_apk || true)"
           if [ -z "${APK_2:-}" ] || [ ! -f "$APK_2" ]; then
             echo "Could not find unsigned universal release APK (second build)."
@@ -166,7 +171,7 @@ jobs:
           test "$SHA_1" = "$SHA_2"
 
   build:
-    name: Build Release APKs (${{ matrix.device }}-${{ matrix.abi }})
+    name: Build Release APKs (${{ matrix.distribution }}-${{ matrix.device }}-${{ matrix.abi }})
     needs: [check-version, reproducibility]
     # Removed '|| workflow_dispatch' so it respects the version check
     if: needs.check-version.outputs.version_changed == 'true'
@@ -175,23 +180,65 @@ jobs:
       matrix:
         include:
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: arm64
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: armeabi
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: x86
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: x86_64
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: universal
           - device: tv
+            distribution: gms
+            distributionName: Gms
             deviceName: Tv
             abi: universal
+          - device: mobile
+            distribution: foss
+            distributionName: Foss
+            deviceName: Mobile
+            abi: universal
+          - device: mobile
+            distribution: izzy
+            distributionName: Izzy
+            deviceName: Mobile
+            abi: universal
+          - device: mobile
+            distribution: izzy
+            distributionName: Izzy
+            deviceName: Mobile
+            abi: arm64
+          - device: mobile
+            distribution: izzy
+            distributionName: Izzy
+            deviceName: Mobile
+            abi: armeabi
+          - device: mobile
+            distribution: izzy
+            distributionName: Izzy
+            deviceName: Mobile
+            abi: x86
+          - device: mobile
+            distribution: izzy
+            distributionName: Izzy
+            deviceName: Mobile
+            abi: x86_64
 
     steps:
       - uses: actions/checkout@v6
@@ -215,17 +262,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          DISTRIBUTION="${{ matrix.distribution }}"
+          DISTRIBUTION_CAP="${{ matrix.distributionName }}"
           DEVICE="${{ matrix.device }}"
           ABI="${{ matrix.abi }}"
           DEVICE_CAP="${{ matrix.deviceName }}"
           ABI_CAP="$(tr '[:lower:]' '[:upper:]' <<< "${ABI:0:1}")${ABI:1}"
+          echo "distribution=$DISTRIBUTION" >> "$GITHUB_OUTPUT"
+          echo "distribution_cap=$DISTRIBUTION_CAP" >> "$GITHUB_OUTPUT"
           echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
           echo "abi=$ABI" >> "$GITHUB_OUTPUT"
           echo "device_cap=$DEVICE_CAP" >> "$GITHUB_OUTPUT"
           echo "abi_cap=$ABI_CAP" >> "$GITHUB_OUTPUT"
-          echo "gradle_task=assemble${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
-          echo "artifact_name=app-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
-          echo "apk_name=app-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
+          echo "gradle_task=assemble${DISTRIBUTION_CAP}${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
+          if [ "$DISTRIBUTION" = "gms" ]; then
+            echo "artifact_name=app-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
+            echo "apk_name=app-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
+          else
+            echo "artifact_name=app-${DISTRIBUTION}-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
+            echo "apk_name=app-${DISTRIBUTION}-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
+          fi
  
       - name: Build Release APK
         shell: bash
@@ -252,11 +308,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          DISTRIBUTION="${{ steps.variant.outputs.distribution }}"
           DEVICE="${{ steps.variant.outputs.device }}"
           ABI="${{ steps.variant.outputs.abi }}"
           DEVICE_CAP="${{ steps.variant.outputs.device_cap }}"
           ABI_CAP="${{ steps.variant.outputs.abi_cap }}"
           CANDIDATES=(
+            "app/build/outputs/apk/${DISTRIBUTION}${DEVICE_CAP}${ABI_CAP}/release"
+            "app/build/outputs/apk/${DISTRIBUTION}${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/${DISTRIBUTION}/${DEVICE}/${ABI}/release"
+            "app/build/outputs/apk/${DISTRIBUTION}/${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/${DISTRIBUTION}/${DEVICE_CAP}${ABI_CAP}/release"
+            "app/build/outputs/apk/gms${DEVICE_CAP}${ABI_CAP}/release"
+            "app/build/outputs/apk/gms${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/gms/${DEVICE}/${ABI}/release"
+            "app/build/outputs/apk/gms/${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/gms/${DEVICE_CAP}${ABI_CAP}/release"
             "app/build/outputs/apk/${DEVICE}/${ABI}/release"
             "app/build/outputs/apk/${DEVICE}${ABI_CAP}/release"
             "app/build/outputs/apk/${DEVICE_CAP}${ABI_CAP}/release"
@@ -272,6 +339,12 @@ jobs:
           FOUND_METADATA="$(
             find app/build/outputs/apk -type f -name "output-metadata.json" \
               \( \
+                -path "*/${DISTRIBUTION}/${DEVICE}/${ABI}/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}${DEVICE}${ABI_CAP}/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}${DEVICE_CAP}${ABI_CAP}/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}/${DEVICE}/${ABI}/*/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}${DEVICE}${ABI_CAP}/*/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}${DEVICE_CAP}${ABI_CAP}/*/release/output-metadata.json" -o \
                 -path "*/${DEVICE}/${ABI}/release/output-metadata.json" -o \
                 -path "*/${DEVICE}${ABI_CAP}/release/output-metadata.json" -o \
                 -path "*/${DEVICE_CAP}${ABI_CAP}/release/output-metadata.json" -o \
@@ -287,11 +360,12 @@ jobs:
             exit 0
           fi
 
-          echo "Could not resolve APK release output directory for DEVICE=$DEVICE ABI=$ABI"
+          echo "Could not resolve APK release output directory for DISTRIBUTION=$DISTRIBUTION DEVICE=$DEVICE ABI=$ABI"
           find app/build/outputs/apk -maxdepth 8 -type d -print || true
           exit 1
 
       - name: Sign APK
+        if: matrix.distribution == 'gms'
         uses: ilharp/sign-android-release@v2.0.0
         with:
           releaseDir: ${{ steps.release_dir.outputs.release_dir }}/
@@ -301,16 +375,26 @@ jobs:
           keyPassword: ${{ secrets.KEY_PASSWORD }}
           buildToolsVersion: 35.0.0
       
-      - name: Move and rename signed APKs
+      - name: Move and rename APK
         shell: bash
         run: |
           set -euo pipefail
+          DISTRIBUTION="${{ steps.variant.outputs.distribution }}"
           RELEASE_DIR="${{ steps.release_dir.outputs.release_dir }}"
           mkdir -p "$RELEASE_DIR/out"
-          SIGNED_APK="$(find "$RELEASE_DIR" \( -name "*-signed.apk" -o -name "*-unsigned-signed.apk" \) | head -n 1)"
-          mv "$SIGNED_APK" "$RELEASE_DIR/out/${{ steps.variant.outputs.apk_name }}"
+          if [ "$DISTRIBUTION" = "gms" ]; then
+            APK="$(find "$RELEASE_DIR" -type f \( -name "*-signed.apk" -o -name "*-unsigned-signed.apk" \) | head -n 1)"
+          else
+            APK="$(find "$RELEASE_DIR" -maxdepth 1 -type f -name "*.apk" ! -name "*-signed.apk" ! -name "*-unsigned-signed.apk" | head -n 1)"
+          fi
+          if [ -z "${APK:-}" ] || [ ! -f "$APK" ]; then
+            echo "Could not find APK for DISTRIBUTION=$DISTRIBUTION in $RELEASE_DIR"
+            find "$RELEASE_DIR" -maxdepth 2 -type f -print || true
+            exit 1
+          fi
+          mv "$APK" "$RELEASE_DIR/out/${{ steps.variant.outputs.apk_name }}"
   
-      - name: Upload Signed APKs
+      - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.variant.outputs.artifact_name }}
@@ -394,4 +478,3 @@ jobs:
             --notes-file release_notes.md \
             "$MOBILE_UNIVERSAL_APK" \
             $OTHER_APKS
-            

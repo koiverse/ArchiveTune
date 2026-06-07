@@ -15,7 +15,7 @@ body:
       label: Required pre-submission checklist
       description: Reports that skip these checks are difficult to triage and may be closed.
       options:
-        - label: I searched existing open and closed issues and did not find a duplicate.
+        - label: I have tested this bug on the [latest nightly version](https://github.com/ArchiveTuneApp/ArchiveTune/actions).
           required: true
         - label: This report describes one specific bug, not multiple unrelated problems.
           required: true

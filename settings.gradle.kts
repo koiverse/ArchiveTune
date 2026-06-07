@@ -19,9 +19,23 @@ dependencyResolutionManagement {
 
     repositories {
         google()
-        mavenCentral()
-        maven { setUrl("https://central.sonatype.com/repository/maven-snapshots/") }
-        maven { setUrl("https://jitpack.io") }
+        mavenCentral {
+            mavenContent {
+                releasesOnly()
+            }
+        }
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = "JitPack"
+                    setUrl("https://jitpack.io")
+                }
+            }
+            filter {
+                includeGroup("com.github.therealbush")
+                includeGroup("com.github.TeamNewPipe")
+            }
+        }
     }
 }
 
@@ -53,9 +67,9 @@ include(":spotifycore")
 // From:
 //      implementation(libs.newpipe.extractor)
 // To:
-//      implementation("com.github.teamnewpipe:NewPipeExtractor")
+//      implementation("com.github.TeamNewPipe:NewPipeExtractor")
 //includeBuild("../NewPipeExtractor") {
 //    dependencySubstitution {
-//        substitute(module("com.github.teamnewpipe:NewPipeExtractor")).using(project(":extractor"))
+//        substitute(module("com.github.TeamNewPipe:NewPipeExtractor")).using(project(":extractor"))
 //    }
 //}

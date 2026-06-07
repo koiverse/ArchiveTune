@@ -1,0 +1,115 @@
+/*
+ * ArchiveTune (2026)
+ * © Chartreux Westia — github.com/koiverse
+ * GPL-3.0 License | Contributors: see git history
+ * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+ */
+
+package moe.rukamori.archivetune.innertube.models.response
+
+import moe.rukamori.archivetune.innertube.models.ResponseContext
+import moe.rukamori.archivetune.innertube.models.Thumbnails
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+/**
+ * PlayerResponse with [moe.rukamori.archivetune.innertube.models.YouTubeClient.WEB_REMIX] client
+ */
+@Serializable
+data class PlayerResponse(
+    val responseContext: ResponseContext,
+    val playabilityStatus: PlayabilityStatus,
+    val playerConfig: PlayerConfig?,
+    val streamingData: StreamingData?,
+    val videoDetails: VideoDetails?,
+    @SerialName("playbackTracking")
+    val playbackTracking: PlaybackTracking?,
+) {
+    @Serializable
+    data class PlayabilityStatus(
+        val status: String,
+        val reason: String?,
+    )
+
+    @Serializable
+    data class PlayerConfig(
+        val audioConfig: AudioConfig,
+    ) {
+        @Serializable
+        data class AudioConfig(
+            val loudnessDb: Double?,
+            val perceptualLoudnessDb: Double?,
+        )
+    }
+
+    @Serializable
+    data class StreamingData(
+        val formats: List<Format>?,
+        val adaptiveFormats: List<Format>,
+        val expiresInSeconds: Int? = null,
+    ) {
+        @Serializable
+        data class Format(
+            val itag: Int,
+            val url: String?,
+            val mimeType: String,
+            val bitrate: Int,
+            val width: Int?,
+            val height: Int?,
+            val contentLength: Long?,
+            val quality: String,
+            val fps: Int?,
+            val qualityLabel: String?,
+            val averageBitrate: Int?,
+            val audioQuality: String?,
+            val approxDurationMs: String?,
+            val audioSampleRate: Int?,
+            val audioChannels: Int?,
+            val loudnessDb: Double?,
+            val lastModified: Long?,
+            val signatureCipher: String?,
+            val cipher: String?,
+        ) {
+            val isAudio: Boolean
+                get() = width == null
+        }
+    }
+
+    @Serializable
+    data class VideoDetails(
+        val videoId: String,
+        val title: String,
+        val author: String,
+        val channelId: String,
+        val lengthSeconds: String,
+        val musicVideoType: String?,
+        val viewCount: String,
+        val thumbnail: Thumbnails,
+    )
+
+    @Serializable
+    data class PlaybackTracking(
+        @SerialName("videostatsPlaybackUrl")
+        val videostatsPlaybackUrl: VideostatsPlaybackUrl?,
+        @SerialName("videostatsWatchtimeUrl")
+        val videostatsWatchtimeUrl: VideostatsWatchtimeUrl?,
+        @SerialName("atrUrl")
+        val atrUrl: AtrUrl?,
+    ) {
+        @Serializable
+        data class VideostatsPlaybackUrl(
+            @SerialName("baseUrl")
+            val baseUrl: String?,
+        )
+        @Serializable
+        data class VideostatsWatchtimeUrl(
+            @SerialName("baseUrl")
+            val baseUrl: String?,
+        )
+        @Serializable
+        data class AtrUrl(
+            @SerialName("baseUrl")
+            val baseUrl: String?,
+        )
+    }
+}

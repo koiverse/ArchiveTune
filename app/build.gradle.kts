@@ -15,7 +15,6 @@ if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
 
-val discordSocialSdkAar = file("libs/discord_partner_sdk.aar")
 val discordApplicationId =
     (
         localProperties.getProperty("DISCORD_APPLICATION_ID")
@@ -26,11 +25,11 @@ val discordApplicationIdLong = discordApplicationId.toLongOrNull() ?: 1165706613
 val discordRedirectScheme = "discord-$discordApplicationId"
 
 android {
-    namespace = "moe.koiverse.archivetune"
+    namespace = "moe.rukamori.archivetune"
     compileSdk = 37
 
     defaultConfig {
-    applicationId = "moe.koiverse.archivetune"
+    applicationId = "moe.rukamori.archivetune"
         minSdk = 26
         targetSdk = 37
         versionCode = 135
@@ -69,20 +68,33 @@ android {
                     ?: ""
                 ).trim()
         buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
-        buildConfigField("String", "DISCORD_APPLICATION_ID", "\"$discordApplicationId\"")
-        buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
-        buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
-        manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
-
-        externalNativeBuild {
-            cmake {
-                arguments += "-DARCHIVETUNE_ENABLE_DISCORD_SOCIAL_SDK=${if (discordSocialSdkAar.exists()) "ON" else "OFF"}"
-            }
-        }
+        buildConfigField("String", "DISTRIBUTION", "\"gms\"")
+        buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
     }
 
-    flavorDimensions += listOf("device", "abi")
+    flavorDimensions += listOf("distribution", "device", "abi")
     productFlavors {
+        create("gms") {
+            dimension = "distribution"
+            isDefault = true
+            buildConfigField("String", "DISTRIBUTION", "\"gms\"")
+            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "true")
+            buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
+            buildConfigField("String", "DISCORD_APPLICATION_ID", "\"$discordApplicationId\"")
+            buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
+            buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
+            manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
+        }
+        create("foss") {
+            dimension = "distribution"
+            buildConfigField("String", "DISTRIBUTION", "\"foss\"")
+            buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
+        }
+        create("izzy") {
+            dimension = "distribution"
+            buildConfigField("String", "DISTRIBUTION", "\"izzy\"")
+            buildConfigField("boolean", "UPDATER_AVAILABLE", "false")
+        }
         create("mobile") {
             dimension = "device"
             buildConfigField("String", "DEVICE", "\"mobile\"")
@@ -188,11 +200,6 @@ android {
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
-    }
 }
 
 kotlin {
@@ -258,6 +265,7 @@ dependencies {
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
     implementation("androidx.media3:media3-ui:${libs.versions.media3.get()}")
+    implementation("androidx.media3:media3-ui-compose:${libs.versions.media3.get()}")
     implementation(libs.squigglyslider)
 
     implementation(libs.room.runtime)
@@ -269,7 +277,9 @@ dependencies {
 
     implementation(libs.hilt)
     implementation(libs.re2j)
+    annotationProcessor(libs.kotlin.metadata.jvm)
     ksp(libs.hilt.compiler)
+    ksp(libs.kotlin.metadata.jvm)
 
     implementation(project(":innertube"))
     implementation(project(":kugou"))
@@ -299,16 +309,13 @@ dependencies {
     implementation(libs.timber)
     testImplementation(libs.junit)
     testImplementation(libs.turbine)
-    // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
-    implementation("com.github.therealbush:translator:1.1.1")
+    implementation(libs.translator)
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
     implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-beta02")
     implementation(libs.accompanist.lyrics.ui)
     implementation(libs.accompanist.lyrics.core)
 
-    if (discordSocialSdkAar.exists()) {
-        implementation(files(discordSocialSdkAar))
-    }
+    implementation("org.json:json:20240303")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
@@ -316,10 +323,8 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
         jvmTarget.set(JvmTarget.JVM_21)
         optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
         optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
-        freeCompilerArgs.add("-Xannotation-default-target=param-property")
         freeCompilerArgs.addAll(
-            "-opt-in=kotlin.RequiresOptIn",
-            "-Xcontext-parameters"
+            "-opt-in=kotlin.RequiresOptIn"
         )
         // Suppress warnings
         suppressWarnings.set(true)
@@ -334,5 +339,6 @@ configurations.configureEach {
         "androidx.compose.ui:ui-util:${libs.versions.compose.get()}",
         "androidx.compose.ui:ui-tooling:${libs.versions.compose.get()}",
         "androidx.compose.animation:animation-graphics:${libs.versions.compose.get()}",
+        "org.jetbrains.kotlin:kotlin-metadata-jvm:${libs.versions.kotlinMetadata.get()}",
     )
 }
