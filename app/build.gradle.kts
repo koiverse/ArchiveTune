@@ -1,5 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 plugins {
     alias(libs.plugins.android.application)
@@ -154,6 +156,11 @@ android {
             applicationIdSuffix = ".debug"
             isDebuggable = true
         }
+        create("nightly") {
+            applicationIdSuffix = ".nightly"
+            isDebuggable = true
+            matchingFallbacks += listOf("debug")
+        }
     }
 
     compileOptions {
@@ -200,6 +207,15 @@ android {
         }
     }
 
+    androidComponents {
+        beforeVariants { variantBuilder ->
+            if (variantBuilder.name.contains("nightly", ignoreCase = true)) {
+                (variantBuilder as com.android.build.api.variant.ApplicationVariantBuilder).versionName.set(
+                    "N${LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)}"
+                )
+            }
+        }
+    }
 }
 
 kotlin {
