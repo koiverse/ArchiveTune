@@ -754,6 +754,11 @@ fun SpotifyPlaylistScreen(
 private fun SpotifyTrack.isResolvedAs(mediaMetadata: MediaMetadata?): Boolean {
     if (mediaMetadata == null) return false
 
+    mediaMetadata.spotifyTrackId?.let { spotifyTrackId ->
+        return id.isNotBlank() && spotifyTrackId == id
+    }
+
+    val titleMatches = name.equals(mediaMetadata.title, ignoreCase = true)
     val durationMatches =
         durationMs <= 0 ||
             mediaMetadata.duration <= 0 ||
@@ -775,7 +780,7 @@ private fun SpotifyTrack.isResolvedAs(mediaMetadata: MediaMetadata?): Boolean {
         thumbnail == mediaMetadata.thumbnailUrl
     } ?: true
 
-    return durationMatches && albumMatches && artistMatches && thumbnailMatches
+    return titleMatches && durationMatches && albumMatches && artistMatches && thumbnailMatches
 }
 
 @Composable
