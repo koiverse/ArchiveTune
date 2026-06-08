@@ -64,6 +64,7 @@ data class YouTubeClient(
 
     companion object {
         const val USER_AGENT_WEB = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+        const val USER_AGENT_WEB_REMIX = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
 
         const val ORIGIN_YOUTUBE_MUSIC = "https://music.youtube.com"
         const val REFERER_YOUTUBE_MUSIC = "$ORIGIN_YOUTUBE_MUSIC/"
@@ -81,9 +82,9 @@ data class YouTubeClient(
 
         val WEB_REMIX = YouTubeClient(
             clientName = "WEB_REMIX",
-            clientVersion = "1.20260114.01.00",
+            clientVersion = "1.20260213.01.00",
             clientId = "67",
-            userAgent = USER_AGENT_WEB,
+            userAgent = USER_AGENT_WEB_REMIX,
             loginSupported = true,
             useSignatureTimestamp = true,
         )
@@ -260,9 +261,9 @@ data class YouTubeClient(
 
         val WEB_MUSIC = YouTubeClient(
             clientName = "WEB_REMIX",
-            clientVersion = "1.20260114.01.00",
+            clientVersion = "1.20260213.01.00",
             clientId = "67",
-            userAgent = USER_AGENT_WEB,
+            userAgent = USER_AGENT_WEB_REMIX,
             friendlyName = "Web Music (YouTube Music)",
             loginSupported = true,
             useSignatureTimestamp = true,

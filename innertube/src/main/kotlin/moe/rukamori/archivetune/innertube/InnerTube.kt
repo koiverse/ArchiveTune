@@ -51,7 +51,11 @@ class InnerTube {
     private var httpClient = createClient()
 
     private companion object {
+        const val HTTP_HEADER_ACCEPT_LANGUAGE = "Accept-Language"
+        const val HTTP_HEADER_CACHE_CONTROL = "Cache-Control"
         const val PLAYBACK_TELEMETRY_VER = "2"
+        const val PLAYBACK_TELEMETRY_ACCEPT_LANGUAGE = "en-US,en;q=0.9"
+        const val PLAYBACK_TELEMETRY_CACHE_CONTROL = "no-cache"
     }
 
     var locale = YouTubeLocale(
@@ -214,7 +218,11 @@ class InnerTube {
         authState: PlaybackAuthState = currentAuthState(),
     ) {
         val requestOrigin = client.requestOrigin()
+        contentType(ContentType.Application.Json)
         headers {
+            append(HttpHeaders.Accept, ContentType.Application.Json.toString())
+            append(HTTP_HEADER_ACCEPT_LANGUAGE, PLAYBACK_TELEMETRY_ACCEPT_LANGUAGE)
+            append(HTTP_HEADER_CACHE_CONTROL, PLAYBACK_TELEMETRY_CACHE_CONTROL)
             append("X-Goog-Api-Format-Version", "1")
             append("X-YouTube-Client-Name", client.clientId)
             append("X-YouTube-Client-Version", client.clientVersion)
@@ -397,9 +405,10 @@ class InnerTube {
     ) = withRetry {
         httpClient.get(url) {
             ytPlaybackTrackingClient(client, authState = authState)
-            parameterIfMissing(url, "ver", "2")
+            parameterIfMissing(url, "ver", PLAYBACK_TELEMETRY_VER)
             parameterIfMissing(url, "c", client.clientName)
             parameterIfMissing(url, "cpn", cpn)
+            parameterIfMissing(url, "prettyPrint", "false")
 
             if (playlistId != null) {
                 parameterIfMissing(url, "list", playlistId)
