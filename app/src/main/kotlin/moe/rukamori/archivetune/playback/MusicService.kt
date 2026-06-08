@@ -107,6 +107,7 @@ import moe.rukamori.archivetune.constants.AutoSkipNextOnErrorKey
 import moe.rukamori.archivetune.constants.AutoStartOnBluetoothKey
 import moe.rukamori.archivetune.constants.InnerTubeCookieKey
 import moe.rukamori.archivetune.constants.DiscordTokenKey
+import moe.rukamori.archivetune.constants.DeviceMutePlaybackRecoveryVolumeKey
 import moe.rukamori.archivetune.constants.EqualizerBandLevelsMbKey
 import moe.rukamori.archivetune.constants.EqualizerBassBoostEnabledKey
 import moe.rukamori.archivetune.constants.EqualizerBassBoostStrengthKey
@@ -246,6 +247,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import kotlin.math.PI
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.roundToLong
@@ -282,8 +284,10 @@ class MusicService :
     private var lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
     private var wasPlayingBeforeAudioFocusLoss = false
     private var pauseOnDeviceMuteEnabled = false
+    private var deviceMutePlaybackRecoveryVolumePercent = 0
     private var wasAutoPausedByDeviceMute = false
     private var muteRecoveryObserver: ContentObserver? = null
+    private var lastDeviceMutePlaybackNoticeAtElapsedMs = 0L
     private var hasAudioFocus = false
     private var autoStartOnBluetoothEnabled = false
     private var bluetoothReceiverRegistered = false
@@ -925,6 +929,13 @@ class MusicService :
                 } else {
                     handleDeviceMuteStateChanged()
                 }
+            }
+
+        dataStore.data
+            .map { (it[DeviceMutePlaybackRecoveryVolumeKey] ?: 0).coerceIn(0, 100) }
+            .distinctUntilChanged()
+            .collectLatest(scope) { percent ->
+                deviceMutePlaybackRecoveryVolumePercent = percent
             }
 
         dataStore.data
@@ -2095,7 +2106,7 @@ class MusicService :
         muteRecoveryObserver = null
     }
 
-    private fun handleDeviceMuteStateChanged() {
+    private fun handleDeviceMuteStateChanged(playbackRequestedWhileMuted: Boolean = false) {
         if (!pauseOnDeviceMuteEnabled || isTogetherGuestSession()) {
             wasAutoPausedByDeviceMute = false
             unregisterMuteRecoveryObserver()
@@ -2103,6 +2114,12 @@ class MusicService :
         }
 
         if (isDeviceMutedNow()) {
+            if (playbackRequestedWhileMuted && restoreDeviceMusicVolumeForPlayback()) {
+                wasAutoPausedByDeviceMute = false
+                unregisterMuteRecoveryObserver()
+                return
+            }
+
             val canPauseNow =
                 player.currentMediaItem != null &&
                     player.playWhenReady &&
@@ -2113,6 +2130,9 @@ class MusicService :
                 player.pause()
                 wasAutoPausedByDeviceMute = true
                 registerMuteRecoveryObserver()
+                if (playbackRequestedWhileMuted) {
+                    showDeviceMutePlaybackNotice()
+                }
             }
             return
         }
@@ -2128,6 +2148,39 @@ class MusicService :
                 player.playbackState != Player.STATE_ENDED
         if (canResumeNow) {
             player.play()
+        }
+    }
+
+    private fun restoreDeviceMusicVolumeForPlayback(): Boolean {
+        val recoveryPercent = deviceMutePlaybackRecoveryVolumePercent.coerceIn(0, 100)
+        if (recoveryPercent <= 0) return false
+
+        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        if (maxVolume <= 0) return false
+
+        val targetVolume = ceil(maxVolume * (recoveryPercent / 100.0))
+            .toInt()
+            .coerceIn(1, maxVolume)
+
+        return runCatching {
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume, 0)
+            audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) > 0
+        }.getOrElse {
+            reportException(it)
+            false
+        }
+    }
+
+    private fun showDeviceMutePlaybackNotice() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastDeviceMutePlaybackNoticeAtElapsedMs < DEVICE_MUTE_PLAYBACK_NOTICE_INTERVAL_MS) return
+        lastDeviceMutePlaybackNoticeAtElapsedMs = now
+        scope.launch(SilentHandler) {
+            Toast.makeText(
+                this@MusicService,
+                R.string.device_volume_zero_playback_paused,
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
@@ -4837,7 +4890,7 @@ private fun onMediaItemTransitionInternal() {
         handleDeviceMuteStateChanged()
     }
     if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
-        handleDeviceMuteStateChanged()
+        handleDeviceMuteStateChanged(playbackRequestedWhileMuted = true)
     }
     if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
         (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
@@ -4845,6 +4898,12 @@ private fun onMediaItemTransitionInternal() {
         wasAutoPausedByDeviceMute = false
         unregisterMuteRecoveryObserver()
         updateAudiblePlaybackRecovery()
+    }
+    if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
+        isDeviceMutedNow() &&
+        this.player.playWhenReady
+    ) {
+        handleDeviceMuteStateChanged(playbackRequestedWhileMuted = true)
     }
     if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
         val newSessionId = this.player.audioSessionId
@@ -6264,6 +6323,7 @@ private fun onMediaItemTransitionInternal() {
         const val AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS = 200L
         const val AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS = 1_500L
         const val AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS = 150L
+        const val DEVICE_MUTE_PLAYBACK_NOTICE_INTERVAL_MS = 1_200L
         const val MIN_AUDIO_FOCUS_VOLUME_FACTOR = 0.2f
         const val MIN_AUDIO_NORMALIZATION_FACTOR = 0.25f
         const val MIN_CROSSFADE_DURATION_MS = 500L

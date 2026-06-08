@@ -1827,7 +1827,9 @@ private fun V7PlayerBackdrop(
                 V7SharpStagePortraitFraction
             }
         val sharpStageHeight = maxHeight * sharpStageFraction
-        val backdropTopOffset = (sharpStageHeight - V7BackdropOverlapDp.dp).coerceAtLeast(0.dp)
+        val sharpStageTopOffset = 0.dp
+        val sharpStageBottomOffset = sharpStageTopOffset + sharpStageHeight
+        val backdropTopOffset = (sharpStageBottomOffset - V7BackdropOverlapDp.dp).coerceAtLeast(0.dp)
         val backdropHeight = maxHeight - backdropTopOffset
 
         Box(
@@ -1861,6 +1863,7 @@ private fun V7PlayerBackdrop(
             label = label,
             modifier = Modifier
                 .align(Alignment.TopCenter)
+                .offset(y = sharpStageTopOffset)
                 .fillMaxWidth()
                 .height(sharpStageHeight)
                 .clipToBounds(),
@@ -1899,6 +1902,7 @@ private fun V7PlayerBackdrop(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
+                .offset(y = sharpStageTopOffset)
                 .fillMaxWidth()
                 .height(sharpStageHeight)
                 .background(sharpStageBottomScrim),
