@@ -635,7 +635,8 @@ private fun StorageLocationPickerSheet(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                options.forEach { option ->
+                for (index in 0 until options.size) {
+                    val option = options[index]
                     StorageLocationOptionRow(
                         option = option,
                         selected = option.id == selectedOptionId,
