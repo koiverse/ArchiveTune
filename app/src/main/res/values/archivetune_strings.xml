@@ -347,6 +347,7 @@
     <string name="storage_location_apply">Use this storage</string>
     <string name="storage_migration_cache_progress">Moving Cache...%1$d%%</string>
     <string name="storage_migration_downloads_progress">Moving Downloads...%1$d%%</string>
+    <string name="storage_migration_warning">Warning: Dont close the app or turn off your device during this process. Doing so may cause data loss.</string>
     <string name="storage_folder_selected_restart">Storage folder saved. App will restart in 3 seconds.</string>
     <string name="storage_folder_invalid">Select a valid folder.</string>
     <string name="storage_folder_unsupported">This folder cannot be used by the file-backed media cache.</string>

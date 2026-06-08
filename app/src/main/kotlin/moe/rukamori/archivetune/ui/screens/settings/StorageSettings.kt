@@ -632,16 +632,20 @@ private fun StorageMigrationProgressDialog(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxWidth(),
             ) {
-                CircularWavyProgressIndicator(
-                    progress = { progress },
+                CircularWavyProgressIndicator(2eeeews
                     modifier = Modifier.size(64.dp),
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     text = progressText,
                     style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.storage_migration_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
         },
