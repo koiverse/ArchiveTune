@@ -216,8 +216,8 @@ constructor(
         options: StorageLocationOptions,
     ): StorageFolderSelection {
         val configuredId = this[StorageFolderIdKey]?.takeIf(String::isNotBlank)
-        val selectedOption = options.firstOrNull { option -> option.isSelected }
-            ?: options.firstOrNull { option -> option.id == configuredId }
+        val selectedOption = options.firstOrNull { option -> option.id == configuredId }
+            ?: options.firstOrNull { option -> option.isSelected }
             ?: options.firstOrNull { option -> option.kind == StorageLocationKind.INTERNAL }
             ?: StorageLocationOption(
                 id = InternalStorageOptionId,
@@ -607,10 +607,10 @@ private fun File.storageVolumeRootPath(): String? {
         .replace('\\', '/')
         .trimEnd('/')
     val segments = path.trim('/').split('/')
-    if (segments.size < 2 || segments[0] != "storage") return null
     return when {
-        segments[1] == "emulated" && segments.size >= 3 -> "/storage/emulated/${segments[2]}"
-        segments[1].isNotBlank() -> "/storage/${segments[1]}"
+        segments.size >= 3 && segments[0] == "mnt" && segments[1] == "media_rw" -> "/storage/${segments[2]}"
+        segments.size >= 3 && segments[0] == "storage" && segments[1] == "emulated" -> "/storage/emulated/${segments[2]}"
+        segments.size >= 2 && segments[0] == "storage" && segments[1].isNotBlank() -> "/storage/${segments[1]}"
         else -> null
     }
 }

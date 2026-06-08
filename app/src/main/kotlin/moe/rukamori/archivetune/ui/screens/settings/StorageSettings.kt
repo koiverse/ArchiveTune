@@ -31,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -619,7 +620,7 @@ private fun StorageMigrationProgressDialog(
     migration: StorageMigrationUiModel,
 ) {
     val progress = migration.percent / 100f
-    val title = when (migration.phase) {
+    val progressText = when (migration.phase) {
         StorageMigrationUiPhase.CACHE -> stringResource(R.string.storage_migration_cache_progress, migration.percent)
         StorageMigrationUiPhase.DOWNLOADS -> stringResource(R.string.storage_migration_downloads_progress, migration.percent)
     }
@@ -627,19 +628,22 @@ private fun StorageMigrationProgressDialog(
     AlertDialog(
         onDismissRequest = {},
         confirmButton = {},
-        title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-            )
-        },
         text = {
-            LinearWavyProgressIndicator(
-                progress = { progress },
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            )
+            ) {
+                CircularWavyProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.size(64.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = progressText,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         },
     )
 }
