@@ -29,7 +29,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -60,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -626,31 +627,42 @@ private fun StorageMigrationProgressDialog(
         StorageMigrationUiPhase.DOWNLOADS -> stringResource(R.string.storage_migration_downloads_progress, migration.percent)
     }
 
-    AlertDialog(
+    BasicAlertDialog(
         onDismissRequest = {},
-        confirmButton = {},
-        text = {
+        modifier = Modifier.padding(24.dp),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+        ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                modifier = Modifier
+                    .size(280.dp)
+                    .padding(24.dp),
             ) {
                 CircularWavyProgressIndicator(
+                    progress = { progress },
                     modifier = Modifier.size(64.dp),
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     text = progressText,
                     style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = stringResource(R.string.storage_migration_warning),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
                 )
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable
