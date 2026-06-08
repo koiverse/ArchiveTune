@@ -21,7 +21,6 @@ import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import moe.rukamori.archivetune.constants.AudioQuality
 import moe.rukamori.archivetune.constants.AudioQualityKey
-import moe.rukamori.archivetune.constants.PlayerStreamClient
 import moe.rukamori.archivetune.db.MusicDatabase
 import moe.rukamori.archivetune.db.entities.FormatEntity
 import moe.rukamori.archivetune.db.entities.SongEntity
@@ -39,7 +38,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,18 +46,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.sync.withPermit
 import okhttp3.ConnectionPool
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -78,18 +70,6 @@ constructor(
     private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val songUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
     private val downloadExecutor = Executors.newFixedThreadPool(DEFAULT_MAX_PARALLEL_DOWNLOADS)
-    private val streamInfoRequestLimiter = Semaphore(MAX_CONCURRENT_STREAM_INFO_REQUESTS)
-    private val streamInfoSpacingMutex = Mutex()
-    private val consecutiveThrottleSignals = AtomicInteger(0)
-
-    @Volatile
-    private var currentMaxParallelDownloads = DEFAULT_MAX_PARALLEL_DOWNLOADS
-
-    @Volatile
-    private var cooldownUntilMs = 0L
-
-    @Volatile
-    private var lastStreamInfoRequestAtMs = 0L
 
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
@@ -154,7 +134,7 @@ constructor(
             }
             val lowDataModeActive = context.isLowDataModeActive()
             val requestedAudioQuality = resolveDownloadAudioQuality(lowDataModeActive)
-            val streamCacheKey = buildSongUrlCacheKey(mediaId, requestedAudioQuality, DOWNLOAD_STREAM_CLIENT)
+            val streamCacheKey = buildSongUrlCacheKey(mediaId, requestedAudioQuality)
             val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
             songUrlCache[streamCacheKey]
                 ?.takeIf {
@@ -166,27 +146,13 @@ constructor(
                 return@Factory dataSpec.withUri(it.url.toUri())
             }
             val playbackData = runBlocking(Dispatchers.IO) {
-                streamInfoRequestLimiter.withPermit {
-                    awaitStreamInfoCooldown()
-                    spaceOutStreamInfoRequests()
-
-                    val result = context.retryWithoutPlaybackLoginContext {
-                        YTPlayerUtils.playerResponseForPlayback(
-                            mediaId,
-                            audioQuality = requestedAudioQuality,
-                            preferredStreamClient = DOWNLOAD_STREAM_CLIENT,
-                            connectivityManager = connectivityManager,
-                            networkMetered = lowDataModeActive,
-                        )
-                    }
-
-                    if (result.isSuccess) {
-                        clearThrottleSignal()
-                    } else {
-                        registerThrottleSignal(result.exceptionOrNull())
-                    }
-
-                    result
+                context.retryWithoutPlaybackLoginContext {
+                    YTPlayerUtils.playerResponseForDownload(
+                        mediaId,
+                        audioQuality = requestedAudioQuality,
+                        connectivityManager = connectivityManager,
+                        networkMetered = lowDataModeActive,
+                    )
                 }
             }.getOrThrow()
             persistPlaybackMetadata(mediaId, playbackData)
@@ -213,7 +179,7 @@ constructor(
             dataSourceFactory,
             downloadExecutor,
         ).apply {
-            maxParallelDownloads = currentMaxParallelDownloads
+            maxParallelDownloads = DEFAULT_MAX_PARALLEL_DOWNLOADS
             addListener(
                 object : DownloadManager.Listener {
                     override fun onDownloadChanged(
@@ -221,12 +187,6 @@ constructor(
                         download: Download,
                         finalException: Exception?,
                     ) {
-                        if (download.state == Download.STATE_FAILED) {
-                            registerThrottleSignal(finalException)
-                        } else if (download.state == Download.STATE_COMPLETED) {
-                            clearThrottleSignal()
-                        }
-
                         downloads.update { map ->
                             map.toMutableMap().apply {
                                 set(download.request.id, download)
@@ -268,8 +228,7 @@ constructor(
     private fun buildSongUrlCacheKey(
         mediaId: String,
         requestedAudioQuality: AudioQuality,
-        streamClient: PlayerStreamClient,
-    ): String = "$mediaId:${requestedAudioQuality.name}:${streamClient.name}"
+    ): String = "$mediaId:${requestedAudioQuality.name}"
 
     private fun persistPlaybackMetadata(
         mediaId: String,
@@ -322,113 +281,10 @@ constructor(
         }
     }
 
-    private suspend fun awaitStreamInfoCooldown() {
-        val remainingMs = cooldownUntilMs - System.currentTimeMillis()
-        if (remainingMs > 0) {
-            delay(remainingMs)
-        }
-    }
-
-    private suspend fun spaceOutStreamInfoRequests() {
-        streamInfoSpacingMutex.withLock {
-            val now = System.currentTimeMillis()
-            val elapsedMs = now - lastStreamInfoRequestAtMs
-            val waitMs = STREAM_INFO_REQUEST_SPACING_MS - elapsedMs
-            if (waitMs > 0) {
-                delay(waitMs)
-            }
-            lastStreamInfoRequestAtMs = System.currentTimeMillis()
-        }
-    }
-
-    private fun registerThrottleSignal(exception: Throwable?) {
-        if (
-            exception is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException &&
-            exception.responseCode in setOf(403, 404, 410, 416)
-        ) {
-            val urlStr = exception.dataSpec.uri.toString()
-            val videoId = urlStr.toHttpUrlOrNull()?.queryParameter("docid") ?: urlStr.toHttpUrlOrNull()?.queryParameter("id")
-            val clientKey = StreamClientUtils.resolveRequestProfile(urlStr).clientKey
-            if (videoId != null && clientKey.isNotEmpty() && !YTPlayerUtils.isExpiredOrNearExpiredStreamUrl(urlStr)) {
-                YTPlayerUtils.markStreamClientFailed(videoId, clientKey, exception.responseCode)
-            }
-        }
-        
-        val nextStrikeCount =
-            if (exception == null || isProbablyThrottleSignal(exception)) {
-                consecutiveThrottleSignals.incrementAndGet()
-            } else {
-                consecutiveThrottleSignals.updateAndGet { strikes -> maxOf(1, strikes) }
-            }
-
-        val reducedParallelDownloads =
-            when {
-                nextStrikeCount >= 4 -> MIN_PARALLEL_DOWNLOADS
-                nextStrikeCount >= 2 -> DEFAULT_MAX_PARALLEL_DOWNLOADS - 1
-                else -> currentMaxParallelDownloads
-            }.coerceIn(MIN_PARALLEL_DOWNLOADS, DEFAULT_MAX_PARALLEL_DOWNLOADS)
-
-        val cooldownMs =
-            when {
-                nextStrikeCount >= 4 -> LONG_COOLDOWN_MS
-                nextStrikeCount >= 2 -> SHORT_COOLDOWN_MS
-                else -> 0L
-            }
-
-        if (reducedParallelDownloads != currentMaxParallelDownloads) {
-            currentMaxParallelDownloads = reducedParallelDownloads
-            downloadManager.maxParallelDownloads = reducedParallelDownloads
-        }
-
-        if (cooldownMs > 0) {
-            cooldownUntilMs = maxOf(cooldownUntilMs, System.currentTimeMillis() + cooldownMs)
-        }
-    }
-
-    private fun clearThrottleSignal() {
-        val remainingStrikes = consecutiveThrottleSignals.updateAndGet { strikes ->
-            if (strikes > 0) strikes - 1 else 0
-        }
-
-        if (remainingStrikes == 0 && currentMaxParallelDownloads != DEFAULT_MAX_PARALLEL_DOWNLOADS) {
-            currentMaxParallelDownloads = DEFAULT_MAX_PARALLEL_DOWNLOADS
-            downloadManager.maxParallelDownloads = DEFAULT_MAX_PARALLEL_DOWNLOADS
-        }
-    }
-
-    private fun isProbablyThrottleSignal(exception: Throwable): Boolean {
-        val message = buildString {
-            append(exception.message.orEmpty())
-            exception.cause?.message?.let {
-                if (isNotBlank()) append(' ')
-                append(it)
-            }
-        }.lowercase()
-
-        return listOf(
-            "429",
-            "403",
-            "quota",
-            "rate",
-            "too many",
-            "temporarily unavailable",
-            "timed out",
-            "timeout",
-            "unavailable",
-            "reset by peer",
-        ).any(message::contains)
-    }
-
     companion object {
         private const val DEFAULT_MAX_PARALLEL_DOWNLOADS = 6
-        private const val MIN_PARALLEL_DOWNLOADS = 2
-        private const val MAX_CONCURRENT_STREAM_INFO_REQUESTS = 4
-        private const val STREAM_INFO_REQUEST_SPACING_MS = 150L
-        private const val SHORT_COOLDOWN_MS = 2_500L
-        private const val LONG_COOLDOWN_MS = 8_000L
         private const val MAX_IDLE_DOWNLOAD_CONNECTIONS = 12
         private const val MAX_DOWNLOAD_HTTP_REQUESTS = 24
         private const val DOWNLOAD_CONNECTION_KEEP_ALIVE_MINUTES = 5L
-        private val DOWNLOAD_STREAM_CLIENT = PlayerStreamClient.WEB_REMIX
     }
 }

@@ -469,6 +469,141 @@ object YTPlayerUtils {
         throw lastError ?: IllegalStateException("Failed to resolve stream")
     }
 
+    suspend fun playerResponseForDownload(
+        videoId: String,
+        playlistId: String? = null,
+        audioQuality: AudioQuality,
+        connectivityManager: ConnectivityManager,
+        networkMetered: Boolean? = null,
+    ): Result<PlaybackData> = runCatching {
+        Timber.tag(logTag).i("Fetching download response for videoId: $videoId, playlistId: $playlistId")
+        val signatureTimestamp = getSignatureTimestampOrNull(videoId)
+        var authState = YouTube.currentPlaybackAuthState()
+        var canUseLoggedInPlayback = authState.hasPlaybackLoginContext
+
+        if (!canUseLoggedInPlayback) {
+            authState = ensureVisitorDataReady(
+                videoId = videoId,
+                authState = authState,
+                reason = "download stream bootstrap",
+            )
+        }
+
+        var playerResult =
+            YouTube.player(
+                videoId = videoId,
+                playlistId = playlistId,
+                client = MAIN_CLIENT,
+                signatureTimestamp = signatureTimestamp,
+                setLogin = canUseLoggedInPlayback,
+                authState = authState,
+            )
+
+        val failure = playerResult.exceptionOrNull()
+        if (failure != null && canUseLoggedInPlayback && failure.isInvalidPlaybackLoginContextFailure()) {
+            Timber.tag(logTag).w(
+                failure,
+                "Logged-in playback context is stale for download %s; retrying with visitor playback",
+                videoId,
+            )
+            authState = ensureVisitorDataReady(
+                videoId = videoId,
+                authState = authState.copy(dataSyncId = null).normalized(),
+                forceRefresh = true,
+                reason = "stale logged-in download context",
+            )
+            canUseLoggedInPlayback = false
+            YouTube.authState = authState
+            clearPlaybackAuthCaches()
+            playerResult =
+                YouTube.player(
+                    videoId = videoId,
+                    playlistId = playlistId,
+                    client = MAIN_CLIENT,
+                    signatureTimestamp = signatureTimestamp,
+                    setLogin = false,
+                    authState = authState,
+                )
+        }
+
+        val playerResponse = playerResult.getPlaybackPlayerResponseOrThrow(videoId, authState)
+        if (playerResponse.playabilityStatus.status != "OK") {
+            val errorReason = playerResponse.playabilityStatus.reason
+            if (isLoginRecoveryError(errorReason.orEmpty())) {
+                throw LoginRequiredForPlaybackException(
+                    videoId = videoId,
+                    targetUrl = "https://music.youtube.com/watch?v=$videoId",
+                    reason = errorReason,
+                )
+            }
+            if (isBotDetectionError(errorReason.orEmpty())) {
+                throw BotDetectionPlaybackException(
+                    videoId = videoId,
+                    clients = setOf(describeClient(MAIN_CLIENT)),
+                )
+            }
+            throw PlaybackException(
+                errorReason,
+                null,
+                PlaybackException.ERROR_CODE_REMOTE_ERROR,
+            )
+        }
+
+        val expectedDurationMs =
+            playerResponse.videoDetails?.lengthSeconds
+                ?.toLongOrNull()
+                ?.takeIf { it > 0 }
+                ?.times(1000L)
+        val isMetered = networkMetered ?: connectivityManager.isActiveNetworkMetered
+        val candidates = selectAudioFormatCandidates(playerResponse, audioQuality, isMetered)
+        var selectedFormat: PlayerResponse.StreamingData.Format? = null
+        var selectedUrl: String? = null
+
+        for (candidate in candidates) {
+            if (canUseLoggedInPlayback && expectedDurationMs != null && isLikelyPreview(candidate, expectedDurationMs)) continue
+            if (shouldSkipCipheredWebCandidate(MAIN_CLIENT, candidate, authState)) continue
+
+            val cacheKey = buildStreamCacheKey(videoId, candidate.itag, MAIN_CLIENT, authState.fingerprint)
+            val cached = streamUrlCache[cacheKey]
+            val candidateUrl =
+                if (cached != null && cached.expiresAtMs > System.currentTimeMillis() + STREAM_URL_EXPIRY_SAFETY_MS) {
+                    cached.url
+                } else {
+                    findUrlOrNull(candidate, videoId, MAIN_CLIENT, authState)
+                } ?: continue
+
+            selectedFormat = candidate
+            selectedUrl = candidateUrl
+            break
+        }
+
+        val format = selectedFormat
+            ?: throw IllegalStateException("Could not find download format for $videoId at $audioQuality")
+        val streamUrl = selectedUrl
+            ?: throw IllegalStateException("Could not resolve download stream URL for $videoId")
+        val streamExpiresInSeconds = resolveExpireSeconds(
+            apiExpire = playerResponse.streamingData?.expiresInSeconds,
+            streamUrl = streamUrl,
+        )
+
+        streamUrlCache[buildStreamCacheKey(videoId, format.itag, MAIN_CLIENT, authState.fingerprint)] =
+            CachedStreamUrl(
+                url = streamUrl,
+                expiresAtMs = System.currentTimeMillis() + (streamExpiresInSeconds * 1000L),
+                authFingerprint = authState.fingerprint,
+            )
+
+        PlaybackData(
+            playerResponse.playerConfig?.audioConfig,
+            playerResponse.videoDetails,
+            playerResponse.playbackTracking,
+            format,
+            streamUrl,
+            streamExpiresInSeconds,
+            authState.fingerprint,
+        )
+    }
+
     private suspend fun refreshIpRotationForBotDetection(
         videoId: String,
         failure: BotDetectionPlaybackException?,
