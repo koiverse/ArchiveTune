@@ -277,8 +277,14 @@
     <string name="enable_dynamic_theme">Enable dynamic theme</string>
     <string name="random_theme_on_startup">Random theme on startup</string>
     <string name="random_theme_on_startup_desc">Apply a random color palette every time the app starts</string>
-    <string name="use_system_font">Use system font</string>
-    <string name="use_system_font_desc">Use the device font instead of the app font</string>
+    <string name="font_preference">Font</string>
+    <string name="font_preference_desc">Choose the app font source</string>
+    <string name="font_preference_default">Default</string>
+    <string name="font_preference_system">System</string>
+    <string name="font_preference_custom">Custom</string>
+    <string name="custom_font">Custom font</string>
+    <string name="custom_font_desc">Pick a .ttf font</string>
+    <string name="custom_font_invalid">Pick a .ttf font file</string>
     <!-- Color Palette -->
     <string name="color_palette">Color Palette</string>
     <string name="customize_theme_colors">Choose your app theme colors</string>

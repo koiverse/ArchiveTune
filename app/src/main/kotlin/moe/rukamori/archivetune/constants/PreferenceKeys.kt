@@ -24,6 +24,9 @@ val PureBlackKey = booleanPreferencesKey("pureBlack")
 val DisableAnimationsKey = booleanPreferencesKey("disableAnimations")
 val EnableHapticFeedbackKey = booleanPreferencesKey("enableHapticFeedback")
 val UseSystemFontKey = booleanPreferencesKey("useSystemFont")
+val FontPreferenceKey = stringPreferencesKey("fontPreference")
+val CustomFontUriKey = stringPreferencesKey("customFontUri")
+val CustomFontNameKey = stringPreferencesKey("customFontName")
 val DefaultOpenTabKey = stringPreferencesKey("defaultOpenTab")
 val GridItemsSizeKey = stringPreferencesKey("gridItemSize")
 val SliderStyleKey = stringPreferencesKey("sliderStyle")
@@ -123,6 +126,12 @@ enum class SliderStyle {
 }
 
 const val SYSTEM_DEFAULT = "SYSTEM_DEFAULT"
+
+enum class AppFontPreference {
+    DEFAULT,
+    SYSTEM,
+    CUSTOM,
+}
 
 enum class PlaylistSuggestionSource {
     PLAYLIST_TITLE,

@@ -22,13 +22,17 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
 import com.materialkolor.PaletteStyle
@@ -40,10 +44,22 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import moe.rukamori.archivetune.constants.AppFontPreference
 import kotlin.math.abs
 import kotlin.math.min
 
 val DefaultThemeColor = Color(0xFFED5564)
+val LocalArchiveTuneFontPreference = staticCompositionLocalOf { AppFontPreference.DEFAULT }
+val LocalArchiveTuneFontFamily = staticCompositionLocalOf { AppFontFamily }
+
+@Composable
+fun rememberArchiveTuneLyricsFontFamily(): FontFamily {
+    val fontPreference = LocalArchiveTuneFontPreference.current
+    val fontFamily = LocalArchiveTuneFontFamily.current
+    return remember(fontPreference, fontFamily) {
+        if (fontPreference == AppFontPreference.DEFAULT) LyricsFontFamily else fontFamily
+    }
+}
 
 data class ThemeSeedPalette(
     val primary: Color,
@@ -60,15 +76,41 @@ fun ArchiveTuneTheme(
     themeColor: Color = DefaultThemeColor,
     seedPalette: ThemeSeedPalette? = null,
     disableAnimations: Boolean = false,
-    useSystemFont: Boolean = false,
+    fontPreference: AppFontPreference = AppFontPreference.DEFAULT,
+    customFontUri: String = "",
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
     val useSystemDynamicColor =
         (seedPalette == null && themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 
-    val typography = remember(useSystemFont) {
-        if (useSystemFont) SystemTypography else AppTypography
+    val customFontFamily = produceState<FontFamily?>(
+        initialValue = null,
+        context,
+        fontPreference,
+        customFontUri,
+    ) {
+        value =
+            if (fontPreference == AppFontPreference.CUSTOM && customFontUri.isNotBlank()) {
+                CustomFontLoader.loadFontFamily(context.applicationContext, customFontUri)
+            } else {
+                null
+            }
+    }.value
+    val resolvedFontFamily =
+        remember(fontPreference, customFontFamily) {
+            when (fontPreference) {
+                AppFontPreference.DEFAULT -> AppFontFamily
+                AppFontPreference.SYSTEM -> FontFamily.Default
+                AppFontPreference.CUSTOM -> customFontFamily ?: AppFontFamily
+            }
+        }
+    val typography = remember(resolvedFontFamily) {
+        when (resolvedFontFamily) {
+            AppFontFamily -> AppTypography
+            FontFamily.Default -> SystemTypography
+            else -> typographyFor(resolvedFontFamily)
+        }
     }
     val expressiveMotionScheme = remember { MotionScheme.expressive() }
     val paletteStyle = remember(themeColor, seedPalette) {
@@ -114,13 +156,18 @@ fun ArchiveTuneTheme(
         )
     }
 
-    MaterialExpressiveTheme(
-        colorScheme = animatedColorScheme,
-        motionScheme = expressiveMotionScheme,
-        typography = typography,
-        shapes = expressiveShapes,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalArchiveTuneFontPreference provides fontPreference,
+        LocalArchiveTuneFontFamily provides resolvedFontFamily,
+    ) {
+        MaterialExpressiveTheme(
+            colorScheme = animatedColorScheme,
+            motionScheme = expressiveMotionScheme,
+            typography = typography,
+            shapes = expressiveShapes,
+            content = content,
+        )
+    }
 }
 
 @Composable

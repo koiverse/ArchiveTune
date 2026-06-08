@@ -47,8 +47,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -65,8 +63,7 @@ import coil3.request.crossfade
 import com.skydoves.cloudy.cloudy
 import com.skydoves.cloudy.liquidGlass
 import moe.rukamori.archivetune.R
-import moe.rukamori.archivetune.constants.UseSystemFontKey
-import moe.rukamori.archivetune.utils.rememberPreference
+import moe.rukamori.archivetune.ui.theme.rememberArchiveTuneLyricsFontFamily
 
 @Composable
 fun rememberAdjustedFontSize(
@@ -153,11 +150,7 @@ fun LyricsImageCard(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val (useSystemFont) = rememberPreference(UseSystemFontKey, defaultValue = false)
-    val lyricsFontFamily =
-        remember(useSystemFont) {
-            if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold))
-        }
+    val lyricsFontFamily = rememberArchiveTuneLyricsFontFamily()
 
     val mainTextColor = textColor ?: glassStyle.textColor
     val secondaryColor = secondaryTextColor ?: glassStyle.secondaryTextColor
