@@ -748,6 +748,25 @@ fun Queue(
                             )
                         }
                     },
+                    onClearQueueClick = {
+                        val windowsToRemove = if (currentWindowIndex in queueWindows.indices) {
+                            queueWindows.filterIndexed { index, _ -> index != currentWindowIndex }
+                        } else {
+                            emptyList()
+                        }
+
+                        if (windowsToRemove.isNotEmpty()) {
+                            onRemoveMultipleWithUndo(windowsToRemove)
+                            selection = false
+                            selectedSongs.clear()
+                            selectedItems.clear()
+                        }
+
+                        if (infiniteQueueEnabled) {
+                            infiniteQueueEnabled = false
+                            playerConnection.service.onInfiniteQueueDisabled()
+                        }
+                    },
                     onRepeatClick = { playerConnection.player.toggleRepeatMode() },
                     onShuffleClick = {
                         coroutineScope.launch(Dispatchers.Main) {

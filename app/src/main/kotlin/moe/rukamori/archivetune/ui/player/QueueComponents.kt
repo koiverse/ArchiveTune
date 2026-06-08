@@ -109,6 +109,7 @@ fun CurrentSongHeader(
     onBackgroundColor: Color,
     onToggleLike: () -> Unit,
     onMenuClick: () -> Unit,
+    onClearQueueClick: () -> Unit,
     onRepeatClick: () -> Unit,
     onShuffleClick: () -> Unit,
     onLockClick: () -> Unit,
@@ -236,6 +237,19 @@ fun CurrentSongHeader(
                     Icon(
                         painter = painterResource(R.drawable.more_vert),
                         contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(
+                    onClick = onClearQueueClick,
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.delete),
+                        contentDescription = stringResource(R.string.clear),
                         modifier = Modifier.size(20.dp)
                     )
                 }
