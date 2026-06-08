@@ -24,6 +24,7 @@ data class MediaMetadata(
     val thumbnailUrl: String? = null,
     val album: Album? = null,
     val setVideoId: String? = null,
+    val spotifyTrackId: String? = null,
     val explicit: Boolean = false,
     val liked: Boolean = false,
     val likedDate: LocalDateTime? = null,
