@@ -196,6 +196,8 @@ import moe.rukamori.archivetune.constants.PauseSearchHistoryKey
 import moe.rukamori.archivetune.constants.PureBlackKey
 import moe.rukamori.archivetune.constants.PlayerBackgroundStyle
 import moe.rukamori.archivetune.constants.PlayerBackgroundStyleKey
+import moe.rukamori.archivetune.constants.PlayerDesignStyle
+import moe.rukamori.archivetune.constants.PlayerDesignStyleKey
 import moe.rukamori.archivetune.constants.RemindAfterKey
 import moe.rukamori.archivetune.constants.SYSTEM_DEFAULT
 import moe.rukamori.archivetune.constants.SearchSource
@@ -861,6 +863,10 @@ class MainActivity : ComponentActivity() {
                         key = PlayerBackgroundStyleKey,
                         defaultValue = PlayerBackgroundStyle.DEFAULT,
                     )
+                    val playerDesignStyle by rememberEnumPreference(
+                        key = PlayerDesignStyleKey,
+                        defaultValue = PlayerDesignStyle.V4,
+                    )
 
                     val aodModeEnabled by remember(playerConnection) {
                         playerConnection?.aodModeEnabled ?: MutableStateFlow(false)
@@ -915,9 +921,14 @@ class MainActivity : ComponentActivity() {
 
                     var yearInMusicSavedPlayerAnchor by rememberSaveable { mutableStateOf(-1) }
 
-                    LaunchedEffect(isYearInMusicScreen) {
+                    val shouldHideStatusBars =
+                        isYearInMusicScreen ||
+                            (playerBottomSheetState.isExpanded && playerDesignStyle == PlayerDesignStyle.V7)
+
+                    LaunchedEffect(shouldHideStatusBars, aodModeEnabled) {
+                        if (aodModeEnabled) return@LaunchedEffect
                         val controller = WindowCompat.getInsetsController(window, window.decorView)
-                        if (isYearInMusicScreen) {
+                        if (shouldHideStatusBars) {
                             controller.systemBarsBehavior =
                                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                             controller.hide(WindowInsetsCompat.Type.statusBars())
