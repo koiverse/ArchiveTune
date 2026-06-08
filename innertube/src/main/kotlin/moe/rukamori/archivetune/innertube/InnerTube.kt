@@ -392,8 +392,6 @@ class InnerTube {
         url: String,
         cpn: String,
         playlistId: String?,
-        elapsedSeconds: Double? = null,
-        state: String? = null,
         client: YouTubeClient = YouTubeClient.WEB_REMIX,
         authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
@@ -402,19 +400,6 @@ class InnerTube {
             parameterIfMissing(url, "ver", "2")
             parameterIfMissing(url, "c", client.clientName)
             parameterIfMissing(url, "cpn", cpn)
-
-            if (elapsedSeconds != null) {
-                val seconds = elapsedSeconds.coerceAtLeast(0.0)
-                val formattedSeconds = seconds.toStatsParameter()
-                parameterIfMissing(url, "st", "0")
-                parameterIfMissing(url, "et", formattedSeconds)
-                parameterIfMissing(url, "rt", formattedSeconds)
-                parameterIfMissing(url, "rti", formattedSeconds)
-            }
-
-            if (!state.isNullOrBlank()) {
-                parameterIfMissing(url, "state", state)
-            }
 
             if (playlistId != null) {
                 parameterIfMissing(url, "list", playlistId)
@@ -428,9 +413,6 @@ class InnerTube {
             parameter(name, value)
         }
     }
-
-    private fun Double.toStatsParameter(): String =
-        String.format(Locale.US, "%.3f", this).trimEnd('0').trimEnd('.').ifBlank { "0" }
 
     private fun String.hasQueryParameter(name: String): Boolean =
         runCatching { toHttpUrl().queryParameter(name) != null }.getOrDefault(false)

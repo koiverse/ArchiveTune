@@ -332,7 +332,7 @@ class MusicService :
         PlayerStreamClient.ANDROID_VR
     )
     private val playbackUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
-    private val remotePlaybackTrackingCache = ConcurrentHashMap<String, RemotePlaybackTracking>()
+    private val remotePlaybackTrackingUrlCache = ConcurrentHashMap<String, String>()
     private val contentLengthCache = ConcurrentHashMap<String, Long>()
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
@@ -458,30 +458,10 @@ class MusicService :
         val remoteRegistered: Boolean,
     )
 
-    private data class RemotePlaybackTracking(
-        val playbackUrl: String,
-        val watchtimeUrl: String?,
-        val atrUrl: String?,
-    )
-
-    private fun PlayerResponse.PlaybackTracking.toRemotePlaybackTracking(): RemotePlaybackTracking? {
-        val playbackUrl = videostatsPlaybackUrl?.baseUrl
+    private fun PlayerResponse.PlaybackTracking.remotePlaybackTrackingUrl(): String? =
+        videostatsPlaybackUrl?.baseUrl
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
-            ?: return null
-        val watchtimeUrl = videostatsWatchtimeUrl?.baseUrl
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-        val atrTrackingUrl = atrUrl?.baseUrl
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-
-        return RemotePlaybackTracking(
-            playbackUrl = playbackUrl,
-            watchtimeUrl = watchtimeUrl,
-            atrUrl = atrTrackingUrl,
-        )
-    }
 
     private fun isAppInForeground(): Boolean {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -4408,7 +4388,7 @@ class MusicService :
                         playTimeMs = playedMs,
                         mediaMetadata = mediaMetadataSnapshot,
                     )
-                val remoteRegistered = remoteRegisteredSnapshot || registerRemotePlaybackHistory(mediaId, playedMs)
+                val remoteRegistered = remoteRegisteredSnapshot || registerRemotePlaybackHistory(mediaId)
                 ImmediateHistoryResult(
                     eventId = resolvedEventId,
                     remoteRegistered = remoteRegistered,
@@ -4467,45 +4447,32 @@ class MusicService :
         }
     }
 
-    private suspend fun registerRemotePlaybackHistory(mediaId: String, playedTimeMs: Long): Boolean {
+    private suspend fun registerRemotePlaybackHistory(mediaId: String): Boolean {
         if (database.song(mediaId).first()?.song?.isLocal == true) {
             return false
         }
 
-        suspend fun registerTracking(tracking: RemotePlaybackTracking): Boolean {
-            return retryWithoutPlaybackLoginContext {
-                YouTube.registerPlayback(
-                    playlistId = null,
-                    playbackTracking = tracking.playbackUrl,
-                    watchtimeTracking = tracking.watchtimeUrl,
-                    atrTracking = tracking.atrUrl,
-                    playedTimeMs = playedTimeMs,
-                )
-            }.onFailure { throwable ->
+        suspend fun registerTracking(playbackTrackingUrl: String): Boolean {
+            return YouTube.registerPlayback(
+                playlistId = null,
+                playbackTracking = playbackTrackingUrl,
+            ).onFailure { throwable ->
                 if (throwable is CancellationException) {
                     throw throwable
                 }
-                when (throwable) {
-                    is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
-                        promptLoginRecovery(mediaId, throwable.targetUrl)
-                    }
-
-                    else -> {
-                        Timber.tag("MusicService").w(
-                            throwable,
-                            "Failed to register remote playback history for %s",
-                            mediaId,
-                        )
-                    }
-                }
+                Timber.tag("MusicService").w(
+                    throwable,
+                    "Failed to register remote playback history for %s",
+                    mediaId,
+                )
             }.isSuccess
         }
 
-        remotePlaybackTrackingCache[mediaId]?.let { cachedTracking ->
-            if (registerTracking(cachedTracking)) {
+        remotePlaybackTrackingUrlCache[mediaId]?.let { cachedPlaybackTrackingUrl ->
+            if (registerTracking(cachedPlaybackTrackingUrl)) {
                 return true
             }
-            remotePlaybackTrackingCache.remove(mediaId, cachedTracking)
+            remotePlaybackTrackingUrlCache.remove(mediaId, cachedPlaybackTrackingUrl)
         }
 
         val remotePlaybackTracking =
@@ -4538,10 +4505,10 @@ class MusicService :
                 }
             }.getOrNull()?.playbackTracking
 
-        val refreshedTracking = remotePlaybackTracking?.toRemotePlaybackTracking()
-        if (refreshedTracking != null) {
-            remotePlaybackTrackingCache[mediaId] = refreshedTracking
-            return registerTracking(refreshedTracking)
+        val refreshedPlaybackTrackingUrl = remotePlaybackTracking?.remotePlaybackTrackingUrl()
+        if (refreshedPlaybackTrackingUrl != null) {
+            remotePlaybackTrackingUrlCache[mediaId] = refreshedPlaybackTrackingUrl
+            return registerTracking(refreshedPlaybackTrackingUrl)
         }
 
         return false
@@ -5529,8 +5496,8 @@ private fun onMediaItemTransitionInternal() {
             getString(R.string.error_unknown)
         }
         nonNullPlayback.playbackTracking
-            ?.toRemotePlaybackTracking()
-            ?.let { remotePlaybackTrackingCache[mediaId] = it }
+            ?.remotePlaybackTrackingUrl()
+            ?.let { remotePlaybackTrackingUrlCache[mediaId] = it }
         val format = nonNullPlayback.format
         val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
         val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
@@ -5901,7 +5868,7 @@ private fun onMediaItemTransitionInternal() {
                 }
 
                 if (pendingResult?.remoteRegistered != true) {
-                    registerRemotePlaybackHistory(mediaId, playbackStats.totalPlayTimeMs)
+                    registerRemotePlaybackHistory(mediaId)
                 }
             }
 
