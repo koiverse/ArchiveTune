@@ -11,8 +11,6 @@ import android.app.Application
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
-import android.widget.Toast
-import android.widget.Toast.LENGTH_SHORT
 import androidx.datastore.preferences.core.edit
 import coil3.ImageLoader
 import coil3.PlatformContext
@@ -29,6 +27,7 @@ import moe.rukamori.archivetune.ui.theme.ThemeSeedPalette
 import moe.rukamori.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.rukamori.archivetune.utils.dataStore
 import moe.rukamori.archivetune.utils.PreferenceStore
+import moe.rukamori.archivetune.utils.ProxyUtils
 import moe.rukamori.archivetune.utils.YTPlayerUtils
 import moe.rukamori.archivetune.utils.get
 import moe.rukamori.archivetune.utils.reportException
@@ -53,8 +52,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import android.content.Intent
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -139,24 +136,15 @@ class App : Application(), SingletonImageLoader.Factory {
                 
                 LastFM.sessionKey = prefs[LastFMSessionKey]
 
-                if (prefs[ProxyEnabledKey] == true) {
-                    try {
-                        val host = prefs[ProxyHostKey] ?: "127.0.0.1"
-                        val port = prefs[ProxyPortKey] ?: 8080
-                        YouTube.proxy = Proxy(
-                            prefs[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP),
-                            java.net.InetSocketAddress.createUnresolved(host, port)
-                        )
-                        YouTube.proxyUsername = prefs[ProxyUsernameKey]
-                        YouTube.proxyPassword = prefs[ProxyPasswordKey]
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(this@App, "Failed to parse proxy settings.", LENGTH_SHORT).show()
-                        }
-                        reportException(e)
-                    }
-                    YouTube.streamBypassProxy = prefs[StreamBypassProxyKey] == true
-                }
+                ProxyUtils.applyYouTubeProxy(
+                    enabled = prefs[ProxyEnabledKey] == true,
+                    type = prefs[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP),
+                    host = prefs[ProxyHostKey],
+                    port = prefs[ProxyPortKey],
+                    username = prefs[ProxyUsernameKey],
+                    password = prefs[ProxyPasswordKey],
+                )
+                YouTube.streamBypassProxy = YouTube.proxy != null && prefs[StreamBypassProxyKey] == true
 
                 if (prefs[IpRotationEnabledKey] == true) {
                     try {

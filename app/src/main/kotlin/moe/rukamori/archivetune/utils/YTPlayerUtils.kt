@@ -38,6 +38,7 @@ import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB_CRE
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import timber.log.Timber
+import java.net.Proxy
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -97,10 +98,10 @@ object YTPlayerUtils {
         val reason: String?,
     )
 
-    @Volatile private var streamClientPair: Pair<java.net.Proxy?, OkHttpClient>? = null
+    @Volatile private var streamClientPair: Pair<Proxy, OkHttpClient>? = null
 
     private fun currentStreamClient(): OkHttpClient {
-        val current = YouTube.streamProxy
+        val current = YouTube.streamOkHttpProxy
         streamClientPair?.let { (proxy, client) ->
             if (proxy == current) return client
         }

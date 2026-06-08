@@ -36,7 +36,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.compose.ContentFrame
 import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.YouTubeClient
+import moe.rukamori.archivetune.utils.StreamClientUtils
 import okhttp3.OkHttpClient
 import java.util.Locale
 
@@ -59,7 +59,7 @@ internal fun CanvasArtworkPlayer(
         remember {
             OkHttpClient
                 .Builder()
-                .proxy(YouTube.proxy)
+                .proxy(YouTube.streamOkHttpProxy)
                 .addInterceptor { chain ->
                     val request = chain.request()
                     val host = request.url.host
@@ -72,33 +72,13 @@ internal fun CanvasArtworkPlayer(
 
                     if (!isYouTubeMediaHost) return@addInterceptor chain.proceed(request)
 
-                    val clientParam = request.url.queryParameter("c")?.trim().orEmpty()
-                    val isWeb =
-                        clientParam.startsWith("WEB", ignoreCase = true) ||
-                            clientParam.startsWith("WEB_REMIX", ignoreCase = true) ||
-                            request.url.toString().contains("c=WEB", ignoreCase = true)
-
-                    val userAgent =
-                        when {
-                            clientParam.startsWith("WEB", ignoreCase = true) ||
-                                clientParam.startsWith("WEB_REMIX", ignoreCase = true) -> YouTubeClient.USER_AGENT_WEB
-
-                            clientParam.startsWith("IOS", ignoreCase = true) -> YouTubeClient.IOS.userAgent
-
-                            clientParam.startsWith("ANDROID_VR", ignoreCase = true) -> YouTubeClient.ANDROID_VR_NO_AUTH.userAgent
-
-                            clientParam.startsWith("ANDROID", ignoreCase = true) -> YouTubeClient.MOBILE.userAgent
-
-                            else -> YouTubeClient.USER_AGENT_WEB
-                        }
-
-                    val builder = request.newBuilder().header("User-Agent", userAgent)
-                    if (isWeb) {
-                        builder.header("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-                        builder.header("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
-                    }
-
-                    chain.proceed(builder.build())
+                    val requestProfile = StreamClientUtils.resolveRequestProfile(request.url)
+                    chain.proceed(
+                        StreamClientUtils.applyRequestProfile(
+                            request.newBuilder(),
+                            requestProfile,
+                        ).build(),
+                    )
                 }
                 .build()
         }

@@ -333,7 +333,7 @@ class MusicService :
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
             .Builder()
-            .proxy(YouTube.streamProxy)
+            .proxy(YouTube.streamOkHttpProxy)
             .followRedirects(true)
             .followSslRedirects(true)
             .addInterceptor { chain ->

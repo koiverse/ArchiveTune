@@ -182,6 +182,8 @@ object YouTube {
     var streamBypassProxy: Boolean = false
     val streamProxy: Proxy?
         get() = if (streamBypassProxy) null else proxy
+    val streamOkHttpProxy: Proxy
+        get() = streamProxy ?: Proxy.NO_PROXY
     var useLoginForBrowse: Boolean
         get() = innerTube.useLoginForBrowse
         set(value) {

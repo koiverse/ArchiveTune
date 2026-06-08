@@ -485,6 +485,7 @@
     <string name="testing_proxy_connection">Testing proxy connection</string>
     <string name="proxy_connection_success">Proxy connection successful!</string>
     <string name="proxy_connection_failed">Proxy connection failed: %s</string>
+    <string name="proxy_connection_invalid_configuration">Invalid proxy host or port</string>
     <string name="ip_rotation">IP Rotation</string>
     <string name="ip_rotation_desc">Rotate the current IP when playback or content issues occur.</string>
     <string name="ip_rotation_active_proxies">%d active proxies</string>
