@@ -633,7 +633,7 @@ private fun StorageMigrationProgressDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                CircularWavyProgressIndicator(2eeeews
+                CircularWavyProgressIndicator(
                     modifier = Modifier.size(64.dp),
                     color = MaterialTheme.colorScheme.primary,
                 )
