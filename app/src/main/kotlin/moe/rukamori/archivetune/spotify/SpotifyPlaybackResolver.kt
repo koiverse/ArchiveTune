@@ -77,6 +77,7 @@ object SpotifyPlaybackResolver {
                 explicit = track.explicit || best.explicit,
                 album = track.album?.let { MediaMetadata.Album(id = it.id, title = it.name) }
                     ?: bestMetadata.album,
+                spotifyTrackId = track.id.takeIf(String::isNotBlank),
             )
 
             mutex.withLock {
