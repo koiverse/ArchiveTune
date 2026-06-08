@@ -9,9 +9,6 @@ package moe.rukamori.archivetune.storage
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Environment
-import android.provider.DocumentsContract
 import androidx.compose.runtime.Immutable
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.Preferences
@@ -29,6 +26,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.rukamori.archivetune.constants.StorageFolderDisplayNameKey
+import moe.rukamori.archivetune.constants.StorageFolderIdKey
 import moe.rukamori.archivetune.constants.StorageFolderPathKey
 import moe.rukamori.archivetune.constants.StorageFolderTreeUriKey
 import moe.rukamori.archivetune.di.DownloadCache
@@ -50,9 +48,41 @@ enum class StorageFolderKind(
 
 @Immutable
 data class StorageFolderSelection(
-    val displayName: String,
-    val isCustom: Boolean,
+    val selectedOption: StorageLocationOption,
+    val options: StorageLocationOptions,
 )
+
+@Immutable
+data class StorageLocationOptions(
+    private val values: List<StorageLocationOption>,
+) {
+    val size: Int get() = values.size
+
+    operator fun get(index: Int): StorageLocationOption = values[index]
+
+    fun firstOrNull(predicate: (StorageLocationOption) -> Boolean): StorageLocationOption? =
+        values.firstOrNull(predicate)
+
+    fun forEach(action: (StorageLocationOption) -> Unit) {
+        values.forEach(action)
+    }
+}
+
+@Immutable
+data class StorageLocationOption(
+    val id: String,
+    val kind: StorageLocationKind,
+    val volumeLabel: String?,
+    val rootPath: String,
+    val availableBytes: Long,
+    val isSelected: Boolean,
+)
+
+enum class StorageLocationKind {
+    APP,
+    INTERNAL,
+    REMOVABLE,
+}
 
 sealed interface StorageFolderUpdateResult {
     data object Success : StorageFolderUpdateResult
@@ -88,17 +118,8 @@ class SetStorageFolderUseCase
 constructor(
     private val repository: StorageLocationRepository,
 ) {
-    suspend operator fun invoke(uri: Uri): StorageFolderUpdateResult =
-        repository.setFolderAndMoveCache(uri)
-}
-
-class ResetStorageFolderUseCase
-@Inject
-constructor(
-    private val repository: StorageLocationRepository,
-) {
-    suspend operator fun invoke(): StorageFolderUpdateResult =
-        repository.resetFolderAndMoveCache()
+    suspend operator fun invoke(optionId: String): StorageFolderUpdateResult =
+        repository.setStorageLocationAndMoveCache(optionId)
 }
 
 class StorageLocationRepository
@@ -110,51 +131,38 @@ constructor(
 ) {
     val selection: Flow<StorageFolderSelection> =
         context.dataStore.data.map { preferences ->
-            preferences.selectionFor(context.defaultStorageRootDirectory())
+            preferences.selectionFor(context.storageLocationOptions(preferences))
         }
 
-    suspend fun setFolderAndMoveCache(uri: Uri): StorageFolderUpdateResult = withContext(Dispatchers.IO) {
-        if (!DocumentsContract.isTreeUri(uri)) return@withContext StorageFolderUpdateResult.InvalidTree
-
-        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-        val permissionPersisted = runCatching {
-            context.contentResolver.takePersistableUriPermission(uri, flags)
-        }.isSuccess
-        if (!permissionPersisted) return@withContext StorageFolderUpdateResult.NotWritable
-
+    suspend fun setStorageLocationAndMoveCache(optionId: String): StorageFolderUpdateResult = withContext(Dispatchers.IO) {
         val preferencesSnapshot = context.dataStore.data.first()
         val previousUri = preferencesSnapshot[StorageFolderTreeUriKey]
-        if (!context.canWriteTree(uri)) {
-            releasePersistedPermission(uri.toString(), replacementUri = previousUri)
-            return@withContext StorageFolderUpdateResult.NotWritable
+        val options = context.storageLocationOptions(preferencesSnapshot)
+        val selectedOption = options.firstOrNull { option -> option.id == optionId }
+            ?: return@withContext StorageFolderUpdateResult.UnsupportedProvider
+        if (selectedOption.kind == StorageLocationKind.APP) {
+            return@withContext resetFolderAndMoveCache()
         }
 
-        val selectedDirectory = resolveTreeDirectory(uri) ?: run {
-            releasePersistedPermission(uri.toString(), replacementUri = previousUri)
-            return@withContext StorageFolderUpdateResult.UnsupportedProvider
-        }
-        val targetRoot = context.resolveFileBackedStorageRoot(selectedDirectory) ?: run {
-            releasePersistedPermission(uri.toString(), replacementUri = previousUri)
-            return@withContext StorageFolderUpdateResult.NotWritable
-        }
-
+        val targetRoot = File(selectedOption.rootPath).canonicalFile
+        if (!targetRoot.ensureStorageRoot()) return@withContext StorageFolderUpdateResult.NotWritable
         val movedCache = moveAllCacheDirectories(preferencesSnapshot) { kind ->
             targetRoot.resolve(kind.defaultDirectoryName)
         }
         if (!movedCache) {
-            releasePersistedPermission(uri.toString(), replacementUri = previousUri)
             return@withContext StorageFolderUpdateResult.NotWritable
         }
         context.dataStore.edit { preferences ->
-            preferences[StorageFolderTreeUriKey] = uri.toString()
+            preferences[StorageFolderIdKey] = selectedOption.id
             preferences[StorageFolderPathKey] = targetRoot.canonicalPath
-            preferences[StorageFolderDisplayNameKey] = targetRoot.displayPath()
+            preferences[StorageFolderDisplayNameKey] = selectedOption.id
+            preferences.remove(StorageFolderTreeUriKey)
         }
         context.storageLocationPreferences()
             .edit()
             .putString(StorageRootPathMirrorKey, targetRoot.canonicalPath)
             .apply()
-        releasePersistedPermission(previousUri, uri.toString())
+        releasePersistedPermission(previousUri, replacementUri = null)
         StorageRestartScheduler.schedule(context)
         StorageFolderUpdateResult.Success
     }
@@ -169,6 +177,7 @@ constructor(
             return@withContext StorageFolderUpdateResult.NotWritable
         }
         context.dataStore.edit { preferences ->
+            preferences.remove(StorageFolderIdKey)
             preferences.remove(StorageFolderTreeUriKey)
             preferences.remove(StorageFolderPathKey)
             preferences.remove(StorageFolderDisplayNameKey)
@@ -183,14 +192,23 @@ constructor(
     }
 
     private fun Preferences.selectionFor(
-        defaultDirectory: File,
+        options: StorageLocationOptions,
     ): StorageFolderSelection {
-        val selectedPath = this[StorageFolderPathKey]?.takeIf(String::isNotBlank)
-        val selectedUri = this[StorageFolderTreeUriKey]?.takeIf(String::isNotBlank)
-        val selectedName = this[StorageFolderDisplayNameKey]?.takeIf(String::isNotBlank)
+        val configuredId = this[StorageFolderIdKey]?.takeIf(String::isNotBlank)
+        val selectedOption = options.firstOrNull { option -> option.isSelected }
+            ?: options.firstOrNull { option -> option.id == configuredId }
+            ?: options.firstOrNull { option -> option.kind == StorageLocationKind.APP }
+            ?: StorageLocationOption(
+                id = AppStorageOptionId,
+                kind = StorageLocationKind.APP,
+                volumeLabel = null,
+                rootPath = context.defaultStorageRootDirectory().absolutePath,
+                availableBytes = context.defaultStorageRootDirectory().usableSpace,
+                isSelected = true,
+            )
         return StorageFolderSelection(
-            displayName = selectedName ?: defaultDirectory.displayPath(),
-            isCustom = selectedPath != null && selectedUri != null,
+            selectedOption = selectedOption,
+            options = options,
         )
     }
 
@@ -277,7 +295,9 @@ constructor(
                 .getString(StorageRootPathMirrorKey, null)
                 ?.takeIf(String::isNotBlank)
                 ?: PreferenceStore.get(StorageFolderPathKey)?.takeIf(String::isNotBlank)
-            val configuredRootDirectory = configuredPath?.let(::File)
+            val configuredRootDirectory = configuredPath?.let { path ->
+                context.allowedConfiguredStorageRoot(path)
+            }
             val configuredDirectory = configuredRootDirectory?.resolve(kind.defaultDirectoryName)
             return configuredDirectory
                 ?.takeIf { it.ensureWritableDirectory() }
@@ -309,67 +329,49 @@ private fun Context.restartApp() {
 private fun Context.storageLocationPreferences() =
     getSharedPreferences(StorageLocationPreferencesName, Context.MODE_PRIVATE)
 
-private fun Context.canWriteTree(uri: Uri): Boolean =
-    runCatching {
-        val treeDocumentId = DocumentsContract.getTreeDocumentId(uri)
-        val treeDocumentUri = DocumentsContract.buildDocumentUriUsingTree(uri, treeDocumentId)
-        val probeDirectory = DocumentsContract.createDocument(
-            contentResolver,
-            treeDocumentUri,
-            DocumentsContract.Document.MIME_TYPE_DIR,
-            StorageProbeDirectoryName,
-        ) ?: return@runCatching false
-        var probeFile: Uri? = null
-        try {
-            probeFile = DocumentsContract.createDocument(
-                contentResolver,
-                probeDirectory,
-                StorageProbeMimeType,
-                StorageProbeFileName,
-            ) ?: return@runCatching false
-            contentResolver.openOutputStream(probeFile, "w")?.use { outputStream ->
-                outputStream.write(StorageProbeBytes)
-                true
-            } ?: false
-        } finally {
-            probeFile?.let { runCatching { DocumentsContract.deleteDocument(contentResolver, it) } }
-            runCatching { DocumentsContract.deleteDocument(contentResolver, probeDirectory) }
-        }
-    }.getOrDefault(false)
-
-private fun Context.resolveFileBackedStorageRoot(selectedDirectory: File): File? {
-    val selectedRoot = selectedDirectory.canonicalFile
-    if (selectedRoot.ensureStorageRoot()) return selectedRoot
-    return externalFilesDirForSameVolume(selectedRoot)
-        ?.resolve(ExternalStorageRootDirectoryName)
-        ?.canonicalFile
-        ?.takeIf { it.ensureStorageRoot() }
-}
-
-private fun Context.externalFilesDirForSameVolume(selectedRoot: File): File? {
-    val selectedVolumeRoot = selectedRoot.storageVolumeRootPath() ?: return null
+private fun Context.allowedConfiguredStorageRoot(path: String): File? {
+    val configuredRoot = runCatching { File(path).canonicalFile }.getOrNull() ?: return null
+    val appRoot = defaultStorageRootDirectory().canonicalFile
+    if (configuredRoot == appRoot) return appRoot
     return getExternalFilesDirs(null)
         .filterNotNull()
-        .firstOrNull { externalDirectory ->
-            externalDirectory.storageVolumeRootPath() == selectedVolumeRoot
+        .map { directory ->
+            directory
+                .resolve(ExternalStorageRootDirectoryName)
+                .canonicalFile
         }
+        .firstOrNull { root -> root == configuredRoot }
 }
 
-private fun resolveTreeDirectory(uri: Uri): File? {
-    val documentId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return null
-    if (documentId.startsWith("raw:", ignoreCase = true)) {
-        return File(documentId.removePrefix("raw:"))
-    }
-
-    val volumeId = documentId.substringBefore(':', missingDelimiterValue = documentId)
-    val relativePath = documentId.substringAfter(':', missingDelimiterValue = "")
-    val root = when {
-        volumeId.equals("primary", ignoreCase = true) -> Environment.getExternalStorageDirectory()
-        volumeId.equals("home", ignoreCase = true) -> Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-        volumeId.isNotBlank() && volumeId.all { it.isLetterOrDigit() || it == '-' } -> File("/storage", volumeId)
-        else -> return null
-    }
-    return if (relativePath.isBlank()) root else File(root, relativePath)
+private fun Context.storageLocationOptions(preferences: Preferences): StorageLocationOptions {
+    val selectedPath = preferences[StorageFolderPathKey]?.takeIf(String::isNotBlank)
+    val appRoot = defaultStorageRootDirectory().canonicalFile
+    val appOption = appRoot.toStorageLocationOption(
+        id = AppStorageOptionId,
+        kind = StorageLocationKind.APP,
+        volumeLabel = null,
+        selectedPath = selectedPath,
+    )
+    val externalOptions = getExternalFilesDirs(null)
+        .filterNotNull()
+        .mapIndexedNotNull { index, directory ->
+            directory
+                .resolve(ExternalStorageRootDirectoryName)
+                .canonicalFile
+                .takeIf { it.ensureWritableDirectory() }
+                ?.toStorageLocationOption(
+                    id = ExternalStorageOptionIdPrefix + directory.storageVolumeRootPath().orEmpty().ifBlank { index.toString() },
+                    kind = if (directory.isPrimaryExternalStorage()) {
+                        StorageLocationKind.INTERNAL
+                    } else {
+                        StorageLocationKind.REMOVABLE
+                    },
+                    volumeLabel = directory.storageVolumeLabel(),
+                    selectedPath = selectedPath,
+                )
+        }
+        .distinctBy { option -> option.rootPath }
+    return StorageLocationOptions(listOf(appOption) + externalOptions)
 }
 
 private fun File.ensureWritableDirectory(): Boolean =
@@ -387,10 +389,30 @@ private fun File.ensureStorageRoot(): Boolean =
             resolve(kind.defaultDirectoryName).ensureWritableDirectory()
         }
 
-private fun File.displayPath(): String =
-    absolutePath
-        .replace('\\', '/')
-        .replace(Regex("/+"), "/")
+private fun File.toStorageLocationOption(
+    id: String,
+    kind: StorageLocationKind,
+    volumeLabel: String?,
+    selectedPath: String?,
+): StorageLocationOption =
+    StorageLocationOption(
+        id = id,
+        kind = kind,
+        volumeLabel = volumeLabel,
+        rootPath = canonicalPath,
+        availableBytes = usableSpace,
+        isSelected = selectedPath?.let { configuredPath ->
+            runCatching { File(configuredPath).canonicalPath == canonicalPath }.getOrDefault(false)
+        } ?: (kind == StorageLocationKind.APP),
+    )
+
+private fun File.isPrimaryExternalStorage(): Boolean =
+    storageVolumeRootPath() == "/storage/emulated/0"
+
+private fun File.storageVolumeLabel(): String? =
+    storageVolumeRootPath()
+        ?.substringAfterLast('/')
+        ?.takeIf { label -> label.isNotBlank() && label != "0" }
 
 private fun File.storageVolumeRootPath(): String? {
     val path = runCatching { canonicalPath }.getOrDefault(absolutePath)
@@ -407,11 +429,9 @@ private fun File.storageVolumeRootPath(): String? {
 
 private const val StorageLocationPreferencesName = "storage_locations"
 private const val StorageRootPathMirrorKey = "storage_root_path"
+private const val AppStorageOptionId = "app"
+private const val ExternalStorageOptionIdPrefix = "external:"
 private const val ExternalStorageRootDirectoryName = "ArchiveTune"
-private const val StorageProbeDirectoryName = ".archivetune-storage-probe"
-private const val StorageProbeFileName = "probe.bin"
-private const val StorageProbeMimeType = "application/octet-stream"
 private const val AppRestartDelayMillis = 3_000L
 private const val CanvasArtworkCacheFileName = "canvas_artwork_cache.json"
 private const val SavedArtworkCacheFileName = "archivetune_saved_artworks.json"
-private val StorageProbeBytes = byteArrayOf(65, 84)

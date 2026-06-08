@@ -339,9 +339,14 @@
     <string name="swipe_sensitivity_desc">Adjust how sensitive swipe gestures are for changing songs</string>
     <string name="storage_folder">Storage folder</string>
     <string name="storage_folder_pick">Choose folder</string>
-    <string name="storage_folder_reset">Use app storage</string>
+    <string name="storage_location_sheet_title">Storage location</string>
+    <string name="storage_location_app">App storage</string>
+    <string name="storage_location_internal">Internal storage</string>
+    <string name="storage_location_removable">SD card</string>
+    <string name="storage_location_removable_named">SD card %s</string>
+    <string name="storage_location_free">%s free</string>
+    <string name="storage_location_apply">Use this storage</string>
     <string name="storage_folder_selected_restart">Storage folder saved. App will restart in 3 seconds.</string>
-    <string name="storage_folder_reset_restart">Cache moved to app storage. App will restart in 3 seconds.</string>
     <string name="storage_folder_invalid">Select a valid folder.</string>
     <string name="storage_folder_unsupported">This folder cannot be used by the file-backed media cache.</string>
     <string name="storage_folder_not_writable">ArchiveTune cannot write cache files in this folder.</string>

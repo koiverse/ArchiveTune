@@ -9,34 +9,42 @@
 
 package moe.rukamori.archivetune.ui.screens.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,6 +78,7 @@ import moe.rukamori.archivetune.constants.SmartTrimmerKey
 import moe.rukamori.archivetune.extensions.directorySizeBytes
 import moe.rukamori.archivetune.extensions.tryOrNull
 import moe.rukamori.archivetune.storage.StorageFolderKind
+import moe.rukamori.archivetune.storage.StorageLocationKind
 import moe.rukamori.archivetune.storage.StorageLocationRepository
 import moe.rukamori.archivetune.ui.component.ActionPromptDialog
 import moe.rukamori.archivetune.ui.component.IconButton
@@ -82,6 +91,8 @@ import moe.rukamori.archivetune.ui.utils.backToMain
 import moe.rukamori.archivetune.ui.utils.formatFileSize
 import moe.rukamori.archivetune.utils.rememberPreference
 import moe.rukamori.archivetune.viewmodels.StorageFolderUiModel
+import moe.rukamori.archivetune.viewmodels.StorageLocationUiModel
+import moe.rukamori.archivetune.viewmodels.StorageLocationUiOptions
 import moe.rukamori.archivetune.viewmodels.StorageSettingsScreenState
 import moe.rukamori.archivetune.viewmodels.StorageSettingsViewModel
 
@@ -98,12 +109,7 @@ fun StorageSettings(
     val downloadCache = LocalPlayerConnection.current?.service?.downloadCache ?: return
     val screenState by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-
-    val folderPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        if (uri != null) viewModel.selectFolder(uri)
-    }
+    val storagePickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(viewModel, context) {
         viewModel.effects.collect { effect ->
@@ -262,8 +268,7 @@ fun StorageSettings(
 
             StorageFolderSection(
                 state = screenState,
-                onSelectFolder = { folderPickerLauncher.launch(null) },
-                onResetFolder = viewModel::resetFolder,
+                onSelectFolder = viewModel::openStorageLocationPicker,
             )
 
             SwitchPreference(
@@ -510,13 +515,24 @@ fun StorageSettings(
                 .padding(16.dp),
         )
     }
+
+    val successState = screenState as? StorageSettingsScreenState.Success
+    if (successState?.model?.picker?.visible == true) {
+        StorageLocationPickerSheet(
+            options = successState.model.storageOptions,
+            selectedOptionId = successState.model.picker.selectedOptionId ?: successState.model.folder.selectedOptionId,
+            sheetState = storagePickerSheetState,
+            onOptionSelected = viewModel::chooseStorageLocation,
+            onDismiss = viewModel::dismissStorageLocationPicker,
+            onConfirm = viewModel::applyStorageLocationSelection,
+        )
+    }
 }
 
 @Composable
 private fun StorageFolderSection(
     state: StorageSettingsScreenState,
     onSelectFolder: () -> Unit,
-    onResetFolder: () -> Unit,
 ) {
     PreferenceGroup(title = stringResource(R.string.storage_folder)) {
         when (state) {
@@ -559,7 +575,6 @@ private fun StorageFolderSection(
                     StorageFolderPreference(
                         folder = state.model.folder,
                         onSelectFolder = onSelectFolder,
-                        onResetFolder = onResetFolder,
                     )
                 }
             }
@@ -571,33 +586,156 @@ private fun StorageFolderSection(
 private fun StorageFolderPreference(
     folder: StorageFolderUiModel,
     onSelectFolder: () -> Unit,
-    onResetFolder: () -> Unit,
 ) {
     PreferenceEntry(
-        title = { Text(stringResource(R.string.storage_folder_pick)) },
-        description = folder.displayName,
+        title = { Text(storageLocationTitle(folder.kind, folder.volumeLabel)) },
+        description = stringResource(R.string.storage_location_free, formatFileSize(folder.availableBytes)),
         icon = {
             Icon(
                 painter = painterResource(R.drawable.snippet_folder),
                 contentDescription = null,
             )
         },
-        trailingContent = if (folder.isCustom) {
-            {
-                FilledTonalButton(
-                    onClick = onResetFolder,
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.storage_folder_reset))
-                }
-            }
-        } else {
-            null
-        },
         onClick = onSelectFolder,
     )
 }
+
+@Composable
+private fun StorageLocationPickerSheet(
+    options: StorageLocationUiOptions,
+    selectedOptionId: String,
+    sheetState: SheetState,
+    onOptionSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val currentOptionId = options.firstOrNull { option -> option.isSelected }?.id
+    val canApplySelection = currentOptionId != selectedOptionId
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.extraLarge,
+        tonalElevation = 2.dp,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 28.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.storage_location_sheet_title),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                options.forEach { option ->
+                    StorageLocationOptionRow(
+                        option = option,
+                        selected = option.id == selectedOptionId,
+                        onClick = { onOptionSelected(option.id) },
+                    )
+                }
+            }
+
+            Button(
+                onClick = onConfirm,
+                enabled = canApplySelection,
+                shapes = ButtonDefaults.shapes(),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+            ) {
+                Text(stringResource(R.string.storage_location_apply))
+            }
+        }
+    }
+}
+
+@Composable
+private fun StorageLocationOptionRow(
+    option: StorageLocationUiModel,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.storage),
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+            )
+            Spacer(Modifier.width(18.dp))
+            Column(
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = storageLocationTitle(option.kind, option.volumeLabel),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.storage_location_free, formatFileSize(option.availableBytes)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+            if (selected) {
+                Spacer(Modifier.width(16.dp))
+                Icon(
+                    painter = painterResource(R.drawable.check),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun storageLocationTitle(
+    kind: StorageLocationKind,
+    volumeLabel: String?,
+): String =
+    when (kind) {
+        StorageLocationKind.APP -> stringResource(R.string.storage_location_app)
+        StorageLocationKind.INTERNAL -> stringResource(R.string.storage_location_internal)
+        StorageLocationKind.REMOVABLE -> volumeLabel
+            ?.let { label -> stringResource(R.string.storage_location_removable_named, label) }
+            ?: stringResource(R.string.storage_location_removable)
+    }
 
 @Composable
 private fun CacheUsagePreference(
