@@ -7,7 +7,7 @@
 
 package moe.rukamori.archivetune.ui.component
 
-import android.annotation.SuppressLint
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,13 +20,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,16 +35,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -60,10 +61,17 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.skydoves.cloudy.cloudy
-import com.skydoves.cloudy.liquidGlass
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.ui.theme.rememberArchiveTuneLyricsFontFamily
+
+@Stable
+private data class LyricsShareColors(
+    val main: Color,
+    val secondary: Color,
+    val panel: Color,
+    val overlay: Color,
+    val fallbackBackground: Color,
+)
 
 @Composable
 fun rememberAdjustedFontSize(
@@ -89,7 +97,7 @@ fun rememberAdjustedFontSize(
         mutableStateOf(initialSize)
     }
 
-    LaunchedEffect(text, maxWidth, maxHeight) {
+    androidx.compose.runtime.LaunchedEffect(text, maxWidth, maxHeight) {
         val targetWidthPx = with(density) { maxWidth.toPx() * 0.92f }
         val targetHeightPx = with(density) { maxHeight.toPx() * 0.92f }
         if (text.isBlank()) {
@@ -136,7 +144,6 @@ fun rememberAdjustedFontSize(
     return calculatedFontSize
 }
 
-@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun LyricsImageCard(
     lyricText: String,
@@ -151,12 +158,21 @@ fun LyricsImageCard(
     val context = LocalContext.current
     val density = LocalDensity.current
     val lyricsFontFamily = rememberArchiveTuneLyricsFontFamily()
-
-    val mainTextColor = textColor ?: glassStyle.textColor
-    val secondaryColor = secondaryTextColor ?: glassStyle.secondaryTextColor
-    val effectiveBlurRadius = shareOptions.previewBlurRadius
-    val dimAlpha = (glassStyle.backgroundDimAlpha * shareOptions.sanitizedDimAmount).coerceIn(0f, 0.95f)
-
+    val colors =
+        remember(glassStyle, textColor, secondaryTextColor) {
+            LyricsShareColors(
+                main = textColor ?: glassStyle.textColor,
+                secondary = secondaryTextColor ?: glassStyle.secondaryTextColor,
+                panel = glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha),
+                overlay = glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha),
+                fallbackBackground = glassStyle.surfaceTint.copy(alpha = (glassStyle.surfaceAlpha + 0.18f).coerceIn(0f, 1f)),
+            )
+        }
+    val dimAlpha = remember(glassStyle.backgroundDimAlpha, shareOptions.sanitizedDimAmount) {
+        (glassStyle.backgroundDimAlpha * shareOptions.sanitizedDimAmount).coerceIn(0f, 0.95f)
+    }
+    val backgroundBlur = rememberNativeBlurEffect(shareOptions.sanitizedBlurRadius)
+    val panelBlur = rememberNativeBlurEffect((shareOptions.sanitizedBlurRadius + 10f).coerceIn(8f, 48f))
     val artworkPainter =
         rememberAsyncImagePainter(
             ImageRequest.Builder(context)
@@ -164,108 +180,91 @@ fun LyricsImageCard(
                 .crossfade(true)
                 .build(),
         )
+    val cardShape = MaterialTheme.shapes.large
+    val panelShape = MaterialTheme.shapes.large
+    val artworkShape = MaterialTheme.shapes.medium
 
-    var glassComponentSize by remember { mutableStateOf(Size.Zero) }
-    val lensCenter = remember(glassComponentSize) { Offset(glassComponentSize.width / 2f, glassComponentSize.height / 2f) }
-    val lensSize = remember(glassComponentSize) { Size(glassComponentSize.width, glassComponentSize.height) }
-
-    Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(24.dp)),
-        contentAlignment = Alignment.Center,
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        shape = cardShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
-        if (coverArtUrl != null) {
-            Image(
-                painter = artworkPainter,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .cloudy(radius = effectiveBlurRadius),
-            )
-        } else {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (coverArtUrl != null) {
+                Image(
+                    painter = artworkPainter,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .nativeBlur(backgroundBlur),
+                )
+            } else {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                )
+            }
+
             Box(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-            )
-        }
-
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors =
-                                listOf(
-                                    Color.Black.copy(alpha = dimAlpha * 0.75f),
-                                    Color.Black.copy(alpha = dimAlpha),
-                                    Color.Black.copy(alpha = (dimAlpha * 1.15f).coerceAtMost(0.98f)),
-                                ),
-                        ),
-                    ),
+                        .background(if (glassStyle.isDark) Color.Black.copy(alpha = dimAlpha) else Color.White.copy(alpha = dimAlpha * 0.42f)),
             )
 
-        val glassShape = RoundedCornerShape(22.dp)
-
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-                    .clip(glassShape)
-                    .onSizeChanged { size ->
-                        glassComponentSize = Size(size.width.toFloat(), size.height.toFloat())
-                    },
-            contentAlignment = Alignment.Center,
-        ) {
             Box(
                 modifier =
                     Modifier
-                        .matchParentSize()
-                        .cloudy(radius = effectiveBlurRadius)
-                        .then(
-                            if (glassComponentSize.width > 0f && glassComponentSize.height > 0f) {
-                                Modifier.liquidGlass(
-                                    lensCenter = lensCenter,
-                                    lensSize = lensSize,
-                                    cornerRadius = glassStyle.glassCornerRadius,
-                                    refraction = glassStyle.refraction,
-                                    curve = glassStyle.curve,
-                                    dispersion = glassStyle.dispersion,
-                                    saturation = glassStyle.glassSaturation,
-                                    contrast = glassStyle.glassContrast,
-                                    tint = glassStyle.glassTint,
-                                    edge = glassStyle.glassEdge,
-                                )
-                            } else {
-                                Modifier
-                            }
-                        )
-                        .drawWithContent {
-                            drawContent()
-                            drawRect(glassStyle.surfaceTint.copy(alpha = glassStyle.surfaceAlpha))
-                            drawRect(glassStyle.overlayColor.copy(alpha = glassStyle.overlayAlpha))
-                        },
-            )
-
-            Column(
-                modifier =
-                    Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 22.dp, vertical = 24.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
+                        .padding(16.dp)
+                        .clip(panelShape),
+                contentAlignment = Alignment.Center,
             ) {
-                Column {
+                if (coverArtUrl != null && panelBlur != null) {
+                    Image(
+                        painter = artworkPainter,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier =
+                            Modifier
+                                .matchParentSize()
+                                .nativeBlur(panelBlur),
+                    )
+                } else {
+                    Box(
+                        modifier =
+                            Modifier
+                                .matchParentSize()
+                                .background(colors.fallbackBackground),
+                    )
+                }
+
+                Box(
+                    modifier =
+                        Modifier
+                            .matchParentSize()
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(colors.panel)
+                                drawRect(colors.overlay)
+                            },
+                )
+
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 22.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
                     if (shareOptions.showArtwork) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Image(
                                 painter = artworkPainter,
@@ -274,19 +273,15 @@ fun LyricsImageCard(
                                 modifier =
                                     Modifier
                                         .size(56.dp)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .border(
-                                            1.dp,
-                                            Color.White.copy(alpha = 0.15f),
-                                            RoundedCornerShape(14.dp),
-                                        ),
+                                        .clip(artworkShape)
+                                        .border(1.dp, colors.secondary.copy(alpha = 0.2f), artworkShape),
                             )
                             Spacer(modifier = Modifier.size(14.dp))
                             SongTextBlock(
                                 songTitle = songTitle,
                                 artistName = artistName,
-                                mainTextColor = mainTextColor,
-                                secondaryColor = secondaryColor,
+                                mainTextColor = colors.main,
+                                secondaryColor = colors.secondary,
                                 centered = false,
                             )
                         }
@@ -294,101 +289,129 @@ fun LyricsImageCard(
                         SongTextBlock(
                             songTitle = songTitle,
                             artistName = artistName,
-                            mainTextColor = mainTextColor,
-                            secondaryColor = secondaryColor,
+                            mainTextColor = colors.main,
+                            secondaryColor = colors.secondary,
                             centered = true,
                         )
                     }
-                }
 
-                BoxWithConstraints(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    val textStyle =
-                        TextStyle(
-                            color = mainTextColor,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center,
-                            letterSpacing = (-0.01).em,
-                            fontFamily = lyricsFontFamily,
-                        )
-                    val textMeasurer = rememberTextMeasurer()
-                    val initialSize =
-                        when {
-                            lyricText.length < 50 -> 24.sp
-                            lyricText.length < 100 -> 20.sp
-                            lyricText.length < 200 -> 17.sp
-                            lyricText.length < 300 -> 15.sp
-                            else -> 13.sp
-                        }
-
-                    val dynamicFontSize =
-                        rememberAdjustedFontSize(
-                            text = lyricText,
-                            maxWidth = maxWidth - 8.dp,
-                            maxHeight = maxHeight - 8.dp,
-                            density = density,
-                            initialFontSize = initialSize,
-                            minFontSize = 11.sp,
-                            style = textStyle,
-                            textMeasurer = textMeasurer,
-                        )
-
-                    Text(
-                        text = lyricText,
-                        style =
-                            textStyle.copy(
-                                fontSize = dynamicFontSize,
-                                lineHeight = dynamicFontSize.value.sp * 1.35f,
-                            ),
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Box(
+                    BoxWithConstraints(
                         modifier =
                             Modifier
-                                .size(22.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(secondaryColor.copy(alpha = 0.9f)),
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.small_icon),
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                            colorFilter =
-                                ColorFilter.tint(
-                                    if (glassStyle.isDark) Color.Black.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.9f),
+                        val textStyle =
+                            remember(colors.main, lyricsFontFamily) {
+                                TextStyle(
+                                    color = colors.main,
+                                    fontWeight = FontWeight.SemiBold,
+                                    textAlign = TextAlign.Center,
+                                    letterSpacing = (-0.01).em,
+                                    fontFamily = lyricsFontFamily,
+                                )
+                            }
+                        val textMeasurer = rememberTextMeasurer()
+                        val initialSize =
+                            remember(lyricText) {
+                                when {
+                                    lyricText.length < 50 -> 24.sp
+                                    lyricText.length < 100 -> 20.sp
+                                    lyricText.length < 200 -> 17.sp
+                                    lyricText.length < 300 -> 15.sp
+                                    else -> 13.sp
+                                }
+                            }
+                        val dynamicFontSize =
+                            rememberAdjustedFontSize(
+                                text = lyricText,
+                                maxWidth = maxWidth - 8.dp,
+                                maxHeight = maxHeight - 8.dp,
+                                density = density,
+                                initialFontSize = initialSize,
+                                minFontSize = 11.sp,
+                                style = textStyle,
+                                textMeasurer = textMeasurer,
+                            )
+
+                        androidx.compose.material3.Text(
+                            text = lyricText,
+                            style =
+                                textStyle.copy(
+                                    fontSize = dynamicFontSize,
+                                    lineHeight = dynamicFontSize.value.sp * 1.35f,
                                 ),
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
 
-                    Spacer(modifier = Modifier.size(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(22.dp)
+                                    .clip(MaterialTheme.shapes.extraLarge)
+                                    .background(colors.secondary.copy(alpha = 0.9f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.small_icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                colorFilter =
+                                    ColorFilter.tint(
+                                        if (glassStyle.isDark) Color.Black.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.9f),
+                                    ),
+                            )
+                        }
 
-                    Text(
-                        text = context.getString(R.string.app_name),
-                        color = secondaryColor,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.02.em,
-                    )
+                        Spacer(modifier = Modifier.size(8.dp))
+
+                        androidx.compose.material3.Text(
+                            text = stringResource(R.string.app_name),
+                            color = colors.secondary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.02.em,
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+@Composable
+private fun rememberNativeBlurEffect(radius: Float): RenderEffect? {
+    val safeRadius = radius.coerceIn(0f, 48f)
+    return remember(safeRadius) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && safeRadius > 0.5f) {
+            BlurEffect(
+                radiusX = safeRadius,
+                radiusY = safeRadius,
+                edgeTreatment = TileMode.Clamp,
+            ).takeIf(RenderEffect::isSupported)
+        } else {
+            null
+        }
+    }
+}
+
+private fun Modifier.nativeBlur(effect: RenderEffect?): Modifier =
+    if (effect == null) {
+        this
+    } else {
+        graphicsLayer {
+            renderEffect = effect
+        }
+    }
 
 @Composable
 private fun SongTextBlock(
@@ -403,7 +426,7 @@ private fun SongTextBlock(
         horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(
+        androidx.compose.material3.Text(
             text = songTitle,
             color = mainTextColor,
             fontSize = 18.sp,
@@ -415,7 +438,7 @@ private fun SongTextBlock(
             style = TextStyle(letterSpacing = (-0.02).em),
         )
         Spacer(modifier = Modifier.height(2.dp))
-        Text(
+        androidx.compose.material3.Text(
             text = artistName,
             color = secondaryColor,
             fontSize = 14.sp,
@@ -423,7 +446,10 @@ private fun SongTextBlock(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = if (centered) TextAlign.Center else TextAlign.Start,
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 18.dp),
         )
     }
 }

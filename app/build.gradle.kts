@@ -293,7 +293,6 @@ dependencies {
     implementation(project(":shazamkit"))
     implementation(project(":spotifycore"))
     implementation("com.materialkolor:material-kolor:5.0.0-alpha07")
-    implementation(libs.compose.cloudy)
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
