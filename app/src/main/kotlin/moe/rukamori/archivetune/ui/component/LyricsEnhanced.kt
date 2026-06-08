@@ -124,6 +124,7 @@ import moe.rukamori.archivetune.constants.UseSystemFontKey
 import moe.rukamori.archivetune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import moe.rukamori.archivetune.lyrics.LyricsEntry
 import moe.rukamori.archivetune.lyrics.LyricsRomanizationPreferences
+import moe.rukamori.archivetune.lyrics.WordTimestamp
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isLineSyncedLrc
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isTtml
 import moe.rukamori.archivetune.lyrics.LyricsUtils.parseLyrics
@@ -154,9 +155,11 @@ private const val LYRIC_FOCUS_TOP_GUARD_RATIO = 0.18f
 private const val LYRIC_FOCUS_BOTTOM_GUARD_RATIO = 0.24f
 private const val LYRIC_FOCUS_MIN_SCROLL_PX = 6
 private const val LYRIC_FOCUS_ANIMATED_DISTANCE = 12
-private const val SMOOTH_PLAYBACK_MAX_DRIFT_MS = 260L
-private const val SMOOTH_PLAYBACK_DRIFT_CORRECTION = 0.14f
+private const val SMOOTH_PLAYBACK_MAX_FORWARD_DRIFT_MS = 80L
+private const val SMOOTH_PLAYBACK_MAX_BACKWARD_DRIFT_MS = 180L
+private const val SMOOTH_PLAYBACK_DRIFT_CORRECTION = 0.55f
 private const val LYRIC_FOCUS_SCROLL_DURATION_MS = 520
+private const val MIN_KARAOKE_SYLLABLE_DURATION_MS = 1
 
 @Composable
 fun LyricsEnhanced(
@@ -353,12 +356,15 @@ fun LyricsEnhanced(
                 val elapsedMs = ((frameNanos - anchorFrameNanos) / 1_000_000f) * latestPlaybackSpeed.value
                 val projectedPosition = anchorPlayerPositionMs + elapsedMs.roundToLong()
                 val driftMs = rawPosition - projectedPosition
-                val nextPosition = if (abs(driftMs) > SMOOTH_PLAYBACK_MAX_DRIFT_MS) {
-                    anchorPlayerPositionMs = rawPosition
-                    anchorFrameNanos = frameNanos
-                    rawPosition
-                } else {
-                    projectedPosition + (driftMs * SMOOTH_PLAYBACK_DRIFT_CORRECTION).roundToLong()
+                val nextPosition = when {
+                    driftMs > SMOOTH_PLAYBACK_MAX_FORWARD_DRIFT_MS ||
+                        driftMs < -SMOOTH_PLAYBACK_MAX_BACKWARD_DRIFT_MS -> {
+                        anchorPlayerPositionMs = rawPosition
+                        anchorFrameNanos = frameNanos
+                        rawPosition
+                    }
+                    driftMs != 0L -> projectedPosition + (driftMs * SMOOTH_PLAYBACK_DRIFT_CORRECTION).roundToLong()
+                    else -> projectedPosition
                 }.coerceAtLeast(0L)
 
                 if (playbackPositionMs.longValue != nextPosition) {
@@ -1127,6 +1133,26 @@ private fun SyncedLyrics.findLastStartedLineIndex(time: Int): Int {
     return result
 }
 
+private fun List<WordTimestamp>.toKaraokeSyllables(phonetics: List<String?>): List<KaraokeSyllable> {
+    return mapIndexed { index, word ->
+        val start = word.startTime.toMilliseconds()
+        val nextStart = getOrNull(index + 1)?.startTime?.toMilliseconds()
+        val rawEnd = word.endTime.toMilliseconds()
+        val end = nextStart
+            ?.let { minOf(rawEnd, it) }
+            ?: rawEnd
+
+        KaraokeSyllable(
+            content = word.text,
+            start = start,
+            end = end.coerceAtLeast(start + MIN_KARAOKE_SYLLABLE_DURATION_MS),
+            phonetic = phonetics.getOrNull(index),
+        )
+    }
+}
+
+private fun Double.toMilliseconds(): Int = (this * 1000.0).roundToInt().coerceAtLeast(0)
+
 private fun buildSyncedLyrics(
     entries: List<LyricsEntry>,
     isTtml: Boolean,
@@ -1150,22 +1176,14 @@ private fun buildSyncedLyrics(
 
             val wordsForMain = if (mainWords.isNotEmpty()) mainWords else entry.words!!
             val wordPhonetics = romanizationMap[index] ?: emptyList()
-            val mainSyllables = wordsForMain.mapIndexed { wordIdx, word ->
-                val start = (word.startTime * 1000).toInt()
-                val end = (word.endTime * 1000).toInt().coerceAtLeast(start + 1)
-                KaraokeSyllable(content = word.text, start = start, end = end, phonetic = wordPhonetics.getOrNull(wordIdx))
-            }
+            val mainSyllables = wordsForMain.toKaraokeSyllables(wordPhonetics)
 
             val lineStart = mainSyllables.first().start
             val lineEnd = mainSyllables.last().end
             if (lineEnd <= lineStart) return@forEachIndexed
 
             val accompanimentLines = if (mainWords.isNotEmpty() && bgWords.isNotEmpty()) {
-                val bgSyllables = bgWords.map { word ->
-                    val start = (word.startTime * 1000).toInt()
-                    val end = (word.endTime * 1000).toInt().coerceAtLeast(start + 1)
-                    KaraokeSyllable(content = word.text, start = start, end = end)
-                }
+                val bgSyllables = bgWords.toKaraokeSyllables(emptyList())
                 val bgStart = bgSyllables.first().start
                 val bgEnd = bgSyllables.last().end
                 if (bgEnd > bgStart) {
