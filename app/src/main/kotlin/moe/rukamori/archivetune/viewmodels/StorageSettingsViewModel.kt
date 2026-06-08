@@ -34,6 +34,8 @@ import moe.rukamori.archivetune.storage.StorageFolderUpdateResult
 import moe.rukamori.archivetune.storage.StorageLocationKind
 import moe.rukamori.archivetune.storage.StorageLocationOption
 import moe.rukamori.archivetune.storage.StorageLocationOptions
+import moe.rukamori.archivetune.storage.StorageMigrationPhase
+import moe.rukamori.archivetune.storage.StorageMigrationProgress
 import javax.inject.Inject
 
 sealed interface StorageSettingsScreenState {
@@ -48,6 +50,7 @@ data class StorageSettingsUiModel(
     val folder: StorageFolderUiModel,
     val storageOptions: StorageLocationUiOptions,
     val picker: StorageLocationPickerUiModel,
+    val migration: StorageMigrationUiModel?,
 )
 
 @Immutable
@@ -90,6 +93,17 @@ data class StorageLocationPickerUiModel(
 )
 
 @Immutable
+data class StorageMigrationUiModel(
+    val phase: StorageMigrationUiPhase,
+    val percent: Int,
+)
+
+enum class StorageMigrationUiPhase {
+    CACHE,
+    DOWNLOADS,
+}
+
+@Immutable
 data class StorageSettingsEffect(
     val messageResId: Int,
     val restartApp: Boolean,
@@ -105,26 +119,33 @@ constructor(
     private val _effects = MutableSharedFlow<StorageSettingsEffect>(extraBufferCapacity = 1)
     val effects = _effects.asSharedFlow()
     private val pickerState = MutableStateFlow(StorageLocationPickerUiModel())
+    private val migrationState = MutableStateFlow<StorageMigrationUiModel?>(null)
 
     val state: StateFlow<StorageSettingsScreenState> =
         combine(
             observeStorageFolders(),
             pickerState,
-        ) { selection, picker ->
+            migrationState,
+        ) { selection, picker, migration ->
             val selectedOptionId = picker.selectedOptionId
                 ?.takeIf { optionId ->
                     selection.options.firstOrNull { option -> option.id == optionId } != null
                 }
                 ?: selection.selectedOption.id
             val normalizedPicker = picker.copy(selectedOptionId = selectedOptionId)
-            selection to normalizedPicker
+            StorageSettingsStatePayload(
+                selection = selection,
+                picker = normalizedPicker,
+                migration = migration,
+            )
         }
-            .map<Pair<StorageFolderSelection, StorageLocationPickerUiModel>, StorageSettingsScreenState> { (selection, picker) ->
+            .map<StorageSettingsStatePayload, StorageSettingsScreenState> { payload ->
                 StorageSettingsScreenState.Success(
                     StorageSettingsUiModel(
-                        folder = selection.toUiModel(),
-                        storageOptions = selection.options.toUiOptions(),
-                        picker = picker,
+                        folder = payload.selection.toUiModel(),
+                        storageOptions = payload.selection.options.toUiOptions(),
+                        picker = payload.picker,
+                        migration = payload.migration,
                     ),
                 )
             }
@@ -173,9 +194,16 @@ constructor(
 
     private fun selectStorageLocation(optionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
+            migrationState.value = StorageMigrationUiModel(
+                phase = StorageMigrationUiPhase.CACHE,
+                percent = 0,
+            )
             val result = withContext(NonCancellable + Dispatchers.IO) {
-                setStorageFolder(optionId)
+                setStorageFolder(optionId) { progress ->
+                    migrationState.value = progress.toUiModel()
+                }
             }
+            migrationState.value = null
             val messageResId = when (result) {
                 StorageFolderUpdateResult.Success -> R.string.storage_folder_selected_restart
                 StorageFolderUpdateResult.InvalidTree -> R.string.storage_folder_invalid
@@ -215,4 +243,19 @@ constructor(
             availableBytes = availableBytes,
             isSelected = isSelected,
         )
+
+    private fun StorageMigrationProgress.toUiModel(): StorageMigrationUiModel =
+        StorageMigrationUiModel(
+            phase = when (phase) {
+                StorageMigrationPhase.CACHE -> StorageMigrationUiPhase.CACHE
+                StorageMigrationPhase.DOWNLOADS -> StorageMigrationUiPhase.DOWNLOADS
+            },
+            percent = percent.coerceIn(0, 100),
+        )
 }
+
+private data class StorageSettingsStatePayload(
+    val selection: StorageFolderSelection,
+    val picker: StorageLocationPickerUiModel,
+    val migration: StorageMigrationUiModel?,
+)

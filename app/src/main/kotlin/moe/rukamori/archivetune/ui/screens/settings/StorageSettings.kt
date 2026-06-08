@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -93,6 +94,8 @@ import moe.rukamori.archivetune.utils.rememberPreference
 import moe.rukamori.archivetune.viewmodels.StorageFolderUiModel
 import moe.rukamori.archivetune.viewmodels.StorageLocationUiModel
 import moe.rukamori.archivetune.viewmodels.StorageLocationUiOptions
+import moe.rukamori.archivetune.viewmodels.StorageMigrationUiModel
+import moe.rukamori.archivetune.viewmodels.StorageMigrationUiPhase
 import moe.rukamori.archivetune.viewmodels.StorageSettingsScreenState
 import moe.rukamori.archivetune.viewmodels.StorageSettingsViewModel
 
@@ -268,15 +271,10 @@ fun StorageSettings(
 
             StorageFolderSection(
                 state = screenState,
+                smartTrimmer = smartTrimmer,
+                isSmartTrimmerAvailable = isSmartTrimmerAvailable,
+                onSmartTrimmerChange = onSmartTrimmerChange,
                 onSelectFolder = viewModel::openStorageLocationPicker,
-            )
-
-            SwitchPreference(
-                title = { Text(stringResource(R.string.smart_trimmer)) },
-                description = stringResource(R.string.smart_trimmer_description),
-                checked = smartTrimmer && isSmartTrimmerAvailable,
-                onCheckedChange = onSmartTrimmerChange,
-                isEnabled = isSmartTrimmerAvailable,
             )
 
             PreferenceGroup(title = stringResource(R.string.downloaded_songs)) {
@@ -527,11 +525,17 @@ fun StorageSettings(
             onConfirm = viewModel::applyStorageLocationSelection,
         )
     }
+    successState?.model?.migration?.let { migration ->
+        StorageMigrationProgressDialog(migration = migration)
+    }
 }
 
 @Composable
 private fun StorageFolderSection(
     state: StorageSettingsScreenState,
+    smartTrimmer: Boolean,
+    isSmartTrimmerAvailable: Boolean,
+    onSmartTrimmerChange: (Boolean) -> Unit,
     onSelectFolder: () -> Unit,
 ) {
     PreferenceGroup(title = stringResource(R.string.storage_folder)) {
@@ -579,6 +583,16 @@ private fun StorageFolderSection(
                 }
             }
         }
+
+        item {
+            SwitchPreference(
+                title = { Text(stringResource(R.string.smart_trimmer)) },
+                description = stringResource(R.string.smart_trimmer_description),
+                checked = smartTrimmer && isSmartTrimmerAvailable,
+                onCheckedChange = onSmartTrimmerChange,
+                isEnabled = isSmartTrimmerAvailable,
+            )
+        }
     }
 }
 
@@ -597,6 +611,36 @@ private fun StorageFolderPreference(
             )
         },
         onClick = onSelectFolder,
+    )
+}
+
+@Composable
+private fun StorageMigrationProgressDialog(
+    migration: StorageMigrationUiModel,
+) {
+    val progress = migration.percent / 100f
+    val title = when (migration.phase) {
+        StorageMigrationUiPhase.CACHE -> stringResource(R.string.storage_migration_cache_progress, migration.percent)
+        StorageMigrationUiPhase.DOWNLOADS -> stringResource(R.string.storage_migration_downloads_progress, migration.percent)
+    }
+
+    AlertDialog(
+        onDismissRequest = {},
+        confirmButton = {},
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+            )
+        },
+        text = {
+            LinearWavyProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+        },
     )
 }
 
@@ -731,7 +775,6 @@ private fun storageLocationTitle(
     volumeLabel: String?,
 ): String =
     when (kind) {
-        StorageLocationKind.APP -> stringResource(R.string.storage_location_app)
         StorageLocationKind.INTERNAL -> stringResource(R.string.storage_location_internal)
         StorageLocationKind.REMOVABLE -> volumeLabel
             ?.let { label -> stringResource(R.string.storage_location_removable_named, label) }
