@@ -17,17 +17,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -260,226 +260,231 @@ fun StorageSettings(
                 ),
             )
 
-        StorageFolderSection(
-            state = screenState,
-            onSelectFolder = { folderPickerLauncher.launch(null) },
-            onResetFolder = viewModel::resetFolder,
-        )
+            StorageFolderSection(
+                state = screenState,
+                onSelectFolder = { folderPickerLauncher.launch(null) },
+                onResetFolder = viewModel::resetFolder,
+            )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.smart_trimmer)) },
-            description = stringResource(R.string.smart_trimmer_description),
-            checked = smartTrimmer && isSmartTrimmerAvailable,
-            onCheckedChange = onSmartTrimmerChange,
-            isEnabled = isSmartTrimmerAvailable,
-        )
+            SwitchPreference(
+                title = { Text(stringResource(R.string.smart_trimmer)) },
+                description = stringResource(R.string.smart_trimmer_description),
+                checked = smartTrimmer && isSmartTrimmerAvailable,
+                onCheckedChange = onSmartTrimmerChange,
+                isEnabled = isSmartTrimmerAvailable,
+            )
 
-        CacheCard(
-            icon = R.drawable.ic_download,
-            title = stringResource(R.string.downloaded_songs),
-            description = stringResource(R.string.size_used, formatFileSize(downloadCacheSize)),
-            progress = null,
-            actions = {
-                PreferenceGroup {
-                    item {
-                        PreferenceEntry(
-                            title = { Text(stringResource(R.string.clear_all_downloads)) },
-                            onClick = { clearDownloads = true },
-                        )
-                    }
+            PreferenceGroup(title = stringResource(R.string.downloaded_songs)) {
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.clear_all_downloads)) },
+                        description = stringResource(R.string.size_used, formatFileSize(downloadCacheSize)),
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_download),
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = { clearDownloads = true },
+                    )
                 }
-            },
-        )
+            }
 
-        if (clearDownloads) {
-            ActionPromptDialog(
-                title = stringResource(R.string.clear_all_downloads),
-                onDismiss = { clearDownloads = false },
-                onConfirm = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        downloadCache.keys.forEach { key ->
-                            downloadCache.removeResource(key)
+            if (clearDownloads) {
+                ActionPromptDialog(
+                    title = stringResource(R.string.clear_all_downloads),
+                    onDismiss = { clearDownloads = false },
+                    onConfirm = {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            downloadCache.keys.forEach { key ->
+                                downloadCache.removeResource(key)
+                            }
                         }
-                    }
-                    clearDownloads = false
-                },
-                onCancel = { clearDownloads = false },
-                content = {
-                    Text(text = stringResource(R.string.clear_downloads_dialog))
-                },
-            )
-        }
-
-        CacheCard(
-            icon = R.drawable.ic_music,
-            title = stringResource(R.string.song_cache),
-            description = if (maxSongCacheSize == -1) {
-                stringResource(R.string.size_used, formatFileSize(playerCacheSize))
-            } else {
-                stringResource(
-                    R.string.storage_size_ratio,
-                    formatFileSize(playerCacheSize),
-                    formatFileSize(maxSongCacheSize * 1024 * 1024L),
+                        clearDownloads = false
+                    },
+                    onCancel = { clearDownloads = false },
+                    content = {
+                        Text(text = stringResource(R.string.clear_downloads_dialog))
+                    },
                 )
-            },
-            progress = if (maxSongCacheSize > 0) playerCacheProgress else null,
-            actions = {
-                PreferenceGroup {
-                    item {
-                        ListPreference(
-                            title = { Text(stringResource(R.string.max_cache_size)) },
-                            selectedValue = maxSongCacheSize,
-                            values = songCacheSizeValues,
-                            valueText = {
-                                when (it) {
-                                    0 -> stringResource(R.string.disable)
-                                    -1 -> stringResource(R.string.unlimited)
-                                    else -> formatFileSize(it * 1024 * 1024L)
-                                }
-                            },
-                            onValueSelected = onMaxSongCacheSizeChange,
-                        )
-                    }
-                    item {
-                        PreferenceEntry(
-                            title = { Text(stringResource(R.string.clear_song_cache)) },
-                            onClick = { clearCacheDialog = true },
-                        )
-                    }
-                }
-            },
-        )
+            }
 
-        if (clearCacheDialog) {
-            ActionPromptDialog(
-                title = stringResource(R.string.clear_song_cache),
-                onDismiss = { clearCacheDialog = false },
-                onConfirm = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        playerCache.keys.forEach { key ->
-                            playerCache.removeResource(key)
+            PreferenceGroup(title = stringResource(R.string.song_cache)) {
+                item {
+                    ListPreference(
+                        title = { Text(stringResource(R.string.max_song_cache_size)) },
+                        description = if (maxSongCacheSize == -1) {
+                            stringResource(R.string.size_used, formatFileSize(playerCacheSize))
+                        } else {
+                            stringResource(
+                                R.string.storage_size_ratio,
+                                formatFileSize(playerCacheSize),
+                                formatFileSize(maxSongCacheSize * 1024 * 1024L),
+                            )
+                        },
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_music),
+                                contentDescription = null,
+                            )
+                        },
+                        selectedValue = maxSongCacheSize,
+                        values = songCacheSizeValues,
+                        valueText = {
+                            when (it) {
+                                0 -> stringResource(R.string.disable)
+                                -1 -> stringResource(R.string.unlimited)
+                                else -> formatFileSize(it * 1024 * 1024L)
+                            }
+                        },
+                        onValueSelected = onMaxSongCacheSizeChange,
+                    )
+                }
+                item(visible = maxSongCacheSize > 0) {
+                    CacheUsagePreference(progress = playerCacheProgress)
+                }
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.clear_song_cache)) },
+                        onClick = { clearCacheDialog = true },
+                    )
+                }
+            }
+
+            if (clearCacheDialog) {
+                ActionPromptDialog(
+                    title = stringResource(R.string.clear_song_cache),
+                    onDismiss = { clearCacheDialog = false },
+                    onConfirm = {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            playerCache.keys.forEach { key ->
+                                playerCache.removeResource(key)
+                            }
                         }
-                    }
-                    clearCacheDialog = false
-                },
-                onCancel = { clearCacheDialog = false },
-                content = {
-                    Text(text = stringResource(R.string.clear_song_cache_dialog))
-                },
-            )
-        }
-
-        CacheCard(
-            icon = R.drawable.image,
-            title = stringResource(R.string.image_cache),
-            description = if (maxImageCacheSize > 0) {
-                stringResource(
-                    R.string.storage_size_ratio,
-                    formatFileSize(imageCacheSize),
-                    formatFileSize(imageDiskCache.maxSize),
+                        clearCacheDialog = false
+                    },
+                    onCancel = { clearCacheDialog = false },
+                    content = {
+                        Text(text = stringResource(R.string.clear_song_cache_dialog))
+                    },
                 )
-            } else {
-                stringResource(R.string.disable)
-            },
-            progress = if (maxImageCacheSize > 0) imageCacheProgress else null,
-            actions = {
-                PreferenceGroup {
-                    item {
-                        ListPreference(
-                            title = { Text(stringResource(R.string.max_cache_size)) },
-                            selectedValue = maxImageCacheSize,
-                            values = cacheSizeValues,
-                            valueText = {
-                                when (it) {
-                                    0 -> stringResource(R.string.disable)
-                                    else -> formatFileSize(it * 1024 * 1024L)
-                                }
-                            },
-                            onValueSelected = onMaxImageCacheSizeChange,
-                        )
-                    }
-                    item {
-                        PreferenceEntry(
-                            title = { Text(stringResource(R.string.clear_image_cache)) },
-                            onClick = { clearImageCacheDialog = true },
-                        )
-                    }
+            }
+
+            PreferenceGroup(title = stringResource(R.string.image_cache)) {
+                item {
+                    ListPreference(
+                        title = { Text(stringResource(R.string.max_image_cache_size)) },
+                        description = if (maxImageCacheSize > 0) {
+                            stringResource(
+                                R.string.storage_size_ratio,
+                                formatFileSize(imageCacheSize),
+                                formatFileSize(imageDiskCache.maxSize),
+                            )
+                        } else {
+                            stringResource(R.string.disable)
+                        },
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.image),
+                                contentDescription = null,
+                            )
+                        },
+                        selectedValue = maxImageCacheSize,
+                        values = cacheSizeValues,
+                        valueText = {
+                            when (it) {
+                                0 -> stringResource(R.string.disable)
+                                else -> formatFileSize(it * 1024 * 1024L)
+                            }
+                        },
+                        onValueSelected = onMaxImageCacheSizeChange,
+                    )
                 }
-            },
-        )
+                item(visible = maxImageCacheSize > 0) {
+                    CacheUsagePreference(progress = imageCacheProgress)
+                }
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.clear_image_cache)) },
+                        onClick = { clearImageCacheDialog = true },
+                    )
+                }
+            }
 
-        if (clearImageCacheDialog) {
-            ActionPromptDialog(
-                title = stringResource(R.string.clear_image_cache),
-                onDismiss = { clearImageCacheDialog = false },
-                onConfirm = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        imageDiskCache.clear()
-                        moe.rukamori.archivetune.utils.ArtworkStorage.clear(context)
-                    }
-                    clearImageCacheDialog = false
-                },
-                onCancel = { clearImageCacheDialog = false },
-                content = {
-                    Text(text = stringResource(R.string.clear_image_cache_dialog))
-                },
-            )
-        }
-
-        CacheCard(
-            icon = R.drawable.motion_photos_on,
-            title = stringResource(R.string.canvas_cache),
-            description = if (maxCanvasCacheSize > 0) {
-                stringResource(
-                    R.string.canvas_cache_usage,
-                    stringResource(R.string.canvas_cache_items, canvasCacheSize),
-                    stringResource(R.string.canvas_cache_items, maxCanvasCacheSize),
+            if (clearImageCacheDialog) {
+                ActionPromptDialog(
+                    title = stringResource(R.string.clear_image_cache),
+                    onDismiss = { clearImageCacheDialog = false },
+                    onConfirm = {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            imageDiskCache.clear()
+                            moe.rukamori.archivetune.utils.ArtworkStorage.clear(context)
+                        }
+                        clearImageCacheDialog = false
+                    },
+                    onCancel = { clearImageCacheDialog = false },
+                    content = {
+                        Text(text = stringResource(R.string.clear_image_cache_dialog))
+                    },
                 )
-            } else {
-                stringResource(R.string.disable)
-            },
-            progress = if (maxCanvasCacheSize > 0) canvasCacheProgress else null,
-            actions = {
-                PreferenceGroup {
-                    item {
-                        ListPreference(
-                            title = { Text(stringResource(R.string.max_cache_size)) },
-                            selectedValue = maxCanvasCacheSize,
-                            values = canvasCacheSizeValues,
-                            valueText = {
-                                when (it) {
-                                    0 -> stringResource(R.string.disable)
-                                    else -> stringResource(R.string.canvas_cache_items, it)
-                                }
-                            },
-                            onValueSelected = onMaxCanvasCacheSizeChange,
-                        )
-                    }
-                    item {
-                        PreferenceEntry(
-                            title = { Text(stringResource(R.string.clear_canvas_cache)) },
-                            onClick = { clearCanvasCacheDialog = true },
-                        )
-                    }
-                }
-            },
-        )
+            }
 
-        if (clearCanvasCacheDialog) {
-            ActionPromptDialog(
-                title = stringResource(R.string.clear_canvas_cache),
-                onDismiss = { clearCanvasCacheDialog = false },
-                onConfirm = {
-                    CanvasArtworkPlaybackCache.clear()
-                    clearCanvasCacheDialog = false
-                },
-                onCancel = { clearCanvasCacheDialog = false },
-                content = {
-                    Text(text = stringResource(R.string.clear_canvas_cache_dialog))
-                },
-            )
+            PreferenceGroup(title = stringResource(R.string.canvas_cache)) {
+                item {
+                    ListPreference(
+                        title = { Text(stringResource(R.string.max_cache_size)) },
+                        description = if (maxCanvasCacheSize > 0) {
+                            stringResource(
+                                R.string.canvas_cache_usage,
+                                stringResource(R.string.canvas_cache_items, canvasCacheSize),
+                                stringResource(R.string.canvas_cache_items, maxCanvasCacheSize),
+                            )
+                        } else {
+                            stringResource(R.string.disable)
+                        },
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.motion_photos_on),
+                                contentDescription = null,
+                            )
+                        },
+                        selectedValue = maxCanvasCacheSize,
+                        values = canvasCacheSizeValues,
+                        valueText = {
+                            when (it) {
+                                0 -> stringResource(R.string.disable)
+                                else -> stringResource(R.string.canvas_cache_items, it)
+                            }
+                        },
+                        onValueSelected = onMaxCanvasCacheSizeChange,
+                    )
+                }
+                item(visible = maxCanvasCacheSize > 0) {
+                    CacheUsagePreference(progress = canvasCacheProgress)
+                }
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.clear_canvas_cache)) },
+                        onClick = { clearCanvasCacheDialog = true },
+                    )
+                }
+            }
+
+            if (clearCanvasCacheDialog) {
+                ActionPromptDialog(
+                    title = stringResource(R.string.clear_canvas_cache),
+                    onDismiss = { clearCanvasCacheDialog = false },
+                    onConfirm = {
+                        CanvasArtworkPlaybackCache.clear()
+                        clearCanvasCacheDialog = false
+                    },
+                    onCancel = { clearCanvasCacheDialog = false },
+                    content = {
+                        Text(text = stringResource(R.string.clear_canvas_cache_dialog))
+                    },
+                )
+            }
         }
-    }
 
         TopAppBar(
             title = { Text(stringResource(R.string.storage)) },
@@ -513,43 +518,51 @@ private fun StorageFolderSection(
     onSelectFolder: () -> Unit,
     onResetFolder: () -> Unit,
 ) {
-    when (state) {
-        StorageSettingsScreenState.Loading -> {
-            PreferenceEntry(
-                title = { Text(stringResource(R.string.storage_folder)) },
-                description = stringResource(R.string.please_wait),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.snippet_folder),
-                        contentDescription = null,
+    PreferenceGroup(title = stringResource(R.string.storage_folder)) {
+        when (state) {
+            StorageSettingsScreenState.Loading -> {
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.storage_folder_pick)) },
+                        description = stringResource(R.string.please_wait),
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.snippet_folder),
+                                contentDescription = null,
+                            )
+                        },
+                        isEnabled = false,
                     )
-                },
-                isEnabled = false,
-            )
-        }
+                }
+            }
 
-        StorageSettingsScreenState.Empty -> Unit
+            StorageSettingsScreenState.Empty -> Unit
 
-        is StorageSettingsScreenState.Error -> {
-            PreferenceEntry(
-                title = { Text(stringResource(R.string.storage_folder)) },
-                description = stringResource(state.messageResId),
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.error),
-                        contentDescription = null,
+            is StorageSettingsScreenState.Error -> {
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.storage_folder_pick)) },
+                        description = stringResource(state.messageResId),
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.error),
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = onSelectFolder,
                     )
-                },
-                onClick = onSelectFolder,
-            )
-        }
+                }
+            }
 
-        is StorageSettingsScreenState.Success -> {
-            StorageFolderPreference(
-                folder = state.model.folder,
-                onSelectFolder = onSelectFolder,
-                onResetFolder = onResetFolder,
-            )
+            is StorageSettingsScreenState.Success -> {
+                item {
+                    StorageFolderPreference(
+                        folder = state.model.folder,
+                        onSelectFolder = onSelectFolder,
+                        onResetFolder = onResetFolder,
+                    )
+                }
+            }
         }
     }
 }
@@ -560,114 +573,53 @@ private fun StorageFolderPreference(
     onSelectFolder: () -> Unit,
     onResetFolder: () -> Unit,
 ) {
-    CacheCard(
-        icon = R.drawable.storage,
-        title = stringResource(R.string.storage_folder),
+    PreferenceEntry(
+        title = { Text(stringResource(R.string.storage_folder_pick)) },
         description = folder.displayName,
-        progress = null,
-        actions = {
-            PreferenceGroup {
-                item {
-                    PreferenceEntry(
-                        title = { Text(stringResource(R.string.storage_folder_pick)) },
-                        description = stringResource(R.string.storage_folder_desc),
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.snippet_folder),
-                                contentDescription = null,
-                            )
-                        },
-                        onClick = onSelectFolder,
-                    )
-                }
-                item {
-                    PreferenceEntry(
-                        title = { Text(stringResource(R.string.storage_folder_reset)) },
-                        description = stringResource(R.string.storage_folder_reset_desc),
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.restore),
-                                contentDescription = null,
-                            )
-                        },
-                        onClick = onResetFolder,
-                        isEnabled = folder.isCustom,
-                    )
+        icon = {
+            Icon(
+                painter = painterResource(R.drawable.snippet_folder),
+                contentDescription = null,
+            )
+        },
+        trailingContent = if (folder.isCustom) {
+            {
+                FilledTonalButton(
+                    onClick = onResetFolder,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(R.string.storage_folder_reset))
                 }
             }
+        } else {
+            null
         },
+        onClick = onSelectFolder,
     )
 }
 
 @Composable
-private fun CacheCard(
-    icon: Int,
-    title: String,
-    description: String,
-    progress: Float?,
-    actions: @Composable () -> Unit,
+private fun CacheUsagePreference(
+    progress: Float,
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        shape = MaterialTheme.shapes.large,
-    ) {
-        Column(Modifier.padding(16.dp)) {
+    val percentage = stringResource(R.string.percentage_format, (progress * 100).toInt())
+    PreferenceEntry(
+        title = {
+            Text(stringResource(R.string.size_used, percentage))
+        },
+        content = {
+            Spacer(Modifier.padding(top = 8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Card(
-                    modifier = Modifier.padding(end = 12.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    ),
-                ) {
-                    Box(
-                        modifier = Modifier.padding(8.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            painter = painterResource(icon),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-                Column {
-                    Text(title, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                LinearWavyProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
             }
-            if (progress != null) {
-                Spacer(Modifier.padding(top = 8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    LinearWavyProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                    Text(
-                        text = stringResource(R.string.percentage_format, (progress * 100).toInt()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Spacer(Modifier.padding(4.dp))
-            actions()
-        }
-    }
+        },
+    )
 }
 
 private const val StorageRefreshIntervalMillis = 500L

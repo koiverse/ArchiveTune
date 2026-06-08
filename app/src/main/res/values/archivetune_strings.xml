@@ -338,10 +338,8 @@
     <string name="swipe_sensitivity">Mini player swipe sensitivity</string>
     <string name="swipe_sensitivity_desc">Adjust how sensitive swipe gestures are for changing songs</string>
     <string name="storage_folder">Storage folder</string>
-    <string name="storage_folder_desc">Use one selected folder for playback cache, downloaded music, image cache, and canvas cache.</string>
     <string name="storage_folder_pick">Choose folder</string>
     <string name="storage_folder_reset">Use app storage</string>
-    <string name="storage_folder_reset_desc">Return cache and downloads to the internal app folder.</string>
     <string name="storage_folder_selected_restart">Storage folder saved. App will restart in 3 seconds.</string>
     <string name="storage_folder_reset_restart">Cache moved to app storage. App will restart in 3 seconds.</string>
     <string name="storage_folder_invalid">Select a valid folder.</string>
