@@ -163,6 +163,8 @@ import moe.rukamori.archivetune.constants.PlayerCustomImageUriKey
 import moe.rukamori.archivetune.constants.PlayerCustomBlurKey
 import moe.rukamori.archivetune.constants.PlayerCustomContrastKey
 import moe.rukamori.archivetune.constants.PlayerCustomBrightnessKey
+import moe.rukamori.archivetune.constants.BackdropBlurAmountKey
+import moe.rukamori.archivetune.constants.BackdropEnabledKey
 import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.BlurRadiusKey
 import moe.rukamori.archivetune.constants.PlayerButtonsStyle
@@ -264,6 +266,8 @@ fun BottomSheetPlayer(
     
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val (blurRadius) = rememberPreference(BlurRadiusKey, 48f)
+    val (backdropEnabled) = rememberPreference(BackdropEnabledKey, defaultValue = true)
+    val (backdropBlurAmount) = rememberPreference(BackdropBlurAmountKey, defaultValue = 60)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(moe.rukamori.archivetune.constants.SeekExtraSeconds, defaultValue = false)
     var keyboardSkipMultiplier by remember { mutableStateOf(1) }
@@ -1095,6 +1099,7 @@ fun BottomSheetPlayer(
                             canvasFallbackUrl = v7CanvasArtwork?.videoUrlVertical,
                             isPlaying = isPlaying,
                             disableBlur = disableBlur,
+                            backdropBlurAmount = backdropBlurAmount,
                             label = "v7BackdropLandscape",
                         )
 
@@ -1142,6 +1147,7 @@ fun BottomSheetPlayer(
                     ) {
                         V8PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            backdropBlurAmount = backdropBlurAmount,
                         )
 
                         enrichedMetadata?.let { metadata ->
@@ -1349,6 +1355,7 @@ fun BottomSheetPlayer(
                             canvasFallbackUrl = v7CanvasArtwork?.videoUrlVertical,
                             isPlaying = isPlaying,
                             disableBlur = disableBlur,
+                            backdropBlurAmount = backdropBlurAmount,
                             label = "v7BackdropPortrait",
                         )
 
@@ -1395,6 +1402,7 @@ fun BottomSheetPlayer(
                     ) {
                         V8PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            backdropBlurAmount = backdropBlurAmount,
                         )
 
                         enrichedMetadata?.let { metadata ->
@@ -1634,11 +1642,13 @@ private fun MikoLyricsTransition(
 @Composable
 private fun V8PlayerBackdrop(
     thumbnailUrl: String?,
+    backdropBlurAmount: Int,
     modifier: Modifier = Modifier,
 ) {
     val backdropModel = remember(thumbnailUrl) {
         thumbnailUrl?.resize(V8BackdropArtworkSizePx, V8BackdropArtworkSizePx)
     }
+    val blurRadiusDp = 44.dp * (backdropBlurAmount.toFloat() / 100f)
 
     Box(
         modifier = modifier
@@ -1652,7 +1662,7 @@ private fun V8PlayerBackdrop(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(44.dp)
+                    .then(if (blurRadiusDp > 0.dp) Modifier.blur(blurRadiusDp) else Modifier)
                     .graphicsLayer {
                         scaleX = 1.16f
                         scaleY = 1.16f
@@ -1677,6 +1687,7 @@ private fun V7PlayerBackdrop(
     canvasFallbackUrl: String?,
     isPlaying: Boolean,
     disableBlur: Boolean,
+    backdropBlurAmount: Int,
     label: String,
     modifier: Modifier = Modifier,
 ) {
@@ -1794,14 +1805,15 @@ private fun V7PlayerBackdrop(
             )
         )
     }
-    val backdropImageModifier = remember(disableBlur) {
+    val backdropBlurRadius = V7BackdropBlurDp.dp * (backdropBlurAmount.toFloat() / 100f)
+    val backdropImageModifier = remember(disableBlur, backdropBlurAmount) {
         Modifier
             .fillMaxSize()
             .let { base ->
-                if (disableBlur) {
+                if (disableBlur || backdropBlurRadius <= 0.dp) {
                     base
                 } else {
-                    base.blur(V7BackdropBlurDp.dp)
+                    base.blur(backdropBlurRadius)
                 }
             }
             .graphicsLayer {

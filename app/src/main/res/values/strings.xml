@@ -421,8 +421,8 @@
     <string name="disable_animations_desc">Disable most app animations. Recommended for low-end devices</string>
     <string name="blur_intensity">Blur intensity</string>
     <string name="blur_intensity_value">%1$d dp</string>
-    <string name="album_backdrop">Album backdrop</string>
-    <string name="album_backdrop_desc">Show album art as blurred backdrop on album pages</string>
+    <string name="album_backdrop">Backdrop blur</string>
+    <string name="album_backdrop_desc">Show artwork as blurred backdrop on album pages, artist pages, and the player</string>
     <string name="backdrop_blur_amount">Backdrop blur amount</string>
     <string name="backdrop_blur_amount_value">%1$d%%</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
