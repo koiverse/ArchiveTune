@@ -113,7 +113,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.rukamori.archivetune.LocalPlayerConnection
-import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.ui.component.IconButton
 import moe.rukamori.archivetune.ui.component.PreferenceGroup
@@ -183,16 +182,14 @@ fun DebugSettings(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             PreferenceGroup(title = stringResource(R.string.experimental_features)) {
-                if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
-                    item {
-                        SwitchPreference(
-                            title = { Text(stringResource(R.string.show_discord_debug_ui)) },
-                            description = stringResource(R.string.enable_discord_debug_lines),
-                            icon = { Icon(painterResource(R.drawable.discord), null) },
-                            checked = showDevDebug,
-                            onCheckedChange = onShowDevDebugChange
-                        )
-                    }
+                item {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.show_discord_debug_ui)) },
+                        description = stringResource(R.string.enable_discord_debug_lines),
+                        icon = { Icon(painterResource(R.drawable.discord), null) },
+                        checked = showDevDebug,
+                        onCheckedChange = onShowDevDebugChange
+                    )
                 }
 
                 item {
@@ -217,7 +214,7 @@ fun DebugSettings(
             }
 
             AnimatedVisibility(
-                visible = BuildConfig.DISCORD_SOCIAL_ENABLED && showDevDebug,
+                visible = showDevDebug,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
@@ -421,7 +418,7 @@ private fun LogViewerPanel() {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
 
-    var filterMode by remember { mutableStateOf(if (BuildConfig.DISCORD_SOCIAL_ENABLED) 0 else 1) }
+    var filterMode by remember { mutableStateOf(0) }
     var selectedLevels by remember {
         mutableStateOf(setOf(Log.INFO, Log.WARN, Log.ERROR))
     }
@@ -448,13 +445,11 @@ private fun LogViewerPanel() {
     val filtered = remember(allEntries, filterMode, selectedLevels) {
         allEntries.filter { entry ->
                 val tagMatch = when (filterMode) {
-                    0 -> if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
+                    0 -> {
                         (entry.tag?.contains("DiscordRPC", true) == true) ||
                             (entry.tag?.contains("DiscordPresenceManager", true) == true) ||
                             entry.message.contains("DiscordPresenceManager") ||
                             entry.message.contains("DiscordRPC")
-                    } else {
-                        true
                     }
                 else -> true
             }
@@ -637,26 +632,24 @@ private fun LogViewerPanel() {
                 }
             }
 
-            if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier.fillMaxWidth()
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                SegmentedButton(
+                    selected = filterMode == 0,
+                    onClick = { filterMode = 0 },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    icon = { }
                 ) {
-                    SegmentedButton(
-                        selected = filterMode == 0,
-                        onClick = { filterMode = 0 },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        icon = { }
-                    ) {
-                        Text(stringResource(R.string.filter_discord_only))
-                    }
-                    SegmentedButton(
-                        selected = filterMode == 1,
-                        onClick = { filterMode = 1 },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                        icon = { }
-                    ) {
-                        Text(stringResource(R.string.filter_all_logs))
-                    }
+                    Text(stringResource(R.string.filter_discord_only))
+                }
+                SegmentedButton(
+                    selected = filterMode == 1,
+                    onClick = { filterMode = 1 },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    icon = { }
+                ) {
+                    Text(stringResource(R.string.filter_all_logs))
                 }
             }
 

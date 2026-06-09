@@ -642,9 +642,8 @@
     <string name="restore_success">Backup restored successfully</string>
     <string name="restore_failed">Failed to restore backup</string>
     <string name="discord_integration">Discord Integration</string>
-    <string name="account_integrations_summary_gms">Discord, Last.fm, ListenBrainz</string>
-    <string name="account_integrations_summary_foss">Last.fm, ListenBrainz</string>
-    <string name="discord_login_description">Connect your Discord account with OAuth so ArchiveTune can publish Rich Presence through Discord\'s official Social SDK.</string>
+    <string name="account_integrations_summary">Discord, Last.fm, ListenBrainz</string>
+    <string name="discord_login_description">Connect your Discord account with OAuth so ArchiveTune can publish Rich Presence.</string>
     <string name="discord_open_authorization">Open Discord authorization</string>
     <string name="discord_waiting_for_authorization">Waiting for Discord authorization...</string>
     <string name="discord_authorization_success">Discord account connected</string>
