@@ -126,7 +126,6 @@ import moe.rukamori.archivetune.LocalDatabase
 import moe.rukamori.archivetune.LocalDownloadUtil
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.LocalPlayerConnection
-import moe.rukamori.archivetune.LocalSyncUtils
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.AppBarHeight
 import moe.rukamori.archivetune.constants.DisableBlurKey
@@ -200,7 +199,6 @@ fun LocalPlaylistScreen(
     val database = LocalDatabase.current
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val syncUtils = LocalSyncUtils.current
     val isPlaying by playerConnection.isPlaying.collectAsStateWithLifecycle()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
 
@@ -474,22 +472,31 @@ fun LocalPlaylistScreen(
     LaunchedEffect(reorderableState.isAnyItemDragging) {
         if (!reorderableState.isAnyItemDragging) {
             dragInfo?.let { (from, to) ->
-                database.transaction {
-                    move(viewModel.playlistId, from, to)
-                }
+                val orderedBeforeMove = songs
+                val browseId = viewModel.playlist.value?.playlist?.browseId
+                val movedSetVideoId = orderedBeforeMove.getOrNull(from)?.map?.setVideoId
+                val successorIndex = if (from > to) to else to + 1
+                val successorSetVideoId = orderedBeforeMove.getOrNull(successorIndex)?.map?.setVideoId
 
-                if (viewModel.playlist.value?.playlist?.browseId != null) {
-                    viewModel.viewModelScope.launch(Dispatchers.IO) {
-                        val playlistSongMap = database.playlistSongMaps(viewModel.playlistId, 0)
-                        val successorIndex = if (from > to) to else to + 1
-                        val successorSetVideoId = playlistSongMap.getOrNull(successorIndex)?.setVideoId
+                coroutineScope.launch(Dispatchers.IO) {
+                    database.withTransaction {
+                        move(viewModel.playlistId, from, to)
+                    }
 
-                        playlistSongMap.getOrNull(from)?.setVideoId?.let { setVideoId ->
+                    if (browseId != null && movedSetVideoId != null) {
+                        runCatching {
                             YouTube.moveSongPlaylist(
-                                viewModel.playlist.value?.playlist?.browseId!!,
-                                setVideoId,
-                                successorSetVideoId
-                            )
+                                browseId,
+                                movedSetVideoId,
+                                successorSetVideoId,
+                            ).getOrThrow()
+                        }.onFailure {
+                            withContext(Dispatchers.Main) {
+                                snackbarHostState.showSnackbar(
+                                    message = context.getString(R.string.error_unknown),
+                                    withDismissAction = true,
+                                )
+                            }
                         }
                     }
                 }
@@ -1179,9 +1186,6 @@ fun LocalPlaylistScreen(
                                 database.withTransaction {
                                     move(map.playlistId, map.position, Int.MAX_VALUE)
                                     delete(map.copy(position = Int.MAX_VALUE))
-                                }
-                                if (browseId != null) {
-                                    syncUtils.syncPlaylistNow(browseId, map.playlistId)
                                 }
                             }
                         }

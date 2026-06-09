@@ -28,11 +28,11 @@ jobs:
             const nightlyLinks = [
               {
                 label: "GMS",
-                url: "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-mobile-universal-release"
+                url: "https://nightly.link/ArchiveTuneApp/ArchiveTune/workflows/build/dev/app-mobile-universal-release"
               },
               {
                 label: "FOSS",
-                url: "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-foss-mobile-universal-release"
+                url: "https://nightly.link/ArchiveTuneApp/ArchiveTune/workflows/build/dev/app-foss-mobile-universal-release"
               }
             ];
             const nightlyUrls = nightlyLinks.map((link) => link.url);
@@ -41,6 +41,7 @@ jobs:
             const labelDescription = process.env.ISSUE_LABEL_DESCRIPTION;
             const commentMarker = "<!-- archivetune-notify-user:nightly-reference -->";
             const referencedIssuePattern = /#([1-9]\d*)\b/g;
+            const issueClosedReason = "completed";
             const commits = Array.isArray(context.payload.commits)
               ? context.payload.commits
               : [];
@@ -108,6 +109,11 @@ jobs:
                   issue_number: issueNumber
                 });
 
+                if (issue.data.pull_request) {
+                  core.info(`Skipped notifying #${issueNumber} because it is a pull request.`);
+                  continue;
+                }
+
                 if (canApplyLabel) {
                   try {
                     await github.rest.issues.addLabels({
@@ -140,6 +146,16 @@ jobs:
 
                 if (hasExistingNotification) {
                   core.info(`Issue #${issueNumber} already has a nightly reference notification comment.`);
+                  if (!issue.data.pull_request && issue.data.state !== "closed") {
+                    await github.rest.issues.update({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issueNumber,
+                      state: "closed",
+                      state_reason: issueClosedReason
+                    });
+                    core.info(`Closed issue #${issueNumber} after existing notification comment.`);
+                  }
                   continue;
                 }
 
@@ -154,7 +170,7 @@ jobs:
                   "",
                   ...nightlyLinks.map((link) => `${link.label}: ${link.url}`),
                   "",
-                  "If this issue is resolved in the nightly build, please close this issue quickly."
+                  "This issue is being closed automatically after the referenced fix commit."
                 ].join("\n");
 
                 await github.rest.issues.createComment({
@@ -163,6 +179,17 @@ jobs:
                   issue_number: issueNumber,
                   body
                 });
+
+                if (!issue.data.pull_request && issue.data.state !== "closed") {
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    state: "closed",
+                    state_reason: issueClosedReason
+                  });
+                  core.info(`Closed issue #${issueNumber} after notification comment.`);
+                }
               } catch (error) {
                 failures.push(`#${issueNumber}: ${error.message}`);
                 core.warning(`Failed to notify issue #${issueNumber}: ${error.message}`);

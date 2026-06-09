@@ -556,12 +556,6 @@ fun SelectionSongMenu(
                                     }
                                 }
 
-                                for ((playlistId, browseId) in browseIdByPlaylistId) {
-                                    if (browseId == null) continue
-                                    if (succeeded.none { it.playlistId == playlistId }) continue
-                                    syncUtils.syncPlaylistNow(browseId, playlistId)
-                                }
-
                                 withContext(Dispatchers.Main) {
                                     onDismiss()
                                     clearAction()

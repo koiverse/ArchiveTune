@@ -698,9 +698,6 @@ fun SongMenu(
                                             }
                                             delete(map)
                                         }
-                                        if (browseId != null) {
-                                            syncUtils.syncPlaylistNow(browseId, map.playlistId)
-                                        }
                                         withContext(Dispatchers.Main) {
                                             onDismiss()
                                         }

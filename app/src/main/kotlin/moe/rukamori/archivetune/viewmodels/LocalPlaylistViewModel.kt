@@ -159,10 +159,13 @@ constructor(
     val isRefreshing = _isRefreshing.asStateFlow()
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val sortedSongs =
-                playlistSongs.first().sortedWith(compareBy({ it.map.position }, { it.map.id }))
-            database.transaction {
+                database
+                    .playlistSongs(playlistId)
+                    .first()
+                    .sortedWith(compareBy({ it.map.position }, { it.map.id }))
+            database.withTransaction {
                 sortedSongs.forEachIndexed { index, playlistSong ->
                     if (playlistSong.map.position != index) {
                         update(playlistSong.map.copy(position = index))
