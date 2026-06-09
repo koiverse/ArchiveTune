@@ -292,7 +292,7 @@ fun AboutScreen(
             runCatching {
                 fetchRepoContributorsNetwork(
                     client = httpClient,
-                    owner = "koiverse",
+                    owner = "ArchiveTuneApp",
                     repo = "ArchiveTune",
                     cachedEtag = cachedEtag,
                 )
@@ -335,8 +335,8 @@ fun AboutScreen(
         avatarUrl = "https://avatars.githubusercontent.com/u/107134739?v=4",
         name = "rukamori「るかもり」",
         position = "Eh?",
-        profileUrl = "https://github.com/koiverse",
-        github = "https://github.com/koiverse",
+        profileUrl = "https://github.com/rukamori",
+        github = "https://github.com/rukamori",
         website = "https://koiiverse.cloud",
         discord = "https://discord.com/users/886971572668219392"
     )
@@ -453,19 +453,11 @@ fun AboutScreen(
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
-
-            Text(
-                text = "Koiverse",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.secondary,
-            )
-
             Spacer(Modifier.height(8.dp))
 
             Row {
                 IconButton(
-                    onClick = { uriHandler.openUri("https://github.com/koiverse/archivetune") },
+                    onClick = { uriHandler.openUri("https://github.com/rukamori/archivetune") },
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.github),
