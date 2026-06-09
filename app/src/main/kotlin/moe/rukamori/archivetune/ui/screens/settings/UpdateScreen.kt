@@ -21,6 +21,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -35,8 +37,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +72,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -89,7 +96,10 @@ import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.EnableUpdateNotificationKey
 import moe.rukamori.archivetune.constants.UpdateChannel
 import moe.rukamori.archivetune.constants.UpdateChannelKey
+import moe.rukamori.archivetune.ui.component.BottomSheetPage
+import moe.rukamori.archivetune.ui.component.BottomSheetPageState
 import moe.rukamori.archivetune.ui.component.IconButton
+import moe.rukamori.archivetune.ui.component.MarkdownText
 import moe.rukamori.archivetune.ui.component.PreferenceGroupTitle
 import moe.rukamori.archivetune.ui.utils.backToMain
 import moe.rukamori.archivetune.utils.GitCommit
@@ -109,6 +119,7 @@ fun UpdateScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val coroutineScope = rememberCoroutineScope()
     val nightlyInstallUrl = remember { Updater.getLatestNightlyDownloadUrl() }
 
     val (enableUpdateNotification, onEnableUpdateNotificationChange) = rememberPreference(
@@ -148,6 +159,146 @@ fun UpdateScreen(
     }
     val latestCommit by remember(commits) {
         derivedStateOf { commits.firstOrNull() }
+    }
+
+    val updateSheetState = remember { BottomSheetPageState() }
+    var updateSheetLoading by remember { mutableStateOf(false) }
+    var updateSheetVersion by remember { mutableStateOf<String?>(null) }
+    var updateSheetNotes by remember { mutableStateOf<String?>(null) }
+    var updateSheetError by remember { mutableStateOf<String?>(null) }
+
+    val updateSheetContent: @Composable ColumnScope.() -> Unit = {
+        if (updateSheetLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    LoadingIndicator(modifier = Modifier.size(32.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.updates_status_checking),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else if (updateSheetError != null) {
+            Text(
+                text = stringResource(R.string.error_loading_changelog),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = updateSheetError ?: "",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.new_update_available),
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(top = 16.dp)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = {},
+                contentPadding = PaddingValues(horizontal = 5.dp, vertical = 5.dp),
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(
+                    text = updateSheetVersion ?: "",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                val notes = updateSheetNotes
+                if (notes != null && notes.isNotBlank()) {
+                    MarkdownText(
+                        markdown = notes,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.release_notes_unavailable),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            val downloadUrl = when (updateChannel) {
+                UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyDownloadUrl()
+                UpdateChannel.NIGHTLY -> Updater.getLatestNightlyDownloadUrl()
+                else -> Updater.getLatestDownloadUrl()
+            }
+
+            Button(
+                onClick = {
+                    try {
+                        uriHandler.openUri(downloadUrl)
+                    } catch (_: Exception) {}
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(text = stringResource(R.string.update_text))
+            }
+        }
+    }
+
+    val onCheckForUpdate: () -> Unit = {
+        updateSheetLoading = true
+        updateSheetVersion = null
+        updateSheetNotes = null
+        updateSheetError = null
+        updateSheetState.show(updateSheetContent)
+
+        coroutineScope.launch {
+            val versionResult = when (updateChannel) {
+                UpdateChannel.DAILY_NIGHTLY -> run {
+                    Updater.getLatestDailyNightlyVersionName().also {
+                        Updater.getLatestDailyNightlyReleaseNotes().onSuccess { notes ->
+                            updateSheetNotes = notes
+                        }
+                    }
+                }
+                else -> run {
+                    Updater.getLatestVersionName().also {
+                        Updater.getLatestReleaseNotes().onSuccess { notes ->
+                            updateSheetNotes = notes
+                        }
+                    }
+                }
+            }
+
+            versionResult.onSuccess { version ->
+                updateSheetVersion = version
+            }.onFailure { e ->
+                updateSheetError = e.message ?: "Failed to check for updates"
+            }
+
+            updateSheetLoading = false
+        }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -432,7 +583,8 @@ fun UpdateScreen(
                     isUpdateAvailable = isUpdateAvailable,
                     onOpenChangelog = {
                         navController.navigate("settings/changelog?channel=$updateChannel")
-                    }
+                    },
+                    onCheckForUpdate = onCheckForUpdate,
                 )
             }
 
@@ -755,6 +907,8 @@ fun UpdateScreen(
             }
         }
     }
+
+    BottomSheetPage(state = updateSheetState)
 }
 
 @Composable
@@ -764,6 +918,7 @@ private fun UpdateSummaryCard(
     updateChannel: UpdateChannel,
     isUpdateAvailable: Boolean,
     onOpenChangelog: () -> Unit,
+    onCheckForUpdate: () -> Unit,
 ) {
     val channelLabel = when (updateChannel) {
         UpdateChannel.STABLE -> stringResource(R.string.channel_stable)
@@ -847,6 +1002,19 @@ private fun UpdateSummaryCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = stringResource(R.string.view_changelog))
+            }
+
+            OutlinedButton(
+                onClick = onCheckForUpdate,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.sync),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = stringResource(R.string.check_for_update))
             }
         }
     }

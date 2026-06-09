@@ -848,6 +848,7 @@
     <string name="updates_no_commits">No recent commits found</string>
     <string name="changelog">Changelog</string>
     <string name="view_changelog">View Changelog</string>
+    <string name="check_for_update">Check for Update</string>
     <string name="error_loading_changelog">Error loading changelog</string>
     <string name="no_releases">No releases found</string>
     <string name="update_notification_channel_name">App Updates</string>
