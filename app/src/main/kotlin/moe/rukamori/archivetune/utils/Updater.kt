@@ -326,7 +326,8 @@ object Updater {
 
         val tag = latestReleaseTag
         if (tag != null) {
-            return "https://github.com/ArchiveTuneApp/ArchiveTune/releases/download/$tag/app-${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release.apk"
+            val distPrefix = if (BuildConfig.DISTRIBUTION != "gms") "${BuildConfig.DISTRIBUTION}-" else ""
+            return "https://github.com/ArchiveTuneApp/ArchiveTune/releases/download/$tag/app-${distPrefix}${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release.apk"
         }
         return StableDownloadUrl
     }
