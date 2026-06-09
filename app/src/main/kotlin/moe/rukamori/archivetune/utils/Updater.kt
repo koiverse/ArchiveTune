@@ -324,6 +324,14 @@ object Updater {
         return StableDownloadUrl
     }
 
+    fun getLatestNightlyDownloadUrl(): String {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            return ""
+        }
+
+        return NightlyDownloadUrl
+    }
+
     suspend fun getLatestDailyNightlyVersionName(): Result<String> =
         getLatestDailyNightlyReleaseInfo().map { latest ->
             latest.tagName.ifBlank { latest.name }
