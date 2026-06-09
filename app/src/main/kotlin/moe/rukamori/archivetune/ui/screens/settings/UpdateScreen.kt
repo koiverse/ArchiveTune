@@ -21,6 +21,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -35,8 +37,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +72,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -83,13 +90,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.EnableUpdateNotificationKey
 import moe.rukamori.archivetune.constants.UpdateChannel
 import moe.rukamori.archivetune.constants.UpdateChannelKey
+import moe.rukamori.archivetune.ui.component.BottomSheetPage
+import moe.rukamori.archivetune.ui.component.BottomSheetPageState
 import moe.rukamori.archivetune.ui.component.IconButton
+import moe.rukamori.archivetune.ui.component.MarkdownText
 import moe.rukamori.archivetune.ui.component.PreferenceGroupTitle
 import moe.rukamori.archivetune.ui.utils.backToMain
 import moe.rukamori.archivetune.utils.GitCommit
@@ -109,6 +120,7 @@ fun UpdateScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val coroutineScope = rememberCoroutineScope()
     val nightlyInstallUrl = remember { Updater.getLatestNightlyDownloadUrl() }
 
     val (enableUpdateNotification, onEnableUpdateNotificationChange) = rememberPreference(
@@ -125,6 +137,7 @@ fun UpdateScreen(
     var latestVersion by remember { mutableStateOf<String?>(null) }
     var isExpanded by rememberSaveable { mutableStateOf(true) }
     var showNightlyChannelConfirmDialog by rememberSaveable { mutableStateOf(false) }
+    var showDailyNightlyChannelConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var showEnableUpdateNotificationConfirmDialog by rememberSaveable { mutableStateOf(false) }
     var hasNotificationPermission by remember {
         mutableStateOf(
@@ -147,6 +160,125 @@ fun UpdateScreen(
     }
     val latestCommit by remember(commits) {
         derivedStateOf { commits.firstOrNull() }
+    }
+
+    val updateSheetState = remember { BottomSheetPageState() }
+    var updateSheetLoading by remember { mutableStateOf(false) }
+    var updateSheetVersion by remember { mutableStateOf<String?>(null) }
+    var updateSheetNotes by remember { mutableStateOf<String?>(null) }
+    var updateSheetError by remember { mutableStateOf<String?>(null) }
+    var updateSheetIsSameVersion by remember { mutableStateOf(false) }
+    var showUpdateUpToDateDialog by remember { mutableStateOf(false) }
+    var showUpdateErrorDialog by remember { mutableStateOf(false) }
+
+    val updateSheetContent: @Composable ColumnScope.() -> Unit = {
+        Text(
+            text = stringResource(R.string.new_update_available),
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(top = 16.dp)
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        OutlinedButton(
+            onClick = {},
+            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 5.dp),
+            shapes = ButtonDefaults.shapes(),
+        ) {
+            Text(
+                text = updateSheetVersion ?: "",
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+        ) {
+            val notes = updateSheetNotes
+            if (notes != null && notes.isNotBlank()) {
+                MarkdownText(
+                    markdown = notes,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 8.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.release_notes_unavailable),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        val downloadUrl = when (updateChannel) {
+            UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyDownloadUrl()
+            UpdateChannel.NIGHTLY -> Updater.getLatestNightlyDownloadUrl()
+            else -> Updater.getLatestDownloadUrl()
+        }
+
+        Button(
+            onClick = {
+                try {
+                    uriHandler.openUri(downloadUrl)
+                } catch (_: Exception) {}
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
+        ) {
+            Text(text = stringResource(R.string.update_text))
+        }
+    }
+
+    val onCheckForUpdate: () -> Unit = {
+        updateSheetLoading = true
+        updateSheetVersion = null
+        updateSheetNotes = null
+        updateSheetError = null
+        updateSheetIsSameVersion = false
+        showUpdateUpToDateDialog = false
+        showUpdateErrorDialog = false
+
+        coroutineScope.launch {
+            val versionResult = when (updateChannel) {
+                UpdateChannel.DAILY_NIGHTLY -> {
+                    Updater.getLatestDailyNightlyReleaseNotes().onSuccess { notes ->
+                        updateSheetNotes = notes
+                    }
+                    Updater.getLatestDailyNightlyVersionName()
+                }
+                else -> {
+                    Updater.getLatestReleaseNotes().onSuccess { notes ->
+                        updateSheetNotes = notes
+                    }
+                    Updater.getLatestVersionName()
+                }
+            }
+
+            updateSheetLoading = false
+
+            versionResult.onSuccess { version ->
+                updateSheetIsSameVersion = Updater.isSameVersion(version, BuildConfig.VERSION_NAME)
+                updateSheetVersion = version
+
+                if (updateSheetIsSameVersion) {
+                    showUpdateUpToDateDialog = true
+                } else {
+                    updateSheetState.show(updateSheetContent)
+                }
+            }.onFailure { e ->
+                updateSheetError = e.message ?: "Failed to check for updates"
+                showUpdateErrorDialog = true
+            }
+        }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -312,15 +444,46 @@ fun UpdateScreen(
         )
     }
 
-    LaunchedEffect(Unit) {
+    if (showDailyNightlyChannelConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDailyNightlyChannelConfirmDialog = false },
+            title = { Text(stringResource(R.string.channel_daily_nightly)) },
+            text = {
+                Text(
+                    text = "Switch to the Daily channel to receive updates from the daily-nightly repository.\n\nDaily builds are published automatically every day from the latest development branch.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDailyNightlyChannelConfirmDialog = false
+                        onUpdateChannelChange(UpdateChannel.DAILY_NIGHTLY)
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDailyNightlyChannelConfirmDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
+    }
+
+    LaunchedEffect(updateChannel) {
         if (!BuildConfig.UPDATER_AVAILABLE) {
             isLoadingCommits = false
             return@LaunchedEffect
         }
 
-        Updater.getLatestVersionName().onSuccess {
-            latestVersion = it
+        val versionResult = when (updateChannel) {
+            UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyVersionName()
+            else -> Updater.getLatestVersionName()
         }
+        versionResult.onSuccess { latestVersion = it }
+
         Updater.getCommitHistory(30).onSuccess {
             commits = it
         }.onFailure {
@@ -333,10 +496,9 @@ fun UpdateScreen(
         targetValue = if (isExpanded) 180f else 0f,
         label = "rotation"
     )
-    val topBarSubtitle = if (isNightlyChannel) {
-        stringResource(R.string.updates_subtitle_nightly)
-    } else {
-        stringResource(R.string.updates_subtitle_stable)
+    val topBarSubtitle = when (updateChannel) {
+        UpdateChannel.NIGHTLY -> stringResource(R.string.updates_subtitle_nightly)
+        else -> stringResource(R.string.updates_subtitle_stable)
     }
 
     Scaffold(
@@ -399,7 +561,10 @@ fun UpdateScreen(
                     latestVersion = latestVersion,
                     updateChannel = updateChannel,
                     isUpdateAvailable = isUpdateAvailable,
-                    onOpenChangelog = { navController.navigate("settings/changelog") }
+                    onOpenChangelog = {
+                        navController.navigate("settings/changelog?channel=$updateChannel")
+                    },
+                    onCheckForUpdate = onCheckForUpdate,
                 )
             }
 
@@ -479,6 +644,7 @@ fun UpdateScreen(
                                     text = when (updateChannel) {
                                         UpdateChannel.STABLE -> stringResource(R.string.channel_stable)
                                         UpdateChannel.NIGHTLY -> stringResource(R.string.channel_nightly)
+                                        UpdateChannel.DAILY_NIGHTLY -> stringResource(R.string.channel_daily_nightly)
                                     },
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.primary,
@@ -500,7 +666,7 @@ fun UpdateScreen(
                             SegmentedButton(
                                 selected = updateChannel == UpdateChannel.STABLE,
                                 onClick = { onUpdateChannelChange(UpdateChannel.STABLE) },
-                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
                                 icon = {},
                             ) {
                                 Text(text = stringResource(R.string.channel_stable))
@@ -512,10 +678,22 @@ fun UpdateScreen(
                                         showNightlyChannelConfirmDialog = true
                                     }
                                 },
-                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
                                 icon = {},
                             ) {
                                 Text(text = stringResource(R.string.channel_nightly))
+                            }
+                            SegmentedButton(
+                                selected = updateChannel == UpdateChannel.DAILY_NIGHTLY,
+                                onClick = {
+                                    if (updateChannel != UpdateChannel.DAILY_NIGHTLY) {
+                                        showDailyNightlyChannelConfirmDialog = true
+                                    }
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                                icon = {},
+                            ) {
+                                Text(text = stringResource(R.string.channel_daily_nightly))
                             }
                         }
                     }
@@ -709,6 +887,88 @@ fun UpdateScreen(
             }
         }
     }
+
+    BottomSheetPage(state = updateSheetState)
+
+    if (updateSheetLoading) {
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {},
+            title = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(Modifier.height(16.dp))
+                    LoadingIndicator(modifier = Modifier.size(32.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.updates_status_checking),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        )
+    }
+
+    if (showUpdateUpToDateDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateUpToDateDialog = false },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.done),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.updates_status_current),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = {
+                Text(
+                    text = updateSheetVersion ?: BuildConfig.VERSION_NAME,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showUpdateUpToDateDialog = false }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        )
+    }
+
+    if (showUpdateErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateErrorDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.error_loading_changelog),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            },
+            text = {
+                Text(
+                    text = updateSheetError ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showUpdateErrorDialog = false }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -718,10 +978,12 @@ private fun UpdateSummaryCard(
     updateChannel: UpdateChannel,
     isUpdateAvailable: Boolean,
     onOpenChangelog: () -> Unit,
+    onCheckForUpdate: () -> Unit,
 ) {
     val channelLabel = when (updateChannel) {
         UpdateChannel.STABLE -> stringResource(R.string.channel_stable)
         UpdateChannel.NIGHTLY -> stringResource(R.string.channel_nightly)
+        UpdateChannel.DAILY_NIGHTLY -> stringResource(R.string.channel_daily_nightly)
     }
     val supportingText = when {
         latestVersion == null -> stringResource(R.string.updates_status_checking)
@@ -800,6 +1062,19 @@ private fun UpdateSummaryCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = stringResource(R.string.view_changelog))
+            }
+
+            OutlinedButton(
+                onClick = onCheckForUpdate,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.sync),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = stringResource(R.string.check_for_update))
             }
         }
     }

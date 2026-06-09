@@ -643,6 +643,7 @@
     <string name="recent_commits">Commits Gần đây</string>
     <string name="changelog">Nhật ký thay đổi</string>
     <string name="view_changelog">Xem nhật ký thay đổi</string>
+    <string name="check_for_update">Kiểm tra bản cập nhật</string>
     <string name="error_loading_changelog">Lỗi khi tải nhật ký thay đổi</string>
     <string name="no_releases">Không tìm thấy phiên bản nào</string>
     <string name="update_notification_channel_name">Cập nhật Ứng dụng</string>
