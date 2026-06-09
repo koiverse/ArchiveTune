@@ -25,7 +25,6 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import org.json.JSONArray
-import org.json.JSONObject
 
 data class GitCommit(
     val sha: String,
@@ -53,14 +52,26 @@ object Updater {
     private val client = HttpClient()
     private const val ReleaseCacheCheckIntervalMs: Long = 6 * 60 * 60 * 1000L
     private const val StableDownloadUrl = "https://github.com/ArchiveTuneApp/ArchiveTune/releases/latest"
-    private const val NightlyDownloadUrl =
-        "https://github.com/ArchiveTuneApp/ArchiveTune/actions/workflows/build.yml?query=branch%3Adev+is%3Asuccess"
     private const val DailyNightlyDownloadUrl =
         "https://github.com/ArchiveTuneApp/daily-nightly/releases/latest"
     var lastCheckTime = -1L
         private set
     private var latestReleaseTag: String? = null
     private var latestDailyNightlyReleaseTag: String? = null
+
+    private val isUpdaterDistribution: Boolean
+        get() = BuildConfig.UPDATER_AVAILABLE &&
+            when (BuildConfig.DISTRIBUTION) {
+                "gms", "foss" -> true
+                else -> false
+            }
+
+    private val distributionArtifactPrefix: String
+        get() = when (BuildConfig.DISTRIBUTION) {
+            "gms" -> ""
+            "foss" -> "foss-"
+            else -> ""
+        }
 
     private data class SemVer(
         val major: Int,
@@ -258,7 +269,7 @@ object Updater {
     }
 
     suspend fun getCachedReleases(): List<ReleaseInfo> {
-        if (!BuildConfig.UPDATER_AVAILABLE) {
+        if (!isUpdaterDistribution) {
             return emptyList()
         }
 
@@ -279,7 +290,7 @@ object Updater {
 
     suspend fun getLatestReleaseInfo(): Result<ReleaseInfo> =
         runCatching {
-            if (!BuildConfig.UPDATER_AVAILABLE) {
+            if (!isUpdaterDistribution) {
                 throw IllegalStateException("Updater is not available for this distribution")
             }
 
@@ -293,7 +304,7 @@ object Updater {
 
     suspend fun getCommitHistory(count: Int = 20, branch: String = "dev"): Result<List<GitCommit>> =
         runCatching {
-            if (!BuildConfig.UPDATER_AVAILABLE) {
+            if (!isUpdaterDistribution) {
                 return@runCatching emptyList()
             }
 
@@ -320,24 +331,23 @@ object Updater {
         }
 
     fun getLatestDownloadUrl(): String {
-        if (!BuildConfig.UPDATER_AVAILABLE) {
+        if (!isUpdaterDistribution) {
             return ""
         }
 
         val tag = latestReleaseTag
         if (tag != null) {
-            val distPrefix = if (BuildConfig.DISTRIBUTION != "gms") "${BuildConfig.DISTRIBUTION}-" else ""
-            return "https://github.com/ArchiveTuneApp/ArchiveTune/releases/download/$tag/app-${distPrefix}${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release.apk"
+            return "https://github.com/ArchiveTuneApp/ArchiveTune/releases/download/$tag/app-$distributionArtifactPrefix${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release.apk"
         }
         return StableDownloadUrl
     }
 
     fun getLatestNightlyDownloadUrl(): String {
-        if (!BuildConfig.UPDATER_AVAILABLE) {
+        if (!isUpdaterDistribution) {
             return ""
         }
 
-        return NightlyDownloadUrl
+        return "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-$distributionArtifactPrefix${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release"
     }
 
     suspend fun getLatestDailyNightlyVersionName(): Result<String> =
@@ -350,7 +360,7 @@ object Updater {
 
     suspend fun getLatestDailyNightlyReleaseInfo(): Result<ReleaseInfo> =
         runCatching {
-            if (!BuildConfig.UPDATER_AVAILABLE) {
+            if (!isUpdaterDistribution) {
                 throw IllegalStateException("Updater is not available for this distribution")
             }
 
@@ -362,7 +372,7 @@ object Updater {
         }
 
     suspend fun getCachedDailyNightlyReleases(): List<ReleaseInfo> {
-        if (!BuildConfig.UPDATER_AVAILABLE) {
+        if (!isUpdaterDistribution) {
             return emptyList()
         }
 
@@ -377,7 +387,7 @@ object Updater {
         perPage: Int = 10,
         forceRefresh: Boolean = false,
     ): Result<List<ReleaseInfo>> {
-        if (!BuildConfig.UPDATER_AVAILABLE) {
+        if (!isUpdaterDistribution) {
             return Result.success(emptyList())
         }
 
@@ -502,13 +512,13 @@ object Updater {
     }
 
     fun getLatestDailyNightlyDownloadUrl(): String {
-        if (!BuildConfig.UPDATER_AVAILABLE) {
+        if (!isUpdaterDistribution) {
             return ""
         }
 
         val tag = latestDailyNightlyReleaseTag
         if (tag != null) {
-            return "https://github.com/ArchiveTuneApp/daily-nightly/releases/download/$tag/app-${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-nightly.apk"
+            return "https://github.com/ArchiveTuneApp/daily-nightly/releases/download/$tag/app-$distributionArtifactPrefix${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-nightly.apk"
         }
         return DailyNightlyDownloadUrl
     }
@@ -517,7 +527,7 @@ object Updater {
         perPage: Int = 30,
         forceRefresh: Boolean = false,
     ): Result<List<ReleaseInfo>> {
-        if (!BuildConfig.UPDATER_AVAILABLE) {
+        if (!isUpdaterDistribution) {
             return Result.success(emptyList())
         }
 

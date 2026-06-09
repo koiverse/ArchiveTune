@@ -43,7 +43,7 @@ jobs:
         continue-on-error: true
 
   build:
-    name: Build Release APKs (${{ matrix.device }}-${{ matrix.abi }})
+    name: Build Release APKs (${{ matrix.distribution }}-${{ matrix.device }}-${{ matrix.abi }})
     if: github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]'
     runs-on: ubuntu-latest
     needs: notifyTelegram
@@ -52,22 +52,39 @@ jobs:
       matrix:
         include:
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: arm64
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: armeabi
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: x86
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: x86_64
           - device: mobile
+            distribution: gms
+            distributionName: Gms
             deviceName: Mobile
             abi: universal
           - device: tv
+            distribution: gms
+            distributionName: Gms
             deviceName: Tv
+            abi: universal
+          - device: mobile
+            distribution: foss
+            distributionName: Foss
+            deviceName: Mobile
             abi: universal
 
     steps:
@@ -93,17 +110,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          DISTRIBUTION="${{ matrix.distribution }}"
+          DISTRIBUTION_CAP="${{ matrix.distributionName }}"
           DEVICE="${{ matrix.device }}"
           ABI="${{ matrix.abi }}"
           DEVICE_CAP="${{ matrix.deviceName }}"
           ABI_CAP="$(tr '[:lower:]' '[:upper:]' <<< "${ABI:0:1}")${ABI:1}"
+          echo "distribution=$DISTRIBUTION" >> "$GITHUB_OUTPUT"
+          echo "distribution_cap=$DISTRIBUTION_CAP" >> "$GITHUB_OUTPUT"
           echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
           echo "abi=$ABI" >> "$GITHUB_OUTPUT"
           echo "device_cap=$DEVICE_CAP" >> "$GITHUB_OUTPUT"
           echo "abi_cap=$ABI_CAP" >> "$GITHUB_OUTPUT"
-          echo "gradle_task=assembleGms${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
-          echo "artifact_name=app-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
-          echo "apk_name=app-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
+          echo "gradle_task=assemble${DISTRIBUTION_CAP}${DEVICE_CAP}${ABI_CAP}Release" >> "$GITHUB_OUTPUT"
+          if [ "$DISTRIBUTION" = "gms" ]; then
+            echo "artifact_name=app-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
+            echo "apk_name=app-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
+          else
+            echo "artifact_name=app-${DISTRIBUTION}-${DEVICE}-${ABI}-release" >> "$GITHUB_OUTPUT"
+            echo "apk_name=app-${DISTRIBUTION}-${DEVICE}-${ABI}-release.apk" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Resolve build hash
         id: build_hash
@@ -142,11 +168,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          DISTRIBUTION="${{ steps.variant.outputs.distribution }}"
           DEVICE="${{ steps.variant.outputs.device }}"
           ABI="${{ steps.variant.outputs.abi }}"
           DEVICE_CAP="${{ steps.variant.outputs.device_cap }}"
           ABI_CAP="${{ steps.variant.outputs.abi_cap }}"
           CANDIDATES=(
+            "app/build/outputs/apk/${DISTRIBUTION}${DEVICE_CAP}${ABI_CAP}/release"
+            "app/build/outputs/apk/${DISTRIBUTION}${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/${DISTRIBUTION}/${DEVICE}/${ABI}/release"
+            "app/build/outputs/apk/${DISTRIBUTION}/${DEVICE}${ABI_CAP}/release"
+            "app/build/outputs/apk/${DISTRIBUTION}/${DEVICE_CAP}${ABI_CAP}/release"
             "app/build/outputs/apk/gms${DEVICE_CAP}${ABI_CAP}/release"
             "app/build/outputs/apk/gms${DEVICE}${ABI_CAP}/release"
             "app/build/outputs/apk/gms/${DEVICE}/${ABI}/release"
@@ -167,6 +199,12 @@ jobs:
           FOUND_METADATA="$(
             find app/build/outputs/apk -type f -name "output-metadata.json" \
               \( \
+                -path "*/${DISTRIBUTION}/${DEVICE}/${ABI}/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}${DEVICE}${ABI_CAP}/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}${DEVICE_CAP}${ABI_CAP}/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}/${DEVICE}/${ABI}/*/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}${DEVICE}${ABI_CAP}/*/release/output-metadata.json" -o \
+                -path "*/${DISTRIBUTION}${DEVICE_CAP}${ABI_CAP}/*/release/output-metadata.json" -o \
                 -path "*/${DEVICE}/${ABI}/release/output-metadata.json" -o \
                 -path "*/${DEVICE}${ABI_CAP}/release/output-metadata.json" -o \
                 -path "*/${DEVICE_CAP}${ABI_CAP}/release/output-metadata.json" -o \
@@ -179,7 +217,7 @@ jobs:
             exit 0
           fi
 
-          echo "Could not resolve APK release output directory for DEVICE=$DEVICE ABI=$ABI"
+          echo "Could not resolve APK release output directory for DISTRIBUTION=$DISTRIBUTION DEVICE=$DEVICE ABI=$ABI"
           find app/build/outputs/apk -maxdepth 8 -type d -print || true
           exit 1
 
