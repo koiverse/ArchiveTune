@@ -39,11 +39,25 @@ class UpdateCheckWorker(
                 } ?: UpdateChannel.STABLE
             }.first()
 
-            if (updateChannel == UpdateChannel.NIGHTLY) return Result.success()
-
-            Updater.getLatestVersionName().onSuccess { latestVersion ->
-                if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
-                    UpdateNotificationManager.notifyIfNewVersion(applicationContext, latestVersion)
+            when (updateChannel) {
+                UpdateChannel.NIGHTLY -> return Result.success()
+                UpdateChannel.DAILY_NIGHTLY -> {
+                    Updater.getLatestDailyNightlyVersionName().onSuccess { latestVersion ->
+                        if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
+                            UpdateNotificationManager.notifyIfNewVersion(
+                                applicationContext,
+                                latestVersion,
+                                updateChannel,
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    Updater.getLatestVersionName().onSuccess { latestVersion ->
+                        if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
+                            UpdateNotificationManager.notifyIfNewVersion(applicationContext, latestVersion)
+                        }
+                    }
                 }
             }
 

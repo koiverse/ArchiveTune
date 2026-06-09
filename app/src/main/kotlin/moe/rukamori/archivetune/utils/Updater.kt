@@ -10,6 +10,10 @@ package moe.rukamori.archivetune.utils
 import androidx.datastore.preferences.core.edit
 import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.App
+import moe.rukamori.archivetune.constants.DailyNightlyReleasesEtagKey
+import moe.rukamori.archivetune.constants.DailyNightlyReleasesFingerprintKey
+import moe.rukamori.archivetune.constants.DailyNightlyReleasesJsonKey
+import moe.rukamori.archivetune.constants.DailyNightlyReleasesLastCheckedAtKey
 import moe.rukamori.archivetune.constants.GitHubReleasesEtagKey
 import moe.rukamori.archivetune.constants.GitHubReleasesFingerprintKey
 import moe.rukamori.archivetune.constants.GitHubReleasesJsonKey
@@ -51,6 +55,8 @@ object Updater {
     private const val StableDownloadUrl = "https://github.com/ArchiveTuneApp/ArchiveTune/releases/latest"
     private const val NightlyDownloadUrl =
         "https://github.com/ArchiveTuneApp/ArchiveTune/actions/workflows/build.yml?query=branch%3Adev+is%3Asuccess"
+    private const val DailyNightlyDownloadUrl =
+        "https://github.com/ArchiveTuneApp/daily-nightly/releases/latest"
     var lastCheckTime = -1L
         private set
 
@@ -171,6 +177,16 @@ object Updater {
         val stable = parsed.filter { it.first.preRelease.isEmpty() }
         val candidates = stable.ifEmpty { parsed }
         return candidates.maxWithOrNull(compareBy({ it.first }, { it.second.publishedAt }))?.second
+    }
+
+    internal fun findLatestDailyNightlyRelease(
+        releases: List<ReleaseInfo>,
+    ): ReleaseInfo? {
+        if (releases.isEmpty()) return null
+        return releases.maxByOrNull { release ->
+            val dateTag = release.tagName.removePrefix("N").takeWhile { it.isDigit() }
+            dateTag.toLongOrNull() ?: 0L
+        }
     }
 
     private fun preferredReleaseVersionNameOrNull(release: ReleaseInfo): String? =
@@ -308,12 +324,172 @@ object Updater {
         return StableDownloadUrl
     }
 
-    fun getLatestNightlyDownloadUrl(): String {
+    suspend fun getLatestDailyNightlyVersionName(): Result<String> =
+        getLatestDailyNightlyReleaseInfo().map { latest ->
+            latest.tagName.ifBlank { latest.name }
+        }
+
+    suspend fun getLatestDailyNightlyReleaseNotes(): Result<String?> =
+        getLatestDailyNightlyReleaseInfo().map { it.body }
+
+    suspend fun getLatestDailyNightlyReleaseInfo(): Result<ReleaseInfo> =
+        runCatching {
+            if (!BuildConfig.UPDATER_AVAILABLE) {
+                throw IllegalStateException("Updater is not available for this distribution")
+            }
+
+            val releases = getAllDailyNightlyReleases().getOrThrow()
+            val latest = findLatestDailyNightlyRelease(releases)
+                ?: throw IllegalStateException("No daily-nightly releases found")
+            latest
+        }
+
+    suspend fun getCachedDailyNightlyReleases(): List<ReleaseInfo> {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            return emptyList()
+        }
+
+        val cachedJson = App.instance.dataStore.getAsync(DailyNightlyReleasesJsonKey)
+        return cachedJson
+            ?.takeIf { it.isNotBlank() }
+            ?.let { runCatching { parseReleasesJson(it) }.getOrNull() }
+            ?: emptyList()
+    }
+
+    suspend fun getAllDailyNightlyReleases(
+        perPage: Int = 10,
+        forceRefresh: Boolean = false,
+    ): Result<List<ReleaseInfo>> {
+        if (!BuildConfig.UPDATER_AVAILABLE) {
+            return Result.success(emptyList())
+        }
+
+        return runCatching {
+            val now = System.currentTimeMillis()
+            val cachedJson = App.instance.dataStore.getAsync(DailyNightlyReleasesJsonKey)
+            val cachedEtag = App.instance.dataStore.getAsync(DailyNightlyReleasesEtagKey)
+            val lastCheckedAt = App.instance.dataStore.getAsync(DailyNightlyReleasesLastCheckedAtKey, 0L)
+            val cachedFingerprint = App.instance.dataStore.getAsync(DailyNightlyReleasesFingerprintKey)
+
+            val cachedReleases =
+                cachedJson
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { runCatching { parseReleasesJson(it) }.getOrNull() }
+
+            val shouldCheckNetwork =
+                forceRefresh || cachedJson.isNullOrBlank() || (now - lastCheckedAt) >= ReleaseCacheCheckIntervalMs
+
+            if (!shouldCheckNetwork) {
+                return@runCatching cachedReleases ?: emptyList()
+            }
+
+            val networkResult = runCatching {
+                fetchDailyNightlyReleasesNetwork(
+                    perPage = perPage,
+                    cachedEtag = cachedEtag,
+                )
+            }.getOrNull()
+
+            if (networkResult == null) {
+                val fallback = cachedReleases
+                if (fallback != null) {
+                    return@runCatching fallback
+                }
+                throw IllegalStateException("Failed to fetch daily-nightly releases")
+            }
+
+            when {
+                networkResult.status == HttpStatusCode.NotModified -> {
+                    App.instance.dataStore.edit { settings ->
+                        settings[DailyNightlyReleasesLastCheckedAtKey] = now
+                        networkResult.etag?.let { settings[DailyNightlyReleasesEtagKey] = it }
+                    }
+                    val fallback = cachedReleases
+                    if (fallback != null) {
+                        return@runCatching fallback
+                    }
+                    throw IllegalStateException("Daily-nightly release cache is empty")
+                }
+
+                networkResult.status.value in 200..299 && !networkResult.body.isNullOrBlank() -> {
+                    val networkBody = networkResult.body
+                    val releases = parseReleasesJson(networkBody)
+                    val newFingerprint = getDailyNightlyTopReleaseFingerprint(releases)
+                    val hasPayloadChanged = cachedJson != networkBody
+                    val hasTopReleaseChanged = cachedFingerprint != newFingerprint
+
+                    App.instance.dataStore.edit { settings ->
+                        settings[DailyNightlyReleasesLastCheckedAtKey] = now
+                        networkResult.etag?.let { settings[DailyNightlyReleasesEtagKey] = it }
+                        if (hasPayloadChanged || hasTopReleaseChanged || cachedJson.isNullOrBlank()) {
+                            settings[DailyNightlyReleasesJsonKey] = networkBody
+                            settings[DailyNightlyReleasesFingerprintKey] = newFingerprint
+                        }
+                    }
+                    releases
+                }
+
+                else -> {
+                    val fallback = cachedReleases
+                    if (fallback != null) {
+                        fallback
+                    } else {
+                        throw IllegalStateException("Failed to fetch daily-nightly releases: HTTP ${networkResult.status.value}")
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun fetchDailyNightlyReleasesNetwork(
+        perPage: Int,
+        cachedEtag: String?,
+    ): ReleasesNetworkResult {
+        val response: HttpResponse =
+            client.get("https://api.github.com/repos/ArchiveTuneApp/daily-nightly/releases?per_page=$perPage") {
+                headers {
+                    append("Accept", "application/vnd.github+json")
+                    append("User-Agent", "ArchiveTune")
+                    if (!cachedEtag.isNullOrBlank()) {
+                        append("If-None-Match", cachedEtag)
+                    }
+                }
+            }
+        val etag = response.headers["ETag"]
+        return when (response.status) {
+            HttpStatusCode.NotModified ->
+                ReleasesNetworkResult(
+                    status = response.status,
+                    body = null,
+                    etag = cachedEtag ?: etag,
+                )
+
+            else ->
+                ReleasesNetworkResult(
+                    status = response.status,
+                    body = response.bodyAsText(),
+                    etag = etag,
+                )
+        }
+    }
+
+    private fun getDailyNightlyTopReleaseFingerprint(releases: List<ReleaseInfo>): String {
+        val latest = findLatestDailyNightlyRelease(releases) ?: return ""
+        return listOf(
+            latest.tagName,
+            latest.name,
+            latest.publishedAt,
+            latest.body.orEmpty(),
+            latest.htmlUrl,
+        ).joinToString("||")
+    }
+
+    fun getLatestDailyNightlyDownloadUrl(): String {
         if (!BuildConfig.UPDATER_AVAILABLE) {
             return ""
         }
 
-        return NightlyDownloadUrl
+        return DailyNightlyDownloadUrl
     }
 
     suspend fun getAllReleases(
