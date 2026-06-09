@@ -49,8 +49,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -106,6 +106,9 @@ import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
 import androidx.compose.ui.platform.LocalView
+import moe.rukamori.archivetune.constants.BackdropBlurAmountKey
+import moe.rukamori.archivetune.constants.BackdropEnabledKey
+import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
 import android.content.Context
 import moe.rukamori.archivetune.storage.StorageFolderKind
@@ -281,6 +284,9 @@ fun Thumbnail(
         defaultValue = 16f
     )
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (backdropEnabled) = rememberPreference(BackdropEnabledKey, defaultValue = true)
+    val (backdropBlurAmount) = rememberPreference(BackdropBlurAmountKey, defaultValue = 60)
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     
@@ -655,6 +661,9 @@ fun Thumbnail(
                                                 playerDesignStyle != PlayerDesignStyle.V7 &&
                                                 playerDesignStyle != PlayerDesignStyle.V8
 
+                                        val thumbnailBgBlurDp = 48.dp * (backdropBlurAmount.toFloat() / 100f)
+                                        val thumbnailBgBlurEnabled = backdropEnabled && !disableBlur && backdropBlurAmount > 0
+
                                         AsyncImage(
                                             model = item.metadata?.thumbnailUrl?.highRes()
                                                 ?: item.mediaMetadata.artworkUri?.toString(),
@@ -663,10 +672,10 @@ fun Thumbnail(
                                             modifier = Modifier
                                                 .fillMaxSize()
                                                 .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
-                                                .graphicsLayer(
-                                                    renderEffect = BlurEffect(radiusX = 60f, radiusY = 60f),
-                                                    alpha = 0.6f
+                                                .then(
+                                                    if (thumbnailBgBlurEnabled) Modifier.blur(thumbnailBgBlurDp) else Modifier
                                                 )
+                                                .graphicsLayer(alpha = 0.6f)
                                         )
 
                                         AsyncImage(
