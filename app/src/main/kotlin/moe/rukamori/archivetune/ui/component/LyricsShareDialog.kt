@@ -271,7 +271,7 @@ fun LyricsShareImageDialog(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                    .widthIn(max = 640.dp),
+                        .widthIn(max = 920.dp),
                     shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp),
                 ) {
@@ -348,14 +348,14 @@ private fun LyricsShareStudioScaffold(
 ) {
     val scrollState = rememberScrollState()
     val motionScheme = MaterialTheme.motionScheme
-    val horizontalPadding = if (isCompactLayout) 18.dp else 24.dp
-    val verticalPadding = if (isCompactLayout) 12.dp else 20.dp
-    val sectionSpacing = if (isCompactLayout) 16.dp else 20.dp
+    val horizontalPadding = if (isCompactLayout) 18.dp else 22.dp
+    val verticalPadding = if (isCompactLayout) 12.dp else 18.dp
+    val sectionSpacing = if (isCompactLayout) 16.dp else 18.dp
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(max = if (isCompactLayout) 680.dp else 760.dp)
+            .heightIn(max = if (isCompactLayout) 680.dp else 720.dp)
             .animateContentSize(animationSpec = motionScheme.defaultSpatialSpec()),
     ) {
         Column(
@@ -391,7 +391,7 @@ private fun LyricsShareStudioScaffold(
             } else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(18.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
                     PreviewContainer(
@@ -400,7 +400,7 @@ private fun LyricsShareStudioScaffold(
                         selectedGlassStyle = selectedGlassStyle,
                         options = options,
                         isCompactLayout = false,
-                        modifier = Modifier.weight(0.94f),
+                        modifier = Modifier.weight(1.08f),
                     )
                     ControlsSection(
                         options = options,
@@ -409,12 +409,12 @@ private fun LyricsShareStudioScaffold(
                         selectedGlassStyle = selectedGlassStyle,
                         onStyleSelect = onStyleSelect,
                         isCompactLayout = false,
-                        modifier = Modifier.weight(1.06f),
+                        modifier = Modifier.weight(0.92f),
                     )
                 }
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         ActionsSection(
             isSharing = isSharing,
             isCompactLayout = isCompactLayout,
@@ -478,7 +478,7 @@ private fun LyricsShareHeader(
                     Text(
                         text = lyricSnippet,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -489,11 +489,12 @@ private fun LyricsShareHeader(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 LyricsShareInfoPill(
-                    text = stringResource(options.aspectRatio.labelRes),
+                    text = stringResource(
+                        R.string.lyrics_share_resolution_value,
+                        options.aspectRatio.exportWidth,
+                        options.aspectRatio.exportHeight,
+                    ),
                     emphasized = true,
-                )
-                LyricsShareInfoPill(
-                    text = "${options.aspectRatio.exportWidth} x ${options.aspectRatio.exportHeight}",
                 )
             }
         }
@@ -511,45 +512,22 @@ private fun PreviewContainer(
 ) {
     val previewWidthFraction =
         when (options.aspectRatio) {
-            LyricsShareAspectRatio.Square -> if (isCompactLayout) 0.82f else 0.92f
-            LyricsShareAspectRatio.Portrait -> if (isCompactLayout) 0.62f else 0.72f
-            LyricsShareAspectRatio.Story -> if (isCompactLayout) 0.44f else 0.52f
+            LyricsShareAspectRatio.Square -> if (isCompactLayout) 0.84f else 0.82f
+            LyricsShareAspectRatio.Portrait -> if (isCompactLayout) 0.62f else 0.62f
+            LyricsShareAspectRatio.Story -> if (isCompactLayout) 0.44f else 0.42f
         }
-    val previewMaxWidth = if (isCompactLayout) 320.dp else 360.dp
+    val previewMaxWidth = if (isCompactLayout) 320.dp else 420.dp
 
     Surface(
         modifier = modifier,
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(selectedGlassStyle.labelRes),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "${options.aspectRatio.exportWidth} x ${options.aspectRatio.exportHeight}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                LyricsShareInfoPill(
-                    text = stringResource(options.aspectRatio.labelRes),
-                    emphasized = true,
-                )
-            }
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
@@ -595,7 +573,7 @@ private fun ControlsSection(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(animationSpec = motionScheme.defaultSpatialSpec()),
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
     ) {
         Column(
@@ -604,105 +582,115 @@ private fun ControlsSection(
                 .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = stringResource(R.string.lyrics_share_layout),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                val entries = LyricsShareAspectRatio.entries
-                entries.forEachIndexed { index, aspectRatio ->
-                    SegmentedButton(
-                        selected = options.aspectRatio == aspectRatio,
-                        onClick = { onOptionsChange(options.copy(aspectRatio = aspectRatio)) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = entries.size),
-                        icon = {},
-                    ) {
-                        Text(
-                            text = stringResource(aspectRatio.labelRes),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+            LyricsShareControlGroup(title = stringResource(R.string.lyrics_share_layout)) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    val entries = LyricsShareAspectRatio.entries
+                    entries.forEachIndexed { index, aspectRatio ->
+                        SegmentedButton(
+                            selected = options.aspectRatio == aspectRatio,
+                            onClick = { onOptionsChange(options.copy(aspectRatio = aspectRatio)) },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = entries.size),
+                            icon = {},
+                        ) {
+                            Text(
+                                text = stringResource(aspectRatio.labelRes),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            Text(
-                text = stringResource(R.string.customize_colors),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                maxItemsInEachRow = if (isCompactLayout) 2 else 3,
-            ) {
-                availableStyles.items.forEach { style ->
-                    LyricsStyleOption(
-                        style = style,
-                        selected = selectedGlassStyle == style,
-                        onClick = { onStyleSelect(style) },
-                    )
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f))
-
-            Text(
-                text = stringResource(R.string.more_options),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            LyricsShareSlider(
-                title = stringResource(R.string.lyrics_share_background_blur),
-                valueLabel = stringResource(R.string.lyrics_share_background_blur_value, options.sanitizedBlurRadius.toInt()),
-                value = options.blurRadius,
-                onValueChange = { onOptionsChange(options.copy(blurRadius = it)) },
-                valueRange = 0f..48f,
-            )
-            LyricsShareSlider(
-                title = stringResource(R.string.lyrics_share_background_dim),
-                valueLabel = stringResource(R.string.lyrics_share_background_dim_value, (options.sanitizedDimAmount * 100).toInt()),
-                value = options.dimAmount,
-                onValueChange = { onOptionsChange(options.copy(dimAmount = it)) },
-                valueRange = 0.6f..1.6f,
-            )
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.large)
-                        .clickable { onOptionsChange(options.copy(showArtwork = !options.showArtwork)) }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+            LyricsShareControlGroup(title = stringResource(R.string.customize_colors)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    maxItemsInEachRow = if (isCompactLayout) 2 else 2,
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.lyrics_share_show_cover),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = stringResource(R.string.lyrics_share_show_cover_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp),
+                    availableStyles.items.forEach { style ->
+                        LyricsStyleOption(
+                            style = style,
+                            selected = selectedGlassStyle == style,
+                            onClick = { onStyleSelect(style) },
                         )
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Switch(
-                        checked = options.showArtwork,
-                        onCheckedChange = { onOptionsChange(options.copy(showArtwork = it)) },
-                    )
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            LyricsShareControlGroup(title = stringResource(R.string.more_options)) {
+                LyricsShareSlider(
+                    title = stringResource(R.string.lyrics_share_background_blur),
+                    valueLabel = stringResource(R.string.lyrics_share_background_blur_value, options.sanitizedBlurRadius.toInt()),
+                    value = options.blurRadius,
+                    onValueChange = { onOptionsChange(options.copy(blurRadius = it)) },
+                    valueRange = 0f..48f,
+                )
+                LyricsShareSlider(
+                    title = stringResource(R.string.lyrics_share_background_dim),
+                    valueLabel = stringResource(R.string.lyrics_share_background_dim_value, (options.sanitizedDimAmount * 100).toInt()),
+                    value = options.dimAmount,
+                    onValueChange = { onOptionsChange(options.copy(dimAmount = it)) },
+                    valueRange = 0.6f..1.6f,
+                )
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 64.dp)
+                            .clip(MaterialTheme.shapes.large)
+                            .clickable { onOptionsChange(options.copy(showArtwork = !options.showArtwork)) }
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.lyrics_share_show_cover),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = stringResource(R.string.lyrics_share_show_cover_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Switch(
+                            checked = options.showArtwork,
+                            onCheckedChange = { onOptionsChange(options.copy(showArtwork = it)) },
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LyricsShareControlGroup(
+    title: String,
+    content: @Composable Column.() -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        content()
     }
 }
 
@@ -741,11 +729,12 @@ private fun LyricsStyleOption(
     modifier: Modifier = Modifier,
 ) {
     val motionScheme = MaterialTheme.motionScheme
+    val optionShape = if (selected) MaterialTheme.shapes.extraLarge else MaterialTheme.shapes.large
     val borderColor by animateColorAsState(
         targetValue = if (selected) {
             MaterialTheme.colorScheme.primary
         } else {
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            MaterialTheme.colorScheme.outlineVariant
         },
         animationSpec = motionScheme.defaultEffectsSpec(),
         label = "lyricsStyleBorder",
@@ -764,9 +753,9 @@ private fun LyricsStyleOption(
         modifier = modifier
             .widthIn(min = 108.dp)
             .heightIn(min = 48.dp)
-            .clip(MaterialTheme.shapes.large)
+            .clip(optionShape)
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.large,
+        shape = optionShape,
         color = containerColor,
         border = BorderStroke(width = if (selected) 1.5.dp else 1.dp, color = borderColor),
     ) {
@@ -900,7 +889,7 @@ private fun LyricsShareDragHandle() {
             .size(width = 40.dp, height = 4.dp)
             .clip(MaterialTheme.shapes.extraSmall)
             .background(
-                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                MaterialTheme.colorScheme.outlineVariant,
             ),
     )
 }

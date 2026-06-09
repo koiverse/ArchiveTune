@@ -192,6 +192,7 @@
     <string name="lyrics_share_layout_square">Square</string>
     <string name="lyrics_share_layout_portrait">Portrait</string>
     <string name="lyrics_share_layout_story">Story</string>
+    <string name="lyrics_share_resolution_value">%1$d x %2$d</string>
     <string name="lyrics_share_background_blur">Background blur</string>
     <string name="lyrics_share_background_blur_value">%1$d px</string>
     <string name="lyrics_line_blur">Blur lyrics lines</string>
