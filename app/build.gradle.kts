@@ -69,6 +69,7 @@ android {
                 ).trim()
         buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
         buildConfigField("String", "DISTRIBUTION", "\"gms\"")
+        buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
         buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
     }
 
