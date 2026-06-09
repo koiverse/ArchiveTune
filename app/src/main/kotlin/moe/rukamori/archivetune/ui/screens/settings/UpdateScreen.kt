@@ -167,6 +167,7 @@ fun UpdateScreen(
     var updateSheetVersion by remember { mutableStateOf<String?>(null) }
     var updateSheetNotes by remember { mutableStateOf<String?>(null) }
     var updateSheetError by remember { mutableStateOf<String?>(null) }
+    var updateSheetIsSameVersion by remember { mutableStateOf(false) }
 
     val updateSheetContent: @Composable ColumnScope.() -> Unit = {
         if (updateSheetLoading) {
@@ -199,6 +200,34 @@ fun UpdateScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        } else if (updateSheetIsSameVersion) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        painter = painterResource(R.drawable.done),
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.updates_status_current),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = updateSheetVersion ?: BuildConfig.VERSION_NAME,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         } else {
             Text(
                 text = stringResource(R.string.new_update_available),
@@ -272,6 +301,7 @@ fun UpdateScreen(
         updateSheetVersion = null
         updateSheetNotes = null
         updateSheetError = null
+        updateSheetIsSameVersion = false
         updateSheetState.show(updateSheetContent)
 
         coroutineScope.launch {
@@ -291,6 +321,7 @@ fun UpdateScreen(
             }
 
             versionResult.onSuccess { version ->
+                updateSheetIsSameVersion = Updater.isSameVersion(version, BuildConfig.VERSION_NAME)
                 updateSheetVersion = version
             }.onFailure { e ->
                 updateSheetError = e.message ?: "Failed to check for updates"
