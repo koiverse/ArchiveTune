@@ -19,9 +19,9 @@ jobs:
       - name: Notify referenced issues
         uses: actions/github-script@v9
         env:
-          ISSUE_LABEL: NEEDS NIGHTLY VERIFICATION
+          ISSUE_LABEL: CONFIRMED
           ISSUE_LABEL_COLOR: 8DF148
-          ISSUE_LABEL_DESCRIPTION: Issue was referenced by a commit and should be verified against the latest nightly build.
+          ISSUE_LABEL_DESCRIPTION: Issue was referenced and confirmed by a commit and should be closed.
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
