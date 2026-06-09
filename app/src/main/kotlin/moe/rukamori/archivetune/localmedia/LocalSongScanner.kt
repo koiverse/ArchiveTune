@@ -9,10 +9,13 @@ package moe.rukamori.archivetune.localmedia
 
 import android.content.ContentUris
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import moe.rukamori.archivetune.R
@@ -25,6 +28,9 @@ import moe.rukamori.archivetune.db.entities.Song
 import moe.rukamori.archivetune.db.entities.SongAlbumMap
 import moe.rukamori.archivetune.db.entities.SongArtistMap
 import moe.rukamori.archivetune.db.entities.SongEntity
+import timber.log.Timber
+import java.io.File
+import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
@@ -123,7 +129,7 @@ constructor(
                         playlistId = null,
                         title = album.title,
                         year = album.year ?: existingAlbum?.year,
-                        thumbnailUrl = album.thumbnailUrl ?: existingAlbum?.thumbnailUrl,
+                        thumbnailUrl = album.thumbnailUrl,
                         themeColor = existingAlbum?.themeColor,
                         songCount = album.songCount,
                         duration = album.duration,
@@ -157,7 +163,7 @@ constructor(
                         id = track.id,
                         title = track.title,
                         duration = track.durationSeconds,
-                        thumbnailUrl = track.thumbnailUrl ?: existingSong?.thumbnailUrl,
+                        thumbnailUrl = track.thumbnailUrl,
                         albumId = track.albumId,
                         albumName = track.albumName,
                         explicit = existingSong?.explicit ?: false,
@@ -281,6 +287,7 @@ constructor(
         val unknownArtist = context.getString(R.string.unknown_artist)
         val unknownTitle = context.getString(R.string.unknown)
         val tracks = mutableListOf<LocalTrackRecord>()
+        val retainedArtworkFileNames = linkedSetOf<String>()
         context.contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             projection,
@@ -337,6 +344,16 @@ constructor(
                     displayName = displayName,
                     fallback = unknownTitle,
                 )
+                val dateModifiedSeconds = cursor.getLong(dateModifiedIndex)
+                val sizeBytes = cursor.getLong(sizeIndex).coerceAtLeast(0L)
+                val thumbnailUrl = resolveTrackThumbnail(
+                    contentUri = contentUri,
+                    albumName = albumName,
+                    mediaStoreAlbumId = mediaStoreAlbumId,
+                    dateModifiedSeconds = dateModifiedSeconds,
+                    sizeBytes = sizeBytes,
+                    retainedArtworkFileNames = retainedArtworkFileNames,
+                )
                 tracks += LocalTrackRecord(
                     id = contentUri.toString(),
                     title = title,
@@ -353,17 +370,16 @@ constructor(
                         .coerceAtMost(Int.MAX_VALUE.toLong())
                         .toInt(),
                     year = cursor.getIntOrNull(yearIndex)?.takeIf { it > 0 },
-                    dateModified = cursor.getLong(dateModifiedIndex)
+                    dateModified = dateModifiedSeconds
                         .takeIf { it > 0L }
                         ?.let { LocalDateTime.ofInstant(Instant.ofEpochSecond(it), ZoneId.systemDefault()) },
-                    sizeBytes = cursor.getLong(sizeIndex).coerceAtLeast(0L),
+                    sizeBytes = sizeBytes,
                     mimeType = mimeType,
-                    thumbnailUrl = mediaStoreAlbumId
-                        ?.takeIf { it > 0L }
-                        ?.let { ContentUris.withAppendedId(AlbumArtUri, it).toString() },
+                    thumbnailUrl = thumbnailUrl,
                 )
             }
         }
+        pruneUnusedArtworkFiles(retainedArtworkFileNames)
 
         val albums = tracks
             .filter { !it.albumId.isNullOrBlank() && !it.albumName.isNullOrBlank() }
@@ -391,6 +407,108 @@ constructor(
         return title?.trim()?.takeIf { it.isNotBlank() }
             ?: displayName?.substringBeforeLast('.')?.trim()?.takeIf { it.isNotBlank() }
             ?: fallback
+    }
+
+    private fun resolveTrackThumbnail(
+        contentUri: Uri,
+        albumName: String?,
+        mediaStoreAlbumId: Long?,
+        dateModifiedSeconds: Long,
+        sizeBytes: Long,
+        retainedArtworkFileNames: MutableSet<String>,
+    ): String? {
+        return extractEmbeddedArtwork(
+            contentUri = contentUri,
+            dateModifiedSeconds = dateModifiedSeconds,
+            sizeBytes = sizeBytes,
+            retainedArtworkFileNames = retainedArtworkFileNames,
+        ) ?: mediaStoreAlbumId
+            ?.takeIf { !albumName.isNullOrBlank() }
+            ?.takeIf { it > 0L }
+            ?.let { ContentUris.withAppendedId(AlbumArtUri, it).toString() }
+    }
+
+    private fun extractEmbeddedArtwork(
+        contentUri: Uri,
+        dateModifiedSeconds: Long,
+        sizeBytes: Long,
+        retainedArtworkFileNames: MutableSet<String>,
+    ): String? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(context, contentUri)
+            val artworkBytes = retriever.embeddedPicture ?: return null
+            val extension = artworkBytes.imageExtension() ?: return null
+            val fileName = "${stableHash("$contentUri|$dateModifiedSeconds|$sizeBytes")}.$extension"
+            val artworkDirectory = localArtworkDirectory()
+            val artworkFile = File(artworkDirectory, fileName)
+            retainedArtworkFileNames += fileName
+            if (!artworkFile.exists() || artworkFile.length() != artworkBytes.size.toLong()) {
+                artworkDirectory.mkdirs()
+                FileOutputStream(artworkFile).use { outputStream ->
+                    outputStream.write(artworkBytes)
+                }
+            }
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.FileProvider",
+                artworkFile,
+            ).toString()
+        } catch (error: Throwable) {
+            if (error is CancellationException) throw error
+            Timber.tag(LogTag).w(error, "Failed to extract embedded artwork for %s", contentUri)
+            null
+        } finally {
+            runCatching { retriever.release() }
+                .onFailure { error -> Timber.tag(LogTag).w(error, "Failed to release artwork retriever") }
+        }
+    }
+
+    private fun pruneUnusedArtworkFiles(retainedArtworkFileNames: Set<String>) {
+        val artworkDirectory = localArtworkDirectory()
+        if (!artworkDirectory.exists()) return
+        artworkDirectory.listFiles()
+            ?.filter { file -> file.isFile && file.name !in retainedArtworkFileNames }
+            ?.forEach { file ->
+                if (!file.delete()) {
+                    Timber.tag(LogTag).w("Failed to delete stale local artwork: %s", file.name)
+                }
+            }
+    }
+
+    private fun localArtworkDirectory(): File {
+        return File(context.filesDir, LocalArtworkDirectoryName)
+    }
+
+    private fun ByteArray.imageExtension(): String? {
+        return when {
+            size >= 3 &&
+                this[0] == 0xFF.toByte() &&
+                this[1] == 0xD8.toByte() &&
+                this[2] == 0xFF.toByte() -> "jpg"
+
+            size >= 8 &&
+                this[0] == 0x89.toByte() &&
+                this[1] == 0x50.toByte() &&
+                this[2] == 0x4E.toByte() &&
+                this[3] == 0x47.toByte() &&
+                this[4] == 0x0D.toByte() &&
+                this[5] == 0x0A.toByte() &&
+                this[6] == 0x1A.toByte() &&
+                this[7] == 0x0A.toByte() -> "png"
+
+            size >= 12 &&
+                this[0] == 0x52.toByte() &&
+                this[1] == 0x49.toByte() &&
+                this[2] == 0x46.toByte() &&
+                this[3] == 0x46.toByte() &&
+                this[8] == 0x57.toByte() &&
+                this[9] == 0x45.toByte() &&
+                this[10] == 0x42.toByte() &&
+                this[11] == 0x50.toByte() -> "webp"
+
+            else -> null
+        }
     }
 
     private fun normalizeArtistName(rawArtist: String?, fallback: String): String {
@@ -527,6 +645,8 @@ constructor(
     private companion object {
         val AlbumArtUri: Uri = Uri.parse("content://media/external/audio/albumart")
         val ArtistSeparators = Regex("[,;/&]")
+        const val LocalArtworkDirectoryName = "local_music_artwork"
+        const val LogTag = "LocalSongScanner"
         const val SqlBatchSize = 900
     }
 }
