@@ -90,6 +90,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.R
@@ -275,19 +276,17 @@ fun UpdateScreen(
 
         coroutineScope.launch {
             val versionResult = when (updateChannel) {
-                UpdateChannel.DAILY_NIGHTLY -> run {
-                    Updater.getLatestDailyNightlyVersionName().also {
-                        Updater.getLatestDailyNightlyReleaseNotes().onSuccess { notes ->
-                            updateSheetNotes = notes
-                        }
+                UpdateChannel.DAILY_NIGHTLY -> {
+                    Updater.getLatestDailyNightlyReleaseNotes().onSuccess { notes ->
+                        updateSheetNotes = notes
                     }
+                    Updater.getLatestDailyNightlyVersionName()
                 }
-                else -> run {
-                    Updater.getLatestVersionName().also {
-                        Updater.getLatestReleaseNotes().onSuccess { notes ->
-                            updateSheetNotes = notes
-                        }
+                else -> {
+                    Updater.getLatestReleaseNotes().onSuccess { notes ->
+                        updateSheetNotes = notes
                     }
+                    Updater.getLatestVersionName()
                 }
             }
 
