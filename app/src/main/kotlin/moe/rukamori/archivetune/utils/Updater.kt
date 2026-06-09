@@ -59,6 +59,8 @@ object Updater {
         "https://github.com/ArchiveTuneApp/daily-nightly/releases/latest"
     var lastCheckTime = -1L
         private set
+    private var latestReleaseTag: String? = null
+    private var latestDailyNightlyReleaseTag: String? = null
 
     private data class SemVer(
         val major: Int,
@@ -285,6 +287,7 @@ object Updater {
             val latest = findLatestRelease(releases)
                 ?: throw IllegalStateException("No releases found")
             lastCheckTime = System.currentTimeMillis()
+            latestReleaseTag = latest.tagName
             latest
         }
 
@@ -321,6 +324,10 @@ object Updater {
             return ""
         }
 
+        val tag = latestReleaseTag
+        if (tag != null) {
+            return "https://github.com/ArchiveTuneApp/ArchiveTune/releases/download/$tag/app-${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release.apk"
+        }
         return StableDownloadUrl
     }
 
@@ -349,6 +356,7 @@ object Updater {
             val releases = getAllDailyNightlyReleases().getOrThrow()
             val latest = findLatestDailyNightlyRelease(releases)
                 ?: throw IllegalStateException("No daily-nightly releases found")
+            latestDailyNightlyReleaseTag = latest.tagName
             latest
         }
 
@@ -497,6 +505,10 @@ object Updater {
             return ""
         }
 
+        val tag = latestDailyNightlyReleaseTag
+        if (tag != null) {
+            return "https://github.com/ArchiveTuneApp/daily-nightly/releases/download/$tag/app-${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-nightly.apk"
+        }
         return DailyNightlyDownloadUrl
     }
 
