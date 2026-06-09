@@ -25,7 +25,17 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const nightlyUrl = "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-mobile-universal-release";
+            const nightlyLinks = [
+              {
+                label: "GMS",
+                url: "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-mobile-universal-release"
+              },
+              {
+                label: "FOSS",
+                url: "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-foss-mobile-universal-release"
+              }
+            ];
+            const nightlyUrls = nightlyLinks.map((link) => link.url);
             const labelName = process.env.ISSUE_LABEL;
             const labelColor = process.env.ISSUE_LABEL_COLOR;
             const labelDescription = process.env.ISSUE_LABEL_DESCRIPTION;
@@ -124,7 +134,7 @@ jobs:
                     (
                       comment.user?.type === "Bot" &&
                       body.includes("This issue was referenced on commit") &&
-                      body.includes(nightlyUrl)
+                      nightlyUrls.some((nightlyUrl) => body.includes(nightlyUrl))
                     );
                 });
 
@@ -142,7 +152,7 @@ jobs:
                   "",
                   "Make sure to try the latest nightly version:",
                   "",
-                  nightlyUrl,
+                  ...nightlyLinks.map((link) => `${link.label}: ${link.url}`),
                   "",
                   "If this issue is resolved in the nightly build, please close this issue quickly."
                 ].join("\n");
