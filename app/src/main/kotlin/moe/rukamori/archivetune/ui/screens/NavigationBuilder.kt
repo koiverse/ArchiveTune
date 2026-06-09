@@ -47,6 +47,7 @@ import androidx.navigation.navArgument
 import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.DarkModeKey
+import moe.rukamori.archivetune.constants.UpdateChannel
 import moe.rukamori.archivetune.constants.PureBlackKey
 import moe.rukamori.archivetune.ui.component.BottomSheet
 import moe.rukamori.archivetune.ui.component.BottomSheetMenu
@@ -436,8 +437,21 @@ fun NavGraphBuilder.navigationBuilder(
             UpdateScreen(navController, scrollBehavior)
         }
     }
-    composable("settings/changelog") {
-        ChangelogScreen(navController, scrollBehavior)
+    composable(
+        route = "settings/changelog?channel={channel}",
+        arguments = listOf(
+            navArgument("channel") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) { backStackEntry ->
+        val channelName = backStackEntry.arguments?.getString("channel")
+        val channel = channelName?.let {
+            runCatching { UpdateChannel.valueOf(it) }.getOrNull()
+        } ?: UpdateChannel.STABLE
+        ChangelogScreen(navController, scrollBehavior, channel = channel)
     }
     composable("settings/about") {
         AboutScreen(navController, scrollBehavior)

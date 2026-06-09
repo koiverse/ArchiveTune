@@ -431,11 +431,7 @@ fun UpdateScreen(
                     updateChannel = updateChannel,
                     isUpdateAvailable = isUpdateAvailable,
                     onOpenChangelog = {
-                        if (updateChannel == UpdateChannel.DAILY_NIGHTLY) {
-                            uriHandler.openUri("https://github.com/ArchiveTuneApp/daily-nightly/releases")
-                        } else {
-                            navController.navigate("settings/changelog")
-                        }
+                        navController.navigate("settings/changelog?channel=$updateChannel")
                     }
                 )
             }
