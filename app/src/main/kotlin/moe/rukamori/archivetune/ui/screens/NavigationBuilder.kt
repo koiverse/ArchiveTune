@@ -407,10 +407,8 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/backup_restore") {
         BackupAndRestore(navController, scrollBehavior)
     }
-    if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
-        composable("settings/discord") {
-            DiscordSettings(navController, scrollBehavior)
-        }
+    composable("settings/discord") {
+        DiscordSettings(navController, scrollBehavior)
     }
     composable("settings/integration") {
         IntegrationScreen(navController, scrollBehavior)
@@ -424,10 +422,8 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/lastfm") {
         LastFMSettings(navController, scrollBehavior)
     }
-    if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
-        composable("settings/discord/experimental") {
-            moe.rukamori.archivetune.ui.screens.settings.DiscordExperimental(navController)
-        }
+    composable("settings/discord/experimental") {
+        moe.rukamori.archivetune.ui.screens.settings.DiscordExperimental(navController)
     }
     composable("settings/misc") {
         DebugSettings(navController)
