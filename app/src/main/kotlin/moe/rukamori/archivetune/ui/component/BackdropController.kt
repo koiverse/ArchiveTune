@@ -11,22 +11,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.compose.rememberAsyncImagePainter
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.request.crossfade
-import coil3.size.Precision
 
 object BackdropDefaults {
     val MaxBlurRadius: Dp = 25.dp
@@ -34,7 +27,7 @@ object BackdropDefaults {
 
     fun blurRadius(amount: Int): Dp {
         if (amount <= 0) return 0.dp
-        return (amount.toFloat() / MaxAmount) * MaxBlurRadius
+        return MaxBlurRadius * (amount.toFloat() / MaxAmount)
     }
 }
 
@@ -54,26 +47,15 @@ fun AlbumBackdrop(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .fillMaxSize(0.55f)
-            .align(Alignment.TopCenter),
+            .fillMaxSize(0.55f),
     ) {
-        val painter = rememberAsyncImagePainter(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(imageUrl)
-                .allowHardware(false)
-                .precision(Precision.INEXACT)
-                .crossfade(true)
-                .build(),
-        )
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .then(if (radius > 0.dp) Modifier.blur(radius = radius) else Modifier),
-            contentAlignment = Alignment.Center,
         ) {
             AsyncImage(
-                painter = painter,
+                model = imageUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),

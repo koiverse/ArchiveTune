@@ -296,6 +296,9 @@ fun AlbumScreen(
                 enabled = true,
                 surfaceColor = surfaceColor,
                 gradientAlpha = gradientAlpha,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .zIndex(-1f),
             )
         } else if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
