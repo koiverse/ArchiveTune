@@ -17,7 +17,6 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
@@ -42,7 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.produceState
+
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -51,13 +50,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -74,11 +70,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
-import coil3.imageLoader
-import coil3.request.ImageRequest
-import coil3.request.SuccessResult
-import coil3.request.allowHardware
-import coil3.toBitmap
+
 import androidx.compose.material3.Icon
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
@@ -97,7 +89,6 @@ import moe.rukamori.archivetune.constants.CropThumbnailToSquareKey
 import moe.rukamori.archivetune.constants.HidePlayerThumbnailKey
 import moe.rukamori.archivetune.extensions.metadata
 import moe.rukamori.archivetune.extensions.toMediaItem
-import moe.rukamori.archivetune.ui.component.BitmapBlur
 import moe.rukamori.archivetune.ui.utils.highRes
 import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberLowDataModeActive
@@ -122,7 +113,7 @@ import moe.rukamori.archivetune.constants.BackdropEnabledKey
 import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
 import android.content.Context
-import android.os.Build
+
 import moe.rukamori.archivetune.storage.StorageFolderKind
 import moe.rukamori.archivetune.storage.StorageLocationRepository
 
@@ -673,41 +664,22 @@ fun Thumbnail(
                                                 playerDesignStyle != PlayerDesignStyle.V7 &&
                                                 playerDesignStyle != PlayerDesignStyle.V8
 
-                                        val thumbnailBgUrl = item.metadata?.thumbnailUrl?.highRes()
-                                            ?: item.mediaMetadata.artworkUri?.toString()
+                                        val thumbnailBgBlurDp = 48.dp * (backdropBlurAmount.toFloat() / 100f)
                                         val thumbnailBgBlurEnabled = backdropEnabled && !disableBlur && backdropBlurAmount > 0
 
-                                        if (thumbnailBgBlurEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                            val blurRadiusPx = (backdropBlurAmount * 60 / 100f).coerceAtMost(60f)
-                                            AsyncImage(
-                                                model = thumbnailBgUrl,
-                                                contentDescription = null,
-                                                contentScale = ContentScale.FillBounds,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
-                                                    .graphicsLayer(
-                                                        renderEffect = BlurEffect(radiusX = blurRadiusPx, radiusY = blurRadiusPx),
-                                                        alpha = 0.6f,
-                                                    )
-                                            )
-                                        } else if (thumbnailBgBlurEnabled) {
-                                            BlurredBitmapBackground(
-                                                imageUrl = thumbnailBgUrl,
-                                                blurAmount = backdropBlurAmount,
-                                                shouldCropArtwork = shouldCropArtwork,
-                                            )
-                                        } else {
-                                            AsyncImage(
-                                                model = thumbnailBgUrl,
-                                                contentDescription = null,
-                                                contentScale = ContentScale.FillBounds,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
-                                                    .graphicsLayer(alpha = 0.6f)
-                                            )
-                                        }
+                                        AsyncImage(
+                                            model = item.metadata?.thumbnailUrl?.highRes()
+                                                ?: item.mediaMetadata.artworkUri?.toString(),
+                                            contentDescription = null,
+                                            contentScale = ContentScale.FillBounds,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
+                                                .then(
+                                                    if (thumbnailBgBlurEnabled) Modifier.blur(thumbnailBgBlurDp) else Modifier
+                                                )
+                                                .graphicsLayer(alpha = 0.6f)
+                                        )
 
                                         AsyncImage(
                                             model = item.metadata?.thumbnailUrl?.highRes()
@@ -764,58 +736,6 @@ fun Thumbnail(
     }
 }
 
-
-@Composable
-private fun BlurredBitmapBackground(
-    imageUrl: String?,
-    blurAmount: Int,
-    shouldCropArtwork: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    val imageLoader = context.imageLoader
-
-    val blurredBitmap by produceState<ImageBitmap?>(null, imageUrl, blurAmount) {
-        if (imageUrl == null) return@produceState
-        value = withContext(Dispatchers.IO) {
-            val request = ImageRequest.Builder(context)
-                .data(imageUrl)
-                .allowHardware(false)
-                .size(500)
-                .build()
-            val result = imageLoader.execute(request)
-            when (result) {
-                is SuccessResult -> {
-                    val bitmap = result.image.toBitmap()
-                    val pxRadius = (blurAmount * 15 / 100).coerceIn(1, 15)
-                    BitmapBlur.blur(bitmap, pxRadius).asImageBitmap()
-                }
-                else -> null
-            }
-        }
-    }
-
-    val fullModifier = modifier
-        .fillMaxSize()
-        .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
-        .graphicsLayer(alpha = 0.6f)
-
-    if (blurredBitmap != null) {
-        Image(
-            painter = BitmapPainter(blurredBitmap!!),
-            contentDescription = null,
-            contentScale = ContentScale.FillBounds,
-            modifier = fullModifier,
-        )
-    } else {
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = null,
-            contentScale = ContentScale.FillBounds,
-            modifier = fullModifier,
-        )
-    }
-}
 
 /*
  * Copyright (C) OuterTune Project
