@@ -914,4 +914,8 @@
     <string name="save_current_account">Salvar conta atual</string>
     <string name="no_saved_accounts">Nenhuma conta foi salva ainda</string>
     <string name="remove_account">Remover conta</string>
+    <string name="album_backdrop">Desfoque de fundo</string>
+    <string name="album_backdrop_desc">Mostrar a arte como fundo desfocado no player</string>
+    <string name="backdrop_blur_amount">Quantidade de desfoque de fundo</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

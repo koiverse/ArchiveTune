@@ -586,4 +586,8 @@
     <string name="remove_from_speed_dial">Aus der Schnellwahl entfernen</string>
     <string name="integrations">Integrationen</string>
     <string name="internal_subcategory_settings">Interne- und Unterkategorieeinstellungen</string>
+    <string name="album_backdrop">Hintergrundunschärfe</string>
+    <string name="album_backdrop_desc">Kunstwerk als unscharfen Hintergrund auf dem Player anzeigen</string>
+    <string name="backdrop_blur_amount">Stärke der Hintergrundunschärfe</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

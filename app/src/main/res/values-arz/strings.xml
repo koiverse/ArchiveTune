@@ -159,4 +159,8 @@
     <string name="remove_from_playlist">شيل من القايمة</string>
     <string name="remove_from_queue">شيل من الدور</string>
     <string name="removed_song_from_queue">\"%s\" اتشالت من الدور</string>
+    <string name="album_backdrop">طمس الخلفية</string>
+    <string name="album_backdrop_desc">عرض العمل الفني كخلفية ضبابية على المشغل</string>
+    <string name="backdrop_blur_amount">مقدار طمس الخلفية</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>
