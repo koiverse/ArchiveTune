@@ -126,6 +126,8 @@ import moe.rukamori.archivetune.constants.CONTENT_TYPE_HEADER
 import moe.rukamori.archivetune.constants.CONTENT_TYPE_LIST
 import moe.rukamori.archivetune.constants.CONTENT_TYPE_PLAYLIST
 import moe.rukamori.archivetune.constants.CONTENT_TYPE_SONG
+import moe.rukamori.archivetune.constants.BackdropBlurAmountKey
+import moe.rukamori.archivetune.constants.BackdropEnabledKey
 import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.HideExplicitKey
 import moe.rukamori.archivetune.db.entities.ArtistEntity
@@ -142,6 +144,7 @@ import moe.rukamori.archivetune.innertube.pages.ArtistSectionLayout
 import moe.rukamori.archivetune.models.toMediaMetadata
 import moe.rukamori.archivetune.playback.queues.ListQueue
 import moe.rukamori.archivetune.playback.queues.YouTubeQueue
+import moe.rukamori.archivetune.ui.component.AlbumBackdrop
 import moe.rukamori.archivetune.ui.component.AlbumGridItem
 import moe.rukamori.archivetune.ui.component.HideOnScrollFAB
 import moe.rukamori.archivetune.ui.component.IconButton
@@ -190,6 +193,8 @@ fun ArtistScreen(
     val libraryAlbums by viewModel.libraryAlbums.collectAsStateWithLifecycle()
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (backdropEnabled) = rememberPreference(BackdropEnabledKey, defaultValue = true)
+    val (backdropBlurAmount) = rememberPreference(BackdropBlurAmountKey, defaultValue = 60)
 
     val lazyListState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -269,8 +274,19 @@ fun ArtistScreen(
             .fillMaxSize()
             .background(surfaceColor)
     ) {
-        // Mesh gradient background layer
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        // Backdrop background layer (artist image with blur)
+        if (backdropEnabled && !disableBlur && gradientAlpha > 0f) {
+            AlbumBackdrop(
+                imageUrl = thumbnail,
+                blurAmount = backdropBlurAmount,
+                enabled = true,
+                surfaceColor = surfaceColor,
+                gradientAlpha = gradientAlpha,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .zIndex(-1f),
+            )
+        } else if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -287,7 +303,6 @@ fun ArtistScreen(
                             val c2 = gradientColors[2]
                             val c3 = gradientColors.getOrElse(3) { c0 }
                             val c4 = gradientColors.getOrElse(4) { c1 }
-                            // Primary color blob - top center
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -299,8 +314,6 @@ fun ArtistScreen(
                                     radius = width * 0.7f
                                 )
                             )
-
-                            // Secondary color blob - top left
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -312,8 +325,6 @@ fun ArtistScreen(
                                     radius = width * 0.6f
                                 )
                             )
-
-                            // Third color blob - right side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -325,7 +336,6 @@ fun ArtistScreen(
                                     radius = width * 0.65f
                                 )
                             )
-
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -337,7 +347,6 @@ fun ArtistScreen(
                                     radius = width * 0.8f
                                 )
                             )
-
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(

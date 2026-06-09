@@ -108,6 +108,8 @@ import moe.rukamori.archivetune.constants.HidePlayerThumbnailKey
 import moe.rukamori.archivetune.constants.ArchiveTuneCanvasKey
 import moe.rukamori.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.rukamori.archivetune.constants.CropThumbnailToSquareKey
+import moe.rukamori.archivetune.constants.BackdropBlurAmountKey
+import moe.rukamori.archivetune.constants.BackdropEnabledKey
 import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.BlurRadiusKey
 import moe.rukamori.archivetune.ui.component.DefaultDialog
@@ -187,6 +189,8 @@ fun AppearanceSettings(
         defaultValue = true,
     )
     val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 48f)
+    val (backdropEnabled, onBackdropEnabledChange) = rememberPreference(BackdropEnabledKey, defaultValue = true)
+    val (backdropBlurAmount, onBackdropBlurAmountChange) = rememberPreference(BackdropBlurAmountKey, defaultValue = 60)
     val (fontPreference, onFontPreferenceChange) = rememberEnumPreference(
         FontPreferenceKey,
         defaultValue = AppFontPreference.DEFAULT
@@ -463,6 +467,36 @@ fun AppearanceSettings(
                             valueRange = 0f..64f,
                             steps = 63,
                             enabled = !disableBlur,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                )
+            }
+
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.album_backdrop)) },
+                    description = stringResource(R.string.album_backdrop_desc),
+                    icon = { Icon(painterResource(R.drawable.blur_on), null) },
+                    checked = backdropEnabled,
+                    onCheckedChange = onBackdropEnabledChange,
+                )
+            }
+
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.backdrop_blur_amount)) },
+                    description = stringResource(R.string.backdrop_blur_amount_value, backdropBlurAmount),
+                    icon = { Icon(painterResource(R.drawable.blur_on), null) },
+                    isEnabled = backdropEnabled,
+                    content = {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Slider(
+                            value = backdropBlurAmount.toFloat(),
+                            onValueChange = { onBackdropBlurAmountChange(it.roundToInt()) },
+                            valueRange = 0f..100f,
+                            steps = 19,
+                            enabled = backdropEnabled,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }

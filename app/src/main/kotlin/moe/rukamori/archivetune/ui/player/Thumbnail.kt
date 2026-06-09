@@ -11,6 +11,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.Orientation
@@ -40,7 +41,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.collectAsState
+
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -52,7 +55,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -69,6 +74,12 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
+
 import androidx.compose.material3.Icon
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
@@ -106,8 +117,18 @@ import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
 import androidx.compose.ui.platform.LocalView
+import moe.rukamori.archivetune.constants.BackdropBlurAmountKey
+import moe.rukamori.archivetune.constants.BackdropEnabledKey
+import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
 import android.content.Context
+import android.graphics.Bitmap
+import android.os.Build
+import android.renderscript.Allocation
+import android.renderscript.Element
+import android.renderscript.RenderScript
+import android.renderscript.ScriptIntrinsicBlur
+
 import moe.rukamori.archivetune.storage.StorageFolderKind
 import moe.rukamori.archivetune.storage.StorageLocationRepository
 
@@ -281,6 +302,9 @@ fun Thumbnail(
         defaultValue = 16f
     )
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (backdropEnabled) = rememberPreference(BackdropEnabledKey, defaultValue = true)
+    val (backdropBlurAmount) = rememberPreference(BackdropBlurAmountKey, defaultValue = 60)
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     
@@ -655,19 +679,41 @@ fun Thumbnail(
                                                 playerDesignStyle != PlayerDesignStyle.V7 &&
                                                 playerDesignStyle != PlayerDesignStyle.V8
 
-                                        AsyncImage(
-                                            model = item.metadata?.thumbnailUrl?.highRes()
-                                                ?: item.mediaMetadata.artworkUri?.toString(),
-                                            contentDescription = null,
-                                            contentScale = ContentScale.FillBounds,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
-                                                .graphicsLayer(
-                                                    renderEffect = BlurEffect(radiusX = 60f, radiusY = 60f),
-                                                    alpha = 0.6f
-                                                )
-                                        )
+                                        val thumbnailBgUrl = item.metadata?.thumbnailUrl?.highRes()
+                                            ?: item.mediaMetadata.artworkUri?.toString()
+                                        val thumbnailBgBlurEnabled = backdropEnabled && !disableBlur && backdropBlurAmount > 0
+
+                                        if (thumbnailBgBlurEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                            val blurRadiusPx = (backdropBlurAmount * 60 / 100f).coerceAtMost(60f)
+                                            AsyncImage(
+                                                model = thumbnailBgUrl,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.FillBounds,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
+                                                    .graphicsLayer(
+                                                        renderEffect = BlurEffect(radiusX = blurRadiusPx, radiusY = blurRadiusPx),
+                                                        alpha = 0.6f,
+                                                    )
+                                            )
+                                        } else if (thumbnailBgBlurEnabled) {
+                                            ThumbnailBgBlurApi30(
+                                                imageUrl = thumbnailBgUrl,
+                                                blurAmount = backdropBlurAmount,
+                                                shouldCropArtwork = shouldCropArtwork,
+                                            )
+                                        } else {
+                                            AsyncImage(
+                                                model = thumbnailBgUrl,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.FillBounds,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
+                                                    .graphicsLayer(alpha = 0.6f)
+                                            )
+                                        }
 
                                         AsyncImage(
                                             model = item.metadata?.thumbnailUrl?.highRes()
@@ -724,6 +770,82 @@ fun Thumbnail(
     }
 }
 
+@Suppress("DEPRECATION")
+@Composable
+private fun ThumbnailBgBlurApi30(
+    imageUrl: String?,
+    blurAmount: Int,
+    shouldCropArtwork: Boolean,
+) {
+    val context = LocalContext.current
+    val imageLoader = context.imageLoader
+
+    val blurredBitmap by produceState<Bitmap?>(null, imageUrl, blurAmount) {
+        if (imageUrl == null) return@produceState
+        value = withContext(Dispatchers.IO) {
+            try {
+                val request = ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .allowHardware(false)
+                    .size(500)
+                    .build()
+                val result = imageLoader.execute(request)
+                when (result) {
+                    is SuccessResult -> {
+                        val bitmap = result.image.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
+                        val scale = 0.4f
+                        val sw = (bitmap.width * scale).toInt().coerceAtLeast(1)
+                        val sh = (bitmap.height * scale).toInt().coerceAtLeast(1)
+                        val scaled = Bitmap.createScaledBitmap(bitmap, sw, sh, true)
+                        if (bitmap !== scaled && !bitmap.isRecycled) bitmap.recycle()
+
+                        val radius = (blurAmount * 25 / 100f).coerceIn(1f, 25f)
+                        RenderScript.create(context).also { rs ->
+                            try {
+                                val input = Allocation.createFromBitmap(rs, scaled)
+                                val output = Allocation.createTyped(rs, input.type)
+                                ScriptIntrinsicBlur.create(rs, Element.U8_4(rs)).apply {
+                                    setRadius(radius)
+                                    setInput(input)
+                                    forEach(output)
+                                }
+                                output.copyTo(scaled)
+                            } finally {
+                                rs.destroy()
+                            }
+                        }
+                        scaled
+                    }
+                    else -> null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    val modifier = Modifier
+        .fillMaxSize()
+        .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
+        .graphicsLayer(alpha = 0.6f)
+
+    val loadedBitmap = blurredBitmap
+    if (loadedBitmap != null) {
+        Image(
+            painter = BitmapPainter(loadedBitmap.asImageBitmap()),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = modifier,
+        )
+    } else {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = modifier,
+        )
+    }
+}
 
 /*
  * Copyright (C) OuterTune Project

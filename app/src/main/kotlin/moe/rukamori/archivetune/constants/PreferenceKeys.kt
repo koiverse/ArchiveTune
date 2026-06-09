@@ -63,6 +63,10 @@ val AodAmbientIntensityKey = floatPreferencesKey("aodAmbientIntensity")
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
 val BlurRadiusKey = floatPreferencesKey("blurRadius")
+
+// Backdrop blur for detail pages
+val BackdropEnabledKey = booleanPreferencesKey("backdropEnabled")
+val BackdropBlurAmountKey = intPreferencesKey("backdropBlurAmount")
 val MiniPlayerLastAnchorKey = intPreferencesKey("miniPlayerLastAnchor")
 val MiniPlayerBackgroundStyleKey = stringPreferencesKey("miniPlayerBackgroundStyle")
 
