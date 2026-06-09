@@ -829,4 +829,8 @@
     <string name="playlist_suggestion_source_title">Назва плейлиста</string>
     <string name="playlist_suggestion_source_content">Вміст плейлиста</string>
     <string name="playlist_suggestion_source_both">Назва та вміст плейлиста</string>
+    <string name="album_backdrop">Розмиття фону</string>
+    <string name="album_backdrop_desc">Показувати зображення як розмитий фон на плеєрі</string>
+    <string name="backdrop_blur_amount">Ступінь розмиття фону</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

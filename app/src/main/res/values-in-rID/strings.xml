@@ -944,4 +944,8 @@
     <string name="save_current_account">Simpan akun saat ini</string>
     <string name="no_saved_accounts">Belum ada akun yang disimpan</string>
     <string name="remove_account">Hapus akun</string>
+    <string name="album_backdrop">Buram latar belakang</string>
+    <string name="album_backdrop_desc">Tampilkan karya seni sebagai latar belakang buram di pemutar</string>
+    <string name="backdrop_blur_amount">Jumlah buram latar belakang</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

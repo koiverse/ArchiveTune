@@ -955,4 +955,8 @@
     <string name="widget_pause">Tạm dừng</string>
     <string name="widget_previous">Bài trước</string>
     <string name="widget_tap_to_open">Nhấn để mở ArchiveTune</string>
+    <string name="album_backdrop">Mờ nền</string>
+    <string name="album_backdrop_desc">Hiển thị ảnh nghệ thuật dưới dạng nền mờ trên trình phát</string>
+    <string name="backdrop_blur_amount">Mức độ mờ nền</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>
