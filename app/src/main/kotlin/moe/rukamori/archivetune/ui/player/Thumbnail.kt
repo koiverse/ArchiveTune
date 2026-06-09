@@ -76,6 +76,9 @@ import androidx.media3.common.Player
 import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
 import androidx.compose.material3.Icon
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
@@ -119,8 +122,6 @@ import moe.rukamori.archivetune.constants.BackdropEnabledKey
 import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import moe.rukamori.archivetune.storage.StorageFolderKind
 import moe.rukamori.archivetune.storage.StorageLocationRepository
@@ -783,10 +784,14 @@ private fun BlurredBitmapBackground(
                 .size(500)
                 .build()
             val result = imageLoader.execute(request)
-            val drawable = result.image
-            val bitmap = (drawable as? BitmapDrawable)?.bitmap ?: return@withContext null
-            val pxRadius = (blurAmount * 15 / 100).coerceIn(1, 15)
-            BitmapBlur.blur(bitmap, pxRadius).asImageBitmap()
+            when (result) {
+                is SuccessResult -> {
+                    val bitmap = result.image.toBitmap()
+                    val pxRadius = (blurAmount * 15 / 100).coerceIn(1, 15)
+                    BitmapBlur.blur(bitmap, pxRadius).asImageBitmap()
+                }
+                else -> null
+            }
         }
     }
 
