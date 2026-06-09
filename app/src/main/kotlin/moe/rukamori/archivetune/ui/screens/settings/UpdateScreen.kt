@@ -168,131 +168,73 @@ fun UpdateScreen(
     var updateSheetNotes by remember { mutableStateOf<String?>(null) }
     var updateSheetError by remember { mutableStateOf<String?>(null) }
     var updateSheetIsSameVersion by remember { mutableStateOf(false) }
+    var showUpdateUpToDateDialog by remember { mutableStateOf(false) }
+    var showUpdateErrorDialog by remember { mutableStateOf(false) }
 
     val updateSheetContent: @Composable ColumnScope.() -> Unit = {
-        if (updateSheetLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    LoadingIndicator(modifier = Modifier.size(32.dp))
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.updates_status_checking),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else if (updateSheetError != null) {
-            Text(
-                text = stringResource(R.string.error_loading_changelog),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = updateSheetError ?: "",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else if (updateSheetIsSameVersion) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        painter = painterResource(R.drawable.done),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.updates_status_current),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = updateSheetVersion ?: BuildConfig.VERSION_NAME,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        } else {
-            Text(
-                text = stringResource(R.string.new_update_available),
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(top = 16.dp)
-            )
+        Text(
+            text = stringResource(R.string.new_update_available),
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(top = 16.dp)
+        )
 
-            Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(8.dp))
 
-            OutlinedButton(
-                onClick = {},
-                contentPadding = PaddingValues(horizontal = 5.dp, vertical = 5.dp),
-                shapes = ButtonDefaults.shapes(),
-            ) {
+        OutlinedButton(
+            onClick = {},
+            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 5.dp),
+            shapes = ButtonDefaults.shapes(),
+        ) {
+            Text(
+                text = updateSheetVersion ?: "",
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+        ) {
+            val notes = updateSheetNotes
+            if (notes != null && notes.isNotBlank()) {
+                MarkdownText(
+                    markdown = notes,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 8.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            } else {
                 Text(
-                    text = updateSheetVersion ?: "",
-                    style = MaterialTheme.typography.labelLarge
+                    text = stringResource(R.string.release_notes_unavailable),
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
+        }
 
-            Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(12.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                val notes = updateSheetNotes
-                if (notes != null && notes.isNotBlank()) {
-                    MarkdownText(
-                        markdown = notes,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 8.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.release_notes_unavailable),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
+        val downloadUrl = when (updateChannel) {
+            UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyDownloadUrl()
+            UpdateChannel.NIGHTLY -> Updater.getLatestNightlyDownloadUrl()
+            else -> Updater.getLatestDownloadUrl()
+        }
 
-            Spacer(Modifier.height(12.dp))
-
-            val downloadUrl = when (updateChannel) {
-                UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyDownloadUrl()
-                UpdateChannel.NIGHTLY -> Updater.getLatestNightlyDownloadUrl()
-                else -> Updater.getLatestDownloadUrl()
-            }
-
-            Button(
-                onClick = {
-                    try {
-                        uriHandler.openUri(downloadUrl)
-                    } catch (_: Exception) {}
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(text = stringResource(R.string.update_text))
-            }
+        Button(
+            onClick = {
+                try {
+                    uriHandler.openUri(downloadUrl)
+                } catch (_: Exception) {}
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
+        ) {
+            Text(text = stringResource(R.string.update_text))
         }
     }
 
@@ -302,7 +244,8 @@ fun UpdateScreen(
         updateSheetNotes = null
         updateSheetError = null
         updateSheetIsSameVersion = false
-        updateSheetState.show(updateSheetContent)
+        showUpdateUpToDateDialog = false
+        showUpdateErrorDialog = false
 
         coroutineScope.launch {
             val versionResult = when (updateChannel) {
@@ -320,14 +263,21 @@ fun UpdateScreen(
                 }
             }
 
+            updateSheetLoading = false
+
             versionResult.onSuccess { version ->
                 updateSheetIsSameVersion = Updater.isSameVersion(version, BuildConfig.VERSION_NAME)
                 updateSheetVersion = version
+
+                if (updateSheetIsSameVersion) {
+                    showUpdateUpToDateDialog = true
+                } else {
+                    updateSheetState.show(updateSheetContent)
+                }
             }.onFailure { e ->
                 updateSheetError = e.message ?: "Failed to check for updates"
+                showUpdateErrorDialog = true
             }
-
-            updateSheetLoading = false
         }
     }
 
@@ -939,6 +889,86 @@ fun UpdateScreen(
     }
 
     BottomSheetPage(state = updateSheetState)
+
+    if (updateSheetLoading) {
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {},
+            title = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(Modifier.height(16.dp))
+                    LoadingIndicator(modifier = Modifier.size(32.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.updates_status_checking),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        )
+    }
+
+    if (showUpdateUpToDateDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateUpToDateDialog = false },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.done),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.updates_status_current),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = {
+                Text(
+                    text = updateSheetVersion ?: BuildConfig.VERSION_NAME,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showUpdateUpToDateDialog = false }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        )
+    }
+
+    if (showUpdateErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateErrorDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.error_loading_changelog),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            },
+            text = {
+                Text(
+                    text = updateSheetError ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showUpdateErrorDialog = false }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        )
+    }
 }
 
 @Composable
