@@ -241,7 +241,7 @@ object Updater {
         cachedEtag: String?,
     ): ReleasesNetworkResult {
         val response: HttpResponse =
-            client.get("https://api.github.com/repos/koiverse/ArchiveTune/releases?per_page=$perPage") {
+            client.get("https://api.github.com/repos/ArchiveTuneApp/ArchiveTune/releases?per_page=$perPage") {
                 headers {
                     append("Accept", "application/vnd.github+json")
                     append("User-Agent", "ArchiveTune")
@@ -347,7 +347,7 @@ object Updater {
             return ""
         }
 
-        return "https://nightly.link/koiverse/ArchiveTune/workflows/build/dev/app-$distributionArtifactPrefix${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release"
+        return "https://nightly.link/ArchiveTuneApp/ArchiveTune/workflows/build/dev/app-$distributionArtifactPrefix${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-release"
     }
 
     suspend fun getLatestDailyNightlyVersionName(): Result<String> =
