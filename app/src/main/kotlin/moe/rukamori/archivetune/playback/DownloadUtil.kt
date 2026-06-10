@@ -11,7 +11,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.telephony.TelephonyManager
-import androidx.core.content.getSystemService
+
 import androidx.core.net.toUri
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.datasource.ResolvingDataSource
@@ -68,7 +68,7 @@ constructor(
     @PlayerCache val playerCache: Cache,
     private val audioFileExporter: AudioFileExporter,
 ) {
-    private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
+    private val connectivityManager = context.getSystemService(ConnectivityManager::class.java)!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
     private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val exportScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
