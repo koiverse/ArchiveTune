@@ -251,7 +251,7 @@ constructor(
                 WIFI_MAX_PARALLEL_DOWNLOADS
 
             networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
-                val telephonyManager = context.getSystemService<TelephonyManager>()
+                val telephonyManager = context.getSystemService(TelephonyManager::class.java)
                 val networkType = telephonyManager?.dataNetworkType ?: TelephonyManager.NETWORK_TYPE_UNKNOWN
                 when {
                     isHighSpeedMobile(networkType) -> MOBILE_HIGH_MAX_PARALLEL_DOWNLOADS

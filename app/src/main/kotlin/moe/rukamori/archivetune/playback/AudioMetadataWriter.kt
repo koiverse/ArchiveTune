@@ -185,8 +185,7 @@ class AudioMetadataWriter @Inject constructor() {
     ) {
         try {
             val tempFile = File(file.parentFile, "${file.name}.tmp")
-            val raf = RandomAccessFile(file, "r")
-            val originalBytes = raf.use { it.readBytes() }
+            val originalBytes = file.readBytes()
             val originalSize = originalBytes.size
 
             val metaAtom = buildM4aMetadataAtom(title, artist, album, year, coverArt)
