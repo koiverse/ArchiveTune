@@ -264,6 +264,20 @@ val WakelockKey = booleanPreferencesKey("wakelock")
 val ArtistSeparatorsKey = stringPreferencesKey("artistSeparators")
 val ExternalDownloaderEnabledKey = booleanPreferencesKey("externalDownloaderEnabled")
 val ExternalDownloaderPackageKey = stringPreferencesKey("externalDownloaderPackage")
+
+// Audio export settings
+val AudioExportPathKey = stringPreferencesKey("audioExportPath")
+val AudioExportUriKey = stringPreferencesKey("audioExportUri")
+val AudioExportFormatKey = stringPreferencesKey("audioExportFormat")
+val SaveThumbnailKey = booleanPreferencesKey("saveThumbnail")
+
+enum class AudioExportFormat {
+    SOURCE,
+    OPUS,
+    M4A,
+    MP3,
+    FLAC,
+}
 val PlaylistTagsFilterKey = stringPreferencesKey("playlistTagsFilter")
 val ShowHomeCategoryChipsKey = booleanPreferencesKey("showHomeCategoryChips")
 val ShowTagsInLibraryKey = booleanPreferencesKey("showTagsInLibrary")

@@ -9,6 +9,8 @@ package moe.rukamori.archivetune.playback
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.telephony.TelephonyManager
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.media3.database.DatabaseProvider
@@ -64,12 +66,15 @@ constructor(
     val databaseProvider: DatabaseProvider,
     @DownloadCache val downloadCache: Cache,
     @PlayerCache val playerCache: Cache,
+    private val audioFileExporter: AudioFileExporter,
 ) {
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
     private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val exportScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val songUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
-    private val downloadExecutor = Executors.newFixedThreadPool(DEFAULT_MAX_PARALLEL_DOWNLOADS)
+    private val optimalParallelism = resolveOptimalParallelism()
+    private val downloadExecutor = Executors.newFixedThreadPool(optimalParallelism)
 
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
@@ -81,7 +86,7 @@ constructor(
             .dispatcher(
                 okhttp3.Dispatcher().apply {
                     maxRequests = MAX_DOWNLOAD_HTTP_REQUESTS
-                    maxRequestsPerHost = DEFAULT_MAX_PARALLEL_DOWNLOADS
+                    maxRequestsPerHost = optimalParallelism
                 },
             )
             .connectionPool(
@@ -179,7 +184,7 @@ constructor(
             dataSourceFactory,
             downloadExecutor,
         ).apply {
-            maxParallelDownloads = DEFAULT_MAX_PARALLEL_DOWNLOADS
+            maxParallelDownloads = optimalParallelism
             addListener(
                 object : DownloadManager.Listener {
                     override fun onDownloadChanged(
@@ -190,6 +195,14 @@ constructor(
                         downloads.update { map ->
                             map.toMutableMap().apply {
                                 set(download.request.id, download)
+                            }
+                        }
+
+                        if (download.state == Download.STATE_COMPLETED &&
+                            finalException == null
+                        ) {
+                            exportScope.launch {
+                                audioFileExporter.exportSingleSongById(download.request.id)
                             }
                         }
                     }
@@ -224,6 +237,41 @@ constructor(
 
     private fun resolveDownloadAudioQuality(lowDataModeActive: Boolean): AudioQuality =
         if (lowDataModeActive) AudioQuality.LOW else audioQuality
+
+    private fun resolveOptimalParallelism(): Int {
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(
+            connectivityManager.activeNetwork,
+        ) ?: return DEFAULT_MAX_PARALLEL_DOWNLOADS
+
+        return when {
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ->
+                WIFI_MAX_PARALLEL_DOWNLOADS
+
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ->
+                WIFI_MAX_PARALLEL_DOWNLOADS
+
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
+                val telephonyManager = context.getSystemService<TelephonyManager>()
+                val networkType = telephonyManager?.dataNetworkType ?: TelephonyManager.NETWORK_TYPE_UNKNOWN
+                when {
+                    isHighSpeedMobile(networkType) -> MOBILE_HIGH_MAX_PARALLEL_DOWNLOADS
+                    else -> MOBILE_LOW_MAX_PARALLEL_DOWNLOADS
+                }
+            }
+
+            else -> DEFAULT_MAX_PARALLEL_DOWNLOADS
+        }
+    }
+
+    private fun isHighSpeedMobile(networkType: Int): Boolean = when (networkType) {
+        TelephonyManager.NETWORK_TYPE_LTE,
+        TelephonyManager.NETWORK_TYPE_NR, // 5G
+        TelephonyManager.NETWORK_TYPE_HSPAP,
+        TelephonyManager.NETWORK_TYPE_HSDPA,
+        -> true
+
+        else -> false
+    }
 
     private fun buildSongUrlCacheKey(
         mediaId: String,
@@ -283,8 +331,11 @@ constructor(
 
     companion object {
         private const val DEFAULT_MAX_PARALLEL_DOWNLOADS = 6
+        private const val WIFI_MAX_PARALLEL_DOWNLOADS = 8
+        private const val MOBILE_HIGH_MAX_PARALLEL_DOWNLOADS = 6
+        private const val MOBILE_LOW_MAX_PARALLEL_DOWNLOADS = 3
         private const val MAX_IDLE_DOWNLOAD_CONNECTIONS = 12
         private const val MAX_DOWNLOAD_HTTP_REQUESTS = 24
-        private const val DOWNLOAD_CONNECTION_KEEP_ALIVE_MINUTES = 5L
+        private const val DOWNLOAD_CONNECTION_KEEP_ALIVE_MINUTES = 10L
     }
 }

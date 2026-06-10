@@ -981,4 +981,27 @@
     <string name="no_saved_accounts">No saved accounts yet</string>
     <string name="remove_account">Remove account</string>
     <string name="youtube_channels">YouTube channels</string>
+
+    <!-- Audio export settings -->
+    <string name="audio_export_location">Audio file location</string>
+    <string name="audio_export_location_desc">Choose where downloaded audio files are saved</string>
+    <string name="audio_export_not_configured">Not configured — using default Music/ArchiveTune</string>
+    <string name="audio_export_pick_folder">Choose audio export folder</string>
+    <string name="audio_export_reset">Use default location</string>
+    <string name="audio_export_format">Audio format</string>
+    <string name="audio_export_format_desc">Format of exported audio files</string>
+    <string name="audio_export_format_source">Original (source)</string>
+    <string name="audio_export_format_opus">Opus</string>
+    <string name="audio_export_format_m4a">M4A (AAC)</string>
+    <string name="audio_export_format_mp3">MP3</string>
+    <string name="audio_export_format_flac">FLAC</string>
+    <string name="audio_export_save_thumbnail">Save thumbnail image</string>
+    <string name="audio_export_save_thumbnail_desc">Save cover art as .jpg alongside audio</string>
+    <string name="audio_export_success">Exported: %1$s</string>
+    <string name="audio_export_failed">Export failed: %1$s</string>
+    <string name="export_all_downloads">Export all downloads</string>
+    <string name="export_all_downloads_desc">Copy completed downloads to audio folder</string>
+    <string name="export_all_confirm">Export all downloaded songs?</string>
+    <string name="export_all_progress">Exporting… %1$d / %2$d</string>
+    <string name="export_all_prefs_note">Configure audio export folder and format first</string>
 </resources>

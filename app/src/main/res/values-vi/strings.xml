@@ -984,4 +984,27 @@
     <string name="proxy_connection_invalid_configuration">Máy chủ proxy hoặc cổng không hợp lệ</string>
     <!-- YouTube channels -->
     <string name="youtube_channels">Kênh YouTube</string>
+
+    <!-- Audio export settings -->
+    <string name="audio_export_location">Nơi lưu trữ file audio</string>
+    <string name="audio_export_location_desc">Chọn thư mục lưu file audio đã tải xuống</string>
+    <string name="audio_export_not_configured">Chưa cấu hình — đang dùng Music/ArchiveTune mặc định</string>
+    <string name="audio_export_pick_folder">Chọn thư mục xuất audio</string>
+    <string name="audio_export_reset">Dùng vị trí mặc định</string>
+    <string name="audio_export_format">Định dạng audio</string>
+    <string name="audio_export_format_desc">Định dạng của file audio khi xuất ra</string>
+    <string name="audio_export_format_source">Gốc (nguồn)</string>
+    <string name="audio_export_format_opus">Opus</string>
+    <string name="audio_export_format_m4a">M4A (AAC)</string>
+    <string name="audio_export_format_mp3">MP3</string>
+    <string name="audio_export_format_flac">FLAC</string>
+    <string name="audio_export_save_thumbnail">Lưu thumbnail audio</string>
+    <string name="audio_export_save_thumbnail_desc">Lưu ảnh bìa dưới dạng .jpg cùng với file audio</string>
+    <string name="audio_export_success">Đã xuất: %1$s</string>
+    <string name="audio_export_failed">Xuất thất bại: %1$s</string>
+    <string name="export_all_downloads">Xuất tất cả bản tải xuống</string>
+    <string name="export_all_downloads_desc">Sao chép bản tải xuống đã hoàn tất vào thư mục audio</string>
+    <string name="export_all_confirm">Xuất tất cả bài hát đã tải xuống?</string>
+    <string name="export_all_progress">Đang xuất… %1$d / %2$d</string>
+    <string name="export_all_prefs_note">Cấu hình thư mục và định dạng xuất audio trước</string>
 </resources>

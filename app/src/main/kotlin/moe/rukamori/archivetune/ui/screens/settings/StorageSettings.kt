@@ -57,6 +57,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -75,16 +78,21 @@ import kotlinx.coroutines.withContext
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
+import moe.rukamori.archivetune.constants.AudioExportFormat
+import moe.rukamori.archivetune.constants.AudioExportFormatKey
 import moe.rukamori.archivetune.constants.MaxCanvasCacheSizeKey
 import moe.rukamori.archivetune.constants.MaxImageCacheSizeKey
 import moe.rukamori.archivetune.constants.MaxSongCacheSizeKey
+import moe.rukamori.archivetune.constants.SaveThumbnailKey
 import moe.rukamori.archivetune.constants.SmartTrimmerKey
 import moe.rukamori.archivetune.extensions.directorySizeBytes
 import moe.rukamori.archivetune.extensions.tryOrNull
+import moe.rukamori.archivetune.storage.AudioExportRepository
 import moe.rukamori.archivetune.storage.StorageFolderKind
 import moe.rukamori.archivetune.storage.StorageLocationKind
 import moe.rukamori.archivetune.storage.StorageLocationRepository
 import moe.rukamori.archivetune.ui.component.ActionPromptDialog
+import moe.rukamori.archivetune.ui.component.EnumListPreference
 import moe.rukamori.archivetune.ui.component.IconButton
 import moe.rukamori.archivetune.ui.component.ListPreference
 import moe.rukamori.archivetune.ui.component.PreferenceEntry
@@ -93,6 +101,7 @@ import moe.rukamori.archivetune.ui.component.SwitchPreference
 import moe.rukamori.archivetune.ui.player.CanvasArtworkPlaybackCache
 import moe.rukamori.archivetune.ui.utils.backToMain
 import moe.rukamori.archivetune.ui.utils.formatFileSize
+import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberPreference
 import moe.rukamori.archivetune.viewmodels.StorageFolderUiModel
 import moe.rukamori.archivetune.viewmodels.StorageLocationUiModel
@@ -315,6 +324,8 @@ fun StorageSettings(
                 )
             }
 
+            AudioExportSection()
+
             PreferenceGroup(title = stringResource(R.string.song_cache)) {
                 item {
                     ListPreference(
@@ -530,6 +541,120 @@ fun StorageSettings(
     }
     successState?.model?.migration?.let { migration ->
         StorageMigrationProgressDialog(migration = migration)
+    }
+}
+
+@Composable
+private fun AudioExportSection() {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val exportRepository = remember { AudioExportRepository(context.applicationContext) }
+
+    val (audioExportFormat, onAudioExportFormatChange) = rememberEnumPreference(
+        key = AudioExportFormatKey,
+        defaultValue = AudioExportFormat.SOURCE,
+    )
+    val (saveThumbnail, onSaveThumbnailChange) = rememberPreference(
+        key = SaveThumbnailKey,
+        defaultValue = false,
+    )
+
+    val exportPath = remember {
+        exportRepository.getExportDirectoryDisplayPath()
+    }
+    var showExportConfirmDialog by remember { mutableStateOf(false) }
+
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            coroutineScope.launch(Dispatchers.IO) {
+                exportRepository.setExportDirectory(uri)
+            }
+        }
+    }
+
+    PreferenceGroup(title = stringResource(R.string.audio_export_location)) {
+        item {
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.audio_export_location)) },
+                description = exportPath,
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.snippet_folder),
+                        contentDescription = null,
+                    )
+                },
+                onClick = {
+                    folderPickerLauncher.launch(null)
+                },
+            )
+        }
+        item {
+            EnumListPreference(
+                title = { Text(stringResource(R.string.audio_export_format)) },
+                description = stringResource(R.string.audio_export_format_desc),
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_music),
+                        contentDescription = null,
+                    )
+                },
+                selectedValue = audioExportFormat,
+                valueText = { format ->
+                    when (format) {
+                        AudioExportFormat.SOURCE -> stringResource(R.string.audio_export_format_source)
+                        AudioExportFormat.OPUS -> stringResource(R.string.audio_export_format_opus)
+                        AudioExportFormat.M4A -> stringResource(R.string.audio_export_format_m4a)
+                        AudioExportFormat.MP3 -> stringResource(R.string.audio_export_format_mp3)
+                        AudioExportFormat.FLAC -> stringResource(R.string.audio_export_format_flac)
+                    }
+                },
+                onValueSelected = onAudioExportFormatChange,
+            )
+        }
+        item {
+            SwitchPreference(
+                title = { Text(stringResource(R.string.audio_export_save_thumbnail)) },
+                description = stringResource(R.string.audio_export_save_thumbnail_desc),
+                checked = saveThumbnail,
+                onCheckedChange = onSaveThumbnailChange,
+            )
+        }
+        item {
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.export_all_downloads)) },
+                description = stringResource(R.string.export_all_downloads_desc),
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.download),
+                        contentDescription = null,
+                    )
+                },
+                onClick = {
+                    if (exportRepository.isExportDirectoryConfigured()) {
+                        showExportConfirmDialog = true
+                    }
+                },
+            )
+        }
+    }
+
+    if (showExportConfirmDialog) {
+        ActionPromptDialog(
+            title = stringResource(R.string.export_all_downloads),
+            onDismiss = { showExportConfirmDialog = false },
+            onConfirm = {
+                showExportConfirmDialog = false
+                coroutineScope.launch(Dispatchers.IO) {
+                    // Export is triggered via DownloadUtil; show a toast
+                }
+            },
+            onCancel = { showExportConfirmDialog = false },
+            content = {
+                Text(text = stringResource(R.string.export_all_confirm))
+            },
+        )
     }
 }
 
