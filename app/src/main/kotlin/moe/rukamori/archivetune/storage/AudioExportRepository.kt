@@ -22,6 +22,7 @@ import moe.rukamori.archivetune.constants.AudioExportPathKey
 import moe.rukamori.archivetune.constants.AudioExportUriKey
 import moe.rukamori.archivetune.utils.PreferenceStore
 import moe.rukamori.archivetune.utils.dataStore
+import moe.rukamori.archivetune.R
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -63,9 +64,23 @@ class AudioExportRepository
     fun getExportDirectoryDisplayPath(): String {
         val path = PreferenceStore.get(AudioExportPathKey)?.takeIf(String::isNotBlank)
         val uri = PreferenceStore.get(AudioExportUriKey)?.takeIf(String::isNotBlank)
-        return path ?: uri ?: context.getString(
-            moe.rukamori.archivetune.R.string.audio_export_not_configured
-        )
+        return path ?: uri ?: context.getString(R.string.audio_export_pick_folder)
+    }
+
+    fun isExportDirectoryAccessible(): Boolean {
+        val path = PreferenceStore.get(AudioExportPathKey)?.takeIf(String::isNotBlank)
+        if (path != null) {
+            val file = File(path)
+            return file.exists() && file.canWrite()
+        }
+        val uriString = PreferenceStore.get(AudioExportUriKey)?.takeIf(String::isNotBlank)
+        if (uriString != null) {
+            return context.checkUriPermission(
+                uriString.toUri(), 0, 0,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        return true
     }
 
     suspend fun setExportDirectory(uri: Uri): Result<File> = withContext(Dispatchers.IO) {

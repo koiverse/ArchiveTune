@@ -559,17 +559,29 @@ private fun AudioExportSection() {
         defaultValue = false,
     )
 
-    val exportPath = remember {
-        exportRepository.getExportDirectoryDisplayPath()
-    }
+    var exportPath by remember { mutableStateOf(exportRepository.getExportDirectoryDisplayPath()) }
+    var folderError by remember { mutableStateOf<String?>(null) }
     var showExportConfirmDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (exportRepository.isExportDirectoryConfigured() && !exportRepository.isExportDirectoryAccessible()) {
+            folderError = context.getString(R.string.audio_export_folder_inaccessible)
+        }
+    }
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri: Uri? ->
         if (uri != null) {
             coroutineScope.launch(Dispatchers.IO) {
-                exportRepository.setExportDirectory(uri)
+                val result = exportRepository.setExportDirectory(uri)
+                result.onSuccess {
+                    exportPath = exportRepository.getExportDirectoryDisplayPath()
+                    folderError = null
+                }.onFailure { error ->
+                    folderError = error.message
+                        ?: context.getString(R.string.audio_export_folder_inaccessible)
+                }
             }
         }
     }
@@ -585,10 +597,31 @@ private fun AudioExportSection() {
                         contentDescription = null,
                     )
                 },
+                trailingContent = if (folderError != null) {
+                    {
+                        Icon(
+                            painter = painterResource(R.drawable.error),
+                            contentDescription = folderError,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                } else {
+                    null
+                },
                 onClick = {
                     folderPickerLauncher.launch(null)
                 },
             )
+        }
+        if (folderError != null) {
+            item {
+                Text(
+                    text = folderError!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
         }
         item {
             EnumListPreference(

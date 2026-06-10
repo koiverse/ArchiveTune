@@ -990,6 +990,7 @@
     <string name="audio_export_location_desc">Chọn thư mục lưu file audio đã tải xuống</string>
     <string name="audio_export_not_configured">Chưa cấu hình — đang dùng Music/ArchiveTune mặc định</string>
     <string name="audio_export_pick_folder">Chọn thư mục xuất audio</string>
+    <string name="audio_export_folder_inaccessible">Không thể truy cập thư mục đã chọn</string>
     <string name="audio_export_reset">Dùng vị trí mặc định</string>
     <string name="audio_export_format">Định dạng audio</string>
     <string name="audio_export_format_desc">Định dạng của file audio khi xuất ra</string>

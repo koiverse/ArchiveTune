@@ -987,6 +987,7 @@
     <string name="audio_export_location_desc">Choose where downloaded audio files are saved</string>
     <string name="audio_export_not_configured">Not configured — using default Music/ArchiveTune</string>
     <string name="audio_export_pick_folder">Choose audio export folder</string>
+    <string name="audio_export_folder_inaccessible">Cannot access selected folder</string>
     <string name="audio_export_reset">Use default location</string>
     <string name="audio_export_format">Audio format</string>
     <string name="audio_export_format_desc">Format of exported audio files</string>
