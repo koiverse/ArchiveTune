@@ -73,8 +73,18 @@ class AudioExportRepository
             val docFile = DocumentFile.fromTreeUri(context, uri)
                 ?: return@runCatching error("Invalid URI")
 
-            if (!docFile.exists() && docFile.mkdir() == null) {
-                return@runCatching error("Cannot create directory")
+            if (!docFile.exists()) {
+                val treeDocId = DocumentsContract.getTreeDocumentId(docFile.uri)
+                val parentUri = DocumentsContract.buildDocumentUriUsingTree(docFile.uri, treeDocId)
+                val createdUri = DocumentsContract.createDocument(
+                    context.contentResolver,
+                    parentUri,
+                    DocumentsContract.Document.MIME_TYPE_DIR,
+                    docFile.name ?: return@runCatching error("Cannot get directory name"),
+                )
+                if (createdUri == null) {
+                    return@runCatching error("Cannot create directory")
+                }
             }
 
             runCatching {
