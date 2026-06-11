@@ -231,6 +231,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
+import moe.rukamori.archivetune.constants.UpdateChannel
+import moe.rukamori.archivetune.constants.UpdateChannelKey
 import moe.rukamori.archivetune.utils.rememberPreference
 import moe.rukamori.archivetune.playback.PlayerConnection
 import moe.rukamori.archivetune.playback.queues.LocalAlbumRadio
@@ -506,6 +508,8 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+            val updateChannel by rememberEnumPreference(UpdateChannelKey, defaultValue = UpdateChannel.STABLE)
+
             LaunchedEffect(Unit) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                     ContextCompat.checkSelfPermission(
@@ -520,8 +524,14 @@ class MainActivity : ComponentActivity() {
                     BuildConfig.UPDATER_AVAILABLE &&
                     System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds
                 ) {
-                    Updater.getLatestVersionName().onSuccess {
-                        latestVersionName = it
+                    if (updateChannel != UpdateChannel.NIGHTLY) {
+                        val versionResult = when (updateChannel) {
+                            UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyVersionName()
+                            else -> Updater.getLatestVersionName()
+                        }
+                        versionResult.onSuccess {
+                            latestVersionName = it
+                        }
                     }
                 }
                 moe.rukamori.archivetune.utils.UpdateNotificationManager.checkForUpdates(this@MainActivity)
@@ -584,7 +594,12 @@ class MainActivity : ComponentActivity() {
                         androidx.compose.material3.Button(
                             onClick = {
                                 try {
-                                    uriHandler.openUri(Updater.getLatestDownloadUrl())
+                                    val downloadUrl = when (updateChannel) {
+                                        UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyDownloadUrl()
+                                        UpdateChannel.NIGHTLY -> Updater.getLatestNightlyDownloadUrl()
+                                        UpdateChannel.STABLE -> Updater.getLatestDownloadUrl()
+                                    }
+                                    uriHandler.openUri(downloadUrl)
                                 } catch (_: Exception) {}
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -600,7 +615,11 @@ class MainActivity : ComponentActivity() {
                             BuildConfig.UPDATER_AVAILABLE &&
                             !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
                         ) {
-                            Updater.getLatestReleaseNotes().onSuccess {
+                            val releaseNotesResult = when (updateChannel) {
+                                UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyReleaseNotes()
+                                else -> Updater.getLatestReleaseNotes()
+                            }
+                            releaseNotesResult.onSuccess {
                                 releaseNotesState.value = it
                             }.onFailure {
                                 releaseNotesState.value = null
