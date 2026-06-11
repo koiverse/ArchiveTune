@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.Headers.Companion.toHeaders
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -77,7 +79,7 @@ object BotGuardTokenGenerator {
     private var appContext: Context? = null
     private var permanentlyBroken = false
 
-    private val lock = Any()
+    private val mutex = Mutex()
     private var engine: BotGuardEngine? = null
     private var engineSessionId: String? = null
     private var cachedSessionToken: String? = null
@@ -145,7 +147,7 @@ object BotGuardTokenGenerator {
         if (permanentlyBroken) return null
 
         // Check player token cache first
-        synchronized(lock) {
+        mutex.withLock {
             val cachedPlayer = playerTokenCache[videoId]
             if (cachedPlayer != null && cachedSessionToken != null && engineReady) {
                 Timber.tag(TAG).d("Cache hit for $videoId")
@@ -160,7 +162,7 @@ object BotGuardTokenGenerator {
             withTimeout(timeout) {
                 val result = mintTokenInternal(ctx, videoId, sessionId, forceNewEngine = false)
                 // Cache the player token
-                synchronized(lock) {
+                mutex.withLock {
                     playerTokenCache[videoId] = result.playerToken
                 }
                 result
@@ -184,8 +186,8 @@ object BotGuardTokenGenerator {
      * Call from `onTrimMemory(TRIM_MEMORY_UI_HIDDEN)` or similar.
      * The engine is recreated on the next [mintToken] call.
      */
-    fun onAppBackgrounded() {
-        synchronized(lock) {
+    suspend fun onAppBackgrounded() {
+        mutex.withLock {
             if (engine != null) {
                 Timber.tag(TAG).d("Releasing engine (app backgrounded)")
                 destroyEngine()
@@ -197,8 +199,8 @@ object BotGuardTokenGenerator {
      * Invalidate the player token cache for a specific video.
      * Useful when the user's auth state changes.
      */
-    fun invalidatePlayerToken(videoId: String) {
-        synchronized(lock) {
+    suspend fun invalidatePlayerToken(videoId: String) {
+        mutex.withLock {
             playerTokenCache.remove(videoId)
         }
     }
@@ -207,8 +209,8 @@ object BotGuardTokenGenerator {
      * Invalidate all cached tokens.
      * Call when the user logs out or auth state changes.
      */
-    fun invalidateAll() {
-        synchronized(lock) {
+    suspend fun invalidateAll() {
+        mutex.withLock {
             playerTokenCache.clear()
             destroyEngine()
         }
@@ -226,7 +228,7 @@ object BotGuardTokenGenerator {
         sessionId: String,
         forceNewEngine: Boolean,
     ): PoTokenResult {
-        val (eng, sessionTok, wasNew) = synchronized(lock) {
+        val (eng, sessionTok, wasNew) = mutex.withLock {
             val needsNew = forceNewEngine
                 || engine == null
                 || engine!!.isExpired

@@ -105,7 +105,9 @@ class App : Application(), SingletonImageLoader.Factory {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         if (level >= TRIM_MEMORY_UI_HIDDEN) {
-            BotGuardTokenGenerator.onAppBackgrounded()
+            applicationScope.launch(Dispatchers.Main) {
+                BotGuardTokenGenerator.onAppBackgrounded()
+            }
         }
     }
 
