@@ -252,7 +252,7 @@ fun LyricsScreen(
         gradientColorsCache[thumbnailUrl] = gradientColors
     }
 
-    LaunchedEffect(player, playbackState) {
+    LaunchedEffect(player, playbackState, mediaMetadata.id) {
         if (playbackState != STATE_READY && playbackState != STATE_BUFFERING) return@LaunchedEffect
         while (isActive) {
             positionState.longValue = player.currentPosition.coerceAtLeast(0L)
