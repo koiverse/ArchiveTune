@@ -469,7 +469,7 @@ fun AboutScreen(
 
             Row {
                 IconButton(
-                    onClick = { uriHandler.openUri(stringResource(R.string.about_repo_url)) },
+                    onClick = { uriHandler.openUri("https://github.com/ArchiveTuneApp/ArchiveTune") },
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.github),
@@ -480,7 +480,7 @@ fun AboutScreen(
                 Spacer(Modifier.width(8.dp))
 
                 IconButton(
-                    onClick = { uriHandler.openUri(stringResource(R.string.about_website_url)) },
+                    onClick = { uriHandler.openUri("https://archivetune.koiiverse.cloud") },
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.website),
@@ -491,7 +491,7 @@ fun AboutScreen(
                 Spacer(Modifier.width(8.dp))
 
                 IconButton(
-                    onClick = { uriHandler.openUri(stringResource(R.string.about_telegram_url)) },
+                    onClick = { uriHandler.openUri("https://t.me/ArchiveTuneGC") },
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.telegram),
@@ -502,7 +502,7 @@ fun AboutScreen(
                 Spacer(Modifier.width(8.dp))
 
                 IconButton(
-                    onClick = { uriHandler.openUri(stringResource(R.string.about_donate_url)) },
+                    onClick = { uriHandler.openUri("https://sociabuzz.com/chrtrxwstia") },
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.coffee),
