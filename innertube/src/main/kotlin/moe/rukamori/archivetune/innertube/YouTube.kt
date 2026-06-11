@@ -70,7 +70,6 @@ import moe.rukamori.archivetune.innertube.pages.SearchResult
 import moe.rukamori.archivetune.innertube.pages.SearchSuggestionPage
 import moe.rukamori.archivetune.innertube.pages.SearchSummary
 import moe.rukamori.archivetune.innertube.pages.SearchSummaryPage
-import moe.rukamori.archivetune.innertube.utils.PoTokenGenerator
 import moe.rukamori.archivetune.innertube.proxy.RotatingProxyClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
