@@ -564,7 +564,7 @@ object YTPlayerUtils {
                 reason = if (hasLoginCookie) "cookie-only playback fallback" else "anonymous playback bootstrap",
             )
         }
-        val sessionId = authState.sessionId
+        val sessionId = authState.visitorData
         val authStatus =
             when {
                 canUseLoggedInPlayback -> "Logged in"
@@ -640,7 +640,7 @@ object YTPlayerUtils {
             YouTube.authState = authState
             clearPlaybackAuthCaches()
 
-            val newSessionId = authState.sessionId
+            val newSessionId = authState.visitorData
             if (metadataClient.useWebPoTokens && newSessionId != null) {
                 try {
                     val tokenResult = BotGuardTokenGenerator.mintToken(videoId, newSessionId)
@@ -969,7 +969,7 @@ object YTPlayerUtils {
         Timber.tag(logTag).i("Fetching metadata player response for videoId: $videoId")
 
         val signatureTimestamp = getSignatureTimestampOrNull(videoId)
-        val sessionId = authState.sessionId
+        val sessionId = authState.visitorData
         var poToken: String? = null
 
         if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
