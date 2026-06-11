@@ -133,7 +133,16 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalView
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.runtime.produceState
 import androidx.core.graphics.drawable.toBitmap
+import android.graphics.Bitmap
+import android.os.Build
+import android.renderscript.Allocation
+import android.renderscript.Element
+import android.renderscript.RenderScript
+import android.renderscript.ScriptIntrinsicBlur
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_BUFFERING
@@ -147,6 +156,7 @@ import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
+import coil3.request.SuccessResult
 import coil3.toBitmap
 import moe.rukamori.archivetune.LocalDownloadUtil
 import moe.rukamori.archivetune.LocalPlayerConnection
@@ -1656,25 +1666,125 @@ private fun V8PlayerBackdrop(
             .background(Color.Black),
     ) {
         if (backdropModel != null) {
-            AsyncImage(
-                model = backdropModel,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(if (blurRadiusDp > 0.dp) Modifier.blur(blurRadiusDp) else Modifier)
-                    .graphicsLayer {
-                        scaleX = 1.16f
-                        scaleY = 1.16f
-                        alpha = 0.66f
-                    },
-            )
+            val backdropHasBlur = backdropBlurAmount > 0
+            if (backdropHasBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                AsyncImage(
+                    model = backdropModel,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (blurRadiusDp > 0.dp) Modifier.blur(blurRadiusDp) else Modifier)
+                        .graphicsLayer {
+                            scaleX = 1.16f
+                            scaleY = 1.16f
+                            alpha = 0.66f
+                        },
+                )
+            } else if (backdropHasBlur) {
+                BackdropBlurApi30(
+                    model = backdropModel,
+                    blurAmount = backdropBlurAmount,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = 1.16f
+                            scaleY = 1.16f
+                            alpha = 0.66f
+                        },
+                )
+            } else {
+                AsyncImage(
+                    model = backdropModel,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = 1.16f
+                            scaleY = 1.16f
+                            alpha = 0.66f
+                        },
+                )
+            }
         }
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.52f)),
+        )
+    }
+}
+
+@Suppress("DEPRECATION")
+@Composable
+private fun BackdropBlurApi30(
+    model: Any?,
+    blurAmount: Int,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val imageLoader = context.imageLoader
+
+    val blurredBitmap by produceState<Bitmap?>(null, model, blurAmount) {
+        if (model == null) return@produceState
+        value = withContext(Dispatchers.IO) {
+            try {
+                val request = ImageRequest.Builder(context)
+                    .data(model)
+                    .allowHardware(false)
+                    .size(500)
+                    .build()
+                val result = imageLoader.execute(request)
+                when (result) {
+                    is SuccessResult -> {
+                        val bitmap = result.image.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
+                        val scale = 0.4f
+                        val sw = (bitmap.width * scale).toInt().coerceAtLeast(1)
+                        val sh = (bitmap.height * scale).toInt().coerceAtLeast(1)
+                        val scaled = Bitmap.createScaledBitmap(bitmap, sw, sh, true)
+                        if (bitmap !== scaled && !bitmap.isRecycled) bitmap.recycle()
+
+                        val radius = (blurAmount * 25 / 100f).coerceIn(1f, 25f)
+                        RenderScript.create(context).also { rs ->
+                            try {
+                                val input = Allocation.createFromBitmap(rs, scaled)
+                                val output = Allocation.createTyped(rs, input.type)
+                                ScriptIntrinsicBlur.create(rs, Element.U8_4(rs)).apply {
+                                    setRadius(radius)
+                                    setInput(input)
+                                    forEach(output)
+                                }
+                                output.copyTo(scaled)
+                            } finally {
+                                rs.destroy()
+                            }
+                        }
+                        scaled
+                    }
+                    else -> null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    val loadedBitmap = blurredBitmap
+    if (loadedBitmap != null) {
+        Image(
+            painter = BitmapPainter(loadedBitmap.asImageBitmap()),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier,
+        )
+    } else {
+        AsyncImage(
+            model = model,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier,
         )
     }
 }
@@ -1806,20 +1916,14 @@ private fun V7PlayerBackdrop(
         )
     }
     val backdropBlurRadius = V7BackdropBlurDp.dp * (backdropBlurAmount.toFloat() / 100f)
-    val backdropImageModifier = remember(disableBlur, backdropBlurAmount) {
+    val needsBlur = !disableBlur && backdropBlurAmount > 0
+    val backdropImageModifier = remember(disableBlur, needsBlur) {
         Modifier
             .fillMaxSize()
-            .let { base ->
-                if (disableBlur || backdropBlurRadius <= 0.dp) {
-                    base
-                } else {
-                    base.blur(backdropBlurRadius)
-                }
-            }
             .graphicsLayer {
                 scaleX = V7BackdropBlurScale
                 scaleY = V7BackdropBlurScale
-                alpha = if (disableBlur) 0.20f else 0.58f
+                alpha = if (disableBlur || !needsBlur) 0.20f else 0.58f
             }
     }
     val canvasStageModifier = remember {
@@ -1853,12 +1957,33 @@ private fun V7PlayerBackdrop(
                 .background(backdropPalette.bottom),
         ) {
             if (backdropArtworkModel != null) {
-                AsyncImage(
-                    model = backdropArtworkModel,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = backdropImageModifier,
-                )
+                if (needsBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    AsyncImage(
+                        model = backdropArtworkModel,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = backdropImageModifier.blur(backdropBlurRadius),
+                    )
+                } else if (needsBlur) {
+                    BackdropBlurApi30(
+                        model = backdropArtworkModel,
+                        blurAmount = backdropBlurAmount,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = V7BackdropBlurScale
+                                scaleY = V7BackdropBlurScale
+                                alpha = 0.58f
+                            },
+                    )
+                } else {
+                    AsyncImage(
+                        model = backdropArtworkModel,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = backdropImageModifier,
+                    )
+                }
             }
             Box(
                 modifier = Modifier
