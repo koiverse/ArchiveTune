@@ -114,7 +114,6 @@
     <string name="custom_order">カスタム順</string>
     <string name="list_view">リスト表示</string>
     <string name="grid_view">グリッド表示</string>
-    <string name="create_playlist">プレイリストを作成</string>
     <string name="personal_label">個人用</string>
     <string name="youtube_synced">YouTube同期済み</string>
     <string name="options_label">オプション</string>
