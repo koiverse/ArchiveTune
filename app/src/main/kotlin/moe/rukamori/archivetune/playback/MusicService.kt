@@ -1339,6 +1339,9 @@ class MusicService :
 
     private fun onAudioOutputDeviceChanged() {
         if (!::player.isInitialized) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastAudioRouteRecoveryRealtimeMs < AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS) return
+        lastAudioRouteRecoveryRealtimeMs = now
         val outputSignature = currentAudioOutputDeviceSignature()
         if (outputSignature == lastAudioOutputDeviceSignature) return
         lastAudioOutputDeviceSignature = outputSignature
@@ -1358,10 +1361,6 @@ class MusicService :
         rebindAudioEffectsAfterRouteChange()
 
         if (!shouldRebuildPlaybackForAudioRouteChange()) return
-
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (now - lastAudioRouteRecoveryRealtimeMs < AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS) return
-        lastAudioRouteRecoveryRealtimeMs = now
 
         val mediaItemIndex = player.currentMediaItemIndex.takeIf { it != C.INDEX_UNSET } ?: return
         val playbackPosition = player.currentPosition.coerceAtLeast(0L)
@@ -1430,6 +1429,17 @@ class MusicService :
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .setAllowedCapturePolicy(C.ALLOW_CAPTURE_BY_ALL)
             .build()
+
+    private fun isBluetoothA2dpActive(): Boolean {
+        return runCatching {
+            audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { device ->
+                device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    device.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                    device.type == AudioDeviceInfo.TYPE_BLE_SPEAKER
+            }
+        }.getOrDefault(false)
+    }
 
     private fun calculateEffectivePlayerVolume(
         playerVolume: Float,
@@ -1576,6 +1586,8 @@ class MusicService :
         if (!crossfadeEnabled || crossfadeDurationMs <= 0L) return null
         if (player.mediaItemCount == 0 || player.currentTimeline.isEmpty) return null
         if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) return null
+
+        if (isBluetoothA2dpActive()) return null
 
         val currentIndex = player.currentMediaItemIndex
         if (currentIndex !in 0 until player.mediaItemCount) return null
