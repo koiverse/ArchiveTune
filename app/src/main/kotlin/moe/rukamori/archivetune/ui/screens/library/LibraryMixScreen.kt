@@ -465,16 +465,16 @@ fun LibraryMixScreen(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                         color = MaterialTheme.colorScheme.onBackground
                     )
+                    val mixes = listOf(
+                        Pair(stringResource(R.string.daily_mix_1), stringResource(R.string.daily_mix_1_desc)),
+                        Pair(stringResource(R.string.chill_mix), stringResource(R.string.chill_mix_desc)),
+                        Pair(stringResource(R.string.focus_mix), stringResource(R.string.focus_mix_desc))
+                    )
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        val mixes = listOf(
-                            Pair(stringResource(R.string.daily_mix_1), stringResource(R.string.daily_mix_1_desc)),
-                            Pair(stringResource(R.string.chill_mix), stringResource(R.string.chill_mix_desc)),
-                            Pair(stringResource(R.string.focus_mix), stringResource(R.string.focus_mix_desc))
-                        )
                         items(mixes) { mix ->
                             Box(
                                 modifier = Modifier
