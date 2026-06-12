@@ -524,8 +524,13 @@ class MainActivity : ComponentActivity() {
                     BuildConfig.UPDATER_AVAILABLE &&
                     System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds
                 ) {
-                    if (updateChannel != UpdateChannel.NIGHTLY) {
-                        val versionResult = when (updateChannel) {
+                    val channelString = withContext(Dispatchers.IO) { dataStore.data.first()[UpdateChannelKey] }
+                    val actualChannel = channelString?.let {
+                        try { UpdateChannel.valueOf(it) } catch (_: IllegalArgumentException) { null }
+                    } ?: UpdateChannel.STABLE
+
+                    if (actualChannel != UpdateChannel.NIGHTLY) {
+                        val versionResult = when (actualChannel) {
                             UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyVersionName()
                             else -> Updater.getLatestVersionName()
                         }

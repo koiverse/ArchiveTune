@@ -367,6 +367,7 @@ object Updater {
             val releases = getAllDailyNightlyReleases().getOrThrow()
             val latest = findLatestDailyNightlyRelease(releases)
                 ?: throw IllegalStateException("No daily-nightly releases found")
+            lastCheckTime = System.currentTimeMillis()
             latestDailyNightlyReleaseTag = latest.tagName
             latest
         }
