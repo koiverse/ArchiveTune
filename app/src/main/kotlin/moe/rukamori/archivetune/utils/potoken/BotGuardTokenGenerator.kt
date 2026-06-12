@@ -236,7 +236,9 @@ object BotGuardTokenGenerator {
                 || engineSessionId != sessionId
 
             if (needsNew) {
-                engine?.close()
+                withContext(Dispatchers.Main) {
+                    engine?.close()
+                }
                 engine = BotGuardEngine.create(ctx)
                 engineSessionId = sessionId
                 cachedSessionToken = engine!!.mint(sessionId)
