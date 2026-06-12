@@ -103,8 +103,9 @@ import moe.rukamori.archivetune.utils.rememberPreference
 fun NavGraphBuilder.navigationBuilder(
     navController: NavHostController,
     scrollBehavior: TopAppBarScrollBehavior,
-    latestVersionName: String,
+    latestVersionName: () -> String,
     disableAnimations: Boolean = false,
+    onClearUpdateBadge: () -> Unit = {},
 ) {
     composable(Screens.Home.route) {
         HomeScreen(navController)
@@ -366,10 +367,10 @@ fun NavGraphBuilder.navigationBuilder(
         YouTubeBrowseScreen(navController)
     }
     composable("settings") {
-        SettingsScreen(navController, scrollBehavior, latestVersionName)
+        SettingsScreen(navController, scrollBehavior, latestVersionName())
     }
     composable("settings/account") {
-        AccountSettings(navController, scrollBehavior, latestVersionName)
+        AccountSettings(navController, scrollBehavior, latestVersionName())
     }
     composable("settings/appearance") {
         AppearanceSettings(navController, scrollBehavior)
@@ -430,7 +431,7 @@ fun NavGraphBuilder.navigationBuilder(
     }
     if (BuildConfig.UPDATER_AVAILABLE) {
         composable("settings/update") {
-            UpdateScreen(navController, scrollBehavior)
+            UpdateScreen(navController, scrollBehavior, onUpToDate = onClearUpdateBadge)
         }
     }
     composable(

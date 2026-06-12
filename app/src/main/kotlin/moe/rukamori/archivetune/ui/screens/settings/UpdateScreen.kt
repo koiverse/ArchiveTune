@@ -117,6 +117,7 @@ import java.util.TimeZone
 fun UpdateScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
+    onUpToDate: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
@@ -271,6 +272,7 @@ fun UpdateScreen(
 
                 if (updateSheetIsSameVersion) {
                     showUpdateUpToDateDialog = true
+                    onUpToDate()
                 } else {
                     updateSheetState.show(updateSheetContent)
                 }
@@ -482,7 +484,12 @@ fun UpdateScreen(
             UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyVersionName()
             else -> Updater.getLatestVersionName()
         }
-        versionResult.onSuccess { latestVersion = it }
+        versionResult.onSuccess {
+            latestVersion = it
+            if (Updater.isSameVersion(it, BuildConfig.VERSION_NAME)) {
+                onUpToDate()
+            }
+        }
 
         Updater.getCommitHistory(30).onSuccess {
             commits = it

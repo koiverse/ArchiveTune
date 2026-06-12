@@ -63,6 +63,7 @@ fun SettingsScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
     latestVersionName: String,
+    onClearUpdateBadge: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
