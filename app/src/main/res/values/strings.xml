@@ -88,7 +88,7 @@
     <string name="most_played_badge">MOST PLAYED</string>
     <string name="favorite_songs_title">Favorite Songs</string>
     <string name="play_all">Play all</string>
-    <string name="offline">Offline</string>
+    <string name="offline_shortcut">Offline</string>
     <string name="cached">Cached</string>
     <string name="local_files">Local Files</string>
     <string name="downloaded_desc">Downloaded</string>

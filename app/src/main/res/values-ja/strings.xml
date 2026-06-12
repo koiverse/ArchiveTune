@@ -74,7 +74,7 @@
     <string name="most_played_badge">最も再生</string>
     <string name="favorite_songs_title">お気に入りの曲</string>
     <string name="play_all">すべて再生</string>
-    <string name="offline">オフライン</string>
+    <string name="offline_shortcut">オフライン</string>
     <string name="cached">キャッシュ済み</string>
     <string name="local_files">ローカルファイル</string>
     <string name="downloaded_desc">ダウンロード済み</string>

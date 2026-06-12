@@ -66,7 +66,7 @@
     <string name="most_played_badge">NGHE NHIỀU NHẤT</string>
     <string name="favorite_songs_title">Bài hát yêu thích</string>
     <string name="play_all">Phát tất cả</string>
-    <string name="offline">Ngoại tuyến</string>
+    <string name="offline_shortcut">Ngoại tuyến</string>
     <string name="cached">Đã lưu bộ nhớ đệm</string>
     <string name="local_files">Tệp cục bộ</string>
     <string name="downloaded_desc">Đã tải xuống</string>
