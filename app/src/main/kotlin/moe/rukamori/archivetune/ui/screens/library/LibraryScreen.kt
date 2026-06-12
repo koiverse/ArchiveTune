@@ -60,6 +60,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -102,21 +103,21 @@ fun LibraryScreen(navController: NavController) {
 
     // Dynamic header content based on selection
     val headerTitle = when (currentFilter) {
-        LibraryFilter.LIBRARY -> "Your Library"
-        LibraryFilter.PLAYLISTS -> "Playlists"
-        LibraryFilter.SONGS -> "Songs"
-        LibraryFilter.ARTISTS -> "Artists"
-        LibraryFilter.ALBUMS -> "Albums"
-        else -> "Your Library"
+        LibraryFilter.LIBRARY -> stringResource(R.string.library_title)
+        LibraryFilter.PLAYLISTS -> stringResource(R.string.playlists)
+        LibraryFilter.SONGS -> stringResource(R.string.songs)
+        LibraryFilter.ARTISTS -> stringResource(R.string.artists)
+        LibraryFilter.ALBUMS -> stringResource(R.string.albums)
+        else -> stringResource(R.string.library_title)
     }
 
     val headerSubtitle = when (currentFilter) {
-        LibraryFilter.LIBRARY -> "Your music, organized for you"
-        LibraryFilter.PLAYLISTS -> "All your playlists, organized for you"
-        LibraryFilter.SONGS -> "All your songs, organized for you"
-        LibraryFilter.ARTISTS -> "All your artists, in one place"
-        LibraryFilter.ALBUMS -> "All your albums, beautifully organized"
-        else -> "Your music, organized for you"
+        LibraryFilter.LIBRARY -> stringResource(R.string.library_subtitle)
+        LibraryFilter.PLAYLISTS -> stringResource(R.string.library_playlists_subtitle)
+        LibraryFilter.SONGS -> stringResource(R.string.library_songs_subtitle)
+        LibraryFilter.ARTISTS -> stringResource(R.string.library_artists_subtitle)
+        LibraryFilter.ALBUMS -> stringResource(R.string.library_albums_subtitle)
+        else -> stringResource(R.string.library_subtitle)
     }
 
     val density = LocalDensity.current
@@ -251,7 +252,7 @@ fun LibraryScreen(navController: NavController) {
             ) {
                 item {
                     ExpressiveTabChip(
-                        label = "Library",
+                        label = stringResource(R.string.filter_library),
                         iconRes = R.drawable.graphic_eq,
                         selected = pagerState.currentPage == 0,
                         onClick = {
@@ -263,7 +264,7 @@ fun LibraryScreen(navController: NavController) {
                 }
                 item {
                     ExpressiveTabChip(
-                        label = "Playlists",
+                        label = stringResource(R.string.playlists),
                         iconRes = R.drawable.queue_music,
                         selected = pagerState.currentPage == 1,
                         onClick = {
@@ -275,7 +276,7 @@ fun LibraryScreen(navController: NavController) {
                 }
                 item {
                     ExpressiveTabChip(
-                        label = "Songs",
+                        label = stringResource(R.string.songs),
                         iconRes = R.drawable.music_note,
                         selected = pagerState.currentPage == 2,
                         onClick = {
@@ -287,7 +288,7 @@ fun LibraryScreen(navController: NavController) {
                 }
                 item {
                     ExpressiveTabChip(
-                        label = "Artists",
+                        label = stringResource(R.string.artists),
                         iconRes = R.drawable.person,
                         selected = pagerState.currentPage == 3,
                         onClick = {
@@ -299,7 +300,7 @@ fun LibraryScreen(navController: NavController) {
                 }
                 item {
                     ExpressiveTabChip(
-                        label = "Albums",
+                        label = stringResource(R.string.albums),
                         iconRes = R.drawable.album,
                         selected = pagerState.currentPage == 4,
                         onClick = {
