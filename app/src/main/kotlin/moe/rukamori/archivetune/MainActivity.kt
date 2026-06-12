@@ -535,7 +535,9 @@ class MainActivity : ComponentActivity() {
                             else -> Updater.getLatestVersionName()
                         }
                         versionResult.onSuccess {
-                            latestVersionName = it
+                            if (!Updater.isSameVersion(it, BuildConfig.VERSION_NAME)) {
+                                latestVersionName = it
+                            }
                         }
                     }
                 }
@@ -1982,8 +1984,9 @@ class MainActivity : ComponentActivity() {
                                     navigationBuilder(
                                         navController,
                                         topAppBarScrollBehavior,
-                                        latestVersionName,
+                                        { latestVersionName },
                                         disableAnimations,
+                                        onClearUpdateBadge = { latestVersionName = BuildConfig.VERSION_NAME },
                                     )
                                 }
                             }
