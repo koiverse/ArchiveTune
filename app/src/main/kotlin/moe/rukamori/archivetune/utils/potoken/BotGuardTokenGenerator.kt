@@ -5,6 +5,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.annotation.MainThread
 import androidx.collection.ArrayMap
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -453,6 +454,18 @@ object BotGuardTokenGenerator {
                                         cont.resumeWithException(BrokenWebViewException(err))
                                     }
                                     return super.onConsoleMessage(m)
+                                }
+                            }
+                            webViewClient = object : WebViewClient() {
+                                override fun onRenderProcessGone(
+                                    view: WebView,
+                                    detail: android.webkit.RenderProcessGoneDetail
+                                ): Boolean {
+                                    Timber.tag(TAG).w("WebView renderer gone (crashed=${detail.didCrash()})")
+                                    cont.resumeWithException(
+                                        PoTokenException("WebView renderer process gone")
+                                    )
+                                    return true
                                 }
                             }
                         }
