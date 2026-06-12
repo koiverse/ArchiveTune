@@ -227,7 +227,7 @@ fun LibraryMixScreen(
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = "MOST PLAYED",
+                                        text = stringResource(R.string.most_played_badge),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 9.sp,
@@ -238,7 +238,7 @@ fun LibraryMixScreen(
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Favorite Songs",
+                                    text = stringResource(R.string.favorite_songs_title),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold
                                     ),
@@ -246,7 +246,7 @@ fun LibraryMixScreen(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "$likedSongsCount songs",
+                                    text = "$likedSongsCount ${stringResource(R.string.tracks_label)}",
                                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -286,7 +286,7 @@ fun LibraryMixScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Play all",
+                                    text = stringResource(R.string.play_all),
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                             }
@@ -309,7 +309,7 @@ fun LibraryMixScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.shuffle),
-                                    contentDescription = "Shuffle",
+                                    contentDescription = stringResource(R.string.shuffle),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -332,8 +332,8 @@ fun LibraryMixScreen(
                     ) {
                         // Liked Songs
                         ShortcutCard(
-                            title = "Liked Songs",
-                            countText = "$likedSongsCount tracks",
+                            title = stringResource(R.string.liked_songs),
+                            countText = "$likedSongsCount ${stringResource(R.string.tracks_label)}",
                             iconRes = R.drawable.favorite,
                             containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
                             iconColor = MaterialTheme.colorScheme.error,
@@ -343,8 +343,8 @@ fun LibraryMixScreen(
 
                         // Offline/Downloaded
                         ShortcutCard(
-                            title = "Offline",
-                            countText = "Downloaded",
+                            title = stringResource(R.string.offline_shortcut),
+                            countText = stringResource(R.string.downloaded_desc),
                             iconRes = R.drawable.offline,
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                             iconColor = MaterialTheme.colorScheme.primary,
@@ -359,8 +359,8 @@ fun LibraryMixScreen(
                     ) {
                         // Cached
                         ShortcutCard(
-                            title = "Cached",
-                            countText = "Instant playback",
+                            title = stringResource(R.string.cached),
+                            countText = stringResource(R.string.instant_playback),
                             iconRes = R.drawable.cached,
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
                             iconColor = MaterialTheme.colorScheme.tertiary,
@@ -370,8 +370,8 @@ fun LibraryMixScreen(
 
                         // Local Files
                         ShortcutCard(
-                            title = "Local Files",
-                            countText = "On device",
+                            title = stringResource(R.string.local_files),
+                            countText = stringResource(R.string.on_device),
                             iconRes = R.drawable.snippet_folder,
                             containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
                             iconColor = MaterialTheme.colorScheme.secondary,
@@ -387,7 +387,7 @@ fun LibraryMixScreen(
                 item(key = "recently_played") {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Recently Played",
+                            text = stringResource(R.string.recently_played),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                             color = MaterialTheme.colorScheme.onBackground
@@ -460,7 +460,7 @@ fun LibraryMixScreen(
             item(key = "top_mixes") {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Top Mixes for You",
+                        text = stringResource(R.string.top_mixes),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                         color = MaterialTheme.colorScheme.onBackground
@@ -471,9 +471,9 @@ fun LibraryMixScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         val mixes = listOf(
-                            Pair("Daily Mix 1", "Chill, focus & background beats"),
-                            Pair("Chill Mix", "Soothing melodies to relax"),
-                            Pair("Focus Mix", "Lo-fi beats for concentration")
+                            Pair(stringResource(R.string.daily_mix_1), stringResource(R.string.daily_mix_1_desc)),
+                            Pair(stringResource(R.string.chill_mix), stringResource(R.string.chill_mix_desc)),
+                            Pair(stringResource(R.string.focus_mix), stringResource(R.string.focus_mix_desc))
                         )
                         items(mixes) { mix ->
                             Box(
@@ -557,12 +557,12 @@ fun LibraryMixScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Your Playlists",
+                                text = stringResource(R.string.your_playlists),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
-                                text = "See all",
+                                text = stringResource(R.string.see_all),
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary
@@ -665,7 +665,7 @@ fun LibraryMixScreen(
                                         color = MaterialTheme.colorScheme.onBackground
                                     )
                                     Text(
-                                        text = "${playlist.songCount} tracks",
+                                        text = "${playlist.songCount} ${stringResource(R.string.tracks_label)}",
                                         style = MaterialTheme.typography.bodySmall,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -697,14 +697,14 @@ fun LibraryMixScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.expand_more),
-                                            contentDescription = "More Playlists",
+                                            contentDescription = stringResource(R.string.more_playlists_desc),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
-                                        text = "More",
+                                        text = stringResource(R.string.more_label),
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.onBackground
                                     )
@@ -727,12 +727,12 @@ fun LibraryMixScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Your Artists",
+                                text = stringResource(R.string.your_artists),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
-                                text = "See all",
+                                text = stringResource(R.string.see_all),
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary
@@ -798,14 +798,14 @@ fun LibraryMixScreen(
                                     ) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.add),
-                                            contentDescription = "More",
+                                            contentDescription = stringResource(R.string.more_label),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "More",
+                                        text = stringResource(R.string.more_label),
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.onBackground
                                     )

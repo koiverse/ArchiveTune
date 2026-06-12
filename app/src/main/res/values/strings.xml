@@ -118,6 +118,37 @@
     <string name="sort_ascending">Sort ascending</string>
     <string name="your_collection">Your Collection</string>
     <string name="playing_desc">Playing</string>
+    <string name="tracks_label">tracks</string>
+    <string name="song_singular">Song</string>
+    <string name="more_playlists_desc">More Playlists</string>
+    <string name="more_label">More</string>
+    <string name="sort_a_z">A-Z</string>
+    <string name="tracks_count_label">Tracks count</string>
+    <string name="recently_updated">Recently updated</string>
+    <string name="custom_order">Custom order</string>
+    <string name="list_view">List View</string>
+    <string name="grid_view">Grid View</string>
+    <string name="create_playlist">Create Playlist</string>
+    <string name="personal_label">Personal</string>
+    <string name="youtube_synced">YouTube synced</string>
+    <string name="options_label">Options</string>
+    <string name="top_artist_badge">TOP ARTIST</string>
+    <string name="no_artist_yet">No Artist Yet</string>
+    <string name="total_label">total</string>
+    <string name="most_tracks">Most tracks</string>
+    <string name="least_tracks">Least tracks</string>
+    <string name="play_time">Play time</string>
+    <string name="subscribed_only">Subscribed Only</string>
+    <string name="all_artists_filter">All Artists</string>
+    <string name="artist_subtitle">Artist</string>
+    <string name="recently_played_artists">Recently Played Artists</string>
+    <string name="newest_year">Newest year</string>
+    <string name="oldest_year">Oldest year</string>
+    <string name="longest_duration">Longest duration</string>
+    <string name="shortest_duration">Shortest duration</string>
+    <string name="year_sort">Year</string>
+    <string name="duration_sort">Duration</string>
+    <string name="featured_album_badge">FEATURED ALBUM</string>
     <!-- Artist screen -->
     <string name="from_your_library">From your library</string>
     <!-- Album screen -->

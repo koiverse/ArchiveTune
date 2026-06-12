@@ -59,6 +59,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -194,12 +195,12 @@ fun LibraryArtistsScreen(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Text(
-                                        text = "TOP ARTIST",
+                                        text = stringResource(R.string.top_artist_badge),
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = topArtist?.artist?.name ?: "No Artist Yet",
+                                        text = topArtist?.artist?.name ?: stringResource(R.string.no_artist_yet),
                                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -241,7 +242,7 @@ fun LibraryArtistsScreen(
                                     modifier = Modifier.height(32.dp)
                                 ) {
                                     Text(
-                                        text = "Play all",
+                                        text = stringResource(R.string.play_all),
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                                     )
                                 }
@@ -294,7 +295,7 @@ fun LibraryArtistsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Artists",
+                                    text = stringResource(R.string.artists),
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
@@ -315,7 +316,7 @@ fun LibraryArtistsScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "total",
+                                    text = stringResource(R.string.total_label),
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
                                 )
@@ -334,10 +335,10 @@ fun LibraryArtistsScreen(
                 ) {
                     var showSortMenu by remember { mutableStateOf(false) }
                     val currentSortLabel = when (sortType) {
-                        ArtistSortType.CREATE_DATE -> if (sortDescending) "Newest first" else "Oldest first"
-                        ArtistSortType.NAME -> if (sortDescending) "Z → A" else "A → Z"
-                        ArtistSortType.SONG_COUNT -> if (sortDescending) "Most tracks" else "Least tracks"
-                        ArtistSortType.PLAY_TIME -> "Play time"
+                        ArtistSortType.CREATE_DATE -> if (sortDescending) stringResource(R.string.newest_first) else stringResource(R.string.oldest_first)
+                        ArtistSortType.NAME -> if (sortDescending) stringResource(R.string.sort_z_to_a) else stringResource(R.string.sort_a_to_z)
+                        ArtistSortType.SONG_COUNT -> if (sortDescending) stringResource(R.string.most_tracks) else stringResource(R.string.least_tracks)
+                        ArtistSortType.PLAY_TIME -> stringResource(R.string.play_time)
                     }
 
                     Row(
@@ -373,10 +374,10 @@ fun LibraryArtistsScreen(
                             ) {
                                 ArtistSortType.entries.forEach { type ->
                                     val label = when (type) {
-                                        ArtistSortType.CREATE_DATE -> "Recently added"
-                                        ArtistSortType.NAME -> "A → Z"
-                                        ArtistSortType.SONG_COUNT -> "Tracks count"
-                                        ArtistSortType.PLAY_TIME -> "Play time"
+                                        ArtistSortType.CREATE_DATE -> stringResource(R.string.recently_added)
+                                        ArtistSortType.NAME -> stringResource(R.string.sort_a_to_z)
+                                        ArtistSortType.SONG_COUNT -> stringResource(R.string.tracks_count_label)
+                                        ArtistSortType.PLAY_TIME -> stringResource(R.string.play_time)
                                     }
                                     DropdownMenuItem(
                                         text = { Text(label) },
@@ -403,7 +404,7 @@ fun LibraryArtistsScreen(
                                 painter = painterResource(
                                     id = if (sortDescending) R.drawable.arrow_downward else R.drawable.arrow_upward
                                 ),
-                                contentDescription = if (sortDescending) "Sort descending" else "Sort ascending",
+                                contentDescription = if (sortDescending) stringResource(R.string.sort_descending) else stringResource(R.string.sort_ascending),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -419,7 +420,7 @@ fun LibraryArtistsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (filter == ArtistFilter.LIKED) "Subscribed Only" else "All Artists",
+                            text = if (filter == ArtistFilter.LIKED) stringResource(R.string.subscribed_only) else stringResource(R.string.all_artists_filter),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -474,7 +475,7 @@ fun LibraryArtistsScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Artist",
+                            text = stringResource(R.string.artist_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
@@ -514,7 +515,7 @@ fun LibraryArtistsScreen(
             if (artists.size > 2) {
                 item(span = { GridItemSpan(2) }, key = "recent_artists_header") {
                     Text(
-                        text = "Recently Played Artists",
+                        text = stringResource(R.string.recently_played_artists),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         modifier = Modifier.padding(top = 8.dp),
                         color = MaterialTheme.colorScheme.onBackground

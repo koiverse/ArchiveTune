@@ -190,11 +190,11 @@ fun LibraryPlaylistsScreen(
                 // Left: Sort dropdown
                 var showSortMenu by remember { mutableStateOf(false) }
                 val currentSortLabel = when (sortType) {
-                    PlaylistSortType.CREATE_DATE -> "Recently added"
-                    PlaylistSortType.NAME -> "A-Z"
-                    PlaylistSortType.SONG_COUNT -> "Tracks count"
-                    PlaylistSortType.LAST_UPDATED -> "Recently updated"
-                    PlaylistSortType.CUSTOM -> "Custom order"
+                    PlaylistSortType.CREATE_DATE -> stringResource(R.string.recently_added)
+                    PlaylistSortType.NAME -> stringResource(R.string.sort_a_z)
+                    PlaylistSortType.SONG_COUNT -> stringResource(R.string.tracks_count_label)
+                    PlaylistSortType.LAST_UPDATED -> stringResource(R.string.recently_updated)
+                    PlaylistSortType.CUSTOM -> stringResource(R.string.custom_order)
                 }
 
                 Box {
@@ -226,11 +226,11 @@ fun LibraryPlaylistsScreen(
                     ) {
                         PlaylistSortType.entries.forEach { type ->
                             val label = when (type) {
-                                PlaylistSortType.CREATE_DATE -> "Recently added"
-                                PlaylistSortType.NAME -> "A-Z"
-                                PlaylistSortType.SONG_COUNT -> "Tracks count"
-                                PlaylistSortType.LAST_UPDATED -> "Recently updated"
-                                PlaylistSortType.CUSTOM -> "Custom order"
+                                PlaylistSortType.CREATE_DATE -> stringResource(R.string.recently_added)
+                                PlaylistSortType.NAME -> stringResource(R.string.sort_a_z)
+                                PlaylistSortType.SONG_COUNT -> stringResource(R.string.tracks_count_label)
+                                PlaylistSortType.LAST_UPDATED -> stringResource(R.string.recently_updated)
+                                PlaylistSortType.CUSTOM -> stringResource(R.string.custom_order)
                             }
                             DropdownMenuItem(
                                 text = { Text(label) },
@@ -263,7 +263,7 @@ fun LibraryPlaylistsScreen(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.queue_music),
-                                contentDescription = "List View",
+                                contentDescription = stringResource(R.string.list_view),
                                 tint = if (!isGridView) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -278,7 +278,7 @@ fun LibraryPlaylistsScreen(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.album),
-                                contentDescription = "Grid View",
+                                contentDescription = stringResource(R.string.grid_view),
                                 tint = if (isGridView) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -298,7 +298,7 @@ fun LibraryPlaylistsScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.add),
-                            contentDescription = "Create Playlist",
+                            contentDescription = stringResource(R.string.create_playlist),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -580,13 +580,13 @@ fun PlaylistListCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "${playlist.songCount} tracks",
+                    text = "${playlist.songCount} ${stringResource(R.string.tracks_label)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
 
                 // Tag pill
-                val tagText = if (playlist.playlist.isEditable) "Personal" else "YouTube synced"
+                val tagText = if (playlist.playlist.isEditable) stringResource(R.string.personal_label) else stringResource(R.string.youtube_synced)
                 val tagColor = if (playlist.playlist.isEditable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                 Box(
                     modifier = Modifier
@@ -614,7 +614,7 @@ fun PlaylistListCard(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.play),
-                contentDescription = "Play",
+                contentDescription = stringResource(R.string.play),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -628,7 +628,7 @@ fun PlaylistListCard(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.more_vert),
-                contentDescription = "Options"
+                contentDescription = stringResource(R.string.options_label)
             )
         }
     }
@@ -697,7 +697,7 @@ fun PlaylistGridCard(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.play),
-                    contentDescription = "Play",
+                    contentDescription = stringResource(R.string.play),
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp)
                 )
@@ -714,7 +714,7 @@ fun PlaylistGridCard(
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = "${playlist.songCount} tracks",
+            text = "${playlist.songCount} ${stringResource(R.string.tracks_label)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )

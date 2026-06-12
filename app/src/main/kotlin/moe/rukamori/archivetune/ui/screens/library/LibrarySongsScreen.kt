@@ -178,19 +178,19 @@ fun LibrarySongsScreen(
             ) {
                 // Liked
                 SongSubFilterChip(
-                    label = "Liked",
+                    label = stringResource(R.string.filter_liked),
                     selected = filter == SongFilter.LIKED,
                     onClick = { filter = SongFilter.LIKED }
                 )
                 // Downloaded
                 SongSubFilterChip(
-                    label = "Downloaded",
+                    label = stringResource(R.string.filter_downloaded),
                     selected = filter == SongFilter.DOWNLOADED,
                     onClick = { filter = SongFilter.DOWNLOADED }
                 )
                 // All Songs
                 SongSubFilterChip(
-                    label = "All Songs",
+                    label = stringResource(R.string.all_songs),
                     selected = filter == SongFilter.LIBRARY,
                     onClick = { filter = SongFilter.LIBRARY }
                 )
@@ -201,10 +201,10 @@ fun LibrarySongsScreen(
                 var showSortMenu by remember { mutableStateOf(false) }
                 // Issue 4 fix: A-Z label shows ascending direction arrow
                 val currentSortLabel = when (sortType) {
-                    SongSortType.CREATE_DATE -> if (sortDescending) "Newest first" else "Oldest first"
-                    SongSortType.NAME -> if (sortDescending) "Z → A" else "A → Z"
-                    SongSortType.ARTIST -> "Artist"
-                    SongSortType.PLAY_TIME -> "Most played"
+                    SongSortType.CREATE_DATE -> if (sortDescending) stringResource(R.string.newest_first) else stringResource(R.string.oldest_first)
+                    SongSortType.NAME -> if (sortDescending) stringResource(R.string.sort_z_to_a) else stringResource(R.string.sort_a_to_z)
+                    SongSortType.ARTIST -> stringResource(R.string.sort_artist)
+                    SongSortType.PLAY_TIME -> stringResource(R.string.most_played_sort)
                 }
 
                 Box {
@@ -236,11 +236,11 @@ fun LibrarySongsScreen(
                     ) {
                         SongSortType.entries.forEach { type ->
                             val label = when (type) {
-                                SongSortType.CREATE_DATE -> "Recently added"
+                                SongSortType.CREATE_DATE -> stringResource(R.string.recently_added)
                                 // Issue 4: select NAME always sets ascending (A→Z) by default
-                                SongSortType.NAME -> "A → Z"
-                                SongSortType.ARTIST -> "Artist"
-                                SongSortType.PLAY_TIME -> "Most played"
+                                SongSortType.NAME -> stringResource(R.string.sort_a_to_z)
+                                SongSortType.ARTIST -> stringResource(R.string.sort_artist)
+                                SongSortType.PLAY_TIME -> stringResource(R.string.most_played_sort)
                             }
                             DropdownMenuItem(
                                 text = { Text(label) },
@@ -268,7 +268,7 @@ fun LibrarySongsScreen(
                         painter = painterResource(
                             id = if (sortDescending) R.drawable.arrow_downward else R.drawable.arrow_upward
                         ),
-                        contentDescription = if (sortDescending) "Sort descending" else "Sort ascending",
+                        contentDescription = if (sortDescending) stringResource(R.string.sort_descending) else stringResource(R.string.sort_ascending),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
@@ -308,12 +308,12 @@ fun LibrarySongsScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = "Your Collection",
+                                        text = stringResource(R.string.your_collection),
                                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSecondaryContainer
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    val songsCountText = if (filteredSongs.size == 1) "1 Song" else "${filteredSongs.size} Songs"
+                                    val songsCountText = if (filteredSongs.size == 1) "1 ${stringResource(R.string.song_singular)}" else "${filteredSongs.size} ${stringResource(R.string.songs)}"
                                     Text(
                                         text = if (totalDurationText.isNotEmpty()) {
                                             "$songsCountText • $totalDurationText"
@@ -351,7 +351,7 @@ fun LibrarySongsScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Play",
+                                        text = stringResource(R.string.play),
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                     )
                                 }
@@ -473,7 +473,7 @@ fun LibrarySongsScreen(
                             if (isActive && isPlaying) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.graphic_eq),
-                                    contentDescription = "Playing",
+                                    contentDescription = stringResource(R.string.playing_desc),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.size(16.dp)
                                 )

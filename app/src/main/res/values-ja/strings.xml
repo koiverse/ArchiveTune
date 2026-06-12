@@ -104,6 +104,37 @@
     <string name="sort_ascending">昇順に並べ替え</string>
     <string name="your_collection">あなたのコレクション</string>
     <string name="playing_desc">再生中</string>
+    <string name="tracks_label">トラック</string>
+    <string name="song_singular">曲</string>
+    <string name="more_playlists_desc">その他のプレイリスト</string>
+    <string name="more_label">もっと見る</string>
+    <string name="sort_a_z">A-Z</string>
+    <string name="tracks_count_label">トラック数</string>
+    <string name="recently_updated">最近更新</string>
+    <string name="custom_order">カスタム順</string>
+    <string name="list_view">リスト表示</string>
+    <string name="grid_view">グリッド表示</string>
+    <string name="create_playlist">プレイリストを作成</string>
+    <string name="personal_label">個人用</string>
+    <string name="youtube_synced">YouTube同期済み</string>
+    <string name="options_label">オプション</string>
+    <string name="top_artist_badge">トップアーティスト</string>
+    <string name="no_artist_yet">アーティストがいません</string>
+    <string name="total_label">合計</string>
+    <string name="most_tracks">最多トラック</string>
+    <string name="least_tracks">最少トラック</string>
+    <string name="play_time">再生時間</string>
+    <string name="subscribed_only">登録のみ</string>
+    <string name="all_artists_filter">すべてのアーティスト</string>
+    <string name="artist_subtitle">アーティスト</string>
+    <string name="recently_played_artists">最近再生したアーティスト</string>
+    <string name="newest_year">新しい年</string>
+    <string name="oldest_year">古い年</string>
+    <string name="longest_duration">最長時間</string>
+    <string name="shortest_duration">最短時間</string>
+    <string name="year_sort">年</string>
+    <string name="duration_sort">時間</string>
+    <string name="featured_album_badge">おすすめアルバム</string>
     <!-- Artist screen -->
     <string name="from_your_library">あなたのライブラリから</string>
     <!-- Album screen -->

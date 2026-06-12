@@ -161,13 +161,13 @@ fun LibraryAlbumsScreen(
             ) {
                 var showSortMenu by remember { mutableStateOf(false) }
                 val currentSortLabel = when (sortType) {
-                    AlbumSortType.CREATE_DATE -> if (sortDescending) "Newest first" else "Oldest first"
-                    AlbumSortType.NAME -> if (sortDescending) "Z → A" else "A → Z"
-                    AlbumSortType.ARTIST -> "Artist"
-                    AlbumSortType.YEAR -> if (sortDescending) "Newest year" else "Oldest year"
-                    AlbumSortType.SONG_COUNT -> if (sortDescending) "Most tracks" else "Least tracks"
-                    AlbumSortType.LENGTH -> if (sortDescending) "Longest duration" else "Shortest duration"
-                    AlbumSortType.PLAY_TIME -> "Most played"
+                    AlbumSortType.CREATE_DATE -> if (sortDescending) stringResource(R.string.newest_first) else stringResource(R.string.oldest_first)
+                    AlbumSortType.NAME -> if (sortDescending) stringResource(R.string.sort_z_to_a) else stringResource(R.string.sort_a_to_z)
+                    AlbumSortType.ARTIST -> stringResource(R.string.sort_artist)
+                    AlbumSortType.YEAR -> if (sortDescending) stringResource(R.string.newest_year) else stringResource(R.string.oldest_year)
+                    AlbumSortType.SONG_COUNT -> if (sortDescending) stringResource(R.string.most_tracks) else stringResource(R.string.least_tracks)
+                    AlbumSortType.LENGTH -> if (sortDescending) stringResource(R.string.longest_duration) else stringResource(R.string.shortest_duration)
+                    AlbumSortType.PLAY_TIME -> stringResource(R.string.most_played_sort)
                 }
 
                 Row(
@@ -203,13 +203,13 @@ fun LibraryAlbumsScreen(
                         ) {
                             AlbumSortType.entries.forEach { type ->
                                 val label = when (type) {
-                                    AlbumSortType.CREATE_DATE -> "Recently added"
-                                    AlbumSortType.NAME -> "A → Z"
-                                    AlbumSortType.ARTIST -> "Artist"
-                                    AlbumSortType.YEAR -> "Year"
-                                    AlbumSortType.SONG_COUNT -> "Tracks count"
-                                    AlbumSortType.LENGTH -> "Duration"
-                                    AlbumSortType.PLAY_TIME -> "Most played"
+                                    AlbumSortType.CREATE_DATE -> stringResource(R.string.recently_added)
+                                    AlbumSortType.NAME -> stringResource(R.string.sort_a_to_z)
+                                    AlbumSortType.ARTIST -> stringResource(R.string.sort_artist)
+                                    AlbumSortType.YEAR -> stringResource(R.string.year_sort)
+                                    AlbumSortType.SONG_COUNT -> stringResource(R.string.tracks_count_label)
+                                    AlbumSortType.LENGTH -> stringResource(R.string.duration_sort)
+                                    AlbumSortType.PLAY_TIME -> stringResource(R.string.most_played_sort)
                                 }
                                 DropdownMenuItem(
                                     text = { Text(label) },
@@ -237,7 +237,7 @@ fun LibraryAlbumsScreen(
                             painter = painterResource(
                                 id = if (sortDescending) R.drawable.arrow_downward else R.drawable.arrow_upward
                             ),
-                            contentDescription = if (sortDescending) "Sort descending" else "Sort ascending",
+                            contentDescription = if (sortDescending) stringResource(R.string.sort_descending) else stringResource(R.string.sort_ascending),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
@@ -262,7 +262,7 @@ fun LibraryAlbumsScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.queue_music),
-                            contentDescription = "List View",
+                            contentDescription = stringResource(R.string.list_view),
                             tint = if (!isGridView) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
@@ -277,7 +277,7 @@ fun LibraryAlbumsScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.album),
-                            contentDescription = "Grid View",
+                            contentDescription = stringResource(R.string.grid_view),
                             tint = if (isGridView) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
@@ -327,7 +327,7 @@ fun LibraryAlbumsScreen(
 
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = "FEATURED ALBUM",
+                                                text = stringResource(R.string.featured_album_badge),
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontWeight = FontWeight.Bold,
                                                     letterSpacing = 1.sp
@@ -380,7 +380,7 @@ fun LibraryAlbumsScreen(
                                                 modifier = Modifier.size(16.dp)
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Text("Play", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                            Text(stringResource(R.string.play), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                                         }
 
                                         IconButton(
@@ -551,7 +551,7 @@ fun LibraryAlbumsScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.play),
-                                    contentDescription = "Play",
+                                    contentDescription = stringResource(R.string.play),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
