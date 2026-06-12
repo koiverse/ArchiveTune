@@ -104,11 +104,7 @@ class App : Application(), SingletonImageLoader.Factory {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (level >= TRIM_MEMORY_UI_HIDDEN) {
-            applicationScope.launch(Dispatchers.Main) {
-                BotGuardTokenGenerator.onAppBackgrounded()
-            }
-        }
+        // WebView cleanup happens automatically on process death
     }
 
     private fun initializeCriticalSync() {
