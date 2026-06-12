@@ -259,8 +259,10 @@ object BotGuardTokenGenerator {
         return PoTokenResult(playerToken = playerTok, sessionToken = sessionTok)
     }
 
-    private fun destroyEngine() {
-        engine?.close()
+    private suspend fun destroyEngine() {
+        withContext(Dispatchers.Main) {
+            engine?.close()
+        }
         engine = null
         engineSessionId = null
         cachedSessionToken = null
