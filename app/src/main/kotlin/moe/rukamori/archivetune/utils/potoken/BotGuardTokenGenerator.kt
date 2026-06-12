@@ -462,9 +462,11 @@ object BotGuardTokenGenerator {
                                     detail: android.webkit.RenderProcessGoneDetail
                                 ): Boolean {
                                     Timber.tag(TAG).w("WebView renderer gone (crashed=${detail.didCrash()})")
-                                    cont.tryResumeWithException(
-                                        PoTokenException("WebView renderer process gone")
-                                    )
+                                    runCatching {
+                                        cont.resumeWithException(
+                                            PoTokenException("WebView renderer process gone")
+                                        )
+                                    }
                                     return true
                                 }
                             }
