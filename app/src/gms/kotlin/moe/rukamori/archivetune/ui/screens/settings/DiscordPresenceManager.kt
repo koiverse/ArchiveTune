@@ -321,17 +321,15 @@ object DiscordPresenceManager {
         lifecycleObserver = null
 
         if (rpcToClose != null) {
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    rpcToClose.stopActivity()
-                } catch (ex: Exception) {
-                    Timber.tag(logTag).v(ex, "stopActivity failed during stop()")
+            try {
+                runBlocking {
+                    withTimeout(5_000L) {
+                        rpcToClose.stopActivity()
+                        rpcToClose.closeRPC()
+                    }
                 }
-                try {
-                    rpcToClose.closeRPC()
-                } catch (ex: Exception) {
-                    Timber.tag(logTag).v(ex, "closeRPC failed during stop()")
-                }
+            } catch (ex: Exception) {
+                Timber.tag(logTag).v(ex, "stop cleanup failed or timed out")
             }
         }
 

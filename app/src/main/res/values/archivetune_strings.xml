@@ -617,4 +617,21 @@
     <string name="ai_api_test_failed">API test failed</string>
     <string name="ai_translation_menu">AI Translation</string>
     <string name="ai_translating_lyrics">Translating The Lyrics...</string>
+
+    <!-- About Screen -->
+    <string name="about_lead_developer">Lead Developer</string>
+    <string name="about_archive_tune_team">ArchiveTune Team</string>
+    <string name="about_respecter">Respecter</string>
+    <string name="about_contributors">Contributors</string>
+    <string name="about_position_lead_dev">Eh?</string>
+    <string name="about_position_wttexe">Word Synced Lyrics, Gradients and UI Changes for the better!</string>
+    <string name="about_position_miko">Contributor Team</string>
+    <string name="about_position_sang765">Contributor Team</string>
+    <string name="about_position_mo_agamy">Base Framework | Metrolist</string>
+    <string name="about_position_zion_huang">Creator of InnerTune · Foundation for Metrolist, ArchiveTune, and other forks</string>
+    <string name="about_content_desc_github">GitHub</string>
+    <string name="about_content_desc_website">Website</string>
+    <string name="about_content_desc_discord">Discord</string>
+    <string name="about_content_desc_telegram">Telegram</string>
+    <string name="about_content_desc_donate">Donate</string>
 </resources>

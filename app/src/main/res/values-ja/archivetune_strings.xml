@@ -441,4 +441,21 @@
     <string name="ai_api_test_failed">APIテストに失敗しました</string>
     <string name="ai_translation_menu">AI翻訳</string>
     <string name="ai_translating_lyrics">歌詞を翻訳中...</string>
+
+    <!-- About Screen -->
+    <string name="about_lead_developer">リードデベロッパー</string>
+    <string name="about_archive_tune_team">ArchiveTune チーム</string>
+    <string name="about_respecter">リスペクター</string>
+    <string name="about_contributors">コントリビューター</string>
+    <string name="about_position_lead_dev">えっ？</string>
+    <string name="about_position_wttexe">歌詞同期、グラデーション、UI改善</string>
+    <string name="about_position_miko">コントリビューターチーム</string>
+    <string name="about_position_sang765">コントリビューターチーム</string>
+    <string name="about_position_mo_agamy">ベースフレームワーク | Metrolist</string>
+    <string name="about_position_zion_huang">InnerTune 製作者 · Metrolist、ArchiveTune などのフォークの基盤</string>
+    <string name="about_content_desc_github">GitHub</string>
+    <string name="about_content_desc_website">ウェブサイト</string>
+    <string name="about_content_desc_discord">Discord</string>
+    <string name="about_content_desc_telegram">Telegram</string>
+    <string name="about_content_desc_donate">寄付</string>
 </resources>

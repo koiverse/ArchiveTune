@@ -626,4 +626,21 @@
     <string name="lyrics_share_style_clear_glass">Kính trong</string>
     <string name="lyrics_share_style_deep_blur">Mờ sâu</string>
     <string name="lyrics_share_style_vivid_glow">Phát sáng rực rỡ</string>
+
+    <!-- About Screen -->
+    <string name="about_lead_developer">Nhà phát triển chính</string>
+    <string name="about_archive_tune_team">Nhóm ArchiveTune</string>
+    <string name="about_respecter">Tôn kính</string>
+    <string name="about_contributors">Người đóng góp</string>
+    <string name="about_position_lead_dev">Hả?</string>
+    <string name="about_position_wttexe">Lời bài hát đồng bộ, Gradient và Cải thiện Giao diện</string>
+    <string name="about_position_miko">Nhóm đóng góp</string>
+    <string name="about_position_sang765">Nhóm đóng góp</string>
+    <string name="about_position_mo_agamy">Khung cơ bản | Metrolist</string>
+    <string name="about_position_zion_huang">Người tạo InnerTune · Nền tảng cho Metrolist, ArchiveTune và các fork khác</string>
+    <string name="about_content_desc_github">GitHub</string>
+    <string name="about_content_desc_website">Trang web</string>
+    <string name="about_content_desc_discord">Discord</string>
+    <string name="about_content_desc_telegram">Telegram</string>
+    <string name="about_content_desc_donate">Quyên góp</string>
 </resources>

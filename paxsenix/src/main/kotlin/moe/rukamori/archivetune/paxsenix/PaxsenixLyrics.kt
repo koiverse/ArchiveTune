@@ -331,15 +331,16 @@ object PaxsenixLyrics {
             parameter("q", query)
             parameter("t", title)
             parameter("a", artist)
-            parameter("duration", durationSeconds.toString())
+            parameter("d", durationSeconds.toString())
             parameter("type", "word")
         }
         if (mxmWord.status == HttpStatusCode.OK) {
             val data = cleanJsonLyrics(mxmWord.body<String>())
-            if (data.isNotBlank() && !data.contains("\"error\"")) {
+            if (data.isNotBlank() && !data.contains("\"error\"") && !data.contains("\"isError\"")) {
                 System.err.println("PaxsenixLyrics: SUCCESS from Musixmatch (Word)")
                 return@runCatching data
             }
+            System.err.println("PaxsenixLyrics: Musixmatch (Word) returned server error: ${data.take(200)}")
         }
 
         // Fallback to default
@@ -347,15 +348,16 @@ object PaxsenixLyrics {
             parameter("q", query)
             parameter("t", title)
             parameter("a", artist)
-            parameter("duration", durationSeconds.toString())
+            parameter("d", durationSeconds.toString())
         }
         System.err.println("PaxsenixLyrics: Musixmatch lyrics status: ${mxmLyrics.status}")
         if (mxmLyrics.status == HttpStatusCode.OK) {
             val data = cleanJsonLyrics(mxmLyrics.body<String>())
-            if (data.isNotBlank() && !data.contains("\"error\"")) {
+            if (data.isNotBlank() && !data.contains("\"error\"") && !data.contains("\"isError\"")) {
                 System.err.println("PaxsenixLyrics: SUCCESS from Musixmatch")
                 return@runCatching data
             }
+            System.err.println("PaxsenixLyrics: Musixmatch returned server error: ${data.take(200)}")
         }
         throw IllegalStateException("Musixmatch lyrics unavailable")
     }

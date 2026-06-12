@@ -334,7 +334,7 @@ fun AboutScreen(
     val leadDeveloper = TeamMember(
         avatarUrl = "https://avatars.githubusercontent.com/u/107134739?v=4",
         name = "rukamori「るかもり」",
-        position = "Eh?",
+        position = stringResource(R.string.about_position_lead_dev),
         profileUrl = "https://github.com/rukamori",
         github = "https://github.com/rukamori",
         website = "https://koiiverse.cloud",
@@ -345,7 +345,7 @@ fun AboutScreen(
         TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/93458424?v=4",
             name = "WTTexe",
-            position = "Word Synced Lyrics, Gradients and UI Changes for the better!",
+            position = stringResource(R.string.about_position_wttexe),
             profileUrl = "https://github.com/Windowstechtips",
             github = "https://github.com/Windowstechtips",
             website = null,
@@ -354,23 +354,35 @@ fun AboutScreen(
         TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/89002922?v=4",
             name = "Miko",
-            position = "Contributor Team",
+            position = stringResource(R.string.about_position_miko),
             profileUrl = "https://github.com/mikooochi",
             github = "https://github.com/mikooochi"
         ),
         TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/80249864?v=4",
             name = "sang765",
-            position = "Contributor Team",
+            position = stringResource(R.string.about_position_sang765),
             profileUrl = "https://github.com/sang765",
             github = "https://github.com/sang765"
         ),
+    )
+
+    val respecters = listOf(
         TeamMember(
             avatarUrl = "https://avatars.githubusercontent.com/u/80542861?v=4",
             name = "MO AGAMY",
-            position = "Base Framework | Metrolist",
+            position = stringResource(R.string.about_position_mo_agamy),
             profileUrl = "https://github.com/mostafaalagamy",
             github = "https://github.com/mostafaalagamy",
+            website = null,
+            discord = null
+        ),
+        TeamMember(
+            avatarUrl = "https://avatars.githubusercontent.com/u/110614797?v=4",
+            name = "Zion Huang",
+            position = stringResource(R.string.about_position_zion_huang),
+            profileUrl = "https://github.com/z-huang",
+            github = "https://github.com/z-huang",
             website = null,
             discord = null
         ),
@@ -457,11 +469,11 @@ fun AboutScreen(
 
             Row {
                 IconButton(
-                    onClick = { uriHandler.openUri("https://github.com/rukamori/archivetune") },
+                    onClick = { uriHandler.openUri("https://github.com/ArchiveTuneApp/ArchiveTune") },
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.github),
-                        contentDescription = null
+                        contentDescription = stringResource(R.string.about_content_desc_github)
                     )
                 }
 
@@ -472,7 +484,7 @@ fun AboutScreen(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.website),
-                        contentDescription = null
+                        contentDescription = stringResource(R.string.about_content_desc_website)
                     )
                 }
 
@@ -483,7 +495,7 @@ fun AboutScreen(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.telegram),
-                        contentDescription = null
+                        contentDescription = stringResource(R.string.about_content_desc_telegram)
                     )
                 }
 
@@ -494,7 +506,7 @@ fun AboutScreen(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.coffee),
-                        contentDescription = null
+                        contentDescription = stringResource(R.string.about_content_desc_donate)
                     )
                 }
             }
@@ -502,7 +514,7 @@ fun AboutScreen(
             Spacer(Modifier.height(16.dp))
 
             SectionHeader(
-                title = "Lead Developer",
+                title = stringResource(R.string.about_lead_developer),
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
@@ -519,7 +531,7 @@ fun AboutScreen(
             Spacer(Modifier.height(24.dp))
 
             SectionHeader(
-                title = "Collaborators",
+                title = stringResource(R.string.about_archive_tune_team),
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
@@ -542,7 +554,30 @@ fun AboutScreen(
             Spacer(Modifier.height(24.dp))
 
             SectionHeader(
-                title = "Contributors",
+                title = stringResource(R.string.about_respecter),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                respecters.forEach { member ->
+                    CollaboratorCard(
+                        member = member,
+                        onOpenUri = uriHandler::openUri,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            SectionHeader(
+                title = stringResource(R.string.about_contributors),
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
@@ -759,7 +794,7 @@ private fun LeadDeveloperCard(
                 member.github?.let { url ->
                     OutlinedIconChip(
                         iconRes = R.drawable.github,
-                        contentDescription = "GitHub",
+                        contentDescription = stringResource(R.string.about_content_desc_github),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -767,7 +802,7 @@ private fun LeadDeveloperCard(
                 member.website?.takeIf { it.isNotBlank() }?.let { url ->
                     OutlinedIconChip(
                         iconRes = R.drawable.website,
-                        contentDescription = "Website",
+                        contentDescription = stringResource(R.string.about_content_desc_website),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -775,7 +810,7 @@ private fun LeadDeveloperCard(
                 member.discord?.let { url ->
                     OutlinedIconChip(
                         iconRes = R.drawable.alternate_email,
-                        contentDescription = "Discord",
+                        contentDescription = stringResource(R.string.about_content_desc_discord),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -849,7 +884,7 @@ private fun CollaboratorCard(
                 member.github?.let { url ->
                     OutlinedIconChipMembers(
                         iconRes = R.drawable.github,
-                        contentDescription = "GitHub",
+                        contentDescription = stringResource(R.string.about_content_desc_github),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -857,7 +892,7 @@ private fun CollaboratorCard(
                 member.website?.takeIf { it.isNotBlank() }?.let { url ->
                     OutlinedIconChipMembers(
                         iconRes = R.drawable.website,
-                        contentDescription = "Website",
+                        contentDescription = stringResource(R.string.about_content_desc_website),
                         onClick = { onOpenUri(url) },
                     )
                 }
@@ -865,7 +900,7 @@ private fun CollaboratorCard(
                 member.discord?.let { url ->
                     OutlinedIconChipMembers(
                         iconRes = R.drawable.alternate_email,
-                        contentDescription = "Discord",
+                        contentDescription = stringResource(R.string.about_content_desc_discord),
                         onClick = { onOpenUri(url) },
                     )
                 }
