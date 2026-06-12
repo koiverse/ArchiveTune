@@ -954,4 +954,8 @@
     <string name="widget_pause">一時停止</string>
     <string name="widget_previous">前へ</string>
     <string name="widget_tap_to_open">タップして ArchiveTune を開く</string>
+    <string name="album_backdrop">背景ブラー</string>
+    <string name="album_backdrop_desc">プレーヤーにアートワークをぼかした背景として表示</string>
+    <string name="backdrop_blur_amount">背景ブラーの量</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -133,7 +133,16 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalView
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.runtime.produceState
 import androidx.core.graphics.drawable.toBitmap
+import android.graphics.Bitmap
+import android.os.Build
+import android.renderscript.Allocation
+import android.renderscript.Element
+import android.renderscript.RenderScript
+import android.renderscript.ScriptIntrinsicBlur
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_BUFFERING
@@ -147,6 +156,7 @@ import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
+import coil3.request.SuccessResult
 import coil3.toBitmap
 import moe.rukamori.archivetune.LocalDownloadUtil
 import moe.rukamori.archivetune.LocalPlayerConnection
@@ -163,6 +173,8 @@ import moe.rukamori.archivetune.constants.PlayerCustomImageUriKey
 import moe.rukamori.archivetune.constants.PlayerCustomBlurKey
 import moe.rukamori.archivetune.constants.PlayerCustomContrastKey
 import moe.rukamori.archivetune.constants.PlayerCustomBrightnessKey
+import moe.rukamori.archivetune.constants.BackdropBlurAmountKey
+import moe.rukamori.archivetune.constants.BackdropEnabledKey
 import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.BlurRadiusKey
 import moe.rukamori.archivetune.constants.PlayerButtonsStyle
@@ -264,6 +276,8 @@ fun BottomSheetPlayer(
     
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val (blurRadius) = rememberPreference(BlurRadiusKey, 48f)
+    val (backdropEnabled) = rememberPreference(BackdropEnabledKey, defaultValue = true)
+    val (backdropBlurAmount) = rememberPreference(BackdropBlurAmountKey, defaultValue = 60)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(moe.rukamori.archivetune.constants.SeekExtraSeconds, defaultValue = false)
     var keyboardSkipMultiplier by remember { mutableStateOf(1) }
@@ -1095,6 +1109,7 @@ fun BottomSheetPlayer(
                             canvasFallbackUrl = v7CanvasArtwork?.videoUrlVertical,
                             isPlaying = isPlaying,
                             disableBlur = disableBlur,
+                            backdropBlurAmount = backdropBlurAmount,
                             label = "v7BackdropLandscape",
                         )
 
@@ -1142,6 +1157,7 @@ fun BottomSheetPlayer(
                     ) {
                         V8PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            backdropBlurAmount = backdropBlurAmount,
                         )
 
                         enrichedMetadata?.let { metadata ->
@@ -1349,6 +1365,7 @@ fun BottomSheetPlayer(
                             canvasFallbackUrl = v7CanvasArtwork?.videoUrlVertical,
                             isPlaying = isPlaying,
                             disableBlur = disableBlur,
+                            backdropBlurAmount = backdropBlurAmount,
                             label = "v7BackdropPortrait",
                         )
 
@@ -1395,6 +1412,7 @@ fun BottomSheetPlayer(
                     ) {
                         V8PlayerBackdrop(
                             thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            backdropBlurAmount = backdropBlurAmount,
                         )
 
                         enrichedMetadata?.let { metadata ->
@@ -1634,11 +1652,13 @@ private fun MikoLyricsTransition(
 @Composable
 private fun V8PlayerBackdrop(
     thumbnailUrl: String?,
+    backdropBlurAmount: Int,
     modifier: Modifier = Modifier,
 ) {
     val backdropModel = remember(thumbnailUrl) {
         thumbnailUrl?.resize(V8BackdropArtworkSizePx, V8BackdropArtworkSizePx)
     }
+    val blurRadiusDp = 44.dp * (backdropBlurAmount.toFloat() / 100f)
 
     Box(
         modifier = modifier
@@ -1646,25 +1666,125 @@ private fun V8PlayerBackdrop(
             .background(Color.Black),
     ) {
         if (backdropModel != null) {
-            AsyncImage(
-                model = backdropModel,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(44.dp)
-                    .graphicsLayer {
-                        scaleX = 1.16f
-                        scaleY = 1.16f
-                        alpha = 0.66f
-                    },
-            )
+            val backdropHasBlur = backdropBlurAmount > 0
+            if (backdropHasBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                AsyncImage(
+                    model = backdropModel,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (blurRadiusDp > 0.dp) Modifier.blur(blurRadiusDp) else Modifier)
+                        .graphicsLayer {
+                            scaleX = 1.16f
+                            scaleY = 1.16f
+                            alpha = 0.66f
+                        },
+                )
+            } else if (backdropHasBlur) {
+                BackdropBlurApi30(
+                    model = backdropModel,
+                    blurAmount = backdropBlurAmount,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = 1.16f
+                            scaleY = 1.16f
+                            alpha = 0.66f
+                        },
+                )
+            } else {
+                AsyncImage(
+                    model = backdropModel,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = 1.16f
+                            scaleY = 1.16f
+                            alpha = 0.66f
+                        },
+                )
+            }
         }
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.52f)),
+        )
+    }
+}
+
+@Suppress("DEPRECATION")
+@Composable
+private fun BackdropBlurApi30(
+    model: Any?,
+    blurAmount: Int,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val imageLoader = context.imageLoader
+
+    val blurredBitmap by produceState<Bitmap?>(null, model, blurAmount) {
+        if (model == null) return@produceState
+        value = withContext(Dispatchers.IO) {
+            try {
+                val request = ImageRequest.Builder(context)
+                    .data(model)
+                    .allowHardware(false)
+                    .size(500)
+                    .build()
+                val result = imageLoader.execute(request)
+                when (result) {
+                    is SuccessResult -> {
+                        val bitmap = result.image.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
+                        val scale = 0.4f
+                        val sw = (bitmap.width * scale).toInt().coerceAtLeast(1)
+                        val sh = (bitmap.height * scale).toInt().coerceAtLeast(1)
+                        val scaled = Bitmap.createScaledBitmap(bitmap, sw, sh, true)
+                        if (bitmap !== scaled && !bitmap.isRecycled) bitmap.recycle()
+
+                        val radius = (blurAmount * 25 / 100f).coerceIn(1f, 25f)
+                        RenderScript.create(context).also { rs ->
+                            try {
+                                val input = Allocation.createFromBitmap(rs, scaled)
+                                val output = Allocation.createTyped(rs, input.type)
+                                ScriptIntrinsicBlur.create(rs, Element.U8_4(rs)).apply {
+                                    setRadius(radius)
+                                    setInput(input)
+                                    forEach(output)
+                                }
+                                output.copyTo(scaled)
+                            } finally {
+                                rs.destroy()
+                            }
+                        }
+                        scaled
+                    }
+                    else -> null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    val loadedBitmap = blurredBitmap
+    if (loadedBitmap != null) {
+        Image(
+            painter = BitmapPainter(loadedBitmap.asImageBitmap()),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier,
+        )
+    } else {
+        AsyncImage(
+            model = model,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier,
         )
     }
 }
@@ -1677,6 +1797,7 @@ private fun V7PlayerBackdrop(
     canvasFallbackUrl: String?,
     isPlaying: Boolean,
     disableBlur: Boolean,
+    backdropBlurAmount: Int,
     label: String,
     modifier: Modifier = Modifier,
 ) {
@@ -1794,20 +1915,15 @@ private fun V7PlayerBackdrop(
             )
         )
     }
-    val backdropImageModifier = remember(disableBlur) {
+    val backdropBlurRadius = V7BackdropBlurDp.dp * (backdropBlurAmount.toFloat() / 100f)
+    val needsBlur = !disableBlur && backdropBlurAmount > 0
+    val backdropImageModifier = remember(disableBlur, needsBlur) {
         Modifier
             .fillMaxSize()
-            .let { base ->
-                if (disableBlur) {
-                    base
-                } else {
-                    base.blur(V7BackdropBlurDp.dp)
-                }
-            }
             .graphicsLayer {
                 scaleX = V7BackdropBlurScale
                 scaleY = V7BackdropBlurScale
-                alpha = if (disableBlur) 0.20f else 0.58f
+                alpha = if (disableBlur || !needsBlur) 0.20f else 0.58f
             }
     }
     val canvasStageModifier = remember {
@@ -1827,7 +1943,9 @@ private fun V7PlayerBackdrop(
                 V7SharpStagePortraitFraction
             }
         val sharpStageHeight = maxHeight * sharpStageFraction
-        val backdropTopOffset = (sharpStageHeight - V7BackdropOverlapDp.dp).coerceAtLeast(0.dp)
+        val sharpStageTopOffset = 0.dp
+        val sharpStageBottomOffset = sharpStageTopOffset + sharpStageHeight
+        val backdropTopOffset = (sharpStageBottomOffset - V7BackdropOverlapDp.dp).coerceAtLeast(0.dp)
         val backdropHeight = maxHeight - backdropTopOffset
 
         Box(
@@ -1839,12 +1957,33 @@ private fun V7PlayerBackdrop(
                 .background(backdropPalette.bottom),
         ) {
             if (backdropArtworkModel != null) {
-                AsyncImage(
-                    model = backdropArtworkModel,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = backdropImageModifier,
-                )
+                if (needsBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    AsyncImage(
+                        model = backdropArtworkModel,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = backdropImageModifier.blur(backdropBlurRadius),
+                    )
+                } else if (needsBlur) {
+                    BackdropBlurApi30(
+                        model = backdropArtworkModel,
+                        blurAmount = backdropBlurAmount,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = V7BackdropBlurScale
+                                scaleY = V7BackdropBlurScale
+                                alpha = 0.58f
+                            },
+                    )
+                } else {
+                    AsyncImage(
+                        model = backdropArtworkModel,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = backdropImageModifier,
+                    )
+                }
             }
             Box(
                 modifier = Modifier
@@ -1861,6 +2000,7 @@ private fun V7PlayerBackdrop(
             label = label,
             modifier = Modifier
                 .align(Alignment.TopCenter)
+                .offset(y = sharpStageTopOffset)
                 .fillMaxWidth()
                 .height(sharpStageHeight)
                 .clipToBounds(),
@@ -1899,6 +2039,7 @@ private fun V7PlayerBackdrop(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
+                .offset(y = sharpStageTopOffset)
                 .fillMaxWidth()
                 .height(sharpStageHeight)
                 .background(sharpStageBottomScrim),

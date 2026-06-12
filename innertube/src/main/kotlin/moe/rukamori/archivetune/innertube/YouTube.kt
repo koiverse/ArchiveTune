@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -182,6 +182,8 @@ object YouTube {
     var streamBypassProxy: Boolean = false
     val streamProxy: Proxy?
         get() = if (streamBypassProxy) null else proxy
+    val streamOkHttpProxy: Proxy
+        get() = streamProxy ?: Proxy.NO_PROXY
     var useLoginForBrowse: Boolean
         get() = innerTube.useLoginForBrowse
         set(value) {
@@ -1388,9 +1390,6 @@ object YouTube {
     suspend fun registerPlayback(
         playlistId: String? = null,
         playbackTracking: String,
-        watchtimeTracking: String? = null,
-        atrTracking: String? = null,
-        playedTimeMs: Long = 0L,
         authState: PlaybackAuthState = currentPlaybackAuthState(),
     ) = runCatching {
         val cpn = (1..16).map {
@@ -1406,30 +1405,6 @@ object YouTube {
             cpn = cpn,
             authState = authState,
         )
-
-        watchtimeTracking
-            ?.takeIf { it.isNotBlank() }
-            ?.let { watchtimeUrl ->
-                innerTube.registerPlayback(
-                    url = watchtimeUrl,
-                    playlistId = playlistId,
-                    cpn = cpn,
-                    elapsedSeconds = playedTimeMs.coerceAtLeast(0L) / 1000.0,
-                    state = "playing",
-                    authState = authState,
-                )
-            }
-
-        atrTracking
-            ?.takeIf { it.isNotBlank() }
-            ?.let { atrUrl ->
-                innerTube.registerPlayback(
-                    url = atrUrl,
-                    playlistId = playlistId,
-                    cpn = cpn,
-                    authState = authState,
-                )
-            }
     }
 
     suspend fun next(

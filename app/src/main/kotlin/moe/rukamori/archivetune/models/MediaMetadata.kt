@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -24,6 +24,7 @@ data class MediaMetadata(
     val thumbnailUrl: String? = null,
     val album: Album? = null,
     val setVideoId: String? = null,
+    val spotifyTrackId: String? = null,
     val explicit: Boolean = false,
     val liked: Boolean = false,
     val likedDate: LocalDateTime? = null,

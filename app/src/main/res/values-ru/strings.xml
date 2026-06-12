@@ -821,4 +821,8 @@
     <string name="po_token_account_notice_body">Войдите тут с тем же аккаунтом Google который вы использовали для входа в YouTube Music в ArchiveTune перед генерацией PO токена.</string>
     <string name="po_token_account_notice_same_account">Если этот WebView использует другой аккаунт, сгенерированный токен не будет нормально работать.</string>
     <string name="po_token_account_notice_mismatch">Используйте подходящий аккаунт, завершите вход, потом откройте youtube.com/account и сгенерируйте токен с этой страницы.</string>
+    <string name="album_backdrop">Размытие фона</string>
+    <string name="album_backdrop_desc">Показывать изображение в качестве размытого фона на плеере</string>
+    <string name="backdrop_blur_amount">Степень размытия фона</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

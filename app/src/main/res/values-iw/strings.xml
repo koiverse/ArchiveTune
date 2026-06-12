@@ -3,4 +3,8 @@
     <string name="home">בית</string>
     <string name="songs">שירים</string>
     <string name="artists">אמנים</string>
+    <string name="album_backdrop">טשטוש רקע</string>
+    <string name="album_backdrop_desc">הצג יצירות אמנות כרקע מטושטש בנגן</string>
+    <string name="backdrop_blur_amount">כמות טשטוש הרקע</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

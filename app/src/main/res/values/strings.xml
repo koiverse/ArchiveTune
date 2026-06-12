@@ -277,8 +277,14 @@
     <string name="enable_dynamic_theme">Enable dynamic theme</string>
     <string name="random_theme_on_startup">Random theme on startup</string>
     <string name="random_theme_on_startup_desc">Apply a random color palette every time the app starts</string>
-    <string name="use_system_font">Use system font</string>
-    <string name="use_system_font_desc">Use the device font instead of the app font</string>
+    <string name="font_preference">Font</string>
+    <string name="font_preference_desc">Choose the app font source</string>
+    <string name="font_preference_default">Default</string>
+    <string name="font_preference_system">System</string>
+    <string name="font_preference_custom">Custom</string>
+    <string name="custom_font">Custom font</string>
+    <string name="custom_font_desc">Pick a .ttf font</string>
+    <string name="custom_font_invalid">Pick a .ttf font file</string>
     <!-- Color Palette -->
     <string name="color_palette">Color Palette</string>
     <string name="customize_theme_colors">Choose your app theme colors</string>
@@ -415,6 +421,10 @@
     <string name="disable_animations_desc">Disable most app animations. Recommended for low-end devices</string>
     <string name="blur_intensity">Blur intensity</string>
     <string name="blur_intensity_value">%1$d dp</string>
+    <string name="album_backdrop">Backdrop blur</string>
+    <string name="album_backdrop_desc">Show artwork as blurred backdrop on the player</string>
+    <string name="backdrop_blur_amount">Backdrop blur amount</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
     <string name="player">Player</string>
     <string name="player_text_alignment">Player text alignment</string>
@@ -485,6 +495,7 @@
     <string name="testing_proxy_connection">Testing proxy connection</string>
     <string name="proxy_connection_success">Proxy connection successful!</string>
     <string name="proxy_connection_failed">Proxy connection failed: %s</string>
+    <string name="proxy_connection_invalid_configuration">Invalid proxy host or port</string>
     <string name="ip_rotation">IP Rotation</string>
     <string name="ip_rotation_desc">Rotate the current IP when playback or content issues occur.</string>
     <string name="ip_rotation_active_proxies">%d active proxies</string>
@@ -517,7 +528,10 @@
     <string name="audio_offload">Audio offload</string>
     <string name="audio_offload_desc">Let supported devices play audio using low-power hardware decoding. Some audio processing features are disabled.</string>
     <string name="pause_on_device_mute">Pause when device volume is 0</string>
-    <string name="pause_on_device_mute_desc">Automatically pause music when muted and resume when unmuted</string>
+    <string name="pause_on_device_mute_desc">Pause at zero volume, explain play attempts, and resume when volume increases</string>
+    <string name="device_mute_recovery_volume">Increase volume from 0</string>
+    <string name="device_mute_recovery_volume_disabled">Disabled</string>
+    <string name="device_volume_zero_playback_paused">Playback paused because device volume is 0. Raise volume to resume.</string>
     <string name="auto_skip_next_on_error">Auto skip to next song when error occurs</string>
     <string name="auto_skip_next_on_error_desc">Ensure your continuous playback experience</string>
     <string name="stop_music_on_task_clear">Stop music on task clear</string>
@@ -628,9 +642,8 @@
     <string name="restore_success">Backup restored successfully</string>
     <string name="restore_failed">Failed to restore backup</string>
     <string name="discord_integration">Discord Integration</string>
-    <string name="account_integrations_summary_gms">Discord, Last.fm, ListenBrainz</string>
-    <string name="account_integrations_summary_foss">Last.fm, ListenBrainz</string>
-    <string name="discord_login_description">Connect your Discord account with OAuth so ArchiveTune can publish Rich Presence through Discord\'s official Social SDK.</string>
+    <string name="account_integrations_summary">Discord, Last.fm, ListenBrainz</string>
+    <string name="discord_login_description">Connect your Discord account with OAuth so ArchiveTune can publish Rich Presence.</string>
     <string name="discord_open_authorization">Open Discord authorization</string>
     <string name="discord_waiting_for_authorization">Waiting for Discord authorization...</string>
     <string name="discord_authorization_success">Discord account connected</string>
@@ -814,6 +827,7 @@
     <string name="updates">Updates</string>
     <string name="updates_subtitle_stable">Stable releases and release notes</string>
     <string name="updates_subtitle_nightly">Nightly builds and recent development commits</string>
+    <string name="updates_subtitle_daily_nightly">Daily nightly releases and changelogs</string>
     <string name="current_version">Current Version</string>
     <string name="latest_version_format">Latest: %s</string>
     <string name="updates_status_checking">Checking for the latest release</string>
@@ -825,6 +839,7 @@
     <string name="update_channel_desc">Choose between tested releases and development snapshots.</string>
     <string name="channel_stable">Stable</string>
     <string name="channel_nightly">Nightly</string>
+    <string name="channel_daily_nightly">Daily</string>
     <string name="commit_history">Development</string>
     <string name="recent_commits">Recent Commits</string>
     <string name="updates_nightly_title">Nightly delivery</string>
@@ -836,6 +851,7 @@
     <string name="updates_no_commits">No recent commits found</string>
     <string name="changelog">Changelog</string>
     <string name="view_changelog">View Changelog</string>
+    <string name="check_for_update">Check for Update</string>
     <string name="error_loading_changelog">Error loading changelog</string>
     <string name="no_releases">No releases found</string>
     <string name="update_notification_channel_name">App Updates</string>

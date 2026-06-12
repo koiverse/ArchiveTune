@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -47,9 +47,14 @@ object DiscordSocialPresenceClient {
         }
     }
 
-    suspend fun clearPresence(): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun clearPresence(accessToken: String? = null): Result<Unit> = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val g = gateway ?: return@withLock Result.failure(Exception("Not connected"))
+            var g = gateway
+            if (g == null && !accessToken.isNullOrBlank()) {
+                ensureConnected(accessToken)
+                g = gateway
+            }
+            g ?: return@withLock Result.failure(Exception("Not connected"))
             val empty = JSONObject().apply {
                 put("activities", JSONArray())
                 put("afk", false)

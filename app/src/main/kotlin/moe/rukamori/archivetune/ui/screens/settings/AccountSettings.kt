@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -448,13 +448,7 @@ fun AccountSettings(
                     ExpressiveActionRow(
                         icon = painterResource(R.drawable.integration),
                         title = integrationLabel,
-                        subtitle = stringResource(
-                            if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
-                                R.string.account_integrations_summary_gms
-                            } else {
-                                R.string.account_integrations_summary_foss
-                            },
-                        ),
+                        subtitle = stringResource(R.string.account_integrations_summary),
                         onClick = { navController.navigate("settings/integration") },
                     )
 

@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.R
+import moe.rukamori.archivetune.constants.UpdateChannel
 import moe.rukamori.archivetune.ui.component.IconButton
 import moe.rukamori.archivetune.ui.component.MarkdownText
 import moe.rukamori.archivetune.ui.utils.backToMain
@@ -38,6 +39,7 @@ import java.util.Locale
 fun ChangelogScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
+    channel: UpdateChannel = UpdateChannel.STABLE,
 ) {
     val coroutineScope = rememberCoroutineScope()
     var releases by remember { mutableStateOf<List<ReleaseInfo>>(emptyList()) }
@@ -45,8 +47,12 @@ fun ChangelogScreen(
     var error by remember { mutableStateOf<String?>(null) }
 
     suspend fun loadReleases(forceRefresh: Boolean) {
-        Updater.getAllReleases(forceRefresh = forceRefresh).onSuccess { result ->
-            releases = result
+        val result = when (channel) {
+            UpdateChannel.DAILY_NIGHTLY -> Updater.getAllDailyNightlyReleases(forceRefresh = forceRefresh)
+            else -> Updater.getAllReleases(forceRefresh = forceRefresh)
+        }
+        result.onSuccess { r ->
+            releases = r
             error = null
         }.onFailure { e ->
             if (releases.isEmpty()) {
@@ -57,7 +63,10 @@ fun ChangelogScreen(
     }
 
     LaunchedEffect(Unit) {
-        val cachedReleases = Updater.getCachedReleases()
+        val cachedReleases = when (channel) {
+            UpdateChannel.DAILY_NIGHTLY -> Updater.getCachedDailyNightlyReleases()
+            else -> Updater.getCachedReleases()
+        }
         if (cachedReleases.isNotEmpty()) {
             releases = cachedReleases
             isLoading = false

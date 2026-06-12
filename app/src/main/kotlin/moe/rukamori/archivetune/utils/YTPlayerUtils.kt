@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -38,6 +38,7 @@ import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB_CRE
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import timber.log.Timber
+import java.net.Proxy
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -97,10 +98,10 @@ object YTPlayerUtils {
         val reason: String?,
     )
 
-    @Volatile private var streamClientPair: Pair<java.net.Proxy?, OkHttpClient>? = null
+    @Volatile private var streamClientPair: Pair<Proxy, OkHttpClient>? = null
 
     private fun currentStreamClient(): OkHttpClient {
-        val current = YouTube.streamProxy
+        val current = YouTube.streamOkHttpProxy
         streamClientPair?.let { (proxy, client) ->
             if (proxy == current) return client
         }
@@ -467,6 +468,51 @@ object YTPlayerUtils {
         }
         throw lastError ?: IllegalStateException("Failed to resolve stream")
     }
+
+    suspend fun playerResponseForDownload(
+        videoId: String,
+        playlistId: String? = null,
+        audioQuality: AudioQuality,
+        connectivityManager: ConnectivityManager,
+        networkMetered: Boolean? = null,
+    ): Result<PlaybackData> = runCatching {
+        Timber.tag(logTag).i("Fetching download response for videoId: $videoId, playlistId: $playlistId")
+        var lastError: Throwable? = null
+
+        for (preferredStreamClient in downloadPreferredStreamClientAttempts) {
+            val attemptResult =
+                playerResponseForPlayback(
+                    videoId = videoId,
+                    playlistId = playlistId,
+                    audioQuality = audioQuality,
+                    connectivityManager = connectivityManager,
+                    preferredStreamClient = preferredStreamClient,
+                    networkMetered = networkMetered,
+                )
+
+            if (attemptResult.isSuccess) return@runCatching attemptResult.getOrThrow()
+
+            lastError = attemptResult.exceptionOrNull()
+            Timber.tag(logTag).w(
+                lastError,
+                "Download stream resolution failed with preferred client %s for %s",
+                preferredStreamClient.name,
+                videoId,
+            )
+        }
+
+        throw lastError ?: IllegalStateException("Failed to resolve download stream for $videoId")
+    }
+
+    private val downloadPreferredStreamClientAttempts: List<PlayerStreamClient> =
+        buildList {
+            add(PlayerStreamClient.WEB_REMIX)
+            addAll(
+                PlayerStreamClient.values()
+                    .filterNot { it == PlayerStreamClient.WEB_REMIX || it == PlayerStreamClient.ANDROID_VR },
+            )
+            add(PlayerStreamClient.ANDROID_VR)
+        }.distinct()
 
     private suspend fun refreshIpRotationForBotDetection(
         videoId: String,
