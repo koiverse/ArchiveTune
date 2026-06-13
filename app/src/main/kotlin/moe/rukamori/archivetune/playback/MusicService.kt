@@ -4465,6 +4465,8 @@ class MusicService :
                     "Failed to register remote playback history for %s",
                     mediaId,
                 )
+            }.onSuccess {
+                YouTube.notifyHistorySynced()
             }.isSuccess
         }
 

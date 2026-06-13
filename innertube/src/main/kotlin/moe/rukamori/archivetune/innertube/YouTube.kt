@@ -76,8 +76,11 @@ import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -109,6 +112,13 @@ object YouTube {
     private val mutableAuthState = MutableStateFlow(PlaybackAuthState.EMPTY)
 
     val authStateFlow: StateFlow<PlaybackAuthState> = mutableAuthState.asStateFlow()
+
+    private val _historySyncEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val historySyncEvent: SharedFlow<Unit> = _historySyncEvent.asSharedFlow()
+
+    fun notifyHistorySynced() {
+        _historySyncEvent.tryEmit(Unit)
+    }
 
     var authState: PlaybackAuthState
         get() = mutableAuthState.value
