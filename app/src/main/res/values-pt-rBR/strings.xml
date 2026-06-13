@@ -991,4 +991,21 @@
     <string name="updates_nightly_hosting_description">As compilações de desenvolvimento geradas automaticamente ficam disponíveis após a execução bem-sucedida das GitHub Actions.</string>
     <string name="check_for_update">Verificar se há Atualizações</string>
     <string name="youtube_channels">Canais do YouTube</string>
+    <string name="library_title">Sua Biblioteca</string>
+    <string name="library_subtitle">Sua música, organizada para você</string>
+    <string name="library_playlists_subtitle">Todas as suas playlists, organizadas para você</string>
+    <string name="library_songs_subtitle">Todas as suas músicas, organizadas para você</string>
+    <string name="library_artists_subtitle">Todos os seus artistas, em um só lugar</string>
+    <string name="library_albums_subtitle">Todos os seus álbuns, lindamente organizados</string>
+    <string name="most_played_badge">MAIS TOCADA</string>
+    <string name="favorite_songs_title">Músicas Favoritas</string>
+    <string name="play_all">Reproduzir tudo</string>
+    <string name="offline_shortcut">Offline</string>
+    <string name="cached">Em Cache</string>
+    <string name="local_files">Arquivos Locais</string>
+    <string name="downloaded_desc">Baixadas</string>
+    <string name="instant_playback">Reprodução Instantânea</string>
+    <string name="on_device">No dispositivo</string>
+    <string name="recently_played">Tocada Recentemente</string>
+    <string name="top_mixes">As Melhores Mixes para Você</string>
 </resources>
