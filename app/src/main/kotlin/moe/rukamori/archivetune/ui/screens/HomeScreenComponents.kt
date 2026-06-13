@@ -38,9 +38,15 @@ import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -103,7 +109,6 @@ import moe.rukamori.archivetune.ui.component.ArtistGridItem
 import moe.rukamori.archivetune.ui.component.LocalMenuState
 import moe.rukamori.archivetune.ui.component.MenuState
 import moe.rukamori.archivetune.ui.component.NavigationTitle
-import moe.rukamori.archivetune.ui.component.RandomizeGridItem
 import moe.rukamori.archivetune.ui.component.SongGridItem
 import moe.rukamori.archivetune.ui.component.SongListItem
 import moe.rukamori.archivetune.ui.component.SpeedDialGridItem
@@ -125,11 +130,12 @@ import moe.rukamori.archivetune.models.SimilarRecommendation
 import kotlin.math.ceil
 import kotlin.random.Random
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import moe.rukamori.archivetune.viewmodels.HomeViewModel
 
@@ -340,7 +346,11 @@ fun QuickPicksSection(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+private const val SpeedDialGridRows = 3
+private const val SpeedDialGridColumns = 3
+private const val SpeedDialItemsPerPage = SpeedDialGridRows * SpeedDialGridColumns
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SpeedDialSection(
     speedDialItems: List<LocalItem>,
@@ -374,11 +384,7 @@ fun SpeedDialSection(
     val speedDialSongIndexById = remember(speedDialSongs) {
         speedDialSongs.mapIndexed { index, song -> song.id to index }.toMap()
     }
-    val tileSize = 130.dp
     val spacing = 10.dp
-    val state = rememberLazyGridState()
-    val rowCount = min(3, distinctSpeedDial.size + 1)
-    val gridHeight = (tileSize * rowCount) + (spacing * (rowCount - 1))
 
     val tiles = remember(distinctSpeedDial) {
         buildList {
@@ -435,6 +441,12 @@ fun SpeedDialSection(
             add(SpeedDialTile(key = "random", localItem = null, ytItem = null))
         }
     }
+    val tilePages = remember(tiles) {
+        tiles.chunked(SpeedDialItemsPerPage)
+    }
+    val pagerState = rememberPagerState(
+        pageCount = { tilePages.size },
+    )
 
     fun playSpeedDialQueue(startIndex: Int) {
         if (speedDialSongs.isEmpty()) return
@@ -447,154 +459,196 @@ fun SpeedDialSection(
         )
     }
 
-    val dotState by
-        remember(state, distinctSpeedDial.size, rowCount) {
+    val selectedDotIndex by
+        remember(pagerState, tilePages) {
             derivedStateOf {
-                val totalItems = distinctSpeedDial.size
-                if (totalItems <= 0) {
-                    Triple(0, 0, 0)
-                } else {
-                    val songsPerDot = 8
-                    val columnsPerDot =
-                        ceil(songsPerDot / rowCount.toFloat()).toInt().coerceAtLeast(1)
-                    val totalSongColumns =
-                        ceil(totalItems / rowCount.toFloat()).toInt().coerceAtLeast(1)
-                    val pages =
-                        ceil(totalSongColumns / columnsPerDot.toFloat()).toInt().coerceAtLeast(1)
-                    val currentColumn =
-                        (state.firstVisibleItemIndex / rowCount).coerceIn(0, totalSongColumns - 1)
-                    val currentPage = (currentColumn / columnsPerDot).coerceIn(0, pages - 1)
-                    val dots = min(3, pages)
-                    val selectedDot =
-                        if (pages <= 3) currentPage
-                        else ((currentPage.toFloat() / (pages - 1).coerceAtLeast(1)) * (dots - 1))
-                            .toInt()
-                            .coerceIn(0, dots - 1)
-                    Triple(dots, selectedDot, pages)
-                }
+                (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+                    .roundToInt()
+                    .coerceIn(0, (tilePages.size - 1).coerceAtLeast(0))
             }
         }
-
-    val (dotsCount, selectedDotIndex) = dotState.let { (dots, selected, _) -> dots to selected }
+    val motionScheme = MaterialTheme.motionScheme
 
     Column(modifier = modifier.fillMaxWidth()) {
-        LazyHorizontalGrid(
-            state = state,
-            rows = GridCells.Fixed(rowCount),
-            horizontalArrangement = Arrangement.spacedBy(spacing),
-            verticalArrangement = Arrangement.spacedBy(spacing),
-            contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
-            modifier =
-                Modifier
-                    .padding(8.dp)
-                    .fillMaxWidth()
-                    .height(gridHeight),
+        BoxWithConstraints(
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+                .fillMaxWidth(),
         ) {
-            items(
-                items = tiles,
-                key = { it.key },
-                contentType = { tile -> if (tile.localItem == null) "speed_dial_random" else "speed_dial_item" },
-            ) { tile ->
-                val localItem = tile.localItem
-                val ytItem = tile.ytItem
-                if (localItem == null || ytItem == null) {
-                    RandomizeGridItem(
-                        isLoading = false,
-                        onClick = {
-                            if (speedDialSongs.isNotEmpty()) {
-                                playSpeedDialQueue(Random.nextInt(speedDialSongs.size))
-                            }
-                        },
-                        modifier = Modifier.width(tileSize),
-                    )
-                } else {
-                    val isActive = when (localItem) {
-                        is Song -> localItem.id == mediaMetadata?.id
-                        is Album -> localItem.id == mediaMetadata?.album?.id
-                        is Artist -> false
-                        is Playlist -> false
-                    }
-                    val songIndex = if (localItem is Song) speedDialSongIndexById[localItem.id] ?: 0 else 0
+            val tileSize = (maxWidth - spacing * (SpeedDialGridColumns - 1)) / SpeedDialGridColumns
+            val gridHeight = (tileSize * SpeedDialGridRows) + (spacing * (SpeedDialGridRows - 1))
 
-                    Box(
-                        modifier = Modifier
-                            .width(tileSize)
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .focusable()
-                            .combinedClickable(
-                                onClick = {
-                                    when (localItem) {
-                                        is Song -> {
-                                            if (isActive) {
-                                                playerConnection.player.togglePlayPause()
-                                            } else {
-                                                playSpeedDialQueue(songIndex)
-                                            }
+            HorizontalPager(
+                state = pagerState,
+                pageSize = PageSize.Fill,
+                pageSpacing = spacing,
+                key = { page -> tilePages[page].firstOrNull()?.key ?: "speed_dial_page_$page" },
+                verticalAlignment = Alignment.Top,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(gridHeight),
+            ) { page ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(spacing),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    tilePages[page]
+                        .chunked(SpeedDialGridColumns)
+                        .forEach { rowTiles ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(spacing),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                rowTiles.forEach { tile ->
+                                    val localItem = tile.localItem
+                                    val ytItem = tile.ytItem
+                                    if (localItem == null || ytItem == null) {
+                                        SpeedDialRandomTile(
+                                            onClick = {
+                                                if (speedDialSongs.isNotEmpty()) {
+                                                    playSpeedDialQueue(Random.nextInt(speedDialSongs.size))
+                                                }
+                                            },
+                                            modifier = Modifier.size(tileSize),
+                                        )
+                                    } else {
+                                        val isActive = when (localItem) {
+                                            is Song -> localItem.id == mediaMetadata?.id
+                                            is Album -> localItem.id == mediaMetadata?.album?.id
+                                            is Artist -> false
+                                            is Playlist -> false
                                         }
-                                        is Album -> navController.navigate("album/${localItem.id}")
-                                        is Artist -> navController.navigate("artist/${localItem.id}")
-                                        is Playlist -> navController.navigate("local_playlist/${localItem.id}")
-                                    }
-                                },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    menuState.show {
-                                        when (localItem) {
-                                            is Song -> SongMenu(
-                                                originalSong = localItem,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss
-                                            )
-                                            is Album -> AlbumMenu(
-                                                originalAlbum = localItem,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss
-                                            )
-                                            is Artist -> ArtistMenu(
-                                                originalArtist = localItem,
-                                                coroutineScope = scope,
-                                                onDismiss = menuState::dismiss
-                                            )
-                                            is Playlist -> PlaylistMenu(
-                                                playlist = localItem,
-                                                coroutineScope = scope,
-                                                onDismiss = menuState::dismiss
+                                        val songIndex =
+                                            if (localItem is Song) speedDialSongIndexById[localItem.id] ?: 0 else 0
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(tileSize)
+                                                .clip(MaterialTheme.shapes.large)
+                                                .focusable()
+                                                .combinedClickable(
+                                                    onClick = {
+                                                        when (localItem) {
+                                                            is Song -> {
+                                                                if (isActive) {
+                                                                    playerConnection.player.togglePlayPause()
+                                                                } else {
+                                                                    playSpeedDialQueue(songIndex)
+                                                                }
+                                                            }
+                                                            is Album -> navController.navigate("album/${localItem.id}")
+                                                            is Artist -> navController.navigate("artist/${localItem.id}")
+                                                            is Playlist -> navController.navigate("local_playlist/${localItem.id}")
+                                                        }
+                                                    },
+                                                    onLongClick = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        menuState.show {
+                                                            when (localItem) {
+                                                                is Song -> SongMenu(
+                                                                    originalSong = localItem,
+                                                                    navController = navController,
+                                                                    onDismiss = menuState::dismiss
+                                                                )
+                                                                is Album -> AlbumMenu(
+                                                                    originalAlbum = localItem,
+                                                                    navController = navController,
+                                                                    onDismiss = menuState::dismiss
+                                                                )
+                                                                is Artist -> ArtistMenu(
+                                                                    originalArtist = localItem,
+                                                                    coroutineScope = scope,
+                                                                    onDismiss = menuState::dismiss
+                                                                )
+                                                                is Playlist -> PlaylistMenu(
+                                                                    playlist = localItem,
+                                                                    coroutineScope = scope,
+                                                                    onDismiss = menuState::dismiss
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                        ) {
+                                            SpeedDialGridItem(
+                                                item = ytItem,
+                                                isPinned = true,
+                                                isActive = isActive,
+                                                isPlaying = isPlaying,
                                             )
                                         }
                                     }
                                 }
-                            )
-                    ) {
-                        SpeedDialGridItem(
-                            item = ytItem,
-                            isPinned = true,
-                            isActive = isActive,
-                            isPlaying = isPlaying,
-                        )
-                    }
+                                repeat(SpeedDialGridColumns - rowTiles.size) {
+                                    Spacer(modifier = Modifier.size(tileSize))
+                                }
+                            }
+                        }
                 }
             }
         }
 
-        if (dotsCount > 1) {
+        if (tilePages.size > 1) {
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             ) {
-                repeat(dotsCount) { index ->
+                repeat(tilePages.size) { index ->
                     val isSelected = index == selectedDotIndex
-                    Surface(
-                        color =
+                    val dotColor by animateColorAsState(
+                        targetValue =
                             if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                        shape = CircleShape,
+                            else MaterialTheme.colorScheme.surfaceContainerHighest,
+                        animationSpec = motionScheme.defaultEffectsSpec(),
+                        label = "speedDialDotColor",
+                    )
+                    val dotWidth by animateDpAsState(
+                        targetValue = if (isSelected) 22.dp else 8.dp,
+                        animationSpec = motionScheme.defaultSpatialSpec(),
+                        label = "speedDialDotWidth",
+                    )
+                    Surface(
+                        color = dotColor,
+                        shape = MaterialTheme.shapes.extraLarge,
                         modifier =
-                            Modifier.size(
-                                if (isSelected) 8.dp else 6.dp
-                            ),
+                            Modifier
+                                .width(dotWidth)
+                                .height(8.dp),
+                    ) {}
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SpeedDialRandomTile(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = MaterialTheme.shapes.large,
+        tonalElevation = 2.dp,
+        modifier = modifier
+            .aspectRatio(1f)
+            .combinedClickable(onClick = onClick),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                repeat(3) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape,
+                        modifier = Modifier.size(18.dp),
                     ) {}
                 }
             }
@@ -1181,9 +1235,8 @@ fun LazyListScope.AccountPlaylistsContainer(
     scope: CoroutineScope
 ) {
     item {
-        val accountPlaylists by viewModel.accountPlaylists.collectAsState()
-        
-        // Check if list is not null and not empty
+        val accountPlaylists by viewModel.accountPlaylists.collectAsStateWithLifecycle()
+
         val currentPlaylists = accountPlaylists
         if (!currentPlaylists.isNullOrEmpty()) {
             Column {
@@ -1222,7 +1275,7 @@ fun LazyListScope.SimilarRecommendationsContainer(
     scope: CoroutineScope
 ) {
      item {
-        val similarRecommendations by viewModel.similarRecommendations.collectAsState()
+        val similarRecommendations by viewModel.similarRecommendations.collectAsStateWithLifecycle()
         
         Column {
             similarRecommendations?.forEach { recommendation ->

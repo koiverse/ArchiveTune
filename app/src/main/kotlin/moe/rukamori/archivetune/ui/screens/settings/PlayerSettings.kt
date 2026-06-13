@@ -50,6 +50,7 @@ import moe.rukamori.archivetune.constants.SkipSilenceKey
 import moe.rukamori.archivetune.constants.StopMusicOnTaskClearKey
 import moe.rukamori.archivetune.constants.WakelockKey
 import moe.rukamori.archivetune.constants.HistoryDuration
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_DEFAULT
 import moe.rukamori.archivetune.constants.CrossfadeDurationKey
 import moe.rukamori.archivetune.constants.CrossfadeEnabledKey
 import moe.rukamori.archivetune.constants.CrossfadeGaplessKey
@@ -147,7 +148,7 @@ fun PlayerSettings(
     )
     val (historyDuration, onHistoryDurationChange) = rememberPreference(
         HistoryDuration,
-        defaultValue = 30f
+        defaultValue = HISTORY_DURATION_DEFAULT
     )
 
     val (crossfadeEnabled, onCrossfadeEnabledChange) = rememberPreference(

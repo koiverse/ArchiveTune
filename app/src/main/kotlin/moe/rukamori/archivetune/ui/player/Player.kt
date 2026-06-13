@@ -154,6 +154,7 @@ import androidx.navigation.NavController
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.imageLoader
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.request.SuccessResult
@@ -407,6 +408,10 @@ fun BottomSheetPlayer(
                 } else {
                     val request = ImageRequest.Builder(context)
                         .data(currentMetadata.thumbnailUrl)
+                        .memoryCacheKey(currentMetadata.thumbnailUrl)
+                        .diskCacheKey(currentMetadata.thumbnailUrl)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .networkCachePolicy(CachePolicy.ENABLED)
                         .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
                         .allowHardware(false)
                         .build()
@@ -916,9 +921,8 @@ fun BottomSheetPlayer(
                             requireVertical = true,
                         )
                     }
-                v7CanvasArtwork = fetched
-                if (fetched != null) {
-                    CanvasArtworkPlaybackCache.put(metadata.id, fetched)
+                v7CanvasArtwork = fetched?.let { artwork ->
+                    CanvasArtworkPlaybackCache.put(metadata.id, artwork)
                 }
             } finally {
                 v7CanvasFetchInFlight = false
@@ -957,9 +961,8 @@ fun BottomSheetPlayer(
                             requireVertical = false,
                         )
                     }
-                artworkCanvas = fetched
-                if (fetched != null) {
-                    CanvasArtworkPlaybackCache.put(metadata.id, fetched)
+                artworkCanvas = fetched?.let { artwork ->
+                    CanvasArtworkPlaybackCache.put(metadata.id, artwork)
                 }
             } finally {
                 artworkCanvasFetchInFlight = false
@@ -1658,6 +1661,7 @@ private fun V8PlayerBackdrop(
     val backdropModel = remember(thumbnailUrl) {
         thumbnailUrl?.resize(V8BackdropArtworkSizePx, V8BackdropArtworkSizePx)
     }
+    val backdropRequest = rememberOfflineArtworkImageRequest(backdropModel)
     val blurRadiusDp = 44.dp * (backdropBlurAmount.toFloat() / 100f)
 
     Box(
@@ -1669,7 +1673,7 @@ private fun V8PlayerBackdrop(
             val backdropHasBlur = backdropBlurAmount > 0
             if (backdropHasBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 AsyncImage(
-                    model = backdropModel,
+                    model = backdropRequest,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -1695,7 +1699,7 @@ private fun V8PlayerBackdrop(
                 )
             } else {
                 AsyncImage(
-                    model = backdropModel,
+                    model = backdropRequest,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -1720,7 +1724,7 @@ private fun V8PlayerBackdrop(
 @Suppress("DEPRECATION")
 @Composable
 private fun BackdropBlurApi30(
-    model: Any?,
+    model: String?,
     blurAmount: Int,
     modifier: Modifier = Modifier,
 ) {
@@ -1733,6 +1737,10 @@ private fun BackdropBlurApi30(
             try {
                 val request = ImageRequest.Builder(context)
                     .data(model)
+                    .memoryCacheKey(model)
+                    .diskCacheKey(model)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .networkCachePolicy(CachePolicy.ENABLED)
                     .allowHardware(false)
                     .size(500)
                     .build()
@@ -1781,7 +1789,7 @@ private fun BackdropBlurApi30(
         )
     } else {
         AsyncImage(
-            model = model,
+            model = rememberOfflineArtworkImageRequest(model),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier,
@@ -1840,6 +1848,10 @@ private fun V7PlayerBackdrop(
 
         val request = ImageRequest.Builder(context)
             .data(paletteSourceUrl)
+            .memoryCacheKey(paletteSourceUrl)
+            .diskCacheKey(paletteSourceUrl)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .networkCachePolicy(CachePolicy.ENABLED)
             .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
             .allowHardware(false)
             .build()
@@ -1893,6 +1905,7 @@ private fun V7PlayerBackdrop(
     val backdropArtworkModel = remember(backdropArtworkUrl, backdropArtworkSizePx) {
         backdropArtworkUrl?.resize(backdropArtworkSizePx, backdropArtworkSizePx)
     }
+    val backdropArtworkRequest = rememberOfflineArtworkImageRequest(backdropArtworkModel)
     val sharpStageBottomScrim = remember(backdropPalette) {
         val blendColor = backdropPalette.bottom
         Brush.verticalGradient(
@@ -1959,7 +1972,7 @@ private fun V7PlayerBackdrop(
             if (backdropArtworkModel != null) {
                 if (needsBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     AsyncImage(
-                        model = backdropArtworkModel,
+                        model = backdropArtworkRequest,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = backdropImageModifier.blur(backdropBlurRadius),
@@ -1978,7 +1991,7 @@ private fun V7PlayerBackdrop(
                     )
                 } else {
                     AsyncImage(
-                        model = backdropArtworkModel,
+                        model = backdropArtworkRequest,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = backdropImageModifier,
@@ -2008,6 +2021,7 @@ private fun V7PlayerBackdrop(
             val sharpArtworkModel = remember(backdrop.artworkUrl, backdropArtworkSizePx) {
                 backdrop.artworkUrl?.resize(backdropArtworkSizePx, backdropArtworkSizePx)
             }
+            val sharpArtworkRequest = rememberOfflineArtworkImageRequest(sharpArtworkModel)
 
             Box(
                 modifier = Modifier
@@ -2017,7 +2031,7 @@ private fun V7PlayerBackdrop(
             ) {
                 if (sharpArtworkModel != null) {
                     AsyncImage(
-                        model = sharpArtworkModel,
+                        model = sharpArtworkRequest,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),

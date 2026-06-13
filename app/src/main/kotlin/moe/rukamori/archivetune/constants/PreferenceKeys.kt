@@ -632,7 +632,12 @@ val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
 val LyricsLineBlurKey = booleanPreferencesKey("lyricsLineBlur")
 
 val TopSize = stringPreferencesKey("topSize")
-val HistoryDuration = floatPreferencesKey("historyDuration")
+
+const val HISTORY_DURATION_DEFAULT = 30
+const val HISTORY_DURATION_MIN = 15
+const val HISTORY_DURATION_MAX = 60
+val HISTORY_DURATION_LEGACY_FLOAT_KEY = floatPreferencesKey("historyDuration")
+val HistoryDuration = intPreferencesKey("historyDuration")
 
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
