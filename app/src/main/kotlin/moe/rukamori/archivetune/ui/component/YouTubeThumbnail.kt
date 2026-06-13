@@ -19,6 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import moe.rukamori.archivetune.R
 
 private val ytVideoIdRegex = Regex("/vi/([^/]+)/")
@@ -32,6 +33,7 @@ fun YTFallbackImage(
     widthPx: Int? = null,
     heightPx: Int? = null,
 ) {
+    val context = LocalContext.current
     val videoId = url?.let { ytVideoIdRegex.find(it)?.groupValues?.getOrNull(1) }
     if (videoId != null) {
         val urls = remember(videoId) {
@@ -44,15 +46,16 @@ fun YTFallbackImage(
 
         if (urlIndex < urls.size) {
             val request = remember(urls[urlIndex], widthPx, heightPx) {
-                ImageRequest.Builder(LocalContext.current)
+                val builder = ImageRequest.Builder(context)
                     .data(urls[urlIndex])
                     .allowHardware(true)
-                    .apply {
-                        if (widthPx != null && heightPx != null) {
-                            size(widthPx, heightPx)
-                        }
+                if (widthPx != null && heightPx != null) {
+                    builder.size(widthPx, heightPx)
+                }
+                builder
+                    .listener {
+                        onError { _, _ -> urlIndex++ }
                     }
-                    .listener(onError = { _, _ -> urlIndex++ })
                     .build()
             }
             AsyncImage(
@@ -78,15 +81,13 @@ fun YTFallbackImage(
         }
     } else {
         val request = remember(url, widthPx, heightPx) {
-            ImageRequest.Builder(LocalContext.current)
+            val builder = ImageRequest.Builder(context)
                 .data(url)
                 .allowHardware(true)
-                .apply {
-                    if (widthPx != null && heightPx != null) {
-                        size(widthPx, heightPx)
-                    }
-                }
-                .build()
+            if (widthPx != null && heightPx != null) {
+                builder.size(widthPx, heightPx)
+            }
+            builder.build()
         }
         AsyncImage(
             model = request,
