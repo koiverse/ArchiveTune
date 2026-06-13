@@ -2375,6 +2375,7 @@ private fun V8Artwork(
     isPlaying: Boolean,
     size: androidx.compose.ui.unit.Dp,
 ) {
+    val artworkRequest = rememberOfflineArtworkImageRequest(artworkUrl)
     Box(
         modifier = Modifier
             .size(size)
@@ -2382,7 +2383,7 @@ private fun V8Artwork(
             .background(Color.White.copy(alpha = 0.08f)),
     ) {
         AsyncImage(
-            model = artworkUrl,
+            model = artworkRequest,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
@@ -3280,6 +3281,7 @@ private fun V9Artwork(
     size: Dp,
     placeholderColor: Color,
 ) {
+    val artworkRequest = rememberOfflineArtworkImageRequest(artworkUrl)
     Box(
         modifier = Modifier
             .size(size)
@@ -3287,7 +3289,7 @@ private fun V9Artwork(
             .background(placeholderColor),
     ) {
         AsyncImage(
-            model = artworkUrl,
+            model = artworkRequest,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
