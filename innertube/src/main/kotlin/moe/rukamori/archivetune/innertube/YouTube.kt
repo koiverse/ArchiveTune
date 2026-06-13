@@ -70,15 +70,17 @@ import moe.rukamori.archivetune.innertube.pages.SearchResult
 import moe.rukamori.archivetune.innertube.pages.SearchSuggestionPage
 import moe.rukamori.archivetune.innertube.pages.SearchSummary
 import moe.rukamori.archivetune.innertube.pages.SearchSummaryPage
-import moe.rukamori.archivetune.innertube.utils.PoTokenGenerator
 import moe.rukamori.archivetune.innertube.proxy.RotatingProxyClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -110,6 +112,13 @@ object YouTube {
     private val mutableAuthState = MutableStateFlow(PlaybackAuthState.EMPTY)
 
     val authStateFlow: StateFlow<PlaybackAuthState> = mutableAuthState.asStateFlow()
+
+    private val _historySyncEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val historySyncEvent: SharedFlow<Unit> = _historySyncEvent.asSharedFlow()
+
+    fun notifyHistorySynced() {
+        _historySyncEvent.tryEmit(Unit)
+    }
 
     var authState: PlaybackAuthState
         get() = mutableAuthState.value

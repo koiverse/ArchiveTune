@@ -1033,8 +1033,12 @@ class MainActivity : ComponentActivity() {
                             playerBottomSheetState.isDismissed,
                         ) {
                             var bottom = bottomInset
-                            if (shouldShowNavigationBar && !useRail) bottom += getBottomNavPadding()
-                            if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                            if (shouldShowNavigationBar && !useRail) {
+                                bottom += getBottomNavPadding() + floatingBarsBottomPadding
+                            }
+                            if (!playerBottomSheetState.isDismissed) {
+                                bottom += MiniPlayerHeight + MiniPlayerBottomSpacing
+                            }
                             windowsInsets
                                 .only((if(useRail) {
                                     WindowInsetsSides.Right
@@ -1045,6 +1049,7 @@ class MainActivity : ComponentActivity() {
                     appBarScrollBehavior(
                         canScroll = {
                             navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                                    navBackStackEntry?.destination?.route != Screens.Library.route &&
                                     (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                         }
                     )
@@ -1053,6 +1058,7 @@ class MainActivity : ComponentActivity() {
                         appBarScrollBehavior(
                             canScroll = {
                                 navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                                        navBackStackEntry?.destination?.route != Screens.Library.route &&
                                         (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                             },
                         )
@@ -1060,6 +1066,7 @@ class MainActivity : ComponentActivity() {
                         appBarScrollBehavior(
                             canScroll = {
                                 navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                                        navBackStackEntry?.destination?.route != Screens.Library.route &&
                                         (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                             },
                         )
@@ -1252,7 +1259,8 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(navBackStackEntry) {
                         shouldShowTopBar =
-                            !active && navBackStackEntry?.destination?.route in topLevelScreens && navBackStackEntry?.destination?.route != "settings"
+                            !active && navBackStackEntry?.destination?.route in topLevelScreens && 
+                            navBackStackEntry?.destination?.route != "settings"
                     }
 
                     var sharedSong: SongItem? by remember {
@@ -1471,12 +1479,13 @@ class MainActivity : ComponentActivity() {
 
                                         val surfaceColor = MaterialTheme.colorScheme.surface
                                         val currentScrollBehavior = if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior
+                                        val isLibraryRoute = navBackStackEntry?.destination?.route == Screens.Library.route
 
                                         Box(
                                             modifier = Modifier.offset {
                                                 IntOffset(
                                                     x = 0,
-                                                    y = currentScrollBehavior.state.heightOffset.toInt()
+                                                    y = if (isLibraryRoute) 0 else currentScrollBehavior.state.heightOffset.toInt()
                                                 )
                                             }
                                         ) {
@@ -1587,7 +1596,7 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     }
                                                 },
-                                                scrollBehavior = if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior,
+                                                scrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Library.route) null else if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior,
                                                 colors = TopAppBarDefaults.topAppBarColors(
                                                     containerColor = if (shouldUseFloatingTopBar) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
                                                     scrolledContainerColor = if (shouldUseFloatingTopBar) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,

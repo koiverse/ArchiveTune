@@ -63,6 +63,7 @@ import java.net.Proxy
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import moe.rukamori.archivetune.utils.toPlaybackAuthState
+import moe.rukamori.archivetune.utils.potoken.BotGuardTokenGenerator
 
 @HiltAndroidApp
 class App : Application(), SingletonImageLoader.Factory {
@@ -90,6 +91,7 @@ class App : Application(), SingletonImageLoader.Factory {
             Timber.plant(Timber.DebugTree())
             return
         }
+        BotGuardTokenGenerator.initialize(this)
         PreferenceStore.start(this)
         Timber.plant(Timber.DebugTree())
         try {
@@ -98,6 +100,11 @@ class App : Application(), SingletonImageLoader.Factory {
 
         initializeCriticalSync()
         initializeDeferredAsync()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // WebView cleanup happens automatically on process death
     }
 
     private fun initializeCriticalSync() {
@@ -156,6 +163,14 @@ class App : Application(), SingletonImageLoader.Factory {
 
                 if (prefs[UseLoginForBrowse] != false) {
                     YouTube.useLoginForBrowse = true
+                }
+                
+                // Pre-warm BotGuard token generator
+                val initialVisitor = prefs[VisitorDataKey] ?: YouTube.visitorData
+                if (!initialVisitor.isNullOrBlank()) {
+                    applicationScope.launch(Dispatchers.IO) {
+                        BotGuardTokenGenerator.preWarm(initialVisitor)
+                    }
                 }
                 
                 // Apply random theme on startup if enabled
@@ -221,6 +236,10 @@ class App : Application(), SingletonImageLoader.Factory {
                     YouTube.authState = authState
                     if (previousFingerprint != authState.fingerprint) {
                         YTPlayerUtils.clearPlaybackAuthCaches()
+                        val newSessionId = authState.sessionId
+                        if (!newSessionId.isNullOrBlank()) {
+                            BotGuardTokenGenerator.preWarm(newSessionId)
+                        }
                     }
                 }
         }
