@@ -826,6 +826,15 @@ fun LocalPlaylistScreen(
                                     modifier = Modifier.padding(horizontal = 32.dp)
                                 )
 
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                PlaylistTagChips(
+                                    database = database,
+                                    playlistId = playlist.id,
+                                    editable = true,
+                                    modifier = Modifier.padding(horizontal = 24.dp)
+                                )
+
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 // Metadata Row - Song Count, Duration

@@ -105,6 +105,7 @@ import moe.rukamori.archivetune.playback.queues.ListQueue
 import moe.rukamori.archivetune.ui.component.CreatePlaylistDialog
 import moe.rukamori.archivetune.ui.component.ExpressivePullToRefreshBox
 import moe.rukamori.archivetune.ui.component.LocalMenuState
+import moe.rukamori.archivetune.ui.component.PlaylistTagChips
 import moe.rukamori.archivetune.ui.menu.PlaylistMenu
 import moe.rukamori.archivetune.ui.menu.YouTubePlaylistMenu
 import moe.rukamori.archivetune.utils.rememberEnumPreference
@@ -143,9 +144,9 @@ fun LibraryPlaylistsScreen(
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
 
     val playlists by viewModel.allPlaylists.collectAsState()
-    val filteredPlaylistIds by database.playlistIdsByTags(
-        if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList(),
-    ).collectAsState(initial = emptyList())
+    val filteredPlaylistIds by remember(database, selectedTagIds) {
+        database.playlistIdsByTags(selectedTagIds.toList())
+    }.collectAsState(initial = emptyList())
 
     val visiblePlaylists = remember(playlists, selectedTagIds, filteredPlaylistIds) {
         playlists.filter { playlist ->
@@ -601,6 +602,12 @@ fun PlaylistListCard(
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(6.dp))
+            PlaylistTagChips(
+                database = LocalDatabase.current,
+                playlistId = playlist.id,
+                editable = false
+            )
         }
 
         // Play Button
@@ -717,6 +724,12 @@ fun PlaylistGridCard(
             text = "${playlist.songCount} ${stringResource(R.string.tracks_label)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        PlaylistTagChips(
+            database = LocalDatabase.current,
+            playlistId = playlist.id,
+            editable = false
         )
     }
 }

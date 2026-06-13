@@ -98,7 +98,7 @@ private fun NewMiniPlayer(
         }
     }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
-    val shouldUseArtworkBackground = true
+    val shouldUseArtworkBackground = false
 
     LaunchedEffect(
         mediaMetadata?.id,

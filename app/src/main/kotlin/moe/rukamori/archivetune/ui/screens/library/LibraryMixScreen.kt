@@ -125,9 +125,9 @@ fun LibraryMixScreen(
         }
     }
     
-    val filteredPlaylistIds by database.playlistIdsByTags(
-        if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList(),
-    ).collectAsState(initial = emptyList())
+    val filteredPlaylistIds by remember(database, selectedTagIds) {
+        database.playlistIdsByTags(selectedTagIds.toList())
+    }.collectAsState(initial = emptyList())
 
     val visiblePlaylists = remember(playlists, selectedTagIds, filteredPlaylistIds) {
         playlists.filter { playlist ->
