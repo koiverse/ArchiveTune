@@ -145,6 +145,7 @@ import moe.rukamori.archivetune.musicrecognition.MusicRecognitionRoute
 import moe.rukamori.archivetune.shazamkit.Shazam
 import moe.rukamori.archivetune.shazamkit.ShazamSignatureGenerator
 import moe.rukamori.archivetune.shazamkit.models.RecognitionResult
+import moe.rukamori.archivetune.ui.screens.search.onlineSearchResultRoute
 import moe.rukamori.archivetune.ui.utils.appBarScrollBehavior
 import moe.rukamori.archivetune.utils.dataStore
 import java.text.DateFormat
@@ -363,7 +364,7 @@ fun MusicRecognitionScreen(
                                 isWide = useWideContent,
                                 onSearch = {
                                     val query = "${target.result.title} ${target.result.artist}".trim()
-                                    navController.navigate("search/${Uri.encode(query)}")
+                                    navController.navigate(onlineSearchResultRoute(query))
                                 },
                                 onListenAgain = { startOrRequestPermission() },
                             )
@@ -397,7 +398,7 @@ fun MusicRecognitionScreen(
             onDismiss = { showHistorySheet = false },
             onSearch = { query ->
                 showHistorySheet = false
-                navController.navigate("search/${Uri.encode(query)}")
+                navController.navigate(onlineSearchResultRoute(query))
             },
         )
     }
