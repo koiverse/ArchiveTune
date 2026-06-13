@@ -405,26 +405,17 @@ class InnerTube {
     ) = withRetry {
         httpClient.get(url) {
             ytPlaybackTrackingClient(client, authState = authState)
-            parameterIfMissing(url, "ver", PLAYBACK_TELEMETRY_VER)
-            parameterIfMissing(url, "c", client.clientName)
-            parameterIfMissing(url, "cpn", cpn)
-            parameterIfMissing(url, "prettyPrint", "false")
+            parameter("ver", PLAYBACK_TELEMETRY_VER)
+            parameter("c", client.clientName)
+            parameter("cpn", cpn)
+            parameter("prettyPrint", false)
 
             if (playlistId != null) {
-                parameterIfMissing(url, "list", playlistId)
-                parameterIfMissing(url, "referrer", "https://music.youtube.com/playlist?list=$playlistId")
+                parameter("list", playlistId)
+                parameter("referrer", "https://music.youtube.com/playlist?list=$playlistId")
             }
         }
     }
-
-    private fun HttpRequestBuilder.parameterIfMissing(url: String, name: String, value: String) {
-        if (!url.hasQueryParameter(name)) {
-            parameter(name, value)
-        }
-    }
-
-    private fun String.hasQueryParameter(name: String): Boolean =
-        runCatching { toHttpUrl().queryParameter(name) != null }.getOrDefault(false)
 
     suspend fun browse(
         client: YouTubeClient,
