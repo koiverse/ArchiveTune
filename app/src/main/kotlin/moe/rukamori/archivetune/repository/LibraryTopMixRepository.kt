@@ -26,7 +26,7 @@ import moe.rukamori.archivetune.models.MediaMetadata
 import moe.rukamori.archivetune.models.toMediaMetadata
 import moe.rukamori.archivetune.utils.dataStore
 
-private const val LibraryTopMixCandidateLimit = 80
+private const val LibraryTopMixCandidateLimit = 300
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
@@ -60,7 +60,7 @@ constructor(
             }
             .flowOn(Dispatchers.IO)
 
-    fun observeMostPlayedTracks(): Flow<List<MediaMetadata>> =
+    fun observeListenedTracks(): Flow<List<MediaMetadata>> =
         hideExplicitEnabled()
             .flatMapLatest { hideExplicit ->
                 database
@@ -68,7 +68,7 @@ constructor(
                     .map { songs ->
                         songs
                             .filterExplicit(hideExplicit)
-                            .take(LibraryTopMixCandidateLimit)
+                            .filter { it.song.totalPlayTime > 0L }
                             .map { it.toMediaMetadata() }
                     }
             }
