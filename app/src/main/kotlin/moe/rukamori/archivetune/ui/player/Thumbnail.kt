@@ -543,7 +543,7 @@ fun Thumbnail(
                                         val thumbnailBgUrl = item.metadata?.thumbnailUrl?.highRes()
                                             ?: item.mediaMetadata.artworkUri?.toString()
                                         val thumbnailBgRequest = rememberOfflineArtworkImageRequest(thumbnailBgUrl)
-                                        val thumbnailArtworkUrl = item.metadata?.thumbnailUrl
+                                        val thumbnailArtworkUrl = item.metadata?.thumbnailUrl?.highRes()
                                             ?: item.mediaMetadata.artworkUri?.toString()
                                         val thumbnailArtworkRequest = rememberOfflineArtworkImageRequest(thumbnailArtworkUrl)
                                         val thumbnailBgBlurEnabled = backdropEnabled && !disableBlur && backdropBlurAmount > 0
