@@ -37,6 +37,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.properties.ReadOnlyProperty
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "settings",
     produceMigrations = { _ ->
@@ -147,21 +150,28 @@ fun <T> rememberPreference(
     defaultValue: T,
 ): MutableState<T> {
     val context = LocalContext.current
+    val initialValue = remember(key) {
+        PreferenceStore.get(key) ?: defaultValue
+    }
+    val state = remember(key) { mutableStateOf(initialValue) }
 
-    val state =
-        remember {
-            context.dataStore.data
-                .map { it[key] ?: defaultValue }
-                .distinctUntilChanged()
-        }.collectAsState(defaultValue)
+    LaunchedEffect(key) {
+        context.dataStore.data
+            .map { it[key] ?: defaultValue }
+            .distinctUntilChanged()
+            .collect { value ->
+                state.value = value
+            }
+    }
 
-    return remember {
+    return remember(key, state) {
         object : MutableState<T> {
             override var value: T
                 get() = state.value
-                set(value) {
+                set(newValue) {
+                    state.value = newValue
                     PreferenceStore.launchEdit(context.dataStore) {
-                        this[key] = value
+                        this[key] = newValue
                     }
                 }
 
@@ -178,21 +188,28 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
     defaultValue: T,
 ): MutableState<T> {
     val context = LocalContext.current
+    val initialValue = remember(key) {
+        PreferenceStore.get(key).toEnum(defaultValue)
+    }
+    val state = remember(key) { mutableStateOf(initialValue) }
 
-    val state =
-        remember {
-            context.dataStore.data
-                .map { it[key].toEnum(defaultValue = defaultValue) }
-                .distinctUntilChanged()
-        }.collectAsState(defaultValue)
+    LaunchedEffect(key) {
+        context.dataStore.data
+            .map { it[key].toEnum(defaultValue) }
+            .distinctUntilChanged()
+            .collect { value ->
+                state.value = value
+            }
+    }
 
-    return remember {
+    return remember(key, state) {
         object : MutableState<T> {
             override var value: T
                 get() = state.value
-                set(value) {
+                set(newValue) {
+                    state.value = newValue
                     PreferenceStore.launchEdit(context.dataStore) {
-                        this[key] = value.name
+                        this[key] = newValue.name
                     }
                 }
 

@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import moe.rukamori.archivetune.R
@@ -177,21 +178,47 @@ fun TagsFilterChips(
     database: MusicDatabase,
     selectedTags: Set<String>,
     onTagToggle: (TagEntity) -> Unit,
+    onManageTagsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val allTags by database.allTags().collectAsState(initial = emptyList())
 
-    if (allTags.isNotEmpty()) {
-        FlowRow(
-            modifier = modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        allTags.forEach { tag ->
+            TagChip(
+                tag = tag,
+                selected = tag.id in selectedTags,
+                onClick = { onTagToggle(tag) }
+            )
+        }
+
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline),
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .clickable(onClick = onManageTagsClick)
         ) {
-            allTags.forEach { tag ->
-                TagChip(
-                    tag = tag,
-                    selected = tag.id in selectedTags,
-                    onClick = { onTagToggle(tag) }
+            Row(
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.style),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = stringResource(R.string.manage_tags),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

@@ -77,19 +77,19 @@ import java.util.Locale
 @Dao
 interface DatabaseDao {
     @Transaction
-    @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY rowId")
+    @Query("SELECT * FROM song ORDER BY rowId")
     fun songsByRowIdAsc(): Flow<List<Song>>
 
     @Transaction
-    @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY inLibrary")
+    @Query("SELECT * FROM song ORDER BY COALESCE(inLibrary, likedDate, dateDownload)")
     fun songsByCreateDateAsc(): Flow<List<Song>>
 
     @Transaction
-    @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY title")
+    @Query("SELECT * FROM song ORDER BY title")
     fun songsByNameAsc(): Flow<List<Song>>
 
     @Transaction
-    @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY totalPlayTime")
+    @Query("SELECT * FROM song ORDER BY totalPlayTime")
     fun songsByPlayTimeAsc(): Flow<List<Song>>
 
     fun songs(
@@ -137,7 +137,7 @@ interface DatabaseDao {
         SELECT song.*
         FROM song
         LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        WHERE set_video_id.setVideoId IS NULL
         ORDER BY song.id
         """,
     )
@@ -149,8 +149,8 @@ interface DatabaseDao {
         SELECT song.*
         FROM song
         LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
-        ORDER BY inLibrary
+        WHERE set_video_id.setVideoId IS NULL
+        ORDER BY COALESCE(song.inLibrary, song.likedDate, song.dateDownload)
         """,
     )
     fun songsByCreateDateAscNoVideo(): Flow<List<Song>>
@@ -161,7 +161,7 @@ interface DatabaseDao {
         SELECT song.*
         FROM song
         LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        WHERE set_video_id.setVideoId IS NULL
         ORDER BY title
         """,
     )
@@ -173,7 +173,7 @@ interface DatabaseDao {
         SELECT song.*
         FROM song
         LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        WHERE set_video_id.setVideoId IS NULL
         ORDER BY totalPlayTime
         """,
     )
@@ -684,6 +684,10 @@ interface DatabaseDao {
     fun format(id: String?): Flow<FormatEntity?>
 
     @Transaction
+    @Query("SELECT * FROM format WHERE id = :id LIMIT 1")
+    fun formatSync(id: String?): FormatEntity?
+
+    @Transaction
     @Query("SELECT * FROM lyrics WHERE id = :id")
     fun lyrics(id: String?): Flow<LyricsEntity?>
 
@@ -1008,26 +1012,26 @@ interface DatabaseDao {
     fun albumArtistMaps(albumId: String): List<AlbumArtistMap>
 
     @Transaction
-    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY rowId")
+    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY CASE WHEN pinnedAt IS NOT NULL THEN 0 ELSE 1 END ASC, rowId")
     fun playlistsByCreateDateAsc(): Flow<List<Playlist>>
 
     @Transaction
     @Query(
-        "SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY lastUpdateTime",
+        "SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY CASE WHEN pinnedAt IS NOT NULL THEN 0 ELSE 1 END ASC, lastUpdateTime",
     )
     fun playlistsByUpdatedDateAsc(): Flow<List<Playlist>>
 
     @Transaction
-    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY name")
+    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY CASE WHEN pinnedAt IS NOT NULL THEN 0 ELSE 1 END ASC, name")
     fun playlistsByNameAsc(): Flow<List<Playlist>>
 
     @Transaction
-    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY songCount")
+    @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY CASE WHEN pinnedAt IS NOT NULL THEN 0 ELSE 1 END ASC, songCount")
     fun playlistsBySongCountAsc(): Flow<List<Playlist>>
 
     @Transaction
     @Query(
-        "SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY COALESCE(customOrder, rowId), rowId",
+        "SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY CASE WHEN pinnedAt IS NOT NULL THEN 0 ELSE 1 END ASC, COALESCE(customOrder, rowId), rowId",
     )
     fun playlistsByCustomOrderAsc(): Flow<List<Playlist>>
 
@@ -1040,14 +1044,20 @@ interface DatabaseDao {
             playlistsByNameAsc().map { playlists ->
                 val collator = Collator.getInstance(Locale.getDefault())
                 collator.strength = Collator.PRIMARY
-                playlists.sortedWith(compareBy(collator) { it.playlist.name })
+                val (pinned, unpinned) = playlists.partition { it.playlist.pinnedAt != null }
+                val sortedPinned = pinned.sortedWith(compareBy(collator) { it.playlist.name })
+                val sortedUnpinned = unpinned.sortedWith(compareBy(collator) { it.playlist.name })
+                sortedPinned + sortedUnpinned
             }
 
         PlaylistSortType.SONG_COUNT -> playlistsBySongCountAsc()
         PlaylistSortType.LAST_UPDATED -> playlistsByUpdatedDateAsc()
         PlaylistSortType.CUSTOM -> playlistsByCustomOrderAsc()
     }.map { list ->
-        if (descending && sortType != PlaylistSortType.CUSTOM) list.asReversed() else list
+        val (pinned, unpinned) = list.partition { it.playlist.pinnedAt != null }
+        val finalPinned = if (descending && sortType != PlaylistSortType.CUSTOM) pinned.asReversed() else pinned
+        val finalUnpinned = if (descending && sortType != PlaylistSortType.CUSTOM) unpinned.asReversed() else unpinned
+        finalPinned + finalUnpinned
     }
 
     @Query("UPDATE playlist SET customOrder = :customOrder WHERE id = :playlistId")
@@ -1055,6 +1065,9 @@ interface DatabaseDao {
         playlistId: String,
         customOrder: Int?,
     )
+
+    @Query("UPDATE playlist SET pinnedAt = CASE WHEN pinnedAt IS NULL THEN :now ELSE NULL END WHERE id = :playlistId")
+    fun togglePlaylistPin(playlistId: String, now: LocalDateTime = LocalDateTime.now())
 
     @Query("UPDATE playlist SET songSortType = :sortType, songSortDescending = :descending WHERE id = :playlistId")
     fun updatePlaylistSortPreference(

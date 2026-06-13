@@ -219,9 +219,9 @@ object PlayerColorExtractor {
      * Configuration constants for color extraction
      */
     object Config {
-        const val MAX_COLOR_COUNT = 32
-        const val BITMAP_AREA = 8000
-        const val IMAGE_SIZE = 200
+        const val MAX_COLOR_COUNT = 12
+        const val BITMAP_AREA = 1024
+        const val IMAGE_SIZE = 64
     }
 }
 

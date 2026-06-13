@@ -23,13 +23,13 @@ class SpotifyLibraryViewModel @Inject constructor(
     private val repository: SpotifyLibraryRepository,
 ) : ViewModel() {
     val playlists: StateFlow<List<SpotifyPlaylist>> =
-        repository.playlists.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        repository.playlists
 
     val isRefreshing: StateFlow<Boolean> =
-        repository.isRefreshing.stateIn(viewModelScope, SharingStarted.Lazily, false)
+        repository.isRefreshing
 
     val errorMessage: StateFlow<String?> =
-        repository.errorMessage.stateIn(viewModelScope, SharingStarted.Lazily, null)
+        repository.errorMessage
 
     init {
         viewModelScope.launch(Dispatchers.IO) {

@@ -7,17 +7,10 @@
 
 package moe.rukamori.archivetune.ui.screens.library
 
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -37,28 +30,34 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -70,6 +69,9 @@ import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.AppBarHeight
 import moe.rukamori.archivetune.constants.ChipSortTypeKey
 import moe.rukamori.archivetune.constants.LibraryFilter
+import moe.rukamori.archivetune.constants.ShowTagsInLibraryKey
+import moe.rukamori.archivetune.ui.component.TagsFilterChips
+import moe.rukamori.archivetune.ui.component.TagsManagementDialog
 import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberPreference
 
@@ -77,7 +79,16 @@ import moe.rukamori.archivetune.utils.rememberPreference
 fun LibraryScreen(navController: NavController) {
     var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
     val database = LocalDatabase.current
-    val (selectedTagIds) = rememberPlaylistTagFilterState(database)
+    val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, true)
+    val (selectedTagIds, onSelectedTagIdsChange) = rememberPlaylistTagFilterState(database)
+    var showManageTagsDialog by remember { mutableStateOf(false) }
+
+    if (showManageTagsDialog) {
+        TagsManagementDialog(
+            database = database,
+            onDismiss = { showManageTagsDialog = false }
+        )
+    }
 
     val pagerState = rememberPagerState(
         initialPage = remember {
@@ -160,9 +171,6 @@ fun LibraryScreen(navController: NavController) {
             }
         }
     }
-
-    // Only collapse the header after the first few items have scrolled past
-    // We use a larger header height so the collapse feels more gradual
 
     val headerHeight = maxHeaderHeight + with(density) { headerOffsetPx.toDp() }
     val progress = 1f + (headerOffsetPx / maxHeaderOffsetPx)
@@ -312,7 +320,24 @@ fun LibraryScreen(navController: NavController) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            if (showTagsInLibrary && (pagerState.currentPage == 0 || pagerState.currentPage == 1)) {
+                TagsFilterChips(
+                    database = database,
+                    selectedTags = selectedTagIds,
+                    onTagToggle = { tag ->
+                        val newTags = if (tag.id in selectedTagIds) {
+                            selectedTagIds - tag.id
+                        } else {
+                            selectedTagIds + tag.id
+                        }
+                        onSelectedTagIdsChange(newTags)
+                    },
+                    onManageTagsClick = { showManageTagsDialog = true },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             HorizontalPager(
                 state = pagerState,
@@ -454,4 +479,3 @@ fun ExpressiveTabChip(
         )
     }
 }
-

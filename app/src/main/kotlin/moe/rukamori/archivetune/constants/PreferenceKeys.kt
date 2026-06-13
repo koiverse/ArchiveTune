@@ -400,6 +400,7 @@ enum class QuickPicksDisplayMode {
 val QuickPicksDisplayModeKey = stringPreferencesKey("quickPicksDisplayMode")
 
 enum class SongFilter {
+    ALL,
     LIBRARY,
     LIKED,
     DOWNLOADED
