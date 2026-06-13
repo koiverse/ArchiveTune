@@ -94,6 +94,7 @@ import moe.rukamori.archivetune.ui.component.LocalBottomSheetPageState
 import moe.rukamori.archivetune.ui.component.MenuSurfaceSection
 import moe.rukamori.archivetune.ui.component.NewAction
 import moe.rukamori.archivetune.ui.component.NewActionGrid
+import moe.rukamori.archivetune.ui.component.YTFallbackImage
 import moe.rukamori.archivetune.ui.utils.ShowMediaInfo
 import moe.rukamori.archivetune.utils.SpeedDialPin
 import moe.rukamori.archivetune.utils.SpeedDialPinType
@@ -260,12 +261,13 @@ fun YouTubeSongMenu(
                         .size(ListThumbnailSize)
                         .clip(RoundedCornerShape(ThumbnailCornerRadius))
                 ) {
-                    AsyncImage(
-                        model = song.displayThumbnail,
+                    YTFallbackImage(
+                        url = song.displayThumbnail,
                         contentDescription = null,
+                        contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                            .clip(RoundedCornerShape(ThumbnailCornerRadius)),
                     )
                 }
             },

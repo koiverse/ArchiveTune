@@ -102,18 +102,13 @@ fun SpeedDialGridItem(
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val widthPx = with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
             val heightPx = with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
-            val request = remember(item.displayThumbnail, widthPx, heightPx) {
-                ImageRequest.Builder(context)
-                    .data(item.displayThumbnail)
-                    .size(widthPx, heightPx)
-                    .build()
-            }
-
-            AsyncImage(
-                model = request,
+            YTFallbackImage(
+                url = item.displayThumbnail,
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
+                widthPx = widthPx,
+                heightPx = heightPx,
             )
 
             Box(

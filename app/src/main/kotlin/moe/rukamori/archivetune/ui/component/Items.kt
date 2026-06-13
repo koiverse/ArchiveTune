@@ -1566,22 +1566,13 @@ fun ItemThumbnail(
             }
 
             if (shouldLoadImage && !thumbnailUrl.isNullOrBlank()) {
-                val request = remember(thumbnailUrl, widthPx, heightPx) {
-                    ImageRequest.Builder(context)
-                        .data(thumbnailUrl)
-                        .allowHardware(true)
-                        .apply {
-                            if (widthPx != null && heightPx != null) {
-                                size(widthPx, heightPx)
-                            }
-                        }
-                        .build()
-                }
-                AsyncImage(
-                    model = request,
+                YTFallbackImage(
+                    url = thumbnailUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    widthPx = widthPx,
+                    heightPx = heightPx,
                 )
             } else if (placeholderIconRes == null) {
                 Box(
@@ -1668,22 +1659,13 @@ fun LocalThumbnail(
     ) {
         val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
         val heightPx = if (maxHeight == Dp.Infinity) null else with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
-        val request = remember(thumbnailUrl, widthPx, heightPx) {
-            ImageRequest.Builder(context)
-                .data(thumbnailUrl)
-                .allowHardware(true)
-                .apply {
-                    if (widthPx != null && heightPx != null) {
-                        size(widthPx, heightPx)
-                    }
-                }
-                .build()
-        }
-        AsyncImage(
-            model = request,
+        YTFallbackImage(
+            url = thumbnailUrl,
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            widthPx = widthPx,
+            heightPx = heightPx,
         )
 
         AnimatedVisibility(
