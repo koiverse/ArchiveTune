@@ -135,20 +135,19 @@ object AppModule {
     fun providePlayerCache(
         @ApplicationContext context: Context,
         databaseProvider: DatabaseProvider,
-    ): Cache {
-        val cacheSize = context.dataStore.get(MaxSongCacheSizeKey, 1024)
-        val evictor = when (cacheSize) {
-            -1 -> NoOpCacheEvictor()
-            else -> LeastRecentlyUsedCacheEvictor(cacheSize * 1024 * 1024L)
-        }
-        return LazyCache {
+    ): Cache =
+        LazyCache {
+            val cacheSize = context.dataStore.get(MaxSongCacheSizeKey, 1024)
+            val evictor = when (cacheSize) {
+                -1 -> NoOpCacheEvictor()
+                else -> LeastRecentlyUsedCacheEvictor(cacheSizeMegabytesToBytes(cacheSize))
+            }
             SimpleCache(
                 StorageLocationRepository.cacheDirectory(context, StorageFolderKind.SONG_CACHE),
                 evictor,
                 databaseProvider,
             )
         }
-    }
 
     @Singleton
     @Provides
@@ -165,3 +164,8 @@ object AppModule {
             )
         }
 }
+
+private const val CacheSizeBytesPerMegabyte = 1024L * 1024L
+
+private fun cacheSizeMegabytesToBytes(sizeMegabytes: Int): Long =
+    sizeMegabytes.toLong().coerceAtLeast(0L) * CacheSizeBytesPerMegabyte

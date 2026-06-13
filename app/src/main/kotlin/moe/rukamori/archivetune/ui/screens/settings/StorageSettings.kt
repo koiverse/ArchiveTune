@@ -170,15 +170,24 @@ fun StorageSettings(
     var downloadCacheSize by remember { mutableStateOf(0L) }
     var canvasCacheSize by remember { mutableStateOf(CanvasArtworkPlaybackCache.size()) }
 
+    val maxImageCacheSizeBytes = if (maxImageCacheSize > 0) {
+        cacheSizeMegabytesToBytes(maxImageCacheSize)
+    } else {
+        0L
+    }
     val imageCacheProgress by animateFloatAsState(
-        targetValue = if (imageDiskCache.maxSize > 0) {
-            (imageCacheSize.toFloat() / imageDiskCache.maxSize).coerceIn(0f, 1f)
+        targetValue = if (maxImageCacheSizeBytes > 0) {
+            (imageCacheSize.toFloat() / maxImageCacheSizeBytes).coerceIn(0f, 1f)
         } else {
             0f
         },
         label = "imageCacheProgress",
     )
-    val maxSongCacheSizeBytes = if (maxSongCacheSize > 0) maxSongCacheSize * 1024 * 1024L else 0L
+    val maxSongCacheSizeBytes = if (maxSongCacheSize > 0) {
+        cacheSizeMegabytesToBytes(maxSongCacheSize)
+    } else {
+        0L
+    }
     val playerCacheProgress by animateFloatAsState(
         targetValue = if (maxSongCacheSizeBytes > 0) {
             (playerCacheSize.toFloat() / maxSongCacheSizeBytes).coerceIn(0f, 1f)
@@ -311,7 +320,7 @@ fun StorageSettings(
                             stringResource(
                                 R.string.storage_size_ratio,
                                 formatFileSize(playerCacheSize),
-                                formatFileSize(maxSongCacheSize * 1024 * 1024L),
+                                formatFileSize(maxSongCacheSizeBytes),
                             )
                         },
                         icon = {
@@ -326,7 +335,7 @@ fun StorageSettings(
                             when (it) {
                                 0 -> stringResource(R.string.disable)
                                 -1 -> stringResource(R.string.unlimited)
-                                else -> formatFileSize(it * 1024 * 1024L)
+                                else -> formatFileSize(cacheSizeMegabytesToBytes(it))
                             }
                         },
                         onValueSelected = onMaxSongCacheSizeChange,
@@ -366,7 +375,7 @@ fun StorageSettings(
                             stringResource(
                                 R.string.storage_size_ratio,
                                 formatFileSize(imageCacheSize),
-                                formatFileSize(imageDiskCache.maxSize),
+                                formatFileSize(maxImageCacheSizeBytes),
                             )
                         } else {
                             stringResource(R.string.disable)
@@ -382,7 +391,7 @@ fun StorageSettings(
                         valueText = {
                             when (it) {
                                 0 -> stringResource(R.string.disable)
-                                else -> formatFileSize(it * 1024 * 1024L)
+                                else -> formatFileSize(cacheSizeMegabytesToBytes(it))
                             }
                         },
                         onValueSelected = onMaxImageCacheSizeChange,
@@ -805,3 +814,7 @@ private fun CacheUsagePreference(
 }
 
 private const val StorageRefreshIntervalMillis = 500L
+private const val CacheSizeBytesPerMegabyte = 1024L * 1024L
+
+private fun cacheSizeMegabytesToBytes(sizeMegabytes: Int): Long =
+    sizeMegabytes.toLong().coerceAtLeast(0L) * CacheSizeBytesPerMegabyte
