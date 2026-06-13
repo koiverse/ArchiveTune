@@ -114,6 +114,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.ui.component.IconButton
@@ -221,6 +222,9 @@ fun DebugSettings(
                 }
             }
 
+            // TEMPORARY: Fake version name override for testing update flows.
+            // Allows simulating "new update available" without publishing a real release.
+            // Remove this section once the update mechanism is verified stable.
             PreferenceGroup(title = "Version Override") {
                 item {
                     Column(
