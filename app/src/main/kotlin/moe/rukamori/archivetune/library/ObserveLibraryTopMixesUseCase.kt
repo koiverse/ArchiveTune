@@ -20,6 +20,7 @@ import kotlin.random.Random
 
 private const val LibraryTopMixTrackLimit = 50
 private const val LibraryTopMixPreviewLimit = 3
+private const val LibraryTopMixAffinityTrackLimit = 40
 private const val ArtistAffinityScore = 6
 private const val AlbumAffinityScore = 3
 
@@ -36,26 +37,34 @@ constructor(
             repository.observeLibraryTracks(),
         ) { recentTracks, likedTracks, listenedLibraryTracks, libraryTracks ->
             val listenedTracks = distinctTracks(recentTracks, listenedLibraryTracks)
+            val affinityTracks = distinctTracks(
+                listenedLibraryTracks.take(LibraryTopMixAffinityTrackLimit),
+                recentTracks.take(LibraryTopMixAffinityTrackLimit / 2),
+            )
             val excludedTrackIds = (listenedTracks + likedTracks).mapTo(LinkedHashSet()) { it.id }
             val candidates = scoreLibraryCandidates(
                 libraryTracks = libraryTracks,
-                listenedTracks = listenedTracks,
+                listenedTracks = affinityTracks,
                 excludedTrackIds = excludedTrackIds,
             )
+            val allocatedTrackIds = LinkedHashSet<String>()
 
             listOfNotNull(
                 buildMix(
                     id = LibraryTopMixId.DAILY,
                     candidates = candidates,
+                    allocatedTrackIds = allocatedTrackIds,
                 ),
                 buildMix(
                     id = LibraryTopMixId.CHILL,
                     candidates = candidates,
+                    allocatedTrackIds = allocatedTrackIds,
                 ),
                 buildMix(
                     id = LibraryTopMixId.FOCUS,
                     candidates = candidates,
                     minimumScore = ArtistAffinityScore,
+                    allocatedTrackIds = allocatedTrackIds,
                 ),
             )
         }.flowOn(Dispatchers.Default)
@@ -63,11 +72,19 @@ constructor(
     private fun buildMix(
         id: LibraryTopMixId,
         candidates: List<ScoredTrack>,
+        allocatedTrackIds: MutableSet<String>,
         minimumScore: Int = 0,
     ): LibraryTopMix? {
-        val eligibleCandidates = candidates
-            .filter { it.score >= minimumScore }
+        val affinityCandidates = candidates
+            .filter { it.score > 0 }
             .ifEmpty { candidates }
+
+        val eligibleCandidates = affinityCandidates
+            .filterNot { it.track.id in allocatedTrackIds }
+            .filter { it.score >= minimumScore }
+            .ifEmpty {
+                affinityCandidates.filterNot { it.track.id in allocatedTrackIds }
+            }
 
         val tracks = randomizedByAffinity(
             id = id,
@@ -76,6 +93,7 @@ constructor(
             .take(LibraryTopMixTrackLimit)
 
         if (tracks.isEmpty()) return null
+        allocatedTrackIds.addAll(tracks.map { it.id })
 
         return LibraryTopMix(
             id = id,
