@@ -405,7 +405,7 @@ fun HistoryScreen(
     }
 
     // A. When screen opens + user is logged in → fetch remote history in background
-    LaunchedEffect(isLoggedIn) {
+    LaunchedEffect("prefetch", isLoggedIn) {
         if (!isLoggedIn) return@LaunchedEffect
         if (remoteHistoryState is RemoteHistoryUiState.Success) return@LaunchedEffect
         delay(1_000)  // wait for screen
@@ -414,7 +414,7 @@ fun HistoryScreen(
     }
 
     // B. When playback sync happens → retry with backoff
-    LaunchedEffect(isLoggedIn) {
+    LaunchedEffect("sync", isLoggedIn) {
         YouTube.historySyncEvent.collect {
             if (!isLoggedIn) return@collect
 
