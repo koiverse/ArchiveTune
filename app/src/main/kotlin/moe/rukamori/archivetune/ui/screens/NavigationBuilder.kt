@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -47,6 +47,7 @@ import androidx.navigation.navArgument
 import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.DarkModeKey
+import moe.rukamori.archivetune.constants.UpdateChannel
 import moe.rukamori.archivetune.constants.PureBlackKey
 import moe.rukamori.archivetune.ui.component.BottomSheet
 import moe.rukamori.archivetune.ui.component.BottomSheetMenu
@@ -65,6 +66,9 @@ import moe.rukamori.archivetune.ui.screens.playlist.OnlinePlaylistScreen
 import moe.rukamori.archivetune.ui.screens.playlist.SpotifyPlaylistScreen
 import moe.rukamori.archivetune.ui.screens.playlist.TopPlaylistScreen
 import moe.rukamori.archivetune.ui.screens.playlist.CachePlaylistScreen
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultArgument
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultRoute
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultRoutePrefix
 import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResult
 import moe.rukamori.archivetune.ui.screens.settings.AboutScreen
 import moe.rukamori.archivetune.ui.screens.settings.AccountSettings
@@ -102,8 +106,9 @@ import moe.rukamori.archivetune.utils.rememberPreference
 fun NavGraphBuilder.navigationBuilder(
     navController: NavHostController,
     scrollBehavior: TopAppBarScrollBehavior,
-    latestVersionName: String,
+    latestVersionName: () -> String,
     disableAnimations: Boolean = false,
+    onClearUpdateBadge: () -> Unit = {},
 ) {
     composable(Screens.Home.route) {
         HomeScreen(navController)
@@ -178,10 +183,10 @@ fun NavGraphBuilder.navigationBuilder(
         )
     }
     composable(
-        route = "search/{query}",
+        route = OnlineSearchResultRoute,
         arguments =
         listOf(
-            navArgument("query") {
+            navArgument(OnlineSearchResultArgument) {
                 type = NavType.StringType
             },
         ),
@@ -195,7 +200,7 @@ fun NavGraphBuilder.navigationBuilder(
         exitTransition = {
             if (disableAnimations) {
                 fadeOut(tween(0))
-            } else if (targetState.destination.route?.startsWith("search/") == true) {
+            } else if (targetState.destination.route?.startsWith(OnlineSearchResultRoutePrefix) == true) {
                 fadeOut(tween(200))
             } else {
                 fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
@@ -204,7 +209,7 @@ fun NavGraphBuilder.navigationBuilder(
         popEnterTransition = {
             if (disableAnimations) {
                 fadeIn(tween(0))
-            } else if (initialState.destination.route?.startsWith("search/") == true) {
+            } else if (initialState.destination.route?.startsWith(OnlineSearchResultRoutePrefix) == true) {
                 fadeIn(tween(250))
             } else {
                 fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
@@ -365,10 +370,10 @@ fun NavGraphBuilder.navigationBuilder(
         YouTubeBrowseScreen(navController)
     }
     composable("settings") {
-        SettingsScreen(navController, scrollBehavior, latestVersionName)
+        SettingsScreen(navController, scrollBehavior, latestVersionName())
     }
     composable("settings/account") {
-        AccountSettings(navController, scrollBehavior, latestVersionName)
+        AccountSettings(navController, scrollBehavior, latestVersionName())
     }
     composable("settings/appearance") {
         AppearanceSettings(navController, scrollBehavior)
@@ -406,10 +411,8 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/backup_restore") {
         BackupAndRestore(navController, scrollBehavior)
     }
-    if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
-        composable("settings/discord") {
-            DiscordSettings(navController, scrollBehavior)
-        }
+    composable("settings/discord") {
+        DiscordSettings(navController, scrollBehavior)
     }
     composable("settings/integration") {
         IntegrationScreen(navController, scrollBehavior)
@@ -423,21 +426,32 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/lastfm") {
         LastFMSettings(navController, scrollBehavior)
     }
-    if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
-        composable("settings/discord/experimental") {
-            moe.rukamori.archivetune.ui.screens.settings.DiscordExperimental(navController)
-        }
+    composable("settings/discord/experimental") {
+        moe.rukamori.archivetune.ui.screens.settings.DiscordExperimental(navController)
     }
     composable("settings/misc") {
         DebugSettings(navController)
     }
     if (BuildConfig.UPDATER_AVAILABLE) {
         composable("settings/update") {
-            UpdateScreen(navController, scrollBehavior)
+            UpdateScreen(navController, scrollBehavior, onUpToDate = onClearUpdateBadge)
         }
     }
-    composable("settings/changelog") {
-        ChangelogScreen(navController, scrollBehavior)
+    composable(
+        route = "settings/changelog?channel={channel}",
+        arguments = listOf(
+            navArgument("channel") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        )
+    ) { backStackEntry ->
+        val channelName = backStackEntry.arguments?.getString("channel")
+        val channel = channelName?.let {
+            runCatching { UpdateChannel.valueOf(it) }.getOrNull()
+        } ?: UpdateChannel.STABLE
+        ChangelogScreen(navController, scrollBehavior, channel = channel)
     }
     composable("settings/about") {
         AboutScreen(navController, scrollBehavior)

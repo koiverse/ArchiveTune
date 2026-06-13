@@ -78,7 +78,6 @@ android {
             dimension = "distribution"
             isDefault = true
             buildConfigField("String", "DISTRIBUTION", "\"gms\"")
-            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "true")
             buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
             buildConfigField("String", "DISCORD_APPLICATION_ID", "\"$discordApplicationId\"")
             buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
@@ -293,7 +292,6 @@ dependencies {
     implementation(project(":shazamkit"))
     implementation(project(":spotifycore"))
     implementation("com.materialkolor:material-kolor:5.0.0-alpha07")
-    implementation(libs.compose.cloudy)
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)

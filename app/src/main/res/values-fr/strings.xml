@@ -875,4 +875,8 @@
     <string name="support_development_donate">Faites un don pour soutenir le développement</string>
     <string name="support_development_star">Ajouter à vos favoris sur GitHub</string>
     <string name="later">Plus tard</string>
+    <string name="album_backdrop">Flou d’arrière-plan</string>
+    <string name="album_backdrop_desc">Afficher l’illustration comme arrière-plan flou sur le lecteur</string>
+    <string name="backdrop_blur_amount">Quantité de flou d’arrière-plan</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

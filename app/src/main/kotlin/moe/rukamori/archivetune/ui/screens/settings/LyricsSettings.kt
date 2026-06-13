@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -73,6 +73,7 @@ import moe.rukamori.archivetune.constants.EnablePaxsenixAppleMusicLyricsKey
 import moe.rukamori.archivetune.constants.EnablePaxsenixLyricsKey
 import moe.rukamori.archivetune.constants.EnablePaxsenixMusixmatchLyricsKey
 import moe.rukamori.archivetune.constants.EnablePaxsenixNeteaseLyricsKey
+import moe.rukamori.archivetune.constants.EnablePaxsenixYouTubeLyricsKey
 import moe.rukamori.archivetune.constants.EnablePaxsenixSpotifyLyricsKey
 import moe.rukamori.archivetune.constants.EnableSimpMusicLyricsKey
 import moe.rukamori.archivetune.constants.EnableUnisonLyricsKey
@@ -162,6 +163,7 @@ fun LyricsSettings(
     val (enablePaxsenixNeteaseLyrics, onEnablePaxsenixNeteaseLyricsChange) = rememberPreference(key = EnablePaxsenixNeteaseLyricsKey, defaultValue = true)
     val (enablePaxsenixSpotifyLyrics, onEnablePaxsenixSpotifyLyricsChange) = rememberPreference(key = EnablePaxsenixSpotifyLyricsKey, defaultValue = true)
     val (enablePaxsenixMusixmatchLyrics, onEnablePaxsenixMusixmatchLyricsChange) = rememberPreference(key = EnablePaxsenixMusixmatchLyricsKey, defaultValue = true)
+    val (enablePaxsenixYouTubeLyrics, onEnablePaxsenixYouTubeLyricsChange) = rememberPreference(key = EnablePaxsenixYouTubeLyricsKey, defaultValue = true)
     val (enableUnisonLyrics, onEnableUnisonLyricsChange) = rememberPreference(key = EnableUnisonLyricsKey, defaultValue = true)
     val (providerOrderStr, onProviderOrderStrChange) = rememberPreference(
         key = LyricsProviderOrderKey,
@@ -504,6 +506,15 @@ fun LyricsSettings(
                 )
             }
 
+            item(visible = enablePaxsenixLyrics) {
+                SwitchPreference(
+                    title = { Text("Paxsenix: YouTube") },
+                    icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                    checked = enablePaxsenixYouTubeLyrics,
+                    onCheckedChange = onEnablePaxsenixYouTubeLyricsChange,
+                )
+            }
+
             item {
                 PreferenceEntry(
                     title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
@@ -622,6 +633,7 @@ private fun PreferredLyricsProvider.displayName(): String = when (this) {
     PreferredLyricsProvider.PAXSENIX_NETEASE -> "Paxsenix: NetEase"
     PreferredLyricsProvider.PAXSENIX_SPOTIFY -> "Paxsenix: Spotify"
     PreferredLyricsProvider.PAXSENIX_MUSIXMATCH -> "Paxsenix: Musixmatch"
+    PreferredLyricsProvider.PAXSENIX_YOUTUBE -> "Paxsenix: YouTube"
     PreferredLyricsProvider.UNISON -> "Unison"
 }
 

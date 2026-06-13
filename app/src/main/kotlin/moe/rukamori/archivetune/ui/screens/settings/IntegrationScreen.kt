@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -27,7 +27,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
-import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.ListenBrainzEnabledKey
@@ -67,17 +66,15 @@ fun IntegrationScreen(
             )
         )
 
-        if (BuildConfig.DISCORD_SOCIAL_ENABLED) {
-            PreferenceGroup(title = stringResource(R.string.general)) {
-                item {
-                    PreferenceEntry(
-                        title = { Text(stringResource(R.string.discord_integration)) },
-                        icon = { Icon(painterResource(R.drawable.discord), null) },
-                        onClick = {
-                            navController.navigate("settings/discord")
-                        },
-                    )
-                }
+        PreferenceGroup(title = stringResource(R.string.general)) {
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.discord_integration)) },
+                    icon = { Icon(painterResource(R.drawable.discord), null) },
+                    onClick = {
+                        navController.navigate("settings/discord")
+                    },
+                )
             }
         }
 

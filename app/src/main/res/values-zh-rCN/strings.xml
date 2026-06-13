@@ -716,4 +716,8 @@
     <string name="token_copied">令牌已复制到剪贴板</string>
     <string name="no_visitor_data">未获取到访客数据，无法生成令牌</string>
     <string name="extracting_from_url">正在从 URL 提取令牌…</string>
+    <string name="album_backdrop">背景模糊</string>
+    <string name="album_backdrop_desc">在播放器上将艺术作品显示为模糊背景</string>
+    <string name="backdrop_blur_amount">背景模糊程度</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

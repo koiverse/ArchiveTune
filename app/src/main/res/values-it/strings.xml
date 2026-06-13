@@ -704,4 +704,8 @@
     <string name="audio_offload_desc">Consenti ai dispositivi supportati di riprodurre l’audio utilizzando la decodifica hardware a basso consumo energetico. Alcune funzionalità di elaborazione audio sono disattivate.</string>
     <string name="pause_on_device_mute">Pausa quando il volume del dispositivo è 0</string>
     <string name="pause_on_device_mute_desc">Metti automaticamente in pausa la musica quando l’audio è disattivato e riprendila quando viene riattivato</string>
+    <string name="album_backdrop">Sfocatura dello sfondo</string>
+    <string name="album_backdrop_desc">Mostra l’opera d’arte come sfondo sfocato sul lettore</string>
+    <string name="backdrop_blur_amount">Quantità di sfocatura dello sfondo</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

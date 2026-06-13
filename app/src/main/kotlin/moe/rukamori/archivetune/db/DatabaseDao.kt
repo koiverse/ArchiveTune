@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -52,6 +52,7 @@ import moe.rukamori.archivetune.db.entities.SongAlbumMap
 import moe.rukamori.archivetune.db.entities.SongArtistMap
 import moe.rukamori.archivetune.db.entities.SongEntity
 import moe.rukamori.archivetune.db.entities.ListeningBySlot
+import moe.rukamori.archivetune.db.entities.ListeningTotals
 import moe.rukamori.archivetune.db.entities.SongWithStats
 import moe.rukamori.archivetune.db.entities.TagEntity
 import moe.rukamori.archivetune.db.entities.PlaylistTagMap
@@ -1241,6 +1242,19 @@ interface DatabaseDao {
         fromTimestamp: Long,
         toTimestamp: Long,
     ): Flow<List<ListeningBySlot>>
+
+    @Query(
+        """
+        SELECT COUNT(1) AS totalPlayCount,
+               COALESCE(SUM(playTime), 0) AS totalTimeListened
+        FROM event
+        WHERE timestamp > :fromTimestamp AND timestamp <= :toTimestamp
+        """,
+    )
+    fun listeningTotals(
+        fromTimestamp: Long,
+        toTimestamp: Long,
+    ): Flow<ListeningTotals>
 
     @Transaction
     @Query("SELECT * FROM event ORDER BY rowId ASC LIMIT 1")

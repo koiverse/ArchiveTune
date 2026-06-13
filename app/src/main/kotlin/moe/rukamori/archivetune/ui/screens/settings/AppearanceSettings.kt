@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -9,7 +9,12 @@
 
 package moe.rukamori.archivetune.ui.screens.settings
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -64,11 +69,15 @@ import androidx.navigation.NavController
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.ChipSortTypeKey
+import moe.rukamori.archivetune.constants.AppFontPreference
+import moe.rukamori.archivetune.constants.CustomFontNameKey
+import moe.rukamori.archivetune.constants.CustomFontUriKey
 import moe.rukamori.archivetune.constants.DarkModeKey
 import moe.rukamori.archivetune.constants.DisableAnimationsKey
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
 import moe.rukamori.archivetune.constants.DefaultOpenTabKey
 import moe.rukamori.archivetune.constants.DynamicThemeKey
+import moe.rukamori.archivetune.constants.FontPreferenceKey
 import moe.rukamori.archivetune.constants.GridItemSize
 import moe.rukamori.archivetune.constants.GridItemsSizeKey
 import moe.rukamori.archivetune.constants.LibraryFilter
@@ -80,7 +89,6 @@ import moe.rukamori.archivetune.constants.MiniPlayerBackgroundStyle
 import moe.rukamori.archivetune.constants.MiniPlayerBackgroundStyleKey
 import moe.rukamori.archivetune.constants.PureBlackKey
 import moe.rukamori.archivetune.constants.RandomThemeOnStartupKey
-import moe.rukamori.archivetune.constants.UseSystemFontKey
 import moe.rukamori.archivetune.constants.PlayerButtonsStyle
 import moe.rukamori.archivetune.constants.PlayerButtonsStyleKey
 import moe.rukamori.archivetune.constants.SliderStyle
@@ -100,6 +108,8 @@ import moe.rukamori.archivetune.constants.HidePlayerThumbnailKey
 import moe.rukamori.archivetune.constants.ArchiveTuneCanvasKey
 import moe.rukamori.archivetune.constants.ThumbnailCornerRadiusKey
 import moe.rukamori.archivetune.constants.CropThumbnailToSquareKey
+import moe.rukamori.archivetune.constants.BackdropBlurAmountKey
+import moe.rukamori.archivetune.constants.BackdropEnabledKey
 import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.BlurRadiusKey
 import moe.rukamori.archivetune.ui.component.DefaultDialog
@@ -111,6 +121,7 @@ import moe.rukamori.archivetune.ui.component.PreferenceGroup
 import moe.rukamori.archivetune.ui.component.SwitchPreference
 import moe.rukamori.archivetune.ui.component.ThumbnailCornerRadiusSelectorButton
 import moe.rukamori.archivetune.ui.player.StyledPlaybackSlider
+import moe.rukamori.archivetune.ui.theme.CustomFontLoader
 import moe.rukamori.archivetune.ui.utils.backToMain
 import moe.rukamori.archivetune.utils.isLowRamDevice
 import moe.rukamori.archivetune.utils.rememberEnumPreference
@@ -178,7 +189,14 @@ fun AppearanceSettings(
         defaultValue = true,
     )
     val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 48f)
-    val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
+    val (backdropEnabled, onBackdropEnabledChange) = rememberPreference(BackdropEnabledKey, defaultValue = true)
+    val (backdropBlurAmount, onBackdropBlurAmountChange) = rememberPreference(BackdropBlurAmountKey, defaultValue = 60)
+    val (fontPreference, onFontPreferenceChange) = rememberEnumPreference(
+        FontPreferenceKey,
+        defaultValue = AppFontPreference.DEFAULT
+    )
+    val (customFontUri, onCustomFontUriChange) = rememberPreference(CustomFontUriKey, defaultValue = "")
+    val (customFontName, onCustomFontNameChange) = rememberPreference(CustomFontNameKey, defaultValue = "")
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
         defaultValue = NavigationTab.HOME
@@ -237,6 +255,47 @@ fun AppearanceSettings(
         QuickPicksDisplayModeKey,
         defaultValue = QuickPicksDisplayMode.CARD
     )
+
+    val customFontPickerLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            if (!CustomFontLoader.isSupportedTtf(context, uri)) {
+                Toast.makeText(context, context.getString(R.string.custom_font_invalid), Toast.LENGTH_SHORT).show()
+                return@rememberLauncherForActivityResult
+            }
+
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            if (customFontUri.isNotBlank() && customFontUri != uri.toString()) {
+                runCatching {
+                    context.contentResolver.releasePersistableUriPermission(
+                        Uri.parse(customFontUri),
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
+            }
+
+            onCustomFontUriChange(uri.toString())
+            onCustomFontNameChange(CustomFontLoader.displayName(context, uri))
+            onFontPreferenceChange(AppFontPreference.CUSTOM)
+        }
+    val pickCustomFont = remember(customFontPickerLauncher) {
+        {
+            customFontPickerLauncher.launch(CustomFontLoader.supportedMimeTypes)
+        }
+    }
+    val onFontPreferenceSelected = remember(customFontUri, onFontPreferenceChange, pickCustomFont) {
+        { value: AppFontPreference ->
+            onFontPreferenceChange(value)
+            if (value == AppFontPreference.CUSTOM && customFontUri.isBlank()) {
+                pickCustomFont()
+            }
+        }
+    }
 
     val availableBackgroundStyles = PlayerBackgroundStyle.entries.filter {
         it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -416,11 +475,65 @@ fun AppearanceSettings(
 
             item {
                 SwitchPreference(
-                    title = { Text(stringResource(R.string.use_system_font)) },
-                    description = stringResource(R.string.use_system_font_desc),
+                    title = { Text(stringResource(R.string.album_backdrop)) },
+                    description = stringResource(R.string.album_backdrop_desc),
+                    icon = { Icon(painterResource(R.drawable.blur_on), null) },
+                    checked = backdropEnabled,
+                    onCheckedChange = onBackdropEnabledChange,
+                )
+            }
+
+            item {
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.backdrop_blur_amount)) },
+                    description = stringResource(R.string.backdrop_blur_amount_value, backdropBlurAmount),
+                    icon = { Icon(painterResource(R.drawable.blur_on), null) },
+                    isEnabled = backdropEnabled,
+                    content = {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Slider(
+                            value = backdropBlurAmount.toFloat(),
+                            onValueChange = { onBackdropBlurAmountChange(it.roundToInt()) },
+                            valueRange = 0f..100f,
+                            steps = 19,
+                            enabled = backdropEnabled,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                )
+            }
+
+            item {
+                EnumListPreference(
+                    title = { Text(stringResource(R.string.font_preference)) },
+                    description = stringResource(R.string.font_preference_desc),
                     icon = { Icon(painterResource(R.drawable.text_fields), null) },
-                    checked = useSystemFont,
-                    onCheckedChange = onUseSystemFontChange,
+                    selectedValue = fontPreference,
+                    onValueSelected = onFontPreferenceSelected,
+                    valueText = {
+                        when (it) {
+                            AppFontPreference.DEFAULT -> stringResource(R.string.font_preference_default)
+                            AppFontPreference.SYSTEM -> stringResource(R.string.font_preference_system)
+                            AppFontPreference.CUSTOM -> stringResource(R.string.font_preference_custom)
+                        }
+                    },
+                )
+            }
+
+            item(visible = fontPreference == AppFontPreference.CUSTOM) {
+                val customFontDescription =
+                    if (customFontName.isNotBlank()) {
+                        customFontName
+                    } else if (customFontUri.isBlank()) {
+                        stringResource(R.string.custom_font_desc)
+                    } else {
+                        customFontUri
+                    }
+                PreferenceEntry(
+                    title = { Text(stringResource(R.string.custom_font)) },
+                    description = customFontDescription,
+                    icon = { Icon(painterResource(R.drawable.text_fields), null) },
+                    onClick = pickCustomFont,
                 )
             }
         }

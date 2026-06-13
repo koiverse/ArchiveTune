@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -11,6 +11,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.Orientation
@@ -40,7 +41,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.collectAsState
+
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -52,7 +55,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -69,6 +74,13 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
+
 import androidx.compose.material3.Icon
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
@@ -91,150 +103,22 @@ import moe.rukamori.archivetune.ui.utils.highRes
 import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberLowDataModeActive
 import moe.rukamori.archivetune.utils.rememberPreference
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
-import timber.log.Timber
-import java.io.File
-import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
 import androidx.compose.ui.platform.LocalView
+import moe.rukamori.archivetune.constants.BackdropBlurAmountKey
+import moe.rukamori.archivetune.constants.BackdropEnabledKey
+import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
-import android.content.Context
-
-object CanvasArtworkPlaybackCache {
-    private const val defaultMaxSize = 256
-    private const val PERSIST_FILE = "canvas_artwork_cache.json"
-    private const val PERSIST_DEBOUNCE_MS = 2_000L
-
-    private val map = LinkedHashMap<String, CanvasArtwork>(defaultMaxSize, 0.75f, true)
-    @Volatile private var maxSize = defaultMaxSize
-    @Volatile private var cacheFile: File? = null
-
-    private val persistScope = CoroutineScope(Dispatchers.IO)
-    private var persistJob: Job? = null
-
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-        explicitNulls = false
-    }
-
-    private val mapSerializer = MapSerializer(String.serializer(), CanvasArtwork.serializer())
-
-    fun init(context: Context) {
-        cacheFile = File(context.filesDir, PERSIST_FILE)
-        loadFromDisk()
-    }
-
-    @Synchronized
-    fun get(mediaId: String): CanvasArtwork? {
-        if (maxSize <= 0) return null
-        return map[mediaId]
-    }
-
-    @Synchronized
-    fun put(mediaId: String, artwork: CanvasArtwork) {
-        val limit = maxSize
-        if (limit <= 0) return
-        if (mediaId.isBlank()) return
-        map[mediaId] = artwork
-        while (map.size > limit) {
-            val it = map.entries.iterator()
-            if (it.hasNext()) {
-                it.next()
-                it.remove()
-            }
-        }
-        schedulePersist()
-    }
-
-    @Synchronized
-    fun size(): Int = map.size
-
-    @Synchronized
-    fun clear() {
-        map.clear()
-        schedulePersist()
-    }
-
-    @Synchronized
-    fun setMaxSize(value: Int) {
-        maxSize = value.coerceAtLeast(0)
-        if (maxSize == 0) {
-            map.clear()
-            schedulePersist()
-            return
-        }
-        var evicted = false
-        while (map.size > maxSize) {
-            val it = map.entries.iterator()
-            if (it.hasNext()) {
-                it.next()
-                it.remove()
-                evicted = true
-            } else {
-                break
-            }
-        }
-        if (evicted) schedulePersist()
-    }
-
-    @Synchronized
-    private fun loadFromDisk() {
-        val file = cacheFile ?: return
-        if (!file.exists()) return
-        try {
-            val raw = file.readText()
-            if (raw.isBlank()) return
-            val restored = json.decodeFromString(mapSerializer, raw)
-            map.clear()
-            map.putAll(restored)
-            while (maxSize > 0 && map.size > maxSize) {
-                val it = map.entries.iterator()
-                if (it.hasNext()) {
-                    it.next()
-                    it.remove()
-                } else {
-                    break
-                }
-            }
-            Timber.d("Canvas cache restored: ${map.size} entries from disk")
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to restore canvas cache from disk")
-            runCatching { file.delete() }
-        }
-    }
-
-    private fun schedulePersist() {
-        persistJob?.cancel()
-        persistJob = persistScope.launch {
-            delay(PERSIST_DEBOUNCE_MS)
-            writeToDisk()
-        }
-    }
-
-    private fun writeToDisk() {
-        val file = cacheFile ?: return
-        try {
-            val snapshot: Map<String, CanvasArtwork>
-            synchronized(this@CanvasArtworkPlaybackCache) {
-                snapshot = LinkedHashMap(map)
-            }
-            val raw = json.encodeToString(mapSerializer, snapshot)
-            file.writeText(raw)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to persist canvas cache to disk")
-        }
-    }
-}
+import android.graphics.Bitmap
+import android.os.Build
+import android.renderscript.Allocation
+import android.renderscript.Element
+import android.renderscript.RenderScript
+import android.renderscript.ScriptIntrinsicBlur
 
 private data class ThumbnailPage(
     val slotKey: String,
@@ -279,6 +163,9 @@ fun Thumbnail(
         defaultValue = 16f
     )
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (backdropEnabled) = rememberPreference(BackdropEnabledKey, defaultValue = true)
+    val (backdropBlurAmount) = rememberPreference(BackdropBlurAmountKey, defaultValue = 60)
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     
@@ -569,10 +456,10 @@ fun Thumbnail(
                                             requireVertical = false,
                                         )
                                     }
-                                canvasArtwork = fetched
                                 canvasFetchedAtMs = now
+                                canvasArtwork = fetched
                                 if (fetched != null) {
-                                    CanvasArtworkPlaybackCache.put(item.mediaId, fetched)
+                                    canvasArtwork = CanvasArtworkPlaybackCache.put(item.mediaId, fetched)
                                 }
                                 canvasFetchInFlight = false
                             }
@@ -653,23 +540,48 @@ fun Thumbnail(
                                                 playerDesignStyle != PlayerDesignStyle.V7 &&
                                                 playerDesignStyle != PlayerDesignStyle.V8
 
-                                        AsyncImage(
-                                            model = item.metadata?.thumbnailUrl?.highRes()
-                                                ?: item.mediaMetadata.artworkUri?.toString(),
-                                            contentDescription = null,
-                                            contentScale = ContentScale.FillBounds,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
-                                                .graphicsLayer(
-                                                    renderEffect = BlurEffect(radiusX = 60f, radiusY = 60f),
-                                                    alpha = 0.6f
-                                                )
-                                        )
+                                        val thumbnailBgUrl = item.metadata?.thumbnailUrl?.highRes()
+                                            ?: item.mediaMetadata.artworkUri?.toString()
+                                        val thumbnailBgRequest = rememberOfflineArtworkImageRequest(thumbnailBgUrl)
+                                        val thumbnailArtworkUrl = item.metadata?.thumbnailUrl?.highRes()
+                                            ?: item.mediaMetadata.artworkUri?.toString()
+                                        val thumbnailArtworkRequest = rememberOfflineArtworkImageRequest(thumbnailArtworkUrl)
+                                        val thumbnailBgBlurEnabled = backdropEnabled && !disableBlur && backdropBlurAmount > 0
+
+                                        if (thumbnailBgBlurEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                            val blurRadiusPx = (backdropBlurAmount * 60 / 100f).coerceAtMost(60f)
+                                            AsyncImage(
+                                                model = thumbnailBgRequest,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.FillBounds,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
+                                                    .graphicsLayer(
+                                                        renderEffect = BlurEffect(radiusX = blurRadiusPx, radiusY = blurRadiusPx),
+                                                        alpha = 0.6f,
+                                                    )
+                                            )
+                                        } else if (thumbnailBgBlurEnabled) {
+                                            ThumbnailBgBlurApi30(
+                                                imageUrl = thumbnailBgUrl,
+                                                blurAmount = backdropBlurAmount,
+                                                shouldCropArtwork = shouldCropArtwork,
+                                            )
+                                        } else {
+                                            AsyncImage(
+                                                model = thumbnailBgRequest,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.FillBounds,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
+                                                    .graphicsLayer(alpha = 0.6f)
+                                            )
+                                        }
 
                                         AsyncImage(
-                                            model = item.metadata?.thumbnailUrl?.highRes()
-                                                ?: item.mediaMetadata.artworkUri?.toString(),
+                                            model = thumbnailArtworkRequest,
                                             contentDescription = null,
                                             contentScale = if (shouldCropArtwork) ContentScale.Crop else ContentScale.Fit,
                                             modifier = Modifier
@@ -722,6 +634,86 @@ fun Thumbnail(
     }
 }
 
+@Suppress("DEPRECATION")
+@Composable
+private fun ThumbnailBgBlurApi30(
+    imageUrl: String?,
+    blurAmount: Int,
+    shouldCropArtwork: Boolean,
+) {
+    val context = LocalContext.current
+    val imageLoader = context.imageLoader
+
+    val blurredBitmap by produceState<Bitmap?>(null, imageUrl, blurAmount) {
+        if (imageUrl == null) return@produceState
+        value = withContext(Dispatchers.IO) {
+            try {
+                val request = ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .memoryCacheKey(imageUrl)
+                    .diskCacheKey(imageUrl)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .networkCachePolicy(CachePolicy.ENABLED)
+                    .allowHardware(false)
+                    .size(500)
+                    .build()
+                val result = imageLoader.execute(request)
+                when (result) {
+                    is SuccessResult -> {
+                        val bitmap = result.image.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
+                        val scale = 0.4f
+                        val sw = (bitmap.width * scale).toInt().coerceAtLeast(1)
+                        val sh = (bitmap.height * scale).toInt().coerceAtLeast(1)
+                        val scaled = Bitmap.createScaledBitmap(bitmap, sw, sh, true)
+                        if (bitmap !== scaled && !bitmap.isRecycled) bitmap.recycle()
+
+                        val radius = (blurAmount * 25 / 100f).coerceIn(1f, 25f)
+                        RenderScript.create(context).also { rs ->
+                            try {
+                                val input = Allocation.createFromBitmap(rs, scaled)
+                                val output = Allocation.createTyped(rs, input.type)
+                                ScriptIntrinsicBlur.create(rs, Element.U8_4(rs)).apply {
+                                    setRadius(radius)
+                                    setInput(input)
+                                    forEach(output)
+                                }
+                                output.copyTo(scaled)
+                            } finally {
+                                rs.destroy()
+                            }
+                        }
+                        scaled
+                    }
+                    else -> null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    val modifier = Modifier
+        .fillMaxSize()
+        .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
+        .graphicsLayer(alpha = 0.6f)
+
+    val loadedBitmap = blurredBitmap
+    if (loadedBitmap != null) {
+        Image(
+            painter = BitmapPainter(loadedBitmap.asImageBitmap()),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = modifier,
+        )
+    } else {
+        AsyncImage(
+            model = rememberOfflineArtworkImageRequest(imageUrl),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = modifier,
+        )
+    }
+}
 
 /*
  * Copyright (C) OuterTune Project

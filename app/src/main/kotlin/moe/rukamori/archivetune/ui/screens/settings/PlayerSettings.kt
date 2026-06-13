@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
@@ -49,9 +50,11 @@ import moe.rukamori.archivetune.constants.SkipSilenceKey
 import moe.rukamori.archivetune.constants.StopMusicOnTaskClearKey
 import moe.rukamori.archivetune.constants.WakelockKey
 import moe.rukamori.archivetune.constants.HistoryDuration
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_DEFAULT
 import moe.rukamori.archivetune.constants.CrossfadeDurationKey
 import moe.rukamori.archivetune.constants.CrossfadeEnabledKey
 import moe.rukamori.archivetune.constants.CrossfadeGaplessKey
+import moe.rukamori.archivetune.constants.DeviceMutePlaybackRecoveryVolumeKey
 import moe.rukamori.archivetune.constants.PlayerStreamClient
 import moe.rukamori.archivetune.constants.PlayerStreamClientKey
 import moe.rukamori.archivetune.constants.SeekExtraSeconds
@@ -61,6 +64,7 @@ import moe.rukamori.archivetune.ui.component.TextFieldDialog
 import moe.rukamori.archivetune.ui.component.EnumListPreference
 import moe.rukamori.archivetune.ui.component.ListPreference
 import moe.rukamori.archivetune.ui.component.IconButton
+import moe.rukamori.archivetune.ui.component.NumberPickerPreference
 import moe.rukamori.archivetune.ui.component.PreferenceEntry
 import moe.rukamori.archivetune.ui.component.PreferenceGroup
 import moe.rukamori.archivetune.ui.component.SliderPreference
@@ -127,6 +131,13 @@ fun PlayerSettings(
         PauseOnDeviceMuteKey,
         defaultValue = false
     )
+    val (
+        deviceMutePlaybackRecoveryVolume,
+        onDeviceMutePlaybackRecoveryVolumeChange
+    ) = rememberPreference(
+        DeviceMutePlaybackRecoveryVolumeKey,
+        defaultValue = 0
+    )
     val (autoStartOnBluetooth, onAutoStartOnBluetoothChange) = rememberPreference(
         AutoStartOnBluetoothKey,
         defaultValue = false
@@ -137,7 +148,7 @@ fun PlayerSettings(
     )
     val (historyDuration, onHistoryDurationChange) = rememberPreference(
         HistoryDuration,
-        defaultValue = 30f
+        defaultValue = HISTORY_DURATION_DEFAULT
     )
 
     val (crossfadeEnabled, onCrossfadeEnabledChange) = rememberPreference(
@@ -375,6 +386,30 @@ fun PlayerSettings(
                     icon = { Icon(painterResource(R.drawable.volume_off), null) },
                     checked = pauseOnDeviceMute,
                     onCheckedChange = onPauseOnDeviceMuteChange
+                )
+            }
+
+            item(visible = pauseOnDeviceMute) {
+                val context = LocalContext.current
+                val disabledLabel = stringResource(R.string.device_mute_recovery_volume_disabled)
+                val recoveryVolumeText = remember(context, disabledLabel) {
+                    { value: Int ->
+                        if (value == 0) {
+                            disabledLabel
+                        } else {
+                            context.getString(R.string.percentage_format, value)
+                        }
+                    }
+                }
+                NumberPickerPreference(
+                    title = { Text(stringResource(R.string.device_mute_recovery_volume)) },
+                    icon = { Icon(painterResource(R.drawable.volume_up), null) },
+                    value = deviceMutePlaybackRecoveryVolume,
+                    onValueChange = onDeviceMutePlaybackRecoveryVolumeChange,
+                    minValue = 0,
+                    maxValue = 100,
+                    valueText = recoveryVolumeText,
+                    isEnabled = pauseOnDeviceMute,
                 )
             }
 

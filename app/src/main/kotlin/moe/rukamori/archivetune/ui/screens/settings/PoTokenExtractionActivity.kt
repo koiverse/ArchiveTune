@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -57,9 +57,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import moe.rukamori.archivetune.R
-import moe.rukamori.archivetune.innertube.utils.PoTokenGenerator
+import moe.rukamori.archivetune.utils.potoken.BotGuardTokenGenerator
 import moe.rukamori.archivetune.ui.component.IconButton
 import moe.rukamori.archivetune.utils.resetAuthWebViewSession
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class PoTokenExtractionActivity : ComponentActivity() {
 
@@ -177,17 +179,23 @@ class PoTokenExtractionActivity : ComponentActivity() {
             val gvsToken = extractedGvsToken ?: return
             isExtracting = false
 
-            val playerToken = PoTokenGenerator.generateColdStartToken(visitorData, "player")
-
-            setResult(
-                Activity.RESULT_OK,
-                Intent().apply {
-                    putExtra(EXTRA_VISITOR_DATA, visitorData)
-                    putExtra(EXTRA_GVS_TOKEN, gvsToken)
-                    putExtra(EXTRA_PLAYER_TOKEN, playerToken)
+            this@PoTokenExtractionActivity.lifecycleScope.launch {
+                val playerToken = try {
+                    BotGuardTokenGenerator.mintToken("player", visitorData)?.playerToken ?: ""
+                } catch (e: Exception) {
+                    ""
                 }
-            )
-            finish()
+
+                setResult(
+                    Activity.RESULT_OK,
+                    Intent().apply {
+                        putExtra(EXTRA_VISITOR_DATA, visitorData)
+                        putExtra(EXTRA_GVS_TOKEN, gvsToken)
+                        putExtra(EXTRA_PLAYER_TOKEN, playerToken)
+                    }
+                )
+                finish()
+            }
         }
 
         fun triggerExtraction() {
@@ -226,8 +234,20 @@ class PoTokenExtractionActivity : ComponentActivity() {
                 if (isFinishing) return@postDelayed
                 val visitor = extractedVisitorData
                 if (!visitor.isNullOrBlank() && extractedGvsToken.isNullOrBlank()) {
-                    extractedGvsToken = PoTokenGenerator.generateSessionToken(visitor)
-                    completeIfReady()
+                    this@PoTokenExtractionActivity.lifecycleScope.launch {
+                        val sessionToken = try {
+                            BotGuardTokenGenerator.mintToken("player", visitor)?.sessionToken ?: ""
+                        } catch (e: Exception) {
+                            ""
+                        }
+                        if (sessionToken.isNotBlank()) {
+                            extractedGvsToken = sessionToken
+                            completeIfReady()
+                        } else {
+                            isExtracting = false
+                            Toast.makeText(context, R.string.token_generation_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    }
                     return@postDelayed
                 }
                 if (extractedVisitorData.isNullOrBlank() || extractedGvsToken.isNullOrBlank()) {

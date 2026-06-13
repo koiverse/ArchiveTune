@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -104,7 +104,6 @@ import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.AppBarHeight
-import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.HideExplicitKey
 import moe.rukamori.archivetune.db.entities.Album
 import moe.rukamori.archivetune.extensions.togglePlayPause
@@ -132,6 +131,7 @@ import moe.rukamori.archivetune.ui.utils.backToMain
 import moe.rukamori.archivetune.ui.utils.headerDownloadState
 import moe.rukamori.archivetune.ui.utils.hasActiveDownloads
 import moe.rukamori.archivetune.ui.utils.sendAddMissingDownloads
+import moe.rukamori.archivetune.ui.utils.sendCancelIncompleteDownloads
 import moe.rukamori.archivetune.ui.utils.sendPauseDownloads
 import moe.rukamori.archivetune.ui.utils.sendRemoveDownloads
 import moe.rukamori.archivetune.ui.utils.sendResumeDownloads
@@ -163,7 +163,6 @@ fun AlbumScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val otherVersions by viewModel.otherVersions.collectAsStateWithLifecycle()
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
-    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     // System bars padding
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
@@ -273,7 +272,7 @@ fun AlbumScreen(
 
     val transparentAppBar by remember {
         derivedStateOf {
-            !disableBlur && !selection && !showTopBarTitle
+            !selection && !showTopBarTitle
         }
     }
 
@@ -282,8 +281,8 @@ fun AlbumScreen(
             .fillMaxSize()
             .background(surfaceColor),
     ) {
-        // Mesh gradient background layer
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        // Gradient background layer
+        if (gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -300,7 +299,6 @@ fun AlbumScreen(
                             val c2 = gradientColors[2]
                             val c3 = gradientColors.getOrElse(3) { c0 }
                             val c4 = gradientColors.getOrElse(4) { c1 }
-                            // Primary color blob - top center (stronger)
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -312,8 +310,6 @@ fun AlbumScreen(
                                     radius = width * 0.8f
                                 )
                             )
-
-                            // Secondary color blob - left side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -325,8 +321,6 @@ fun AlbumScreen(
                                     radius = width * 0.6f
                                 )
                             )
-
-                            // Third color blob - right side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -338,7 +332,6 @@ fun AlbumScreen(
                                     radius = width * 0.55f
                                 )
                             )
-
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -350,7 +343,6 @@ fun AlbumScreen(
                                     radius = width * 0.75f
                                 )
                             )
-
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -1071,9 +1063,10 @@ fun AlbumScreen(
                     downloadsPaused = !downloadsPaused
                 },
                 onStop = {
-                    sendRemoveDownloads(
+                    sendCancelIncompleteDownloads(
                         context = context,
                         songIds = songIds,
+                        downloads = downloads,
                     )
                     downloadsPaused = false
                 },

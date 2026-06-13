@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -28,6 +28,7 @@ data class YouTubeClient(
     val loginSupported: Boolean = false,
     val loginRequired: Boolean = false,
     val useSignatureTimestamp: Boolean = false,
+    val useWebPoTokens: Boolean = false,
     val isEmbedded: Boolean = false,
 ) {
     fun toContext(locale: YouTubeLocale, visitorData: String?, dataSyncId: String?) = Context(
@@ -64,6 +65,7 @@ data class YouTubeClient(
 
     companion object {
         const val USER_AGENT_WEB = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+        const val USER_AGENT_WEB_REMIX = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
 
         const val ORIGIN_YOUTUBE_MUSIC = "https://music.youtube.com"
         const val REFERER_YOUTUBE_MUSIC = "$ORIGIN_YOUTUBE_MUSIC/"
@@ -81,11 +83,12 @@ data class YouTubeClient(
 
         val WEB_REMIX = YouTubeClient(
             clientName = "WEB_REMIX",
-            clientVersion = "1.20260114.01.00",
+            clientVersion = "1.20260213.01.00",
             clientId = "67",
-            userAgent = USER_AGENT_WEB,
+            userAgent = USER_AGENT_WEB_REMIX,
             loginSupported = true,
             useSignatureTimestamp = true,
+            useWebPoTokens = true,
         )
 
         val WEB_CREATOR = YouTubeClient(
@@ -260,12 +263,13 @@ data class YouTubeClient(
 
         val WEB_MUSIC = YouTubeClient(
             clientName = "WEB_REMIX",
-            clientVersion = "1.20260114.01.00",
+            clientVersion = "1.20260213.01.00",
             clientId = "67",
-            userAgent = USER_AGENT_WEB,
+            userAgent = USER_AGENT_WEB_REMIX,
             friendlyName = "Web Music (YouTube Music)",
             loginSupported = true,
             useSignatureTimestamp = true,
+            useWebPoTokens = true,
         )
 
         val ANDROID_MUSIC = YouTubeClient(

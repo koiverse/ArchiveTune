@@ -53,4 +53,8 @@
     <string name="filter_featured_playlists">विशेष रुप से प्रदर्शित प्लेलिस्ट</string>
     <string name="filter_bookmarked">बुकमार्क</string>
     <string name="no_results_found">कोई परिणाम नहीं मिला</string>
+    <string name="album_backdrop">पृष्ठभूमि धुंधलापन</string>
+    <string name="album_backdrop_desc">प्लेयर पर कलाकृति को धुंधली पृष्ठभूमि के रूप में दिखाएं</string>
+    <string name="backdrop_blur_amount">पृष्ठभूमि धुंधलापन मात्रा</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

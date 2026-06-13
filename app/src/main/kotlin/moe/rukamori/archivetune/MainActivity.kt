@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -26,6 +26,7 @@ import android.view.View
 import android.view.WindowManager
 import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -175,7 +176,9 @@ import moe.rukamori.archivetune.utils.PreferenceStore
 import moe.rukamori.archivetune.utils.isLowRamDevice
 import kotlinx.coroutines.withContext
 import moe.rukamori.archivetune.constants.AppBarHeight
+import moe.rukamori.archivetune.constants.AppFontPreference
 import moe.rukamori.archivetune.constants.AppLanguageKey
+import moe.rukamori.archivetune.constants.CustomFontUriKey
 import moe.rukamori.archivetune.constants.CustomThemeColorKey
 import moe.rukamori.archivetune.constants.DarkModeKey
 import moe.rukamori.archivetune.constants.DefaultOpenTabKey
@@ -185,6 +188,7 @@ import moe.rukamori.archivetune.constants.DynamicThemeKey
 import moe.rukamori.archivetune.constants.FloatingToolbarBottomPadding
 import moe.rukamori.archivetune.constants.FloatingToolbarHeight
 import moe.rukamori.archivetune.constants.FloatingToolbarHorizontalPadding
+import moe.rukamori.archivetune.constants.FontPreferenceKey
 import moe.rukamori.archivetune.constants.HasPressedStarKey
 import moe.rukamori.archivetune.constants.LaunchCountKey
 import moe.rukamori.archivetune.constants.MiniPlayerBottomSpacing
@@ -195,6 +199,8 @@ import moe.rukamori.archivetune.constants.PauseSearchHistoryKey
 import moe.rukamori.archivetune.constants.PureBlackKey
 import moe.rukamori.archivetune.constants.PlayerBackgroundStyle
 import moe.rukamori.archivetune.constants.PlayerBackgroundStyleKey
+import moe.rukamori.archivetune.constants.PlayerDesignStyle
+import moe.rukamori.archivetune.constants.PlayerDesignStyleKey
 import moe.rukamori.archivetune.constants.RemindAfterKey
 import moe.rukamori.archivetune.constants.SYSTEM_DEFAULT
 import moe.rukamori.archivetune.constants.SearchSource
@@ -225,6 +231,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
+import moe.rukamori.archivetune.constants.UpdateChannel
+import moe.rukamori.archivetune.constants.UpdateChannelKey
 import moe.rukamori.archivetune.utils.rememberPreference
 import moe.rukamori.archivetune.playback.PlayerConnection
 import moe.rukamori.archivetune.playback.queues.LocalAlbumRadio
@@ -257,6 +265,10 @@ import moe.rukamori.archivetune.ui.screens.buildLoginRoute
 import moe.rukamori.archivetune.ui.screens.navigationBuilder
 import moe.rukamori.archivetune.ui.screens.search.LocalSearchScreen
 import moe.rukamori.archivetune.ui.screens.search.OnlineSearchScreen
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultArgument
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultRoutePrefix
+import moe.rukamori.archivetune.ui.screens.search.decodeOnlineSearchQuery
+import moe.rukamori.archivetune.ui.screens.search.onlineSearchResultRoute
 import moe.rukamori.archivetune.ui.screens.settings.DarkMode
 import moe.rukamori.archivetune.ui.screens.settings.DiscordPresenceManager
 import moe.rukamori.archivetune.ui.screens.settings.NavigationTab
@@ -279,8 +291,6 @@ import moe.rukamori.archivetune.utils.setAppLocale
 import moe.rukamori.archivetune.viewmodels.HomeViewModel
 import moe.rukamori.archivetune.viewmodels.NetworkBannerViewModel
 import moe.rukamori.archivetune.viewmodels.NewsViewModel
-import java.net.URLDecoder
-import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.random.Random
@@ -500,6 +510,8 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+            val updateChannel by rememberEnumPreference(UpdateChannelKey, defaultValue = UpdateChannel.STABLE)
+
             LaunchedEffect(Unit) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                     ContextCompat.checkSelfPermission(
@@ -510,12 +522,30 @@ class MainActivity : ComponentActivity() {
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
 
+                while (playerConnection == null) {
+                    delay(100)
+                }
+                delay(500)
+
                 if (
                     BuildConfig.UPDATER_AVAILABLE &&
                     System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds
                 ) {
-                    Updater.getLatestVersionName().onSuccess {
-                        latestVersionName = it
+                    val channelString = withContext(Dispatchers.IO) { dataStore.data.first()[UpdateChannelKey] }
+                    val actualChannel = channelString?.let {
+                        try { UpdateChannel.valueOf(it) } catch (_: IllegalArgumentException) { null }
+                    } ?: UpdateChannel.STABLE
+
+                    if (actualChannel != UpdateChannel.NIGHTLY) {
+                        val versionResult = when (actualChannel) {
+                            UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyVersionName()
+                            else -> Updater.getLatestVersionName()
+                        }
+                        versionResult.onSuccess {
+                            if (!Updater.isSameVersion(it, BuildConfig.VERSION_NAME)) {
+                                latestVersionName = it
+                            }
+                        }
                     }
                 }
                 moe.rukamori.archivetune.utils.UpdateNotificationManager.checkForUpdates(this@MainActivity)
@@ -578,7 +608,12 @@ class MainActivity : ComponentActivity() {
                         androidx.compose.material3.Button(
                             onClick = {
                                 try {
-                                    uriHandler.openUri(Updater.getLatestDownloadUrl())
+                                    val downloadUrl = when (updateChannel) {
+                                        UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyDownloadUrl()
+                                        UpdateChannel.NIGHTLY -> Updater.getLatestNightlyDownloadUrl()
+                                        UpdateChannel.STABLE -> Updater.getLatestDownloadUrl()
+                                    }
+                                    uriHandler.openUri(downloadUrl)
                                 } catch (_: Exception) {}
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -594,7 +629,11 @@ class MainActivity : ComponentActivity() {
                             BuildConfig.UPDATER_AVAILABLE &&
                             !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
                         ) {
-                            Updater.getLatestReleaseNotes().onSuccess {
+                            val releaseNotesResult = when (updateChannel) {
+                                UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyReleaseNotes()
+                                else -> Updater.getLatestReleaseNotes()
+                            }
+                            releaseNotesResult.onSuccess {
                                 releaseNotesState.value = it
                             }.onFailure {
                                 releaseNotesState.value = null
@@ -612,7 +651,9 @@ class MainActivity : ComponentActivity() {
                 DisableAnimationsKey,
                 defaultValue = defaultDisableAnimations,
             )
-            val useSystemFont by rememberPreference(UseSystemFontKey, defaultValue = false)
+            val fontPreference by rememberEnumPreference(FontPreferenceKey, defaultValue = AppFontPreference.DEFAULT)
+            val customFontUri by rememberPreference(CustomFontUriKey, defaultValue = "")
+            val legacyUseSystemFont by rememberPreference(UseSystemFontKey, defaultValue = false)
             val isSystemInDarkTheme = isSystemInDarkTheme()
             val useDarkTheme =
                 remember(darkTheme, isSystemInDarkTheme) {
@@ -655,6 +696,14 @@ class MainActivity : ComponentActivity() {
 
             var themeColor by rememberSaveable(stateSaver = ColorSaver) {
                 mutableStateOf(DefaultThemeColor)
+            }
+
+            LaunchedEffect(legacyUseSystemFont) {
+                if (!legacyUseSystemFont) return@LaunchedEffect
+                val preferences = dataStore.data.first()
+                if (preferences[FontPreferenceKey] == null) {
+                    dataStore.edit { it[FontPreferenceKey] = AppFontPreference.SYSTEM.name }
+                }
             }
 
             LaunchedEffect(playerConnection, enableDynamicTheme, isSystemInDarkTheme, customThemeColor) {
@@ -700,7 +749,8 @@ class MainActivity : ComponentActivity() {
                 themeColor = themeColor,
                 seedPalette = if (!enableDynamicTheme) customThemeSeedPalette else null,
                 disableAnimations = disableAnimations,
-                useSystemFont = useSystemFont,
+                fontPreference = fontPreference,
+                customFontUri = customFontUri,
             ) {
                     BoxWithConstraints(
                         modifier =
@@ -794,7 +844,7 @@ class MainActivity : ComponentActivity() {
                     val onSearch: (String) -> Unit = {
                         if (it.isNotEmpty()) {
                             onActiveChange(false)
-                            navController.navigate("search/${URLEncoder.encode(it, "UTF-8")}")
+                            navController.navigate(onlineSearchResultRoute(it))
                             if (!pauseSearchHistory) {
                                 database.query {
                                     insert(SearchHistory(query = it))
@@ -811,7 +861,7 @@ class MainActivity : ComponentActivity() {
                         remember(active, navBackStackEntry) {
                             active ||
                                     navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
-                                    navBackStackEntry?.destination?.route?.startsWith("search/") == true
+                                    navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true
                         }
 
                     val shouldShowNavigationBar =
@@ -859,6 +909,10 @@ class MainActivity : ComponentActivity() {
                     val playerBackground by rememberEnumPreference(
                         key = PlayerBackgroundStyleKey,
                         defaultValue = PlayerBackgroundStyle.DEFAULT,
+                    )
+                    val playerDesignStyle by rememberEnumPreference(
+                        key = PlayerDesignStyleKey,
+                        defaultValue = PlayerDesignStyle.V4,
                     )
 
                     val aodModeEnabled by remember(playerConnection) {
@@ -914,9 +968,14 @@ class MainActivity : ComponentActivity() {
 
                     var yearInMusicSavedPlayerAnchor by rememberSaveable { mutableStateOf(-1) }
 
-                    LaunchedEffect(isYearInMusicScreen) {
+                    val shouldHideStatusBars =
+                        isYearInMusicScreen ||
+                            (playerBottomSheetState.isExpanded && playerDesignStyle == PlayerDesignStyle.V7)
+
+                    LaunchedEffect(shouldHideStatusBars, aodModeEnabled) {
+                        if (aodModeEnabled) return@LaunchedEffect
                         val controller = WindowCompat.getInsetsController(window, window.decorView)
-                        if (isYearInMusicScreen) {
+                        if (shouldHideStatusBars) {
                             controller.systemBarsBehavior =
                                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                             controller.hide(WindowInsetsCompat.Type.statusBars())
@@ -968,8 +1027,12 @@ class MainActivity : ComponentActivity() {
                             playerBottomSheetState.isDismissed,
                         ) {
                             var bottom = bottomInset
-                            if (shouldShowNavigationBar && !useRail) bottom += getBottomNavPadding()
-                            if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                            if (shouldShowNavigationBar && !useRail) {
+                                bottom += getBottomNavPadding() + floatingBarsBottomPadding
+                            }
+                            if (!playerBottomSheetState.isDismissed) {
+                                bottom += MiniPlayerHeight + MiniPlayerBottomSpacing
+                            }
                             windowsInsets
                                 .only((if(useRail) {
                                     WindowInsetsSides.Right
@@ -979,7 +1042,8 @@ class MainActivity : ComponentActivity() {
 
                     appBarScrollBehavior(
                         canScroll = {
-                            navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                            navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == false &&
+                                    navBackStackEntry?.destination?.route != Screens.Library.route &&
                                     (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                         }
                     )
@@ -987,14 +1051,16 @@ class MainActivity : ComponentActivity() {
                     val searchBarScrollBehavior =
                         appBarScrollBehavior(
                             canScroll = {
-                                navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                                navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == false &&
+                                        navBackStackEntry?.destination?.route != Screens.Library.route &&
                                         (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                             },
                         )
                     val topAppBarScrollBehavior =
                         appBarScrollBehavior(
                             canScroll = {
-                                navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                                navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == false &&
+                                        navBackStackEntry?.destination?.route != Screens.Library.route &&
                                         (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                             },
                         )
@@ -1024,7 +1090,7 @@ class MainActivity : ComponentActivity() {
                         val currentRoute = navBackStackEntry?.destination?.route
                         val wasOnNonTopLevelScreen = previousRoute != null &&
                             previousRoute !in topLevelScreens &&
-                            previousRoute?.startsWith("search/") != true
+                            previousRoute?.startsWith(OnlineSearchResultRoutePrefix) != true
                         val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route ||
                             currentRoute == Screens.Library.route
 
@@ -1035,7 +1101,7 @@ class MainActivity : ComponentActivity() {
 
                         val isEnteringSubScreen = currentRoute != null &&
                             currentRoute !in topLevelScreens &&
-                            currentRoute.startsWith("search/") != true
+                            currentRoute.startsWith(OnlineSearchResultRoutePrefix) != true
                         if (isEnteringSubScreen) {
                             topAppBarScrollBehavior.state.contentOffset = 0f
                         }
@@ -1049,28 +1115,13 @@ class MainActivity : ComponentActivity() {
                             playerBottomSheetState.collapseSoft()
                         }
 
-                        if (navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
-                            val searchQuery =
-                                withContext(Dispatchers.IO) {
-                                    if (navBackStackEntry
-                                            ?.arguments
-                                            ?.getString(
-                                                "query",
-                                            )!!
-                                            .contains(
-                                                "%",
-                                            )
-                                    ) {
-                                        navBackStackEntry?.arguments?.getString(
-                                            "query",
-                                        )!!
-                                    } else {
-                                        URLDecoder.decode(
-                                            navBackStackEntry?.arguments?.getString("query")!!,
-                                            "UTF-8"
-                                        )
-                                    }
-                                }
+                        if (navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true) {
+                            val searchQuery = decodeOnlineSearchQuery(
+                                navBackStackEntry
+                                    ?.arguments
+                                    ?.getString(OnlineSearchResultArgument)
+                                    .orEmpty()
+                            )
                             onQueryChange(
                                 TextFieldValue(
                                     searchQuery,
@@ -1187,7 +1238,8 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(navBackStackEntry) {
                         shouldShowTopBar =
-                            !active && navBackStackEntry?.destination?.route in topLevelScreens && navBackStackEntry?.destination?.route != "settings"
+                            !active && navBackStackEntry?.destination?.route in topLevelScreens && 
+                            navBackStackEntry?.destination?.route != "settings"
                     }
 
                     var sharedSong: SongItem? by remember {
@@ -1330,7 +1382,7 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier,
                                         firstItemFocusRequester = tvRailFocusRequester,
                                         contentFocusRequester =
-                                            if (active || navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
+                                            if (active || navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true) {
                                                 searchBarFocusRequester
                                             } else {
                                                 contentAreaFocusRequester
@@ -1406,12 +1458,13 @@ class MainActivity : ComponentActivity() {
 
                                         val surfaceColor = MaterialTheme.colorScheme.surface
                                         val currentScrollBehavior = if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior
+                                        val isLibraryRoute = navBackStackEntry?.destination?.route == Screens.Library.route
 
                                         Box(
                                             modifier = Modifier.offset {
                                                 IntOffset(
                                                     x = 0,
-                                                    y = currentScrollBehavior.state.heightOffset.toInt()
+                                                    y = if (isLibraryRoute) 0 else currentScrollBehavior.state.heightOffset.toInt()
                                                 )
                                             }
                                         ) {
@@ -1521,7 +1574,7 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     }
                                                 },
-                                                scrollBehavior = if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior,
+                                                scrollBehavior = if (navBackStackEntry?.destination?.route == Screens.Library.route) null else if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior,
                                                 colors = TopAppBarDefaults.topAppBarColors(
                                                     containerColor = if (shouldUseFloatingTopBar) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
                                                     scrolledContainerColor = if (shouldUseFloatingTopBar) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
@@ -1533,7 +1586,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                     AnimatedVisibility(
-                                        visible = active || navBackStackEntry?.destination?.route?.startsWith("search/") == true,
+                                        visible = active || navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true,
                                         enter = fadeIn(animationSpec = tween(durationMillis = if (disableAnimations) 0 else 300)),
                                         exit = fadeOut(animationSpec = tween(durationMillis = if (disableAnimations) 0 else 200))
                                     ) {
@@ -1678,14 +1731,7 @@ class MainActivity : ComponentActivity() {
                                                             onQueryChange = onQueryChange,
                                                             navController = navController,
                                                             onSearch = {
-                                                                navController.navigate(
-                                                                    "search/${
-                                                                        URLEncoder.encode(
-                                                                            it,
-                                                                            "UTF-8"
-                                                                        )
-                                                                    }"
-                                                                )
+                                                                navController.navigate(onlineSearchResultRoute(it))
                                                                 if (!pauseSearchHistory) {
                                                                     database.query {
                                                                         insert(SearchHistory(query = it))
@@ -1896,7 +1942,7 @@ class MainActivity : ComponentActivity() {
                                     popEnterTransition = {
                                         if (disableAnimations) {
                                             fadeIn(tween(0))
-                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
+                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith(OnlineSearchResultRoutePrefix) == true) && targetState.destination.route in topLevelScreens) {
                                             fadeIn(tween(250))
                                         } else {
                                             fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
@@ -1905,7 +1951,7 @@ class MainActivity : ComponentActivity() {
                                     popExitTransition = {
                                         if (disableAnimations) {
                                             fadeOut(tween(0))
-                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
+                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith(OnlineSearchResultRoutePrefix) == true) && targetState.destination.route in topLevelScreens) {
                                             fadeOut(tween(200))
                                         } else {
                                             fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
@@ -1921,7 +1967,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                         .nestedScroll(
                                             if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
-                                                navBackStackEntry?.destination?.route?.startsWith("search/") == true
+                                                navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true
                                             ) {
                                                 searchBarScrollBehavior.nestedScrollConnection
                                             } else {
@@ -1932,11 +1978,16 @@ class MainActivity : ComponentActivity() {
                                     navigationBuilder(
                                         navController,
                                         topAppBarScrollBehavior,
-                                        latestVersionName,
+                                        { latestVersionName },
                                         disableAnimations,
+                                        onClearUpdateBadge = { latestVersionName = BuildConfig.VERSION_NAME },
                                     )
                                 }
                             }
+                        }
+
+                        BackHandler(enabled = playerBottomSheetState.isExpanded) {
+                            playerBottomSheetState.collapseSoft()
                         }
 
                         BottomSheetMenu(

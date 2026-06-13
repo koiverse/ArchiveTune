@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -107,6 +107,7 @@ import moe.rukamori.archivetune.constants.AutoSkipNextOnErrorKey
 import moe.rukamori.archivetune.constants.AutoStartOnBluetoothKey
 import moe.rukamori.archivetune.constants.InnerTubeCookieKey
 import moe.rukamori.archivetune.constants.DiscordTokenKey
+import moe.rukamori.archivetune.constants.DeviceMutePlaybackRecoveryVolumeKey
 import moe.rukamori.archivetune.constants.EqualizerBandLevelsMbKey
 import moe.rukamori.archivetune.constants.EqualizerBassBoostEnabledKey
 import moe.rukamori.archivetune.constants.EqualizerBassBoostStrengthKey
@@ -120,6 +121,9 @@ import moe.rukamori.archivetune.constants.EnableDiscordRPCKey
 import moe.rukamori.archivetune.constants.HideExplicitKey
 import moe.rukamori.archivetune.constants.HideVideoKey
 import moe.rukamori.archivetune.constants.HistoryDuration
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_DEFAULT
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_MIN
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_MAX
 import moe.rukamori.archivetune.constants.MediaSessionConstants.CommandToggleLike
 import moe.rukamori.archivetune.constants.MediaSessionConstants.CommandToggleStartRadio
 import moe.rukamori.archivetune.constants.MediaSessionConstants.CommandToggleRepeatMode
@@ -150,6 +154,8 @@ import moe.rukamori.archivetune.db.entities.ArtistEntity
 import moe.rukamori.archivetune.db.entities.AlbumEntity
 import moe.rukamori.archivetune.di.DownloadCache
 import moe.rukamori.archivetune.di.PlayerCache
+import moe.rukamori.archivetune.storage.StorageFolderKind
+import moe.rukamori.archivetune.storage.StorageLocationRepository
 import moe.rukamori.archivetune.innertube.PlaybackAuthState
 import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
 import moe.rukamori.archivetune.extensions.SilentHandler
@@ -244,6 +250,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import kotlin.math.PI
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.roundToLong
@@ -280,8 +287,10 @@ class MusicService :
     private var lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
     private var wasPlayingBeforeAudioFocusLoss = false
     private var pauseOnDeviceMuteEnabled = false
+    private var deviceMutePlaybackRecoveryVolumePercent = 0
     private var wasAutoPausedByDeviceMute = false
     private var muteRecoveryObserver: ContentObserver? = null
+    private var lastDeviceMutePlaybackNoticeAtElapsedMs = 0L
     private var hasAudioFocus = false
     private var autoStartOnBluetoothEnabled = false
     private var bluetoothReceiverRegistered = false
@@ -326,12 +335,12 @@ class MusicService :
         PlayerStreamClient.ANDROID_VR
     )
     private val playbackUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
-    private val remotePlaybackTrackingCache = ConcurrentHashMap<String, RemotePlaybackTracking>()
+    private val remotePlaybackTrackingUrlCache = ConcurrentHashMap<String, String>()
     private val contentLengthCache = ConcurrentHashMap<String, Long>()
     private val mediaOkHttpClient: OkHttpClient by lazy {
         OkHttpClient
             .Builder()
-            .proxy(YouTube.streamProxy)
+            .proxy(YouTube.streamOkHttpProxy)
             .followRedirects(true)
             .followSslRedirects(true)
             .addInterceptor { chain ->
@@ -452,30 +461,10 @@ class MusicService :
         val remoteRegistered: Boolean,
     )
 
-    private data class RemotePlaybackTracking(
-        val playbackUrl: String,
-        val watchtimeUrl: String?,
-        val atrUrl: String?,
-    )
-
-    private fun PlayerResponse.PlaybackTracking.toRemotePlaybackTracking(): RemotePlaybackTracking? {
-        val playbackUrl = videostatsPlaybackUrl?.baseUrl
+    private fun PlayerResponse.PlaybackTracking.remotePlaybackTrackingUrl(): String? =
+        videostatsPlaybackUrl?.baseUrl
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
-            ?: return null
-        val watchtimeUrl = videostatsWatchtimeUrl?.baseUrl
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-        val atrTrackingUrl = atrUrl?.baseUrl
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-
-        return RemotePlaybackTracking(
-            playbackUrl = playbackUrl,
-            watchtimeUrl = watchtimeUrl,
-            atrUrl = atrTrackingUrl,
-        )
-    }
 
     private fun isAppInForeground(): Boolean {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -923,6 +912,13 @@ class MusicService :
                 } else {
                     handleDeviceMuteStateChanged()
                 }
+            }
+
+        dataStore.data
+            .map { (it[DeviceMutePlaybackRecoveryVolumeKey] ?: 0).coerceIn(0, 100) }
+            .distinctUntilChanged()
+            .collectLatest(scope) { percent ->
+                deviceMutePlaybackRecoveryVolumePercent = percent
             }
 
         dataStore.data
@@ -2093,7 +2089,7 @@ class MusicService :
         muteRecoveryObserver = null
     }
 
-    private fun handleDeviceMuteStateChanged() {
+    private fun handleDeviceMuteStateChanged(playbackRequestedWhileMuted: Boolean = false) {
         if (!pauseOnDeviceMuteEnabled || isTogetherGuestSession()) {
             wasAutoPausedByDeviceMute = false
             unregisterMuteRecoveryObserver()
@@ -2101,6 +2097,12 @@ class MusicService :
         }
 
         if (isDeviceMutedNow()) {
+            if (playbackRequestedWhileMuted && restoreDeviceMusicVolumeForPlayback()) {
+                wasAutoPausedByDeviceMute = false
+                unregisterMuteRecoveryObserver()
+                return
+            }
+
             val canPauseNow =
                 player.currentMediaItem != null &&
                     player.playWhenReady &&
@@ -2111,6 +2113,9 @@ class MusicService :
                 player.pause()
                 wasAutoPausedByDeviceMute = true
                 registerMuteRecoveryObserver()
+                if (playbackRequestedWhileMuted) {
+                    showDeviceMutePlaybackNotice()
+                }
             }
             return
         }
@@ -2126,6 +2131,39 @@ class MusicService :
                 player.playbackState != Player.STATE_ENDED
         if (canResumeNow) {
             player.play()
+        }
+    }
+
+    private fun restoreDeviceMusicVolumeForPlayback(): Boolean {
+        val recoveryPercent = deviceMutePlaybackRecoveryVolumePercent.coerceIn(0, 100)
+        if (recoveryPercent <= 0) return false
+
+        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        if (maxVolume <= 0) return false
+
+        val targetVolume = ceil(maxVolume * (recoveryPercent / 100.0))
+            .toInt()
+            .coerceIn(1, maxVolume)
+
+        return runCatching {
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume, 0)
+            audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) > 0
+        }.getOrElse {
+            reportException(it)
+            false
+        }
+    }
+
+    private fun showDeviceMutePlaybackNotice() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastDeviceMutePlaybackNoticeAtElapsedMs < DEVICE_MUTE_PLAYBACK_NOTICE_INTERVAL_MS) return
+        lastDeviceMutePlaybackNoticeAtElapsedMs = now
+        scope.launch(SilentHandler) {
+            Toast.makeText(
+                this@MusicService,
+                R.string.device_volume_zero_playback_paused,
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
@@ -4196,10 +4234,9 @@ class MusicService :
     }
 
     private fun historyThresholdMs(): Long {
-        return (dataStore[HistoryDuration] ?: 30f)
-            .times(1000f)
-            .roundToLong()
-            .coerceAtLeast(0L)
+        return (runCatching { dataStore[HistoryDuration] }.getOrNull() ?: HISTORY_DURATION_DEFAULT)
+            .coerceIn(HISTORY_DURATION_MIN, HISTORY_DURATION_MAX)
+            .toLong() * 1000L
     }
 
     private fun currentHistoryPlayedMs(nowElapsedMs: Long = android.os.SystemClock.elapsedRealtime()): Long {
@@ -4353,7 +4390,7 @@ class MusicService :
                         playTimeMs = playedMs,
                         mediaMetadata = mediaMetadataSnapshot,
                     )
-                val remoteRegistered = remoteRegisteredSnapshot || registerRemotePlaybackHistory(mediaId, playedMs)
+                val remoteRegistered = remoteRegisteredSnapshot || registerRemotePlaybackHistory(mediaId)
                 ImmediateHistoryResult(
                     eventId = resolvedEventId,
                     remoteRegistered = remoteRegistered,
@@ -4412,45 +4449,34 @@ class MusicService :
         }
     }
 
-    private suspend fun registerRemotePlaybackHistory(mediaId: String, playedTimeMs: Long): Boolean {
+    private suspend fun registerRemotePlaybackHistory(mediaId: String): Boolean {
         if (database.song(mediaId).first()?.song?.isLocal == true) {
             return false
         }
 
-        suspend fun registerTracking(tracking: RemotePlaybackTracking): Boolean {
-            return retryWithoutPlaybackLoginContext {
-                YouTube.registerPlayback(
-                    playlistId = null,
-                    playbackTracking = tracking.playbackUrl,
-                    watchtimeTracking = tracking.watchtimeUrl,
-                    atrTracking = tracking.atrUrl,
-                    playedTimeMs = playedTimeMs,
-                )
-            }.onFailure { throwable ->
+        suspend fun registerTracking(playbackTrackingUrl: String): Boolean {
+            return YouTube.registerPlayback(
+                playlistId = null,
+                playbackTracking = playbackTrackingUrl,
+            ).onFailure { throwable ->
                 if (throwable is CancellationException) {
                     throw throwable
                 }
-                when (throwable) {
-                    is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
-                        promptLoginRecovery(mediaId, throwable.targetUrl)
-                    }
-
-                    else -> {
-                        Timber.tag("MusicService").w(
-                            throwable,
-                            "Failed to register remote playback history for %s",
-                            mediaId,
-                        )
-                    }
-                }
+                Timber.tag("MusicService").w(
+                    throwable,
+                    "Failed to register remote playback history for %s",
+                    mediaId,
+                )
+            }.onSuccess {
+                YouTube.notifyHistorySynced()
             }.isSuccess
         }
 
-        remotePlaybackTrackingCache[mediaId]?.let { cachedTracking ->
-            if (registerTracking(cachedTracking)) {
+        remotePlaybackTrackingUrlCache[mediaId]?.let { cachedPlaybackTrackingUrl ->
+            if (registerTracking(cachedPlaybackTrackingUrl)) {
                 return true
             }
-            remotePlaybackTrackingCache.remove(mediaId, cachedTracking)
+            remotePlaybackTrackingUrlCache.remove(mediaId, cachedPlaybackTrackingUrl)
         }
 
         val remotePlaybackTracking =
@@ -4483,10 +4509,10 @@ class MusicService :
                 }
             }.getOrNull()?.playbackTracking
 
-        val refreshedTracking = remotePlaybackTracking?.toRemotePlaybackTracking()
-        if (refreshedTracking != null) {
-            remotePlaybackTrackingCache[mediaId] = refreshedTracking
-            return registerTracking(refreshedTracking)
+        val refreshedPlaybackTrackingUrl = remotePlaybackTracking?.remotePlaybackTrackingUrl()
+        if (refreshedPlaybackTrackingUrl != null) {
+            remotePlaybackTrackingUrlCache[mediaId] = refreshedPlaybackTrackingUrl
+            return registerTracking(refreshedPlaybackTrackingUrl)
         }
 
         return false
@@ -4835,7 +4861,7 @@ private fun onMediaItemTransitionInternal() {
         handleDeviceMuteStateChanged()
     }
     if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
-        handleDeviceMuteStateChanged()
+        handleDeviceMuteStateChanged(playbackRequestedWhileMuted = true)
     }
     if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
         (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
@@ -4843,6 +4869,12 @@ private fun onMediaItemTransitionInternal() {
         wasAutoPausedByDeviceMute = false
         unregisterMuteRecoveryObserver()
         updateAudiblePlaybackRecovery()
+    }
+    if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
+        isDeviceMutedNow() &&
+        this.player.playWhenReady
+    ) {
+        handleDeviceMuteStateChanged(playbackRequestedWhileMuted = true)
     }
     if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
         val newSessionId = this.player.audioSessionId
@@ -5176,7 +5208,7 @@ private fun onMediaItemTransitionInternal() {
         if (limitBytes <= 0L) return
 
         withContext(Dispatchers.IO) {
-            val cacheDir = filesDir.resolve("exoplayer")
+            val cacheDir = StorageLocationRepository.cacheDirectory(this@MusicService, StorageFolderKind.SONG_CACHE)
             val currentSpace = runCatching { playerCache.cacheSpace }.getOrNull() ?: 0L
             var totalBytes = if (currentSpace > 0L) currentSpace else cacheDir.directorySizeBytes()
             if (totalBytes <= limitBytes) return@withContext
@@ -5468,8 +5500,8 @@ private fun onMediaItemTransitionInternal() {
             getString(R.string.error_unknown)
         }
         nonNullPlayback.playbackTracking
-            ?.toRemotePlaybackTracking()
-            ?.let { remotePlaybackTrackingCache[mediaId] = it }
+            ?.remotePlaybackTrackingUrl()
+            ?.let { remotePlaybackTrackingUrlCache[mediaId] = it }
         val format = nonNullPlayback.format
         val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
         val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
@@ -5840,7 +5872,7 @@ private fun onMediaItemTransitionInternal() {
                 }
 
                 if (pendingResult?.remoteRegistered != true) {
-                    registerRemotePlaybackHistory(mediaId, playbackStats.totalPlayTimeMs)
+                    registerRemotePlaybackHistory(mediaId)
                 }
             }
 
@@ -6262,6 +6294,7 @@ private fun onMediaItemTransitionInternal() {
         const val AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS = 200L
         const val AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS = 1_500L
         const val AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS = 150L
+        const val DEVICE_MUTE_PLAYBACK_NOTICE_INTERVAL_MS = 1_200L
         const val MIN_AUDIO_FOCUS_VOLUME_FACTOR = 0.2f
         const val MIN_AUDIO_NORMALIZATION_FACTOR = 0.25f
         const val MIN_CROSSFADE_DURATION_MS = 500L

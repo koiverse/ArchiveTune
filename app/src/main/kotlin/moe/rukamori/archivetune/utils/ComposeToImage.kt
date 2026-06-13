@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -220,7 +220,9 @@ object ComposeToImage {
                     .build()
                 val result = imageLoader.execute(request)
                 coverArtBitmap = result.image?.toBitmap()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                reportException(e)
+            }
         }
 
         val fittedArt =
@@ -430,7 +432,17 @@ object ComposeToImage {
         val safe = ensureSoftwareBitmap(source)
         val safeRadius = radius.coerceIn(0f, 48f)
         if (safeRadius <= 0.5f) return safe
-        return stackBlur(safe, safeRadius.roundToInt().coerceAtLeast(1))
+        val maxDimension = max(safe.width, safe.height)
+        if (maxDimension <= 720 || safeRadius < 8f) {
+            return stackBlur(safe, safeRadius.roundToInt().coerceAtLeast(1))
+        }
+
+        val scale = 720f / maxDimension.toFloat()
+        val scaledWidth = (safe.width * scale).roundToInt().coerceAtLeast(1)
+        val scaledHeight = (safe.height * scale).roundToInt().coerceAtLeast(1)
+        val scaled = ensureSoftwareBitmap(Bitmap.createScaledBitmap(safe, scaledWidth, scaledHeight, true))
+        val blurred = stackBlur(scaled, (safeRadius * scale).roundToInt().coerceAtLeast(1))
+        return ensureSoftwareBitmap(Bitmap.createScaledBitmap(blurred, safe.width, safe.height, true))
     }
 
     private fun stackBlur(source: Bitmap, radius: Int): Bitmap {

@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -109,6 +109,7 @@ fun CurrentSongHeader(
     onBackgroundColor: Color,
     onToggleLike: () -> Unit,
     onMenuClick: () -> Unit,
+    onClearQueueClick: () -> Unit,
     onRepeatClick: () -> Unit,
     onShuffleClick: () -> Unit,
     onLockClick: () -> Unit,
@@ -236,6 +237,19 @@ fun CurrentSongHeader(
                     Icon(
                         painter = painterResource(R.drawable.more_vert),
                         contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(
+                    onClick = onClearQueueClick,
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.delete),
+                        contentDescription = stringResource(R.string.clear),
                         modifier = Modifier.size(20.dp)
                     )
                 }

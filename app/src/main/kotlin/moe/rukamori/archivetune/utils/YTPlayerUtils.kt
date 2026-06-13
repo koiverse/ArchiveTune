@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -38,9 +38,11 @@ import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB_CRE
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import timber.log.Timber
+import java.net.Proxy
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import moe.rukamori.archivetune.utils.potoken.BotGuardTokenGenerator
 
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
@@ -97,10 +99,10 @@ object YTPlayerUtils {
         val reason: String?,
     )
 
-    @Volatile private var streamClientPair: Pair<java.net.Proxy?, OkHttpClient>? = null
+    @Volatile private var streamClientPair: Pair<Proxy, OkHttpClient>? = null
 
     private fun currentStreamClient(): OkHttpClient {
-        val current = YouTube.streamProxy
+        val current = YouTube.streamOkHttpProxy
         streamClientPair?.let { (proxy, client) ->
             if (proxy == current) return client
         }
@@ -468,6 +470,51 @@ object YTPlayerUtils {
         throw lastError ?: IllegalStateException("Failed to resolve stream")
     }
 
+    suspend fun playerResponseForDownload(
+        videoId: String,
+        playlistId: String? = null,
+        audioQuality: AudioQuality,
+        connectivityManager: ConnectivityManager,
+        networkMetered: Boolean? = null,
+    ): Result<PlaybackData> = runCatching {
+        Timber.tag(logTag).i("Fetching download response for videoId: $videoId, playlistId: $playlistId")
+        var lastError: Throwable? = null
+
+        for (preferredStreamClient in downloadPreferredStreamClientAttempts) {
+            val attemptResult =
+                playerResponseForPlayback(
+                    videoId = videoId,
+                    playlistId = playlistId,
+                    audioQuality = audioQuality,
+                    connectivityManager = connectivityManager,
+                    preferredStreamClient = preferredStreamClient,
+                    networkMetered = networkMetered,
+                )
+
+            if (attemptResult.isSuccess) return@runCatching attemptResult.getOrThrow()
+
+            lastError = attemptResult.exceptionOrNull()
+            Timber.tag(logTag).w(
+                lastError,
+                "Download stream resolution failed with preferred client %s for %s",
+                preferredStreamClient.name,
+                videoId,
+            )
+        }
+
+        throw lastError ?: IllegalStateException("Failed to resolve download stream for $videoId")
+    }
+
+    private val downloadPreferredStreamClientAttempts: List<PlayerStreamClient> =
+        buildList {
+            add(PlayerStreamClient.WEB_REMIX)
+            addAll(
+                PlayerStreamClient.values()
+                    .filterNot { it == PlayerStreamClient.WEB_REMIX || it == PlayerStreamClient.ANDROID_VR },
+            )
+            add(PlayerStreamClient.ANDROID_VR)
+        }.distinct()
+
     private suspend fun refreshIpRotationForBotDetection(
         videoId: String,
         failure: BotDetectionPlaybackException?,
@@ -517,7 +564,7 @@ object YTPlayerUtils {
                 reason = if (hasLoginCookie) "cookie-only playback fallback" else "anonymous playback bootstrap",
             )
         }
-        val sessionId = authState.sessionId
+        val sessionId = authState.visitorData
         val authStatus =
             when {
                 canUseLoggedInPlayback -> "Logged in"
@@ -548,13 +595,32 @@ object YTPlayerUtils {
         val metadataClient = MAIN_CLIENT
 
         Timber.tag(logTag).i("Fetching metadata response using client: ${metadataClient.clientName}")
+
+        var metadataPoToken: String? = null
+        if (metadataClient.useWebPoTokens && sessionId != null) {
+            try {
+                val tokenResult = BotGuardTokenGenerator.mintToken(videoId, sessionId)
+                metadataPoToken = tokenResult?.playerToken
+                tokenResult?.let {
+                    YouTube.authState = YouTube.authState.copy(
+                        poTokenGvs = it.sessionToken,
+                        poTokenPlayer = it.playerToken,
+                        webClientPoTokenEnabled = true
+                    )
+                }
+            } catch (e: Exception) {
+                Timber.tag(logTag).w(e, "PoToken generation failed for metadata request")
+            }
+        }
+
         var metadataResult =
             YouTube.player(
                 videoId = videoId,
                 playlistId = playlistId,
                 client = metadataClient,
                 signatureTimestamp = signatureTimestamp,
-                setLogin = canUseLoggedInPlayback,
+                poToken = metadataPoToken,
+                setLogin = true,
                 authState = authState,
             )
         val metadataFailure = metadataResult.exceptionOrNull()
@@ -573,13 +639,32 @@ object YTPlayerUtils {
             canUseLoggedInPlayback = false
             YouTube.authState = authState
             clearPlaybackAuthCaches()
+
+            val newSessionId = authState.visitorData
+            if (metadataClient.useWebPoTokens && newSessionId != null) {
+                try {
+                    val tokenResult = BotGuardTokenGenerator.mintToken(videoId, newSessionId)
+                    metadataPoToken = tokenResult?.playerToken
+                    tokenResult?.let {
+                        YouTube.authState = YouTube.authState.copy(
+                            poTokenGvs = it.sessionToken,
+                            poTokenPlayer = it.playerToken,
+                            webClientPoTokenEnabled = true
+                        )
+                    }
+                } catch (e: Exception) {
+                    Timber.tag(logTag).w(e, "PoToken generation failed for metadata retry request")
+                }
+            }
+
             metadataResult =
                 YouTube.player(
                     videoId = videoId,
                     playlistId = playlistId,
                     client = metadataClient,
                     signatureTimestamp = signatureTimestamp,
-                    setLogin = false,
+                    poToken = metadataPoToken,
+                    setLogin = true,
                     authState = authState,
                 )
         }
@@ -881,12 +966,35 @@ object YTPlayerUtils {
         playlistId: String? = null,
         authState: PlaybackAuthState = YouTube.currentPlaybackAuthState(),
     ): Result<PlayerResponse> {
-        Timber.tag(logTag).i("Fetching metadata-only player response for videoId: $videoId using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
+        Timber.tag(logTag).i("Fetching metadata player response for videoId: $videoId")
+
+        val signatureTimestamp = getSignatureTimestampOrNull(videoId)
+        val sessionId = authState.visitorData
+        var poToken: String? = null
+
+        if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
+            try {
+                val tokenResult = BotGuardTokenGenerator.mintToken(videoId, sessionId)
+                poToken = tokenResult?.playerToken
+                tokenResult?.let {
+                    YouTube.authState = YouTube.authState.copy(
+                        poTokenGvs = it.sessionToken,
+                        poTokenPlayer = it.playerToken,
+                        webClientPoTokenEnabled = true
+                    )
+                }
+            } catch (e: Exception) {
+                Timber.tag(logTag).w(e, "PoToken generation failed for metadata request")
+            }
+        }
+
         return YouTube.player(
             videoId = videoId,
             playlistId = playlistId,
             client = MAIN_CLIENT,
-            setLogin = authState.hasPlaybackLoginContext,
+            signatureTimestamp = signatureTimestamp,
+            poToken = poToken,
+            setLogin = true,
             authState = authState,
         )
             .onSuccess { Timber.tag(logTag).d("Successfully fetched metadata") }

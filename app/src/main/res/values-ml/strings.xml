@@ -1,3 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="album_backdrop">പശ്ചാത്തല മങ്ങൽ</string>
+    <string name="album_backdrop_desc">പ്ലെയറിൽ ആർട്ട്വർക്ക് മങ്ങിയ പശ്ചാത്തലമായി കാണിക്കുക</string>
+    <string name="backdrop_blur_amount">പശ്ചാത്തല മങ്ങലിന്റെ അളവ്</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>
