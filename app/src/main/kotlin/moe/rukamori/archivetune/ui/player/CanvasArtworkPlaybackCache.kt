@@ -69,7 +69,7 @@ object CanvasArtworkPlaybackCache {
     }
 
     private fun canvasClient(proxy: Proxy?): OkHttpClient {
-        OkHttpClient
+        return OkHttpClient
             .Builder()
             .apply {
                 if (proxy != null) this.proxy(proxy)
