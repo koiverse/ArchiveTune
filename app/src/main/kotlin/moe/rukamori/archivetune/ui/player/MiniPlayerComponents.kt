@@ -83,6 +83,8 @@ import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.MiniPlayerHeight
 import moe.rukamori.archivetune.extensions.togglePlayPause
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamicColorScheme
 
 import moe.rukamori.archivetune.models.MediaMetadata
 import moe.rukamori.archivetune.playback.PlayerConnection
@@ -117,110 +119,51 @@ fun rememberMiniPlayerColors(
     pureBlack: Boolean,
 ): MiniPlayerColors {
     val systemColorScheme = MaterialTheme.colorScheme
-       return remember(gradientColors, useDarkTheme, pureBlack, systemColorScheme) {
-        if (gradientColors.isEmpty()) {
-            val containerColor = if (useDarkTheme) {
-                if (pureBlack) {
-                    Color(ColorUtils.blendARGB(systemColorScheme.surface.toArgb(), Color.Black.toArgb(), 0.94f))
-                } else {
-                    systemColorScheme.surfaceContainer
-                }
-            } else {
-                systemColorScheme.surfaceContainerLow
+    return remember(gradientColors, useDarkTheme, pureBlack, systemColorScheme) {
+        val seedColor = gradientColors.firstOrNull()
+        val scheme = if (seedColor != null) {
+            try {
+                dynamicColorScheme(
+                    seedColor = seedColor,
+                    isDark = useDarkTheme,
+                    contrastLevel = 0.0,
+                    style = PaletteStyle.TonalSpot,
+                )
+            } catch (e: Exception) {
+                systemColorScheme
             }
-            val outlineColor = if (useDarkTheme) {
-                if (pureBlack) systemColorScheme.primary.copy(alpha = 0.22f)
-                else systemColorScheme.outline.copy(alpha = 0.22f)
-            } else {
-                systemColorScheme.outline.copy(alpha = 0.32f)
-            }
-            MiniPlayerColors(
-                containerColor = containerColor,
-                titleColor = systemColorScheme.onSurface,
-                artistColor = systemColorScheme.onSurfaceVariant,
-                playContainerColor = systemColorScheme.primary,
-                playIconColor = systemColorScheme.onPrimary,
-                playBorderColor = Color.Transparent,
-                transportIconColor = systemColorScheme.onSurface,
-                transportBorderColor = Color.Transparent,
-                progressIndicatorColor = systemColorScheme.primary,
-                progressTrackColor = systemColorScheme.outline.copy(alpha = 0.18f),
-                outlineColor = outlineColor,
-            )
         } else {
-            val baseColor = gradientColors[0]
-            val baseArgb = baseColor.toArgb()
-            
-            val hsv = FloatArray(3)
-            android.graphics.Color.colorToHSV(baseArgb, hsv)
-            val hue = hsv[0]
-            
-            // Soothing background container color: soft, light pastel in light mode, dark tinted in dark mode
-            val containerColor = if (useDarkTheme) {
-                val s = (hsv[1] * 0.45f).coerceIn(0.06f, 0.22f)
-                val v = if (pureBlack) 0.18f else 0.14f
-                Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, s, v)))
-            } else {
-                val s = (hsv[1] * 0.30f).coerceIn(0.03f, 0.14f)
-                val v = 0.94f
-                Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, s, v)))
-            }
-            
-            // Soothing primary elements: play button background, progress indicator
-            val playContainerColor = if (useDarkTheme) {
-                val s = (hsv[1] * 1.0f).coerceIn(0.35f, 0.80f)
-                val v = 0.72f
-                Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, s, v)))
-            } else {
-                val s = (hsv[1] * 0.85f).coerceIn(0.32f, 0.60f)
-                val v = 0.44f
-                Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, s, v)))
-            }
-            
-            // Soothing text colors
-            val titleColor = if (useDarkTheme) {
-                val s = (hsv[1] * 0.15f).coerceIn(0.02f, 0.06f)
-                val v = 0.92f
-                Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, s, v)))
-            } else {
-                val s = (hsv[1] * 1.0f).coerceIn(0.45f, 0.80f)
-                val v = 0.24f
-                Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, s, v)))
-            }
-            
-            val artistColor = titleColor.copy(alpha = 0.65f)
-            
-            val playLuminance = ColorUtils.calculateLuminance(playContainerColor.toArgb())
-            val playIconColor = if (playLuminance > 0.5) Color.Black else Color.White
-            
-            val playBorderColor = Color.Transparent
-            val transportIconColor = titleColor
-            val transportBorderColor = Color.Transparent
-            
-            val progressIndicatorColor = playContainerColor
-            val progressTrackColor = if (useDarkTheme) titleColor.copy(alpha = 0.12f) else titleColor.copy(alpha = 0.15f)
-            
-            val outlineColor = if (useDarkTheme) {
-                if (pureBlack) playContainerColor.copy(alpha = 0.28f)
-                else playContainerColor.copy(alpha = 0.20f)
-            } else {
-                playContainerColor.copy(alpha = 0.14f)
-            }
-            
-            MiniPlayerColors(
-                containerColor = containerColor,
-                titleColor = titleColor,
-                artistColor = artistColor,
-                playContainerColor = playContainerColor,
-                playIconColor = playIconColor,
-                playBorderColor = playBorderColor,
-                transportIconColor = transportIconColor,
-                transportBorderColor = transportBorderColor,
-                progressIndicatorColor = progressIndicatorColor,
-                progressTrackColor = progressTrackColor,
-                outlineColor = outlineColor,
-            )
+            systemColorScheme
         }
+
+        val containerColor = if (useDarkTheme) {
+            if (pureBlack) {
+                Color(ColorUtils.blendARGB(scheme.surface.toArgb(), Color.Black.toArgb(), 0.94f))
+            } else {
+                scheme.surfaceContainer
+            }
+        } else {
+            scheme.surfaceContainerLow
+        }
+        val outlineColor = if (useDarkTheme) {
+            if (pureBlack) scheme.primary.copy(alpha = 0.22f)
+            else scheme.outline.copy(alpha = 0.22f)
+        } else {
+            scheme.outline.copy(alpha = 0.32f)
+        }
+        MiniPlayerColors(
+            containerColor = containerColor,
+            titleColor = scheme.onSurface,
+            artistColor = scheme.onSurfaceVariant,
+            playContainerColor = scheme.primary,
+            playIconColor = scheme.onPrimary,
+            playBorderColor = Color.Transparent,
+            transportIconColor = scheme.onSurface,
+            transportBorderColor = Color.Transparent,
+            progressIndicatorColor = scheme.primary,
+            progressTrackColor = scheme.outline.copy(alpha = 0.18f),
+            outlineColor = outlineColor,
+        )
     }
 }
 

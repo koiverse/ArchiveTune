@@ -64,11 +64,18 @@ fun AssignTagsDialog(
     playlistId: String,
     onDismiss: () -> Unit
 ) {
-    val allTags: List<TagEntity>? by database.allTags().collectAsState(initial = null)
-    val currentTags by database.playlistTags(playlistId).collectAsState(initial = emptyList())
+    val allTagsFlow = remember(database) { database.allTags() }
+    val allTags: List<TagEntity>? by allTagsFlow.collectAsState(initial = null)
+    val currentTagsFlow = remember(database, playlistId) { database.playlistTags(playlistId) }
+    val currentTags by currentTagsFlow.collectAsState(initial = null)
     
-    val currentTagIds = remember(currentTags) { currentTags.map { it.id }.toSet() }
-    var selectedTagIds by remember(currentTagIds) { mutableStateOf(currentTagIds) }
+    var selectedTagIds by remember { mutableStateOf(emptySet<String>()) }
+    
+    LaunchedEffect(currentTags) {
+        currentTags?.let { tags ->
+            selectedTagIds = tags.map { it.id }.toSet()
+        }
+    }
     var showManageTagsDialog by remember { mutableStateOf(false) }
     var showAssignToPlaylistsDialog by remember { mutableStateOf(false) }
     val validTagIds = remember(allTags) { allTags?.map(TagEntity::id)?.toSet() }
@@ -210,8 +217,10 @@ private fun AssignTagsToPlaylistsDialog(
     initialSelectedPlaylistIds: Set<String>,
     onDismiss: () -> Unit,
 ) {
-    val allTags: List<TagEntity>? by database.allTags().collectAsState(initial = null)
-    val playlists by database.editablePlaylistsByCreateDateAsc().collectAsState(initial = emptyList())
+    val allTagsFlow = remember(database) { database.allTags() }
+    val allTags: List<TagEntity>? by allTagsFlow.collectAsState(initial = null)
+    val playlistsFlow = remember(database) { database.editablePlaylistsByCreateDateAsc() }
+    val playlists by playlistsFlow.collectAsState(initial = emptyList())
 
     var selectedTagIds by remember(initialSelectedTagIds) { mutableStateOf(initialSelectedTagIds) }
     var selectedPlaylistIds by remember(initialSelectedPlaylistIds) { mutableStateOf(initialSelectedPlaylistIds) }

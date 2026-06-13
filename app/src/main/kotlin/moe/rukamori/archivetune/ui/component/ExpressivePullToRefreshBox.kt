@@ -30,7 +30,7 @@ fun ExpressivePullToRefreshBox(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val state = rememberPullToRefreshState()
-    val indicatorPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val topPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -45,7 +45,7 @@ fun ExpressivePullToRefreshBox(
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(indicatorPadding),
+                    .padding(top = topPadding),
             )
         },
         content = content,

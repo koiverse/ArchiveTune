@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "ArchiveTune" --><!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. --><resources>
     <!-- Bottom navigation -->
     <string name="home">Home</string>
@@ -190,6 +190,8 @@
     <string name="add_to_playlist">Add to playlist</string>
     <string name="pin_to_speed_dial">Pin to speed dial</string>
     <string name="remove_from_speed_dial">Remove from speed dial</string>
+    <string name="pin_playlist">Pin playlist</string>
+    <string name="unpin_playlist">Unpin playlist</string>
     <string name="view_artist">View artist</string>
     <string name="view_album">View album</string>
     <string name="view_all">View all</string>

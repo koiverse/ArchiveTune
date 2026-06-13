@@ -656,6 +656,38 @@ fun PlaylistMenu(
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
 
+                    if (autoPlaylist != true && downloadPlaylist != true) {
+                        HorizontalDivider(
+                            modifier = dividerModifier,
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+
+                        val isPinned = dbPlaylist?.playlist?.pinnedAt != null
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(
+                                        if (isPinned) R.string.unpin_playlist
+                                        else R.string.pin_playlist
+                                    )
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        if (isPinned) R.drawable.push_pin_off else R.drawable.push_pin
+                                    ),
+                                    contentDescription = null,
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                database.query { togglePlaylistPin(playlist.id) }
+                                onDismiss()
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
+
                     if (editable && autoPlaylist != true) {
                         HorizontalDivider(
                             modifier = dividerModifier,

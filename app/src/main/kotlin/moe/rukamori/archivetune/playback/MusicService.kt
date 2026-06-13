@@ -4234,7 +4234,29 @@ class MusicService :
     }
 
     private fun historyThresholdMs(): Long {
-        return (dataStore[HistoryDuration] ?: HISTORY_DURATION_DEFAULT)
+        val historyDurationValue = try {
+            dataStore[HistoryDuration]
+        } catch (e: ClassCastException) {
+            val floatVal = try {
+                runBlocking {
+                    dataStore.data.first()[moe.rukamori.archivetune.constants.HISTORY_DURATION_LEGACY_FLOAT_KEY]
+                }
+            } catch (ex: Exception) {
+                null
+            }
+            if (floatVal != null) {
+                val intVal = floatVal.toInt().coerceIn(HISTORY_DURATION_MIN, HISTORY_DURATION_MAX)
+                scope.launch {
+                    dataStore.edit { preferences ->
+                        preferences[HistoryDuration] = intVal
+                    }
+                }
+                intVal
+            } else {
+                null
+            }
+        }
+        return (historyDurationValue ?: HISTORY_DURATION_DEFAULT)
             .coerceIn(HISTORY_DURATION_MIN, HISTORY_DURATION_MAX)
             .toLong() * 1000L
     }
@@ -5302,14 +5324,25 @@ private fun onMediaItemTransitionInternal() {
     private fun resolvePlaybackDataSpec(
         dataSpec: DataSpec,
         allowCacheShortCircuit: Boolean,
+    ): DataSpec = try {
+        resolvePlaybackDataSpecInternal(dataSpec, allowCacheShortCircuit)
+    } catch (t: Throwable) {
+        if (t is java.io.IOException) {
+            throw t
+        } else {
+            throw java.io.IOException("Failed to resolve playback spec: ${t.message}", t)
+        }
+    }
+
+    private fun resolvePlaybackDataSpecInternal(
+        dataSpec: DataSpec,
+        allowCacheShortCircuit: Boolean,
     ): DataSpec {
         if (dataSpec.uri.shouldBypassYouTubeResolver()) {
             return dataSpec
         }
         val mediaId = dataSpec.key ?: return dataSpec
-        val storedFormat = runBlocking(Dispatchers.IO) {
-            database.format(mediaId).first()
-        }
+        val storedFormat = database.formatSync(mediaId)
         val knownContentLength =
             contentLengthCache[mediaId] ?: storedFormat?.contentLength?.takeIf { it > 0L } ?: runCatching {
                 downloadCache
@@ -5398,51 +5431,57 @@ private fun onMediaItemTransitionInternal() {
             } ?: resolvedDataSpec
         }
 
-        val playbackData = runBlocking(Dispatchers.IO) {
-            if (hiResLosslessSelected) {
-                resolveHiResLosslessPlayback(mediaId).recoverCatching { externalFailure ->
-                    Timber.tag("MusicService").w(
-                        externalFailure,
-                        "Hi-Res external stream failed for %s; falling back to Web Remix",
-                        mediaId,
-                    )
-                    retryWithoutPlaybackLoginContext {
-                        YTPlayerUtils.playerResponseForPlayback(
-                            mediaId,
-                            audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
-                            connectivityManager = connectivityManager,
-                            preferredStreamClient = PlayerStreamClient.WEB_REMIX,
-                            networkMetered = lowDataModeActive,
-                        )
-                    }.getOrThrow()
-                }
-            } else {
-                retryWithoutPlaybackLoginContext {
-                    YTPlayerUtils.playerResponseForPlayback(
-                        mediaId,
-                        audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
-                        connectivityManager = connectivityManager,
-                        preferredStreamClient = preferredStreamClient,
-                        networkMetered = lowDataModeActive,
-                    )
-                }.recoverCatching { youtubeFailure ->
-                    if (youtubeFailure !is YTPlayerUtils.BotDetectionPlaybackException) throw youtubeFailure
+        val playbackData = try {
+            runBlocking {
+                kotlinx.coroutines.withTimeout(3000L) {
+                    if (hiResLosslessSelected) {
+                        resolveHiResLosslessPlayback(mediaId).recoverCatching { externalFailure ->
+                            Timber.tag("MusicService").w(
+                                externalFailure,
+                                "Hi-Res external stream failed for %s; falling back to Web Remix",
+                                mediaId,
+                            )
+                            retryWithoutPlaybackLoginContext {
+                                YTPlayerUtils.playerResponseForPlayback(
+                                    mediaId,
+                                    audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
+                                    connectivityManager = connectivityManager,
+                                    preferredStreamClient = PlayerStreamClient.WEB_REMIX,
+                                    networkMetered = lowDataModeActive,
+                                )
+                            }.getOrThrow()
+                        }
+                    } else {
+                        retryWithoutPlaybackLoginContext {
+                            YTPlayerUtils.playerResponseForPlayback(
+                                mediaId,
+                                audioQuality = if (lowDataModeActive) AudioQuality.LOW else audioQuality,
+                                connectivityManager = connectivityManager,
+                                preferredStreamClient = preferredStreamClient,
+                                networkMetered = lowDataModeActive,
+                            )
+                        }.recoverCatching { youtubeFailure ->
+                            if (youtubeFailure !is YTPlayerUtils.BotDetectionPlaybackException) throw youtubeFailure
 
-                    Timber.tag("MusicService").w(
-                        youtubeFailure,
-                        "YouTube stream clients hit bot detection for %s; trying external audio fallback",
-                        mediaId,
-                    )
-                    resolveHiResLosslessPlayback(mediaId).getOrElse { externalFailure ->
-                        Timber.tag("MusicService").w(
-                            externalFailure,
-                            "External audio fallback failed after YouTube bot detection for %s",
-                            mediaId,
-                        )
-                        throw youtubeFailure
+                            Timber.tag("MusicService").w(
+                                youtubeFailure,
+                                "YouTube stream clients hit bot detection for %s; trying external audio fallback",
+                                mediaId,
+                            )
+                            resolveHiResLosslessPlayback(mediaId).getOrElse { externalFailure ->
+                                Timber.tag("MusicService").w(
+                                    externalFailure,
+                                    "External audio fallback failed after YouTube bot detection for %s",
+                                    mediaId,
+                                )
+                                throw youtubeFailure
+                            }
+                        }
                     }
                 }
             }
+        } catch (t: Throwable) {
+            Result.failure(t)
         }.getOrElse { throwable ->
             when {
                 throwable is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
