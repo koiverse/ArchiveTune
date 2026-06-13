@@ -1724,7 +1724,7 @@ private fun V8PlayerBackdrop(
 @Suppress("DEPRECATION")
 @Composable
 private fun BackdropBlurApi30(
-    model: Any?,
+    model: String?,
     blurAmount: Int,
     modifier: Modifier = Modifier,
 ) {
