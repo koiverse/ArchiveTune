@@ -457,8 +457,9 @@ fun Thumbnail(
                                         )
                                     }
                                 canvasFetchedAtMs = now
-                                canvasArtwork = fetched?.let { artwork ->
-                                    CanvasArtworkPlaybackCache.put(item.mediaId, artwork)
+                                canvasArtwork = fetched
+                                if (fetched != null) {
+                                    canvasArtwork = CanvasArtworkPlaybackCache.put(item.mediaId, fetched)
                                 }
                                 canvasFetchInFlight = false
                             }

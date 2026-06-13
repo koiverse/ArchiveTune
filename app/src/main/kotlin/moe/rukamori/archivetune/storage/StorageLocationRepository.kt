@@ -14,7 +14,6 @@ import androidx.core.net.toUri
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.media3.datasource.cache.Cache
-import coil3.imageLoader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -29,13 +28,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 import moe.rukamori.archivetune.constants.StorageFolderDisplayNameKey
 import moe.rukamori.archivetune.constants.StorageFolderIdKey
 import moe.rukamori.archivetune.constants.StorageFolderPathKey
 import moe.rukamori.archivetune.constants.StorageFolderTreeUriKey
 import moe.rukamori.archivetune.di.DownloadCache
 import moe.rukamori.archivetune.di.PlayerCache
+import moe.rukamori.archivetune.playback.DownloadUtil
 import moe.rukamori.archivetune.ui.player.CanvasArtworkPlaybackCache
 import moe.rukamori.archivetune.utils.ArtworkStorage
 import moe.rukamori.archivetune.utils.PreferenceStore
@@ -154,6 +153,16 @@ constructor(
         repository.setStorageLocationAndMoveCache(optionId, onProgress)
 }
 
+private object StorageCacheCleanupRunner {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    fun deleteLater(target: File, deleteRoot: Boolean = true) {
+        scope.launch {
+            target.deleteTreeSafely(deleteRoot)
+        }
+    }
+}
+
 class ClearStorageCacheUseCase
 @Inject
 constructor(
@@ -169,6 +178,7 @@ constructor(
     @ApplicationContext private val context: Context,
     @PlayerCache private val playerCache: Cache,
     @DownloadCache private val downloadCache: Cache,
+    private val downloadUtil: DownloadUtil,
 ) {
     val selection: Flow<StorageFolderSelection> =
         context.dataStore.data.map { preferences ->
@@ -179,10 +189,10 @@ constructor(
         withContext(Dispatchers.IO) {
             try {
                 val cleared = when (kind) {
-                    StorageCacheKind.SONGS -> clearMediaCache(playerCache)
-                    StorageCacheKind.DOWNLOADS -> clearMediaCache(downloadCache)
+                    StorageCacheKind.SONGS -> clearReleasedMediaCache(playerCache, StorageFolderKind.SONG_CACHE)
+                    StorageCacheKind.DOWNLOADS -> clearDownloads()
                     StorageCacheKind.IMAGES -> clearImageCache()
-                    StorageCacheKind.CANVAS -> CanvasArtworkPlaybackCache.clearAndPersist()
+                    StorageCacheKind.CANVAS -> clearCanvasCache()
                 }
                 if (cleared) StorageCacheClearResult.Success else StorageCacheClearResult.Failed
             } catch (throwable: Throwable) {
@@ -326,31 +336,46 @@ constructor(
         runCatching { downloadCache.release() }
     }
 
-    private suspend fun clearMediaCache(cache: Cache): Boolean {
-        val keys = runCatching { cache.keys.toList() }.getOrElse { throwable ->
-            if (throwable is CancellationException) throw throwable
-            return false
-        }
-        var cleared = true
-        keys.forEach { key ->
-            currentCoroutineContext().ensureActive()
-            runCatching {
-                cache.removeResource(key)
-            }.onFailure { throwable ->
-                if (throwable is CancellationException) throw throwable
-                cleared = false
-            }
-            yield()
-        }
-        return cleared
+    private fun clearReleasedMediaCache(
+        cache: Cache,
+        folderKind: StorageFolderKind,
+    ): Boolean {
+        val released = runCatching { cache.release() }.isSuccess
+        return released && moveCacheDirectoryToTrash(folderKind)
+    }
+
+    private fun clearDownloads(): Boolean =
+        runCatching {
+            downloadUtil.downloadManager.removeAllDownloads()
+        }.isSuccess
+
+    private fun clearCanvasCache(): Boolean {
+        CanvasArtworkPlaybackCache.clear()
+        return moveCacheDirectoryToTrash(StorageFolderKind.CANVAS_CACHE)
     }
 
     private fun clearImageCache(): Boolean {
-        val diskCacheCleared = runCatching {
-            context.imageLoader.diskCache?.clear()
-        }.isSuccess
+        val diskCacheCleared = moveCacheDirectoryToTrash(StorageFolderKind.IMAGE_CACHE)
+        val artworkCacheCleared = moveCacheDirectoryToTrash(StorageFolderKind.ARTWORK_CACHE)
         val artworkCleared = ArtworkStorage.clear(context)
-        return diskCacheCleared && artworkCleared
+        return diskCacheCleared && artworkCacheCleared && artworkCleared
+    }
+
+    private fun moveCacheDirectoryToTrash(kind: StorageFolderKind): Boolean {
+        val directory = cacheDirectory(context, kind)
+        val parent = directory.parentFile ?: return false
+        val trashDirectory = parent.resolve("${directory.name}.delete-${System.currentTimeMillis()}")
+        val scheduledForDeletion = runCatching {
+            if (!directory.exists()) return@runCatching true
+            if (directory.renameTo(trashDirectory)) {
+                StorageCacheCleanupRunner.deleteLater(trashDirectory)
+                true
+            } else {
+                StorageCacheCleanupRunner.deleteLater(directory, deleteRoot = false)
+                true
+            }
+        }.getOrDefault(false)
+        return scheduledForDeletion && directory.ensureWritableDirectory()
     }
 
     private suspend fun StorageMigrationPlan.withProgress(
@@ -607,6 +632,29 @@ private fun File.migrationByteCount(target: File): Long {
         .walkTopDown()
         .filter { file -> file.isFile }
         .sumOf { file -> file.length() }
+}
+
+private fun File.deleteTreeSafely(deleteRoot: Boolean) {
+    runCatching {
+        if (!exists()) return
+        val directories = ArrayList<File>()
+        val stack = ArrayDeque<File>()
+        stack.add(this)
+        while (stack.isNotEmpty()) {
+            val file = stack.removeLast()
+            if (file.isDirectory) {
+                directories += file
+                file.listFiles()?.forEach { child -> stack.add(child) }
+            } else {
+                runCatching { file.delete() }
+            }
+        }
+        directories.asReversed().forEach { directory ->
+            if (deleteRoot || directory != this) {
+                runCatching { directory.delete() }
+            }
+        }
+    }
 }
 
 private class StorageProgressReporter(

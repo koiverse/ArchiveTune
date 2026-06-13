@@ -4234,7 +4234,7 @@ class MusicService :
     }
 
     private fun historyThresholdMs(): Long {
-        return (dataStore[HistoryDuration] ?: HISTORY_DURATION_DEFAULT)
+        return (runCatching { dataStore[HistoryDuration] }.getOrNull() ?: HISTORY_DURATION_DEFAULT)
             .coerceIn(HISTORY_DURATION_MIN, HISTORY_DURATION_MAX)
             .toLong() * 1000L
     }
