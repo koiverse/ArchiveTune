@@ -32,6 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -75,9 +77,15 @@ fun SpeedDialGridItem(
         label = "speedDialPlayingScale",
     )
     val shape = if (isActive) MaterialTheme.shapes.extraLarge else MaterialTheme.shapes.large
-    val foregroundColor = MaterialTheme.colorScheme.inverseOnSurface
-    val labelBandColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f)
-    val accentFraction = if (isActive) 0.84f else 0.76f
+    val foregroundColor = Color.White
+    val pinnedIconColor = Color.Black.copy(alpha = 0.86f)
+    val labelGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color.Transparent,
+            Color.Black.copy(alpha = 0.34f),
+            Color.Black.copy(alpha = 0.78f),
+        ),
+    )
 
     Surface(
         color = containerColor,
@@ -111,17 +119,8 @@ fun SpeedDialGridItem(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(46.dp)
-                    .background(labelBandColor),
-            )
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 8.dp, end = 52.dp, bottom = 42.dp)
-                    .fillMaxWidth(accentFraction)
-                    .height(5.dp)
-                    .background(MaterialTheme.colorScheme.primary, MaterialTheme.shapes.extraLarge),
+                    .height(86.dp)
+                    .background(labelGradient),
             )
 
             Row(
@@ -154,7 +153,7 @@ fun SpeedDialGridItem(
                 Icon(
                     painter = painterResource(R.drawable.bookmark_filled),
                     contentDescription = null,
-                    tint = foregroundColor,
+                    tint = pinnedIconColor,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(7.dp)
