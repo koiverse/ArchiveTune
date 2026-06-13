@@ -921,8 +921,9 @@ fun BottomSheetPlayer(
                             requireVertical = true,
                         )
                     }
-                v7CanvasArtwork = fetched?.let { artwork ->
-                    CanvasArtworkPlaybackCache.put(metadata.id, artwork)
+                v7CanvasArtwork = fetched
+                if (fetched != null) {
+                    v7CanvasArtwork = CanvasArtworkPlaybackCache.put(metadata.id, fetched)
                 }
             } finally {
                 v7CanvasFetchInFlight = false
@@ -961,8 +962,9 @@ fun BottomSheetPlayer(
                             requireVertical = false,
                         )
                     }
-                artworkCanvas = fetched?.let { artwork ->
-                    CanvasArtworkPlaybackCache.put(metadata.id, artwork)
+                artworkCanvas = fetched
+                if (fetched != null) {
+                    artworkCanvas = CanvasArtworkPlaybackCache.put(metadata.id, fetched)
                 }
             } finally {
                 artworkCanvasFetchInFlight = false

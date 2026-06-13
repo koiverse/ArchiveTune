@@ -8,7 +8,6 @@
 package moe.rukamori.archivetune.ui.player
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
@@ -98,7 +97,7 @@ private fun NewMiniPlayer(
         }
     }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
-    val shouldUseArtworkBackground = true
+    val shouldUseArtworkBackground = miniPlayerBackgroundStyle != MiniPlayerBackgroundStyle.THEME
 
     LaunchedEffect(
         mediaMetadata?.id,
@@ -163,11 +162,8 @@ private fun NewMiniPlayer(
             MiniPlayerBackgroundStyle.THEME
         }
 
-    val useDarkTheme = isSystemInDarkTheme()
-    val miniPlayerColors = rememberMiniPlayerColors(
-        gradientColors = gradientColors,
-        useDarkTheme = useDarkTheme,
-        pureBlack = pureBlack,
+    val contentColors = rememberMiniPlayerContentColors(
+        useArtworkBackground = effectiveBackgroundStyle != MiniPlayerBackgroundStyle.THEME,
     )
 
     SwipeableMiniPlayerBox(
@@ -190,15 +186,63 @@ private fun NewMiniPlayer(
             MiniPlayerBackground(
                 style = effectiveBackgroundStyle,
                 palette = backgroundPalette,
-                miniPlayerColors = miniPlayerColors,
                 modifier = Modifier.fillMaxSize(),
             )
             NewMiniPlayerContent(
-                pureBlack = pureBlack,
                 position = position,
                 duration = duration,
                 playerConnection = playerConnection,
-                miniPlayerColors = miniPlayerColors,
+                colors = contentColors,
+            )
+        }
+    }
+}
+
+@Composable
+private fun rememberMiniPlayerContentColors(
+    useArtworkBackground: Boolean,
+): MiniPlayerContentColors {
+    val colorScheme = MaterialTheme.colorScheme
+    return remember(
+        useArtworkBackground,
+        colorScheme.primary,
+        colorScheme.outline,
+        colorScheme.onSurface,
+        colorScheme.onSurfaceVariant,
+        colorScheme.surface,
+        colorScheme.surfaceVariant,
+        colorScheme.primaryContainer,
+        colorScheme.onPrimaryContainer,
+    ) {
+        if (useArtworkBackground) {
+            MiniPlayerContentColors(
+                title = Color.White,
+                secondary = Color.White.copy(alpha = 0.72f),
+                progress = Color.White,
+                progressTrack = Color.White.copy(alpha = 0.24f),
+                artworkContainer = Color.White.copy(alpha = 0.14f),
+                artworkBorder = Color.White.copy(alpha = 0.22f),
+                primaryButtonContainer = Color.White.copy(alpha = 0.16f),
+                buttonBorder = Color.White.copy(alpha = 0.24f),
+                buttonIcon = Color.White,
+                disabledButtonIcon = Color.White.copy(alpha = 0.38f),
+                togetherContainer = Color.White.copy(alpha = 0.16f),
+                togetherContent = Color.White,
+            )
+        } else {
+            MiniPlayerContentColors(
+                title = colorScheme.onSurface,
+                secondary = colorScheme.onSurfaceVariant,
+                progress = colorScheme.primary,
+                progressTrack = colorScheme.outline.copy(alpha = 0.18f),
+                artworkContainer = colorScheme.surfaceVariant,
+                artworkBorder = colorScheme.outline.copy(alpha = 0.2f),
+                primaryButtonContainer = colorScheme.surface,
+                buttonBorder = colorScheme.outline.copy(alpha = 0.3f),
+                buttonIcon = colorScheme.onSurface,
+                disabledButtonIcon = colorScheme.onSurface.copy(alpha = 0.38f),
+                togetherContainer = colorScheme.primaryContainer,
+                togetherContent = colorScheme.onPrimaryContainer,
             )
         }
     }
@@ -208,13 +252,12 @@ private fun NewMiniPlayer(
 private fun MiniPlayerBackground(
     style: MiniPlayerBackgroundStyle,
     palette: MiniPlayerBackgroundPalette?,
-    miniPlayerColors: MiniPlayerColors,
     modifier: Modifier = Modifier,
 ) {
     when (style) {
         MiniPlayerBackgroundStyle.THEME -> {
             Box(
-                modifier = modifier.background(miniPlayerColors.containerColor)
+                modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainer)
             )
         }
 
@@ -305,4 +348,3 @@ private data class MiniPlayerBackgroundPalette(
         }
     }
 }
-
