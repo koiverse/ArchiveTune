@@ -36,7 +36,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -54,7 +53,6 @@ import moe.rukamori.archivetune.ui.component.EditTextPreference
 import moe.rukamori.archivetune.ui.component.EnumListPreference
 import moe.rukamori.archivetune.ui.component.IconButton
 import moe.rukamori.archivetune.ui.component.ListPreference
-import moe.rukamori.archivetune.ui.component.NumberEditTextPreference
 import moe.rukamori.archivetune.ui.component.PreferenceGroup
 import moe.rukamori.archivetune.ui.component.PreferenceEntry
 import moe.rukamori.archivetune.ui.component.SwitchPreference
@@ -77,18 +75,9 @@ private enum class DiscordAuthorizationUiMode { Idle, Waiting, Success, Failure 
 private val DiscordImageOptions = listOf("thumbnail", "artist", "appicon", "custom")
 private val DiscordSmallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
 private val DiscordActivityStatusOptions = listOf("online", "dnd", "idle", "streaming")
-private val DiscordIntervalOptions = listOf("20s", "50s", "1m", "5m", "Custom", "Disabled")
 private val DiscordPlatformOptions = listOf("desktop", "xbox", "samsung", "ios", "android", "embedded", "ps4", "ps5")
 private val DiscordActivityTypeOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
 private val DiscordLargeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
-private val DiscordIntervalUnitOptions = listOf("S", "M", "H")
-
-private fun clampDiscordIntervalValue(value: Int, unit: String): Int {
-    return when (unit) {
-        "S" -> value.coerceAtLeast(30)
-        else -> value.coerceAtLeast(1)
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -271,19 +260,6 @@ fun DiscordSettings(
     val (activityStatusSelection, onActivityStatusSelectionChange) = rememberPreference(
         key = DiscordPresenceStatusKey,
         defaultValue = "online"
-    )
-
-    val (intervalSelection, onIntervalSelectionChange) = rememberPreference(
-        key = stringPreferencesKey("discordPresenceIntervalPreset"),
-        defaultValue = "20s"
-    )
-    val (customIntervalValue, onCustomIntervalValueChange) = rememberPreference(
-        key = DiscordPresenceIntervalValueKey,
-        defaultValue = 30,
-    )
-    val (customIntervalUnit, onCustomIntervalUnitChange) = rememberPreference(
-        key = DiscordPresenceIntervalUnitKey,
-        defaultValue = "S",
     )
 
     val (platformSelection, onPlatformSelectionChange) = rememberPreference(
@@ -518,48 +494,6 @@ fun DiscordSettings(
                             values = DiscordActivityStatusOptions,
                             valueText = { discordPresenceStatusLabel(it) },
                             onValueSelected = onActivityStatusSelectionChange,
-                        )
-                    }
-
-                    item {
-                        ListPreference(
-                            title = { Text(stringResource(R.string.update_interval)) },
-                            icon = { Icon(painterResource(R.drawable.timer), null) },
-                            selectedValue = intervalSelection,
-                            values = DiscordIntervalOptions,
-                            valueText = { discordIntervalPresetLabel(it) },
-                            onValueSelected = onIntervalSelectionChange,
-                        )
-                    }
-
-                    item(visible = intervalSelection == "Custom") {
-                        NumberEditTextPreference(
-                            title = { Text(stringResource(R.string.discord_custom_interval_value)) },
-                            icon = { Icon(painterResource(R.drawable.timer), null) },
-                            value = customIntervalValue,
-                            onValueChange = {
-                                onCustomIntervalValueChange(clampDiscordIntervalValue(it, customIntervalUnit))
-                            },
-                            isInputValid = { input ->
-                                val parsed = input.toIntOrNull() ?: return@NumberEditTextPreference false
-                                parsed > 0 && (customIntervalUnit != "S" || parsed >= 30)
-                            },
-                        )
-                    }
-
-                    item(visible = intervalSelection == "Custom") {
-                        ListPreference(
-                            title = { Text(stringResource(R.string.discord_custom_interval_unit)) },
-                            icon = { Icon(painterResource(R.drawable.timer), null) },
-                            selectedValue = customIntervalUnit,
-                            values = DiscordIntervalUnitOptions,
-                            valueText = { discordIntervalUnitLabel(it) },
-                            onValueSelected = { selectedUnit ->
-                                onCustomIntervalUnitChange(selectedUnit)
-                                onCustomIntervalValueChange(
-                                    clampDiscordIntervalValue(customIntervalValue, selectedUnit),
-                                )
-                            },
                         )
                     }
 
@@ -1050,25 +984,6 @@ private fun discordPresenceStatusLabel(value: String): String {
         "idle" -> stringResource(R.string.discord_presence_idle)
         "streaming" -> stringResource(R.string.discord_presence_streaming)
         else -> stringResource(R.string.discord_presence_online)
-    }
-}
-
-@Composable
-private fun discordIntervalPresetLabel(value: String): String {
-    return when (value) {
-        "Custom" -> stringResource(R.string.custom)
-        "Disabled" -> stringResource(R.string.disabled)
-        else -> value
-    }
-}
-
-@Composable
-private fun discordIntervalUnitLabel(value: String): String {
-    return when (value) {
-        "S" -> stringResource(R.string.discord_interval_unit_seconds)
-        "M" -> stringResource(R.string.discord_interval_unit_minutes)
-        "H" -> stringResource(R.string.discord_interval_unit_hours)
-        else -> stringResource(R.string.discord_interval_unit_seconds)
     }
 }
 

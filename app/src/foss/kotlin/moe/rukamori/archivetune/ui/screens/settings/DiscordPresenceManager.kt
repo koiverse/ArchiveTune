@@ -40,7 +40,6 @@ object DiscordPresenceManager {
         songProvider: () -> Song?,
         positionProvider: () -> Long,
         isPausedProvider: () -> Boolean,
-        intervalProvider: () -> Long,
     ) = Unit
 
     fun restart(): Boolean = false

@@ -55,7 +55,7 @@ object DiscordImageResolver {
         val savedArtwork = ArtworkStorage.findBySongId(context, songId)
 
         val thumbnail = savedArtwork?.thumbnail?.asHttpUrl() ?: thumbnailUrl
-        val artist = savedArtwork?.artist?.asHttpUrl() ?: artistUrl
+        val artist = savedArtwork?.artist?.asHttpUrl() ?: artistUrl ?: thumbnail
 
         val images = ResolvedDiscordImages(
             thumbnailOriginalUrl = thumbnailUrl,
@@ -98,6 +98,9 @@ object DiscordImageResolver {
                 resolvedImages.artistResolvedId
                     ?: resolvedImages.artistOriginalUrl
                     ?: song.artists.firstOrNull()?.thumbnailUrl?.asHttpUrl()
+                    ?: resolvedImages.thumbnailResolvedId
+                    ?: resolvedImages.thumbnailOriginalUrl
+                    ?: song.song.thumbnailUrl?.asHttpUrl()
             "appicon" ->
                 "https://raw.githubusercontent.com/koiverse/ArchiveTune/main/fastlane/metadata/android/en-US/images/icon.png"
             "custom" ->

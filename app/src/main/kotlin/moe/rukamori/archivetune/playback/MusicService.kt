@@ -196,7 +196,6 @@ import moe.rukamori.archivetune.utils.getAsync
 import moe.rukamori.archivetune.utils.isInternetAvailable
 import moe.rukamori.archivetune.utils.isLowDataModeActive
 import moe.rukamori.archivetune.utils.isLocalMediaId
-import moe.rukamori.archivetune.utils.getPresenceIntervalMillis
 import moe.rukamori.archivetune.utils.retryWithoutPlaybackLoginContext
 import moe.rukamori.archivetune.utils.reportException
 import moe.rukamori.archivetune.utils.NetworkConnectivityObserver
@@ -378,8 +377,6 @@ class MusicService :
     @Volatile
     private var suppressAutoPlayback = false
     private var lastPresenceToken: String? = null
-    @Volatile
-    private var lastPresenceUpdateTime = 0L
     @Volatile
     private var lastLoginRecoveryPrompt: Pair<String, Long>? = null
     private val playbackStreamRecoveryTracker = PlaybackStreamRecoveryTracker()
@@ -1302,26 +1299,15 @@ class MusicService :
                 DiscordPresenceManager.start(
                     context = this@MusicService,
                     token = key,
-                    songProvider = { player.currentMetadata?.let { createTransientSongFromMedia(it) } ?: currentSong.value },
+                    songProvider = { currentPresenceSong() },
                     positionProvider = { player.currentPosition },
                     isPausedProvider = { !player.isPlaying },
-                    intervalProvider = { getPresenceIntervalMillis(this@MusicService) }
                 )
                 Timber.tag("MusicService").d("Presence manager started with token=$key")
                 lastPresenceToken = key
             } catch (ex: Exception) {
                 Timber.tag("MusicService").e(ex, "Failed to start presence manager")
             }
-        }
-    }
-
-    private fun canUpdatePresence(): Boolean {
-        val now = System.currentTimeMillis()
-        synchronized(this) {
-            return if (now - lastPresenceUpdateTime > MIN_PRESENCE_UPDATE_INTERVAL) {
-                lastPresenceUpdateTime = now
-                true
-            } else false
         }
     }
 
@@ -4749,10 +4735,10 @@ private fun onMediaItemTransitionInternal() {
                 // Obtain the freshest Song from DB using current media item id to avoid stale currentSong.value
                 val mediaId = player.currentMediaItem?.mediaId
                 val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
-                val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
+                val finalSong = (song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) })
+                    .withResolvedPresenceDuration(player.duration)
 
-                if (canUpdatePresence()) {
-                    val success = withContext(Dispatchers.IO) {
+                val success = withContext(Dispatchers.IO) {
                         DiscordPresenceManager.updateNow(
                             context = this@MusicService,
                             token = token,
@@ -4787,7 +4773,6 @@ private fun onMediaItemTransitionInternal() {
                             }
                         }
                     } catch (_: Exception) {}
-                }
             }
         } catch (e: Exception) {
             Timber.tag("MusicService").v(e, "immediate presence update failed")
@@ -4932,10 +4917,10 @@ private fun onMediaItemTransitionInternal() {
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                         val mediaId = player.currentMediaItem?.mediaId
                         val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
-                        val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
+                        val finalSong = (song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) })
+                            .withResolvedPresenceDuration(player.duration)
 
-                        if (canUpdatePresence()) {
-                            val success = DiscordPresenceManager.updateNow(
+                        val success = DiscordPresenceManager.updateNow(
                                 context = this@MusicService,
                                 token = token,
                                 song = finalSong,
@@ -4944,7 +4929,7 @@ private fun onMediaItemTransitionInternal() {
                             )
                             if (!success) {
                                 Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
-                                try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
+                                try { DiscordPresenceManager.restart() } catch (_: Exception) {}
                             }
                             try {
                                 val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
@@ -4961,7 +4946,6 @@ private fun onMediaItemTransitionInternal() {
                                 
                                 // Last.fm now playing - handled by ScrobbleManager
                             } catch (_: Exception) {}
-                        }
                     }
                 } catch (e: Exception) {
                     Timber.tag("MusicService").v(e, "immediate presence update failed on transition")
@@ -4988,12 +4972,10 @@ private fun onMediaItemTransitionInternal() {
                     val token = withContext(Dispatchers.IO) { dataStore.get(DiscordTokenKey, "") }
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
                         val song = if (currentMediaId != null) withContext(Dispatchers.IO) { database.song(currentMediaId).first() } else null
-                        val finalSong = song ?: currentMetadata?.let { createTransientSongFromMedia(it) }
+                        val finalSong = (song ?: currentMetadata?.let { createTransientSongFromMedia(it) })
+                            .withResolvedPresenceDuration(player.duration)
 
-                        if (canUpdatePresence()) {
-                            // Run update on IO if possible, assuming updateNow is thread-safe or handles its own threading correctly
-                            // If updateNow touches Views, this might break. Assuming it's network/logic.
-                            val success = withContext(Dispatchers.IO) {
+                        val success = withContext(Dispatchers.IO) {
                                 DiscordPresenceManager.updateNow(
                                     context = this@MusicService,
                                     token = token,
@@ -5005,7 +4987,7 @@ private fun onMediaItemTransitionInternal() {
                             if (!success) {
                                 Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
                                 if (DiscordPresenceManager.isRunning()) {
-                                    try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                    try { DiscordPresenceManager.restart() } catch (_: Exception) {}
                                 }
                             }
                             try {
@@ -5023,7 +5005,6 @@ private fun onMediaItemTransitionInternal() {
                                 
                                 // Last.fm now playing - handled by ScrobbleManager
                             } catch (_: Exception) {}
-                        }
                     }
                 } catch (e: Exception) {
                     Timber.tag("MusicService").v(e, "immediate presence update failed for isPlaying/mediaTransition")
@@ -5898,6 +5879,21 @@ private fun onMediaItemTransitionInternal() {
         }
     }
 
+    private fun currentPresenceSong(): Song? {
+        val metadataSong = player.currentMetadata?.let { createTransientSongFromMedia(it) }
+        return (metadataSong ?: currentSong.value).withResolvedPresenceDuration(player.duration)
+    }
+
+    private fun Song?.withResolvedPresenceDuration(durationMs: Long): Song? {
+        val song = this ?: return null
+        if (song.song.duration > 0 || durationMs <= 0) return song
+        val durationSeconds = (durationMs / 1000L)
+            .coerceAtLeast(1L)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
+        return song.copy(song = song.song.copy(duration = durationSeconds))
+    }
+
     // Create a transient Song object from current Player MediaMetadata when the DB doesn't have it.
     private fun createTransientSongFromMedia(media: moe.rukamori.archivetune.models.MediaMetadata): Song {
         val songEntity = SongEntity(
@@ -6289,7 +6285,6 @@ private fun onMediaItemTransitionInternal() {
         const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
         const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"
         const val MAX_CONSECUTIVE_ERR = 5
-        const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L
         const val AUDIO_ROUTE_CHANGE_DEBOUNCE_MS = 350L
         const val AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS = 200L
         const val AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS = 1_500L
