@@ -386,7 +386,7 @@ fun SongListItem(
             badges = badges,
             thumbnailContent = {
                 ItemThumbnail(
-                    thumbnailUrl = song.song.thumbnailUrl?.resize(200, 200),
+                    thumbnailUrl = song.song.thumbnailUrl,
                     albumIndex = albumIndex,
                     isSelected = isSelected,
                     isActive = isActive,
@@ -1324,7 +1324,7 @@ fun YouTubeListItem(
 
     if (item is SongItem && isSwipeable && swipeEnabled) {
         SwipeToSongBox(
-            mediaItem = item.copy(thumbnail = item.thumbnail.resize(1080, 1080)).toMediaItem(),
+            mediaItem = item.copy(thumbnail = item.thumbnail).toMediaItem(),
             modifier = Modifier.fillMaxWidth()
         ) {
             content()
@@ -1570,7 +1570,7 @@ fun ItemThumbnail(
             if (shouldLoadImage && !thumbnailUrl.isNullOrBlank()) {
                 val request = remember(thumbnailUrl, widthPx, heightPx) {
                     ImageRequest.Builder(context)
-                        .data(thumbnailUrl?.resize(544, 544))
+                        .data(thumbnailUrl)
                         .allowHardware(true)
                         .apply {
                             if (widthPx != null && heightPx != null) {
