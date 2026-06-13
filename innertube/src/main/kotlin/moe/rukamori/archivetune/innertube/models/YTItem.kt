@@ -115,8 +115,9 @@ data class ArtistItem(
 val YTItem.displayThumbnail: String?
     get() = when (this) {
         is SongItem -> {
-            val isOnline = thumbnail?.let { it.startsWith("http") || it.startsWith("//") } ?: false
-            if (isOnline) "https://i.ytimg.com/vi/$id/maxresdefault.jpg" else thumbnail
+            val musicVideoType = endpoint?.watchEndpointMusicSupportedConfigs?.watchEndpointMusicConfig?.musicVideoType
+            val isMusicVideo = musicVideoType == MUSIC_VIDEO_TYPE_OMV || musicVideoType == MUSIC_VIDEO_TYPE_UGC
+            if (isMusicVideo) "https://i.ytimg.com/vi/$id/maxresdefault.jpg" else thumbnail
         }
         else -> thumbnail
     }
