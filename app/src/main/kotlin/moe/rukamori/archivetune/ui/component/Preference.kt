@@ -93,6 +93,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.R
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_DEFAULT
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_RANGE
 import kotlin.math.roundToInt
 
 val LocalPreferenceInGroup = compositionLocalOf { false }
@@ -758,7 +760,7 @@ fun SliderPreference(
                 showDialog = false
             },
             onReset = {
-                sliderValue = 30f
+                sliderValue = HISTORY_DURATION_DEFAULT.toFloat()
             },
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -775,7 +777,7 @@ fun SliderPreference(
 
                     val sliderState = rememberSliderState(
                         value = sliderValue,
-                        valueRange = 15f..60f,
+                        valueRange = HISTORY_DURATION_RANGE,
                         onValueChangeFinished = {},
                     )
                     sliderState.onValueChange = { sliderValue = it }
