@@ -265,6 +265,10 @@ import moe.rukamori.archivetune.ui.screens.buildLoginRoute
 import moe.rukamori.archivetune.ui.screens.navigationBuilder
 import moe.rukamori.archivetune.ui.screens.search.LocalSearchScreen
 import moe.rukamori.archivetune.ui.screens.search.OnlineSearchScreen
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultArgument
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultRoutePrefix
+import moe.rukamori.archivetune.ui.screens.search.decodeOnlineSearchQuery
+import moe.rukamori.archivetune.ui.screens.search.onlineSearchResultRoute
 import moe.rukamori.archivetune.ui.screens.settings.DarkMode
 import moe.rukamori.archivetune.ui.screens.settings.DiscordPresenceManager
 import moe.rukamori.archivetune.ui.screens.settings.NavigationTab
@@ -287,8 +291,6 @@ import moe.rukamori.archivetune.utils.setAppLocale
 import moe.rukamori.archivetune.viewmodels.HomeViewModel
 import moe.rukamori.archivetune.viewmodels.NetworkBannerViewModel
 import moe.rukamori.archivetune.viewmodels.NewsViewModel
-import java.net.URLDecoder
-import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.random.Random
@@ -842,7 +844,7 @@ class MainActivity : ComponentActivity() {
                     val onSearch: (String) -> Unit = {
                         if (it.isNotEmpty()) {
                             onActiveChange(false)
-                            navController.navigate("search/${URLEncoder.encode(it, "UTF-8")}")
+                            navController.navigate(onlineSearchResultRoute(it))
                             if (!pauseSearchHistory) {
                                 database.query {
                                     insert(SearchHistory(query = it))
@@ -859,7 +861,7 @@ class MainActivity : ComponentActivity() {
                         remember(active, navBackStackEntry) {
                             active ||
                                     navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
-                                    navBackStackEntry?.destination?.route?.startsWith("search/") == true
+                                    navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true
                         }
 
                     val shouldShowNavigationBar =
@@ -1040,7 +1042,7 @@ class MainActivity : ComponentActivity() {
 
                     appBarScrollBehavior(
                         canScroll = {
-                            navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                            navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == false &&
                                     navBackStackEntry?.destination?.route != Screens.Library.route &&
                                     (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                         }
@@ -1049,7 +1051,7 @@ class MainActivity : ComponentActivity() {
                     val searchBarScrollBehavior =
                         appBarScrollBehavior(
                             canScroll = {
-                                navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                                navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == false &&
                                         navBackStackEntry?.destination?.route != Screens.Library.route &&
                                         (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                             },
@@ -1057,7 +1059,7 @@ class MainActivity : ComponentActivity() {
                     val topAppBarScrollBehavior =
                         appBarScrollBehavior(
                             canScroll = {
-                                navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                                navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == false &&
                                         navBackStackEntry?.destination?.route != Screens.Library.route &&
                                         (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                             },
@@ -1088,7 +1090,7 @@ class MainActivity : ComponentActivity() {
                         val currentRoute = navBackStackEntry?.destination?.route
                         val wasOnNonTopLevelScreen = previousRoute != null &&
                             previousRoute !in topLevelScreens &&
-                            previousRoute?.startsWith("search/") != true
+                            previousRoute?.startsWith(OnlineSearchResultRoutePrefix) != true
                         val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route ||
                             currentRoute == Screens.Library.route
 
@@ -1099,7 +1101,7 @@ class MainActivity : ComponentActivity() {
 
                         val isEnteringSubScreen = currentRoute != null &&
                             currentRoute !in topLevelScreens &&
-                            currentRoute.startsWith("search/") != true
+                            currentRoute.startsWith(OnlineSearchResultRoutePrefix) != true
                         if (isEnteringSubScreen) {
                             topAppBarScrollBehavior.state.contentOffset = 0f
                         }
@@ -1113,28 +1115,13 @@ class MainActivity : ComponentActivity() {
                             playerBottomSheetState.collapseSoft()
                         }
 
-                        if (navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
-                            val searchQuery =
-                                withContext(Dispatchers.IO) {
-                                    if (navBackStackEntry
-                                            ?.arguments
-                                            ?.getString(
-                                                "query",
-                                            )!!
-                                            .contains(
-                                                "%",
-                                            )
-                                    ) {
-                                        navBackStackEntry?.arguments?.getString(
-                                            "query",
-                                        )!!
-                                    } else {
-                                        URLDecoder.decode(
-                                            navBackStackEntry?.arguments?.getString("query")!!,
-                                            "UTF-8"
-                                        )
-                                    }
-                                }
+                        if (navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true) {
+                            val searchQuery = decodeOnlineSearchQuery(
+                                navBackStackEntry
+                                    ?.arguments
+                                    ?.getString(OnlineSearchResultArgument)
+                                    .orEmpty()
+                            )
                             onQueryChange(
                                 TextFieldValue(
                                     searchQuery,
@@ -1395,7 +1382,7 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier,
                                         firstItemFocusRequester = tvRailFocusRequester,
                                         contentFocusRequester =
-                                            if (active || navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
+                                            if (active || navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true) {
                                                 searchBarFocusRequester
                                             } else {
                                                 contentAreaFocusRequester
@@ -1599,7 +1586,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                     AnimatedVisibility(
-                                        visible = active || navBackStackEntry?.destination?.route?.startsWith("search/") == true,
+                                        visible = active || navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true,
                                         enter = fadeIn(animationSpec = tween(durationMillis = if (disableAnimations) 0 else 300)),
                                         exit = fadeOut(animationSpec = tween(durationMillis = if (disableAnimations) 0 else 200))
                                     ) {
@@ -1744,14 +1731,7 @@ class MainActivity : ComponentActivity() {
                                                             onQueryChange = onQueryChange,
                                                             navController = navController,
                                                             onSearch = {
-                                                                navController.navigate(
-                                                                    "search/${
-                                                                        URLEncoder.encode(
-                                                                            it,
-                                                                            "UTF-8"
-                                                                        )
-                                                                    }"
-                                                                )
+                                                                navController.navigate(onlineSearchResultRoute(it))
                                                                 if (!pauseSearchHistory) {
                                                                     database.query {
                                                                         insert(SearchHistory(query = it))
@@ -1962,7 +1942,7 @@ class MainActivity : ComponentActivity() {
                                     popEnterTransition = {
                                         if (disableAnimations) {
                                             fadeIn(tween(0))
-                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
+                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith(OnlineSearchResultRoutePrefix) == true) && targetState.destination.route in topLevelScreens) {
                                             fadeIn(tween(250))
                                         } else {
                                             fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
@@ -1971,7 +1951,7 @@ class MainActivity : ComponentActivity() {
                                     popExitTransition = {
                                         if (disableAnimations) {
                                             fadeOut(tween(0))
-                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
+                                        } else if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith(OnlineSearchResultRoutePrefix) == true) && targetState.destination.route in topLevelScreens) {
                                             fadeOut(tween(200))
                                         } else {
                                             fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
@@ -1987,7 +1967,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                         .nestedScroll(
                                             if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
-                                                navBackStackEntry?.destination?.route?.startsWith("search/") == true
+                                                navBackStackEntry?.destination?.route?.startsWith(OnlineSearchResultRoutePrefix) == true
                                             ) {
                                                 searchBarScrollBehavior.nestedScrollConnection
                                             } else {

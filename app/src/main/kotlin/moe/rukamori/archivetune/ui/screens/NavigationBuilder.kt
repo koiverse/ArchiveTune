@@ -66,6 +66,9 @@ import moe.rukamori.archivetune.ui.screens.playlist.OnlinePlaylistScreen
 import moe.rukamori.archivetune.ui.screens.playlist.SpotifyPlaylistScreen
 import moe.rukamori.archivetune.ui.screens.playlist.TopPlaylistScreen
 import moe.rukamori.archivetune.ui.screens.playlist.CachePlaylistScreen
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultArgument
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultRoute
+import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResultRoutePrefix
 import moe.rukamori.archivetune.ui.screens.search.OnlineSearchResult
 import moe.rukamori.archivetune.ui.screens.settings.AboutScreen
 import moe.rukamori.archivetune.ui.screens.settings.AccountSettings
@@ -180,10 +183,10 @@ fun NavGraphBuilder.navigationBuilder(
         )
     }
     composable(
-        route = "search/{query}",
+        route = OnlineSearchResultRoute,
         arguments =
         listOf(
-            navArgument("query") {
+            navArgument(OnlineSearchResultArgument) {
                 type = NavType.StringType
             },
         ),
@@ -197,7 +200,7 @@ fun NavGraphBuilder.navigationBuilder(
         exitTransition = {
             if (disableAnimations) {
                 fadeOut(tween(0))
-            } else if (targetState.destination.route?.startsWith("search/") == true) {
+            } else if (targetState.destination.route?.startsWith(OnlineSearchResultRoutePrefix) == true) {
                 fadeOut(tween(200))
             } else {
                 fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
@@ -206,7 +209,7 @@ fun NavGraphBuilder.navigationBuilder(
         popEnterTransition = {
             if (disableAnimations) {
                 fadeIn(tween(0))
-            } else if (initialState.destination.route?.startsWith("search/") == true) {
+            } else if (initialState.destination.route?.startsWith(OnlineSearchResultRoutePrefix) == true) {
                 fadeIn(tween(250))
             } else {
                 fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
