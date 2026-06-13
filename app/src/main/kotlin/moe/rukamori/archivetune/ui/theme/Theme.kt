@@ -278,7 +278,8 @@ private fun Int.toComposeColor(): Color = Color(this.toLong() and 0xFFFFFFFFL)
 
 fun Bitmap.extractThemeColor(): Color {
     val palette = Palette.from(this)
-        .maximumColorCount(16)
+        .maximumColorCount(8)
+        .resizeBitmapArea(1024)
         .generate()
 
     val swatch =
@@ -295,7 +296,8 @@ fun Bitmap.extractThemeColor(): Color {
 
 fun Bitmap.extractGradientColors(): List<Color> {
     val palette = Palette.from(this)
-        .maximumColorCount(48)
+        .maximumColorCount(16)
+        .resizeBitmapArea(1024)
         .generate()
 
     val swatches = palette.swatches

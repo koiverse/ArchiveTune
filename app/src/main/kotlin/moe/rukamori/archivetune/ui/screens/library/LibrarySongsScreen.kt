@@ -102,11 +102,19 @@ fun LibrarySongsScreen(
     val songs by viewModel.allSongs.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
-    var filter by rememberEnumPreference(SongFilterKey, SongFilter.LIKED)
+    var filter by rememberEnumPreference(SongFilterKey, SongFilter.ALL)
 
     val wrappedSongs = remember(songs) { songs.map { item -> ItemWrapper(item) }.toMutableList() }
     var selection by remember {
         mutableStateOf(false)
+    }
+
+    val filteredSongs = remember(wrappedSongs, hideExplicit) {
+        if (hideExplicit) {
+            wrappedSongs.filter { !it.item.song.explicit }
+        } else {
+            wrappedSongs
+        }
     }
 
     val lazyListState = rememberLazyListState()
@@ -155,6 +163,7 @@ fun LibrarySongsScreen(
                     ChipsRow(
                         chips =
                         listOf(
+                            SongFilter.ALL to stringResource(R.string.filter_all),
                             SongFilter.LIKED to stringResource(R.string.filter_liked),
                             SongFilter.LIBRARY to stringResource(R.string.filter_library),
                             SongFilter.DOWNLOADED to stringResource(R.string.filter_downloaded),
@@ -176,7 +185,7 @@ fun LibrarySongsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (selection) {
-                        val count = wrappedSongs.count { it.isSelected }
+                        val count = filteredSongs.count { it.isSelected }
                         IconButton(
                             onClick = { selection = false },
                         ) {
@@ -191,15 +200,15 @@ fun LibrarySongsScreen(
                         )
                         IconButton(
                             onClick = {
-                                if (count == wrappedSongs.size) {
-                                    wrappedSongs.forEach { it.isSelected = false }
+                                if (count == filteredSongs.size) {
+                                    filteredSongs.forEach { it.isSelected = false }
                                 } else {
-                                    wrappedSongs.forEach { it.isSelected = true }
+                                    filteredSongs.forEach { it.isSelected = true }
                                 }
                             },
                         ) {
                             Icon(
-                                painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all),
+                                painter = painterResource(if (count == filteredSongs.size) R.drawable.deselect else R.drawable.select_all),
                                 contentDescription = null,
                             )
                         }
@@ -208,7 +217,7 @@ fun LibrarySongsScreen(
                             onClick = {
                                 menuState.show {
                                     SelectionSongMenu(
-                                        songSelection = wrappedSongs.filter { it.isSelected }
+                                        songSelection = filteredSongs.filter { it.isSelected }
                                             .map { it.item },
                                         onDismiss = menuState::dismiss,
                                         clearAction = { selection = false },
@@ -246,8 +255,8 @@ fun LibrarySongsScreen(
                             Text(
                                 text = pluralStringResource(
                                     R.plurals.n_song,
-                                    songs.size,
-                                    songs.size
+                                    filteredSongs.size,
+                                    filteredSongs.size
                                 ),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.secondary,
@@ -257,11 +266,6 @@ fun LibrarySongsScreen(
                 }
             }
 
-            val filteredSongs = if (hideExplicit) {
-                wrappedSongs.filter { !it.item.song.explicit }
-            } else {
-                wrappedSongs
-            }
             itemsIndexed(
                 items = filteredSongs,
                 key = { _, item -> item.item.song.id },
@@ -309,7 +313,7 @@ fun LibrarySongsScreen(
                                         playerConnection.playQueue(
                                             ListQueue(
                                                 title = context.getString(R.string.queue_all_songs),
-                                                items = songs.map { it.toMediaItem() },
+                                                items = filteredSongs.map { it.item.toMediaItem() },
                                                 startIndex = index,
                                             ),
                                         )
@@ -335,7 +339,7 @@ fun LibrarySongsScreen(
         }
 
         HideOnScrollFAB(
-            visible = songs.isNotEmpty() == true,
+            visible = filteredSongs.isNotEmpty(),
             lazyListState = lazyListState,
             icon = R.drawable.shuffle,
             label = context.getString(R.string.shuffle),
@@ -343,7 +347,7 @@ fun LibrarySongsScreen(
                 playerConnection.playQueue(
                     ListQueue(
                         title = context.getString(R.string.queue_all_songs),
-                        items = songs.shuffled().map { it.toMediaItem() },
+                        items = filteredSongs.shuffled().map { it.item.toMediaItem() },
                     ),
                 )
             },

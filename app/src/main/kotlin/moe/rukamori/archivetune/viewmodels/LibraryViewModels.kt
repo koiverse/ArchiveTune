@@ -109,7 +109,7 @@ constructor(
             .map {
                 Triple(
                     Triple(
-                        it[SongFilterKey].toEnum(SongFilter.LIKED),
+                        it[SongFilterKey].toEnum(SongFilter.ALL),
                         it[SongSortTypeKey].toEnum(SongSortType.CREATE_DATE),
                         (it[SongSortDescendingKey] ?: true),
                     ),
@@ -120,6 +120,7 @@ constructor(
             .flatMapLatest { (filterSort, hideExplicit, hideVideo) ->
                 val (filter, sortType, descending) = filterSort
                 when (filter) {
+                    SongFilter.ALL -> database.songs(sortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
                     SongFilter.LIBRARY -> database.songs(sortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
                     SongFilter.LIKED -> database.likedSongs(sortType, descending, hideVideo).map { it.filterExplicit(hideExplicit) }
                     SongFilter.DOWNLOADED ->
@@ -160,6 +161,10 @@ constructor(
             _isRefreshing.value = true
             try {
                 when (filter) {
+                    SongFilter.ALL -> {
+                        syncUtils.syncLikedSongs()
+                        syncUtils.syncLibrarySongs()
+                    }
                     SongFilter.LIKED -> syncUtils.syncLikedSongs()
                     SongFilter.LIBRARY -> syncUtils.syncLibrarySongs()
                     SongFilter.DOWNLOADED -> Unit

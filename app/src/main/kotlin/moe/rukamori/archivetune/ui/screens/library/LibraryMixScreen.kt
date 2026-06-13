@@ -60,11 +60,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,9 +79,12 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.LocalDatabase
+import moe.rukamori.archivetune.LocalDownloadUtil
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
+import moe.rukamori.archivetune.constants.MyTopFilter
+import androidx.media3.exoplayer.offline.Download
 import moe.rukamori.archivetune.constants.MixSortDescendingKey
 import moe.rukamori.archivetune.constants.MixSortType
 import moe.rukamori.archivetune.constants.MixSortTypeKey
@@ -144,6 +149,7 @@ private fun librarySegmentedShape(index: Int, count: Int): Shape {
 
 private data class LibraryShortcutEntry(
     val title: String,
+    val subtitle: String? = null,
     @DrawableRes val iconRes: Int,
     val route: String? = null,
     val action: LibraryShortcutAction = LibraryShortcutAction.Navigate,
@@ -269,12 +275,21 @@ fun LibraryMixScreen(
         if (sortDescending) sorted.asReversed() else sorted
     }
 
+    val likedCount by database.likedSongsCount().collectAsState(initial = 0)
+    val downloadUtil = LocalDownloadUtil.current
+    val downloads by downloadUtil.downloads.collectAsState(initial = emptyMap())
+    val downloadedCount = remember(downloads) { downloads.values.count { it.state == Download.STATE_COMPLETED } }
+    val topSongsCount by remember(topSize) {
+        database.mostPlayedSongs(MyTopFilter.ALL_TIME.toTimeMillis(), topSize.toIntOrNull() ?: 50)
+    }.collectAsState(initial = emptyList())
+
     val buildYourMixTitle = stringResource(R.string.build_your_mix_title)
     val shortcuts = buildList {
         if (showLiked) {
             add(
                 LibraryShortcutEntry(
                     title = likedPlaylist.playlist.name,
+                    subtitle = pluralStringResource(R.plurals.n_song, likedCount, likedCount),
                     iconRes = R.drawable.favorite,
                     route = "auto_playlist/liked",
                     accentColor = MaterialTheme.colorScheme.error,
@@ -285,6 +300,7 @@ fun LibraryMixScreen(
             add(
                 LibraryShortcutEntry(
                     title = downloadPlaylist.playlist.name,
+                    subtitle = pluralStringResource(R.plurals.n_song, downloadedCount, downloadedCount),
                     iconRes = R.drawable.offline,
                     route = "auto_playlist/downloaded",
                     accentColor = MaterialTheme.colorScheme.primary,
@@ -323,6 +339,7 @@ fun LibraryMixScreen(
             add(
                 LibraryShortcutEntry(
                     title = topPlaylist.playlist.name,
+                    subtitle = pluralStringResource(R.plurals.n_song, topSongsCount.size, topSongsCount.size),
                     iconRes = R.drawable.trending_up,
                     route = "top_playlist/$topSize",
                     accentColor = MaterialTheme.colorScheme.secondary,
@@ -338,13 +355,13 @@ fun LibraryMixScreen(
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
     val spotifySectionItemCount = if (showSpotifyPlaylists) {
         1 +
-            if (spotifyIsRefreshing) 1 else 0 +
-            if (spotifyErrorMessage != null) 1 else 0 +
-            if (spotifyPlaylists.isNotEmpty()) 1 else 0
+            (if (spotifyIsRefreshing) 1 else 0) +
+            (if (spotifyErrorMessage != null) 1 else 0) +
+            (if (spotifyPlaylists.isNotEmpty()) 1 else 0)
     } else {
         0
     }
-    val playlistSectionLeadingItems = 3 + if (shortcuts.isNotEmpty()) 1 else 0 + spotifySectionItemCount
+    val playlistSectionLeadingItems = 3 + (if (shortcuts.isNotEmpty()) 1 else 0) + spotifySectionItemCount
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val reorderableState = rememberReorderableLazyListState(
@@ -659,7 +676,8 @@ fun LibraryMixScreen(
                                                 )
                                             }
                                         },
-                                    ),
+                                    )
+                                    .zIndex((sortedAlbums.size - index).toFloat()),
                             )
                         }
                     }
@@ -716,7 +734,8 @@ fun LibraryMixScreen(
                                                 )
                                             }
                                         },
-                                    ),
+                                    )
+                                    .zIndex((sortedArtists.size - index).toFloat()),
                             )
                         }
                     }
@@ -1057,6 +1076,7 @@ private fun LibraryShortcutGrid(
                 rowEntries.forEach { entry ->
                     LibraryPinnedCollectionTile(
                         title = entry.title,
+                        subtitle = entry.subtitle,
                         iconRes = entry.iconRes,
                         accentColor = entry.accentColor,
                         modifier = Modifier

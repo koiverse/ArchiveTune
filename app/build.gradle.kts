@@ -70,6 +70,7 @@ android {
         buildConfigField("String", "NIGHTLY_BUILD_HASH", "\"$nightlyBuildHash\"")
         buildConfigField("String", "DISTRIBUTION", "\"gms\"")
         buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
+        buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
     }
 
     flavorDimensions += listOf("distribution", "device", "abi")

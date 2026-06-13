@@ -79,6 +79,9 @@ import moe.rukamori.archivetune.constants.YtmSyncKey
 import moe.rukamori.archivetune.db.entities.Playlist
 import moe.rukamori.archivetune.db.entities.PlaylistEntity
 import moe.rukamori.archivetune.extensions.move
+import moe.rukamori.archivetune.LocalDownloadUtil
+import moe.rukamori.archivetune.constants.MyTopFilter
+import androidx.media3.exoplayer.offline.Download
 import moe.rukamori.archivetune.ui.component.ExpressivePullToRefreshBox
 import moe.rukamori.archivetune.ui.component.LibraryPinnedCollectionTile
 import moe.rukamori.archivetune.ui.component.LibraryPlaylistListItem
@@ -93,6 +96,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private data class PlaylistShortcutEntry(
     val title: String,
+    val subtitle: String? = null,
     @DrawableRes val iconRes: Int,
     val route: String,
     val accentColor: Color,
@@ -186,11 +190,20 @@ fun LibraryPlaylistsScreen(
         }
     }
 
+    val likedCount by database.likedSongsCount().collectAsState(initial = 0)
+    val downloadUtil = LocalDownloadUtil.current
+    val downloads by downloadUtil.downloads.collectAsState(initial = emptyMap())
+    val downloadedCount = remember(downloads) { downloads.values.count { it.state == Download.STATE_COMPLETED } }
+    val topSongsCount by remember(topSize) {
+        database.mostPlayedSongs(MyTopFilter.ALL_TIME.toTimeMillis(), topSize.toIntOrNull() ?: 50)
+    }.collectAsState(initial = emptyList())
+
     val shortcuts = buildList {
         if (showLiked) {
             add(
                 PlaylistShortcutEntry(
                     title = likedPlaylist.playlist.name,
+                    subtitle = pluralStringResource(R.plurals.n_song, likedCount, likedCount),
                     iconRes = R.drawable.favorite,
                     route = "auto_playlist/liked",
                     accentColor = MaterialTheme.colorScheme.error,
@@ -201,6 +214,7 @@ fun LibraryPlaylistsScreen(
             add(
                 PlaylistShortcutEntry(
                     title = downloadPlaylist.playlist.name,
+                    subtitle = pluralStringResource(R.plurals.n_song, downloadedCount, downloadedCount),
                     iconRes = R.drawable.offline,
                     route = "auto_playlist/downloaded",
                     accentColor = MaterialTheme.colorScheme.primary,
@@ -221,6 +235,7 @@ fun LibraryPlaylistsScreen(
             add(
                 PlaylistShortcutEntry(
                     title = topPlaylist.playlist.name,
+                    subtitle = pluralStringResource(R.plurals.n_song, topSongsCount.size, topSongsCount.size),
                     iconRes = R.drawable.trending_up,
                     route = "top_playlist/$topSize",
                     accentColor = MaterialTheme.colorScheme.secondary,
@@ -235,12 +250,12 @@ fun LibraryPlaylistsScreen(
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
     val spotifySectionItemCount = if (showSpotifyPlaylists) {
         1 + spotifyPlaylists.size +
-            if (spotifyIsRefreshing) 1 else 0 +
-            if (spotifyErrorMessage != null) 1 else 0
+            (if (spotifyIsRefreshing) 1 else 0) +
+            (if (spotifyErrorMessage != null) 1 else 0)
     } else {
         0
     }
-    val playlistSectionLeadingItems = 3 + if (shortcuts.isNotEmpty()) 1 else 0 + spotifySectionItemCount
+    val playlistSectionLeadingItems = 3 + (if (shortcuts.isNotEmpty()) 1 else 0) + spotifySectionItemCount
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val reorderableState = rememberReorderableLazyListState(
@@ -570,6 +585,7 @@ private fun PlaylistShortcutGrid(
                 rowEntries.forEach { entry ->
                     LibraryPinnedCollectionTile(
                         title = entry.title,
+                        subtitle = entry.subtitle,
                         iconRes = entry.iconRes,
                         accentColor = entry.accentColor,
                         modifier = Modifier

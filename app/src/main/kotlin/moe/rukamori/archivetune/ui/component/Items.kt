@@ -163,7 +163,8 @@ inline fun ListItem(
     noinline subtitle: (@Composable RowScope.() -> Unit)? = null,
     thumbnailContent: @Composable () -> Unit,
     crossinline trailingContent: @Composable RowScope.() -> Unit = {},
-    isActive: Boolean = false
+    isActive: Boolean = false,
+    durationText: String? = null
 ) {
     val titleColor =
         if (isActive) {
@@ -221,6 +222,16 @@ inline fun ListItem(
                 }
             }
         }
+        if (durationText != null) {
+            Text(
+                text = durationText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = subtitleContentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+        }
         CompositionLocalProvider(LocalContentColor provides trailingContentColor) {
             trailingContent()
         }
@@ -235,7 +246,8 @@ fun ListItem(
     badges: @Composable RowScope.() -> Unit = {},
     thumbnailContent: @Composable () -> Unit,
     trailingContent: @Composable RowScope.() -> Unit = {},
-    isActive: Boolean = false
+    isActive: Boolean = false,
+    durationText: String? = null
 ) = ListItem(
     title = title,
     modifier = modifier,
@@ -253,7 +265,8 @@ fun ListItem(
         }
     },
     thumbnailContent = thumbnailContent,
-    trailingContent = trailingContent
+    trailingContent = trailingContent,
+    durationText = durationText
 )
 
 @Composable
@@ -380,7 +393,6 @@ fun SongListItem(
             title = song.song.title,
             subtitle = joinByBullet(
                 song.artists.joinToString { it.name },
-                makeTimeString(song.song.duration * 1000L),
                 viewCountText
             ),
             badges = badges,
@@ -398,7 +410,8 @@ fun SongListItem(
             },
             trailingContent = trailingContent,
             modifier = modifier,
-            isActive = isActive
+            isActive = isActive,
+            durationText = if (song.song.duration > 0) makeTimeString(song.song.duration * 1000L) else null
         )
     }
 
@@ -1235,10 +1248,7 @@ fun MediaMetadataListItem(
 ) {
     ListItem(
         title = mediaMetadata.title,
-        subtitle = joinByBullet(
-            mediaMetadata.artists.joinToString { it.name },
-            makeTimeString(mediaMetadata.duration * 1000L)
-        ),
+        subtitle = mediaMetadata.artists.joinToString { it.name },
         thumbnailContent = {
             ItemThumbnail(
                 thumbnailUrl = mediaMetadata.thumbnailUrl,
@@ -1253,7 +1263,8 @@ fun MediaMetadataListItem(
         },
         trailingContent = trailingContent,
         modifier = modifier,
-        isActive = isActive
+        isActive = isActive,
+        durationText = if (mediaMetadata.duration > 0) makeTimeString(mediaMetadata.duration * 1000L) else null
     )
 }
 
@@ -1297,7 +1308,6 @@ fun YouTubeListItem(
             subtitle = when (item) {
                 is SongItem -> joinByBullet(
                     item.artists.joinToString { it.name },
-                    makeTimeString(item.duration?.times(1000L)),
                     viewCountText
                 )
                 is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
@@ -1318,7 +1328,8 @@ fun YouTubeListItem(
             },
             trailingContent = trailingContent,
             modifier = modifier,
-            isActive = isActive
+            isActive = isActive,
+            durationText = if (item is SongItem) item.duration?.times(1000L)?.let { makeTimeString(it) } else null
         )
     }
 

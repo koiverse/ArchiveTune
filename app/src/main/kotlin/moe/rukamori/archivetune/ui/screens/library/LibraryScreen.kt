@@ -17,6 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -35,6 +37,7 @@ import moe.rukamori.archivetune.constants.LibraryFilter
 import moe.rukamori.archivetune.constants.ShowTagsInLibraryKey
 import moe.rukamori.archivetune.ui.component.ChipsRow
 import moe.rukamori.archivetune.ui.component.TagsFilterChips
+import moe.rukamori.archivetune.ui.component.TagsManagementDialog
 import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberPreference
 
@@ -46,6 +49,14 @@ fun LibraryScreen(navController: NavController) {
     val database = LocalDatabase.current
     val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, true)
     val (selectedTagIds, onSelectedTagIdsChange) = rememberPlaylistTagFilterState(database)
+    var showManageTagsDialog by remember { mutableStateOf(false) }
+
+    if (showManageTagsDialog) {
+        TagsManagementDialog(
+            database = database,
+            onDismiss = { showManageTagsDialog = false }
+        )
+    }
 
     val filterContent = @Composable {
         Column {
@@ -89,6 +100,7 @@ fun LibraryScreen(navController: NavController) {
                         }
                         onSelectedTagIdsChange(newTags)
                     },
+                    onManageTagsClick = { showManageTagsDialog = true },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
