@@ -55,8 +55,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -114,7 +112,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.ui.component.IconButton
@@ -124,10 +121,7 @@ import moe.rukamori.archivetune.ui.utils.backToMain
 import moe.rukamori.archivetune.utils.GlobalLog
 import moe.rukamori.archivetune.utils.LogEntry
 import moe.rukamori.archivetune.utils.makeTimeString
-import moe.rukamori.archivetune.constants.DevFakeVersionNameKey
 import moe.rukamori.archivetune.utils.rememberPreference
-import moe.rukamori.archivetune.utils.dataStore
-import androidx.datastore.preferences.core.edit
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
@@ -157,9 +151,6 @@ fun DebugSettings(
     )
 
     val playerConnection = LocalPlayerConnection.current
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    val (fakeVersionName, onFakeVersionNameChange) = rememberPreference(DevFakeVersionNameKey, defaultValue = "")
 
     Scaffold(
         topBar = {
@@ -219,75 +210,6 @@ fun DebugSettings(
                         checked = showCodecOnPlayer,
                         onCheckedChange = onShowCodecOnPlayerChange
                     )
-                }
-            }
-
-            // TEMPORARY: Fake version name override for testing update flows.
-            // Allows simulating "new update available" without publishing a real release.
-            // Remove this section once the update mechanism is verified stable.
-            PreferenceGroup(title = "Version Override") {
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Current: ${BuildConfig.VERSION_NAME}" +
-                                if (fakeVersionName.isNotBlank()) " → Fake: $fakeVersionName" else "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (fakeVersionName.isNotBlank())
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        OutlinedTextField(
-                            value = fakeVersionName,
-                            onValueChange = onFakeVersionNameChange,
-                            label = { Text("Fake Version Name") },
-                            placeholder = { Text(BuildConfig.VERSION_NAME) },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            FilledTonalButton(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        withContext(Dispatchers.IO) {
-                                            context.dataStore.edit { prefs ->
-                                                prefs[DevFakeVersionNameKey] = fakeVersionName
-                                            }
-                                        }
-                                        Process.killProcess(Process.myPid())
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                shapes = ButtonDefaults.shapes(),
-                            ) {
-                                Text("Save & Restart")
-                            }
-                            OutlinedButton(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        withContext(Dispatchers.IO) {
-                                            context.dataStore.edit { prefs ->
-                                                prefs.remove(DevFakeVersionNameKey)
-                                            }
-                                        }
-                                        Process.killProcess(Process.myPid())
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                shapes = ButtonDefaults.shapes(),
-                            ) {
-                                Text("Clear")
-                            }
-                        }
-                    }
                 }
             }
 

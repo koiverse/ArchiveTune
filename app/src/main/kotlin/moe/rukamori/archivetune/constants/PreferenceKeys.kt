@@ -820,4 +820,4 @@ enum class UpdateChannel {
     DAILY_NIGHTLY,
 }
 
-val DevFakeVersionNameKey = stringPreferencesKey("dev_fake_version_name")
+

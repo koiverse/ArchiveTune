@@ -13,7 +13,6 @@ import androidx.work.WorkerParameters
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import moe.rukamori.archivetune.BuildConfig
-import moe.rukamori.archivetune.constants.DevFakeVersionNameKey
 import moe.rukamori.archivetune.constants.EnableUpdateNotificationKey
 import moe.rukamori.archivetune.constants.UpdateChannel
 import moe.rukamori.archivetune.constants.UpdateChannelKey
@@ -40,14 +39,11 @@ class UpdateCheckWorker(
                 } ?: UpdateChannel.STABLE
             }.first()
 
-            val fakeVersionName = dataStore.data.map { it[DevFakeVersionNameKey].orEmpty() }.first()
-            val effectiveVersionName = fakeVersionName.ifBlank { BuildConfig.VERSION_NAME }
-
             when (updateChannel) {
                 UpdateChannel.NIGHTLY -> return Result.success()
                 UpdateChannel.DAILY_NIGHTLY -> {
                     Updater.getLatestDailyNightlyVersionName().onSuccess { latestVersion ->
-                        if (!Updater.isSameVersion(latestVersion, effectiveVersionName)) {
+                        if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
                             UpdateNotificationManager.notifyIfNewVersion(
                                 applicationContext,
                                 latestVersion,
@@ -58,7 +54,7 @@ class UpdateCheckWorker(
                 }
                 else -> {
                     Updater.getLatestVersionName().onSuccess { latestVersion ->
-                        if (!Updater.isSameVersion(latestVersion, effectiveVersionName)) {
+                        if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
                             UpdateNotificationManager.notifyIfNewVersion(applicationContext, latestVersion)
                         }
                     }

@@ -93,7 +93,6 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
-import moe.rukamori.archivetune.constants.DevFakeVersionNameKey
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.EnableUpdateNotificationKey
 import moe.rukamori.archivetune.constants.UpdateChannel
@@ -133,8 +132,6 @@ fun UpdateScreen(
         UpdateChannelKey,
         defaultValue = UpdateChannel.STABLE
     )
-    val (devFakeVersionName) = rememberPreference(DevFakeVersionNameKey, defaultValue = "")
-    val effectiveVersionName = devFakeVersionName.ifBlank { BuildConfig.VERSION_NAME }
 
     var commits by remember { mutableStateOf<List<GitCommit>>(emptyList()) }
     var isLoadingCommits by remember { mutableStateOf(true) }
@@ -156,10 +153,10 @@ fun UpdateScreen(
         )
     }
     val isNightlyChannel = updateChannel == UpdateChannel.NIGHTLY
-    val isUpdateAvailable by remember(latestVersion, effectiveVersionName) {
+    val isUpdateAvailable by remember(latestVersion) {
         derivedStateOf {
             BuildConfig.UPDATER_AVAILABLE &&
-                (latestVersion?.let { !Updater.isSameVersion(it, effectiveVersionName) } ?: false)
+                (latestVersion?.let { !Updater.isSameVersion(it, BuildConfig.VERSION_NAME) } ?: false)
         }
     }
     val latestCommit by remember(commits) {
@@ -270,7 +267,7 @@ fun UpdateScreen(
             updateSheetLoading = false
 
             versionResult.onSuccess { version ->
-                updateSheetIsSameVersion = Updater.isSameVersion(version, effectiveVersionName)
+                updateSheetIsSameVersion = Updater.isSameVersion(version, BuildConfig.VERSION_NAME)
                 updateSheetVersion = version
 
                 if (updateSheetIsSameVersion) {
@@ -489,7 +486,7 @@ fun UpdateScreen(
         }
         versionResult.onSuccess {
             latestVersion = it
-            if (Updater.isSameVersion(it, effectiveVersionName)) {
+            if (Updater.isSameVersion(it, BuildConfig.VERSION_NAME)) {
                 onUpToDate()
             }
         }
@@ -567,7 +564,7 @@ fun UpdateScreen(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 UpdateSummaryCard(
-                    currentVersion = effectiveVersionName,
+                    currentVersion = BuildConfig.VERSION_NAME,
                     latestVersion = latestVersion,
                     updateChannel = updateChannel,
                     isUpdateAvailable = isUpdateAvailable,
@@ -942,7 +939,7 @@ fun UpdateScreen(
             },
             text = {
                 Text(
-                    text = updateSheetVersion ?: effectiveVersionName,
+                    text = updateSheetVersion ?: BuildConfig.VERSION_NAME,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
