@@ -463,4 +463,7 @@
     <string name="aod_customize_dp_value">%1$d dp</string>
     <string name="aod_customize_degree_value">%1$d°</string>
     <string name="aod_customize_percent_value">%1$d%%</string>
+    <string name="music_recognition_history">Historial de reconocimientos</string>
+    <string name="music_recognition_history_search">Buscar canciones reconocidas</string>
+    <string name="music_recognition_history_empty_title">Aún no hay canciones reconocidas</string>
 </resources>
