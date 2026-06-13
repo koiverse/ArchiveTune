@@ -121,6 +121,9 @@ import moe.rukamori.archivetune.constants.EnableDiscordRPCKey
 import moe.rukamori.archivetune.constants.HideExplicitKey
 import moe.rukamori.archivetune.constants.HideVideoKey
 import moe.rukamori.archivetune.constants.HistoryDuration
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_DEFAULT
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_MIN
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_MAX
 import moe.rukamori.archivetune.constants.MediaSessionConstants.CommandToggleLike
 import moe.rukamori.archivetune.constants.MediaSessionConstants.CommandToggleStartRadio
 import moe.rukamori.archivetune.constants.MediaSessionConstants.CommandToggleRepeatMode
@@ -4231,10 +4234,9 @@ class MusicService :
     }
 
     private fun historyThresholdMs(): Long {
-        return (dataStore[HistoryDuration] ?: 30f)
-            .times(1000f)
-            .roundToLong()
-            .coerceAtLeast(0L)
+        return (dataStore[HistoryDuration] ?: HISTORY_DURATION_DEFAULT)
+            .coerceIn(HISTORY_DURATION_MIN, HISTORY_DURATION_MAX)
+            .toLong() * 1000L
     }
 
     private fun currentHistoryPlayedMs(nowElapsedMs: Long = android.os.SystemClock.elapsedRealtime()): Long {

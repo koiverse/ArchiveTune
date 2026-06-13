@@ -721,16 +721,16 @@ fun SliderPreference(
     modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
     icon: (@Composable () -> Unit)? = null,
-    value: Float,
-    onValueChange: (Float) -> Unit,
+    value: Int,
+    onValueChange: (Int) -> Unit,
     isEnabled: Boolean = true,
 ) {
     var showDialog by remember {
         mutableStateOf(false)
     }
 
-    var sliderValue by remember {
-        mutableFloatStateOf(value)
+    var sliderValue by remember(value) {
+        mutableFloatStateOf(value.toFloat())
     }
 
     if (showDialog) {
@@ -751,10 +751,10 @@ fun SliderPreference(
             onDismiss = { showDialog = false },
             onConfirm = {
                 showDialog = false
-                onValueChange.invoke(sliderValue)
+                onValueChange.invoke(sliderValue.roundToInt())
             },
             onCancel = {
-                sliderValue = value
+                sliderValue = value.toFloat()
                 showDialog = false
             },
             onReset = {
@@ -799,7 +799,7 @@ fun SliderPreference(
     PreferenceEntry(
         modifier = modifier,
         title = title,
-        description = value.roundToInt().toString(),
+        description = value.toString(),
         icon = icon,
         onClick = { showDialog = true },
         isEnabled = isEnabled,
