@@ -542,6 +542,8 @@
     <string name="ip_rotation_refresh">IPをリフレッシュ</string>
     <string name="stream_bypass_proxy">ストリームのプロキシをバイパスする</string>
     <string name="stream_bypass_proxy_desc">IP の不一致を避けるためにストリーム再生には直接 IP を使用してください</string>
+    <string name="bypass_internet_censorship">インターネット検閲をバイパス</string>
+    <string name="bypass_internet_censorship_desc">ブロックされたネットワーク向けに内蔵バイパストンネル経由でアプリのトラフィックをルーティングします</string>
     <string name="restart_to_take_effect">再起動して有効にします</string>
     <string name="enable_betterlyrics">BetterLyrics を有効にする</string>
     <string name="enable_unison_lyrics">ユニゾン歌詞を有効にする</string>

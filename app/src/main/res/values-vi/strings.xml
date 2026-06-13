@@ -831,6 +831,8 @@
     <string name="together_token_missing">Phiên bản này không hỗ trợ phát nhạc trực tuyến</string>
     <string name="stream_bypass_proxy">Bypass proxy cho các luồng</string>
     <string name="stream_bypass_proxy_desc">Sử dụng địa chỉ IP trực tiếp của bạn để phát lại luồng nhằm tránh lỗi không khớp IP</string>
+    <string name="bypass_internet_censorship">Bỏ qua kiểm duyệt Internet</string>
+    <string name="bypass_internet_censorship_desc">Định tuyến lưu lượng truy cập ứng dụng qua đường hầm vượt tường tích hợp cho các mạng bị chặn</string>
     <string name="integrations">Tích hợp</string>
     <string name="internal_subcategory_settings">Cài đặt nội bộ và danh mục phụ</string>
     <string name="search_try_different">Hãy thử một cụm từ tìm kiếm khác</string>

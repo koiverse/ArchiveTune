@@ -574,6 +574,8 @@
     <string name="ip_rotation_refresh">Refresh IP</string>
     <string name="stream_bypass_proxy">Bypass proxy for streams</string>
     <string name="stream_bypass_proxy_desc">Use your direct IP for stream playback to avoid IP mismatch</string>
+    <string name="bypass_internet_censorship">Bypass internet censorship</string>
+    <string name="bypass_internet_censorship_desc">Route app traffic through the built-in bypass tunnel for blocked networks</string>
     <string name="restart_to_take_effect">Restart to take effect</string>
     <string name="enable_betterlyrics">Enable BetterLyrics</string>
     <string name="enable_unison_lyrics">Enable Unison lyrics</string>

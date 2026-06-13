@@ -170,12 +170,33 @@ fun InternetSettings(
         else -> stringResource(R.string.ip_rotation_desc)
     }
 
+    val (bypassEnabled, onBypassEnabledChange) = rememberPreference(key = BypassInternetCensorshipKey, defaultValue = false)
+
     Column(
         Modifier
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
             .verticalScroll(rememberScrollState()),
     ) {
         InternetWarningBox()
+
+        PreferenceGroup(title = stringResource(R.string.bypass_internet_censorship)) {
+            item {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.bypass_internet_censorship)) },
+                    description = stringResource(R.string.bypass_internet_censorship_desc),
+                    icon = { Icon(painterResource(R.drawable.wifi_proxy), null) },
+                    checked = bypassEnabled,
+                    onCheckedChange = { enabled ->
+                        onBypassEnabledChange(enabled)
+                        if (enabled) {
+                            YouTube.enableBypassProxy()
+                        } else {
+                            YouTube.disableBypassProxy()
+                        }
+                    },
+                )
+            }
+        }
 
         PreferenceGroup(title = stringResource(R.string.dns_over_https)) {
             item {

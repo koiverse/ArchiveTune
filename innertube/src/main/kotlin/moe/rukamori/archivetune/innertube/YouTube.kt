@@ -70,6 +70,7 @@ import moe.rukamori.archivetune.innertube.pages.SearchResult
 import moe.rukamori.archivetune.innertube.pages.SearchSuggestionPage
 import moe.rukamori.archivetune.innertube.pages.SearchSummary
 import moe.rukamori.archivetune.innertube.pages.SearchSummaryPage
+import moe.rukamori.archivetune.innertube.proxy.BypassProxyServer
 import moe.rukamori.archivetune.innertube.proxy.RotatingProxyClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
@@ -226,6 +227,20 @@ object YouTube {
     fun disableIpRotation() {
         innerTube.proxySelector = null
         _ipRotationActiveCount.value = 0
+    }
+
+    val bypassProxyServer = BypassProxyServer()
+
+    fun enableBypassProxy() {
+        bypassProxyServer.start()
+        proxy = bypassProxyServer.proxy
+        dns = createDnsOverHttps("https://cloudflare-dns.com/dns-query")
+    }
+
+    fun disableBypassProxy() {
+        bypassProxyServer.stop()
+        proxy = null
+        dns = Dns.SYSTEM
     }
 
     fun currentPlaybackAuthState(): PlaybackAuthState = authState

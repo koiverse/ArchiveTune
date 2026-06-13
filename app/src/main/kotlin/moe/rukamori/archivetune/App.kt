@@ -161,6 +161,14 @@ class App : Application(), SingletonImageLoader.Factory {
                     }
                 }
 
+                if (prefs[BypassInternetCensorshipKey] == true) {
+                    try {
+                        YouTube.enableBypassProxy()
+                    } catch (e: Exception) {
+                        reportException(e)
+                    }
+                }
+
                 if (prefs[UseLoginForBrowse] != false) {
                     YouTube.useLoginForBrowse = true
                 }
