@@ -4234,7 +4234,29 @@ class MusicService :
     }
 
     private fun historyThresholdMs(): Long {
-        return (dataStore[HistoryDuration] ?: HISTORY_DURATION_DEFAULT)
+        val historyDurationValue = try {
+            dataStore[HistoryDuration]
+        } catch (e: ClassCastException) {
+            val floatVal = try {
+                runBlocking {
+                    dataStore.data.first()[moe.rukamori.archivetune.constants.HISTORY_DURATION_LEGACY_FLOAT_KEY]
+                }
+            } catch (ex: Exception) {
+                null
+            }
+            if (floatVal != null) {
+                val intVal = floatVal.toInt().coerceIn(HISTORY_DURATION_MIN, HISTORY_DURATION_MAX)
+                scope.launch {
+                    dataStore.edit { preferences ->
+                        preferences[HistoryDuration] = intVal
+                    }
+                }
+                intVal
+            } else {
+                null
+            }
+        }
+        return (historyDurationValue ?: HISTORY_DURATION_DEFAULT)
             .coerceIn(HISTORY_DURATION_MIN, HISTORY_DURATION_MAX)
             .toLong() * 1000L
     }

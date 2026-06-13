@@ -45,18 +45,32 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     produceMigrations = { _ ->
         listOf(
             object : DataMigration<Preferences> {
-                override suspend fun shouldMigrate(currentData: Preferences): Boolean =
-                    currentData[HISTORY_DURATION_LEGACY_FLOAT_KEY] != null &&
-                        currentData[HistoryDuration] == null
+                override suspend fun shouldMigrate(currentData: Preferences): Boolean {
+                    return try {
+                        val hasFloat = currentData[HISTORY_DURATION_LEGACY_FLOAT_KEY] != null
+                        val hasInt = try {
+                            currentData[HistoryDuration] != null
+                        } catch (e: ClassCastException) {
+                            false
+                        }
+                        hasFloat && !hasInt
+                    } catch (e: Exception) {
+                        false
+                    }
+                }
 
                 override suspend fun migrate(currentData: Preferences): Preferences =
                     currentData.toMutablePreferences().apply {
-                        val oldFloat = currentData[HISTORY_DURATION_LEGACY_FLOAT_KEY]
+                        val oldFloat = try {
+                            currentData[HISTORY_DURATION_LEGACY_FLOAT_KEY]
+                        } catch (e: Exception) {
+                            null
+                        }
                         if (oldFloat != null) {
+                            this.remove(HISTORY_DURATION_LEGACY_FLOAT_KEY)
                             this[HistoryDuration] = oldFloat
                                 .toInt()
                                 .coerceIn(HISTORY_DURATION_MIN, HISTORY_DURATION_MAX)
-                            this.remove(HISTORY_DURATION_LEGACY_FLOAT_KEY)
                         }
                     }
 
