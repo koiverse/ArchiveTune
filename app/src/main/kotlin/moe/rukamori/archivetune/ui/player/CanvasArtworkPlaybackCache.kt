@@ -61,10 +61,17 @@ object CanvasArtworkPlaybackCache {
             .Builder()
             .proxy(YouTube.streamOkHttpProxy)
             .connectTimeout(12, TimeUnit.SECONDS)
-            .readTimeout(18, TimeUnit.SECONDS)
-            .callTimeout(24, TimeUnit.SECONDS)
+            .readTimeout(45, TimeUnit.SECONDS)
+            .callTimeout(3, TimeUnit.MINUTES)
             .addInterceptor { chain ->
                 val request = chain.request()
+                if (!request.url.isYouTubeMediaHost()) {
+                    return@addInterceptor chain.proceed(
+                        request.newBuilder()
+                            .header("User-Agent", CanvasDownloadUserAgent)
+                            .build(),
+                    )
+                }
                 val requestProfile = StreamClientUtils.resolveRequestProfile(request.url)
                 chain.proceed(
                     StreamClientUtils.applyRequestProfile(
@@ -112,6 +119,17 @@ object CanvasArtworkPlaybackCache {
                 url = artwork.downloadableRegularUrl(),
                 currentFileName = current?.regularFileName,
             )
+            persistEntry(
+                directory = directory,
+                entry = CanvasCacheEntry(
+                    mediaId = mediaId,
+                    artwork = artwork,
+                    regularFileName = regularFileName,
+                    verticalFileName = current?.verticalFileName,
+                    createdAtMs = current?.createdAtMs ?: System.currentTimeMillis(),
+                    lastAccessedAtMs = System.currentTimeMillis(),
+                ),
+            )
             val verticalFileName = cacheCanvasVideo(
                 directory = directory,
                 mediaId = mediaId,
@@ -130,11 +148,7 @@ object CanvasArtworkPlaybackCache {
                 lastAccessedAtMs = now,
             )
 
-            synchronized(this@CanvasArtworkPlaybackCache) {
-                map[mediaId] = entry
-                trimLocked(directory)
-                schedulePersist()
-            }
+            persistEntry(directory = directory, entry = entry)
 
             entry.toPlayableArtwork(directory) ?: artwork
         }
@@ -142,6 +156,12 @@ object CanvasArtworkPlaybackCache {
     @Synchronized
     fun size(): Int = map.count { (_, entry) ->
         entry.hasPlayableFile(cacheDirectory)
+    }
+
+    @Synchronized
+    fun byteSize(): Long {
+        val directory = cacheDirectory ?: return 0L
+        return map.values.sumOf { entry -> entry.byteSize(directory) }
     }
 
     @Synchronized
@@ -230,6 +250,17 @@ object CanvasArtworkPlaybackCache {
         }
     }
 
+    private fun persistEntry(
+        directory: File,
+        entry: CanvasCacheEntry,
+    ) {
+        synchronized(this@CanvasArtworkPlaybackCache) {
+            map[entry.mediaId] = entry
+            trimLocked(directory)
+            schedulePersist()
+        }
+    }
+
     private fun writeToDisk(): Boolean {
         val file = cacheFile ?: return true
         return try {
@@ -283,6 +314,16 @@ object CanvasArtworkPlaybackCache {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("Canvas request failed: HTTP ${response.code}")
             val body = response.body ?: throw IOException("Canvas response body is empty")
+            val contentType = body.contentType()?.toString()?.lowercase(Locale.ROOT).orEmpty()
+            if (
+                contentType.contains("mpegurl") ||
+                contentType.contains("m3u8") ||
+                contentType.startsWith("text/") ||
+                contentType.startsWith("image/") ||
+                contentType.contains("json")
+            ) {
+                throw IOException("Canvas response is not a downloadable video: $contentType")
+            }
             target.parentFile?.mkdirs()
             body.byteStream().use { input ->
                 target.outputStream().use { output ->
@@ -344,21 +385,20 @@ object CanvasArtworkPlaybackCache {
     }
 
     private fun CanvasArtwork.downloadableRegularUrl(): String? =
-        videoUrl.takeIfMp4() ?: animated.takeIfMp4()
+        videoUrl.takeIfDownloadableVideo() ?: animated.takeIfDownloadableVideo()
 
     private fun CanvasArtwork.downloadableVerticalUrl(): String? =
-        videoUrlVertical.takeIfMp4() ?: animatedVertical.takeIfMp4()
+        videoUrlVertical.takeIfDownloadableVideo() ?: animatedVertical.takeIfDownloadableVideo()
 
-    private fun String?.takeIfMp4(): String? =
+    private fun String?.takeIfDownloadableVideo(): String? =
         this
             ?.trim()
             ?.takeIf { value ->
+                val normalized = value.lowercase(Locale.ROOT)
                 value.isNotBlank() &&
-                    !value.lowercase(Locale.ROOT).contains(".m3u8") &&
-                    (
-                        value.lowercase(Locale.ROOT).contains(".mp4") ||
-                            value.lowercase(Locale.ROOT).substringBefore('?').endsWith("/video")
-                    )
+                    !normalized.contains(".m3u8") &&
+                    !normalized.contains("application/x-mpegurl") &&
+                    (normalized.startsWith("http://") || normalized.startsWith("https://"))
             }
 
     @Serializable
@@ -375,6 +415,15 @@ object CanvasArtworkPlaybackCache {
             return regularFileName?.let { directory.resolve(it).isUsableFile() } == true ||
                 verticalFileName?.let { directory.resolve(it).isUsableFile() } == true
         }
+
+        fun byteSize(directory: File): Long =
+            listOfNotNull(regularFileName, verticalFileName)
+                .sumOf { fileName ->
+                    directory.resolve(fileName)
+                        .takeIf { file -> file.isUsableFile() }
+                        ?.length()
+                        ?: 0L
+                }
 
         fun toPlayableArtwork(directory: File): CanvasArtwork? {
             val regularUri = regularFileName
@@ -403,4 +452,16 @@ object CanvasArtworkPlaybackCache {
     }
 }
 
+private fun okhttp3.HttpUrl.isYouTubeMediaHost(): Boolean {
+    val normalizedHost = host.lowercase(Locale.ROOT)
+    return normalizedHost.endsWith("googlevideo.com") ||
+        normalizedHost.endsWith("googleusercontent.com") ||
+        normalizedHost.endsWith("youtube.com") ||
+        normalizedHost.endsWith("youtube-nocookie.com") ||
+        normalizedHost.endsWith("ytimg.com")
+}
+
 private fun File.isUsableFile(): Boolean = isFile && length() > 0L
+
+private const val CanvasDownloadUserAgent =
+    "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Mobile Safari/537.36"

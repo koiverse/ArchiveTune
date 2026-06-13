@@ -168,7 +168,8 @@ fun StorageSettings(
     var imageCacheSize by remember { mutableStateOf(tryOrNull { imageDiskCache.size } ?: 0L) }
     var playerCacheSize by remember { mutableStateOf(0L) }
     var downloadCacheSize by remember { mutableStateOf(0L) }
-    var canvasCacheSize by remember { mutableStateOf(CanvasArtworkPlaybackCache.size()) }
+    var canvasCacheSize by remember { mutableStateOf(0) }
+    var canvasCacheBytes by remember { mutableStateOf(0L) }
 
     val maxImageCacheSizeBytes = if (maxImageCacheSize > 0) {
         cacheSizeMegabytesToBytes(maxImageCacheSize)
@@ -253,8 +254,12 @@ fun StorageSettings(
     }
     LaunchedEffect(Unit) {
         while (isActive) {
+            val (size, bytes) = withContext(Dispatchers.IO) {
+                CanvasArtworkPlaybackCache.size() to CanvasArtworkPlaybackCache.byteSize()
+            }
+            canvasCacheSize = size
+            canvasCacheBytes = bytes
             delay(StorageRefreshIntervalMillis)
-            canvasCacheSize = CanvasArtworkPlaybackCache.size()
         }
     }
 
@@ -430,7 +435,7 @@ fun StorageSettings(
                         description = if (maxCanvasCacheSize > 0) {
                             stringResource(
                                 R.string.canvas_cache_usage,
-                                stringResource(R.string.canvas_cache_items, canvasCacheSize),
+                                formatFileSize(canvasCacheBytes),
                                 stringResource(R.string.canvas_cache_items, maxCanvasCacheSize),
                             )
                         } else {
