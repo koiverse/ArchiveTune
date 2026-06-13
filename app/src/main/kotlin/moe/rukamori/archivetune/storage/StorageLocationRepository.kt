@@ -14,6 +14,7 @@ import androidx.core.net.toUri
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.media3.datasource.cache.Cache
+import coil3.imageLoader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -28,12 +29,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import moe.rukamori.archivetune.constants.StorageFolderDisplayNameKey
 import moe.rukamori.archivetune.constants.StorageFolderIdKey
 import moe.rukamori.archivetune.constants.StorageFolderPathKey
 import moe.rukamori.archivetune.constants.StorageFolderTreeUriKey
 import moe.rukamori.archivetune.di.DownloadCache
 import moe.rukamori.archivetune.di.PlayerCache
+import moe.rukamori.archivetune.ui.player.CanvasArtworkPlaybackCache
+import moe.rukamori.archivetune.utils.ArtworkStorage
 import moe.rukamori.archivetune.utils.PreferenceStore
 import moe.rukamori.archivetune.utils.dataStore
 import java.io.File
@@ -104,6 +108,18 @@ sealed interface StorageFolderUpdateResult {
     data object NotWritable : StorageFolderUpdateResult
 }
 
+enum class StorageCacheKind {
+    SONGS,
+    DOWNLOADS,
+    IMAGES,
+    CANVAS,
+}
+
+sealed interface StorageCacheClearResult {
+    data object Success : StorageCacheClearResult
+    data object Failed : StorageCacheClearResult
+}
+
 object StorageRestartScheduler {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var restartJob: Job? = null
@@ -138,6 +154,15 @@ constructor(
         repository.setStorageLocationAndMoveCache(optionId, onProgress)
 }
 
+class ClearStorageCacheUseCase
+@Inject
+constructor(
+    private val repository: StorageLocationRepository,
+) {
+    suspend operator fun invoke(kind: StorageCacheKind): StorageCacheClearResult =
+        repository.clearCache(kind)
+}
+
 class StorageLocationRepository
 @Inject
 constructor(
@@ -148,6 +173,22 @@ constructor(
     val selection: Flow<StorageFolderSelection> =
         context.dataStore.data.map { preferences ->
             preferences.selectionFor(context.storageLocationOptions(preferences))
+        }
+
+    suspend fun clearCache(kind: StorageCacheKind): StorageCacheClearResult =
+        withContext(Dispatchers.IO) {
+            try {
+                val cleared = when (kind) {
+                    StorageCacheKind.SONGS -> clearMediaCache(playerCache)
+                    StorageCacheKind.DOWNLOADS -> clearMediaCache(downloadCache)
+                    StorageCacheKind.IMAGES -> clearImageCache()
+                    StorageCacheKind.CANVAS -> CanvasArtworkPlaybackCache.clearAndPersist()
+                }
+                if (cleared) StorageCacheClearResult.Success else StorageCacheClearResult.Failed
+            } catch (throwable: Throwable) {
+                if (throwable is CancellationException) throw throwable
+                StorageCacheClearResult.Failed
+            }
         }
 
     suspend fun setStorageLocationAndMoveCache(
@@ -283,6 +324,33 @@ constructor(
     private fun releaseCachesForMigration() {
         runCatching { playerCache.release() }
         runCatching { downloadCache.release() }
+    }
+
+    private suspend fun clearMediaCache(cache: Cache): Boolean {
+        val keys = runCatching { cache.keys.toList() }.getOrElse { throwable ->
+            if (throwable is CancellationException) throw throwable
+            return false
+        }
+        var cleared = true
+        keys.forEach { key ->
+            currentCoroutineContext().ensureActive()
+            runCatching {
+                cache.removeResource(key)
+            }.onFailure { throwable ->
+                if (throwable is CancellationException) throw throwable
+                cleared = false
+            }
+            yield()
+        }
+        return cleared
+    }
+
+    private fun clearImageCache(): Boolean {
+        val diskCacheCleared = runCatching {
+            context.imageLoader.diskCache?.clear()
+        }.isSuccess
+        val artworkCleared = ArtworkStorage.clear(context)
+        return diskCacheCleared && artworkCleared
     }
 
     private suspend fun StorageMigrationPlan.withProgress(

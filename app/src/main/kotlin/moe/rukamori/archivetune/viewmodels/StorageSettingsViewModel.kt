@@ -27,8 +27,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import moe.rukamori.archivetune.R
+import moe.rukamori.archivetune.storage.ClearStorageCacheUseCase
 import moe.rukamori.archivetune.storage.ObserveStorageFoldersUseCase
 import moe.rukamori.archivetune.storage.SetStorageFolderUseCase
+import moe.rukamori.archivetune.storage.StorageCacheClearResult
+import moe.rukamori.archivetune.storage.StorageCacheKind
 import moe.rukamori.archivetune.storage.StorageFolderSelection
 import moe.rukamori.archivetune.storage.StorageFolderUpdateResult
 import moe.rukamori.archivetune.storage.StorageLocationKind
@@ -115,11 +118,13 @@ class StorageSettingsViewModel
 constructor(
     observeStorageFolders: ObserveStorageFoldersUseCase,
     private val setStorageFolder: SetStorageFolderUseCase,
+    private val clearStorageCache: ClearStorageCacheUseCase,
 ) : ViewModel() {
     private val _effects = MutableSharedFlow<StorageSettingsEffect>(extraBufferCapacity = 1)
     val effects = _effects.asSharedFlow()
     private val pickerState = MutableStateFlow(StorageLocationPickerUiModel())
     private val migrationState = MutableStateFlow<StorageMigrationUiModel?>(null)
+    private val activeCacheClearKinds = mutableSetOf<StorageCacheKind>()
 
     val state: StateFlow<StorageSettingsScreenState> =
         combine(
@@ -192,6 +197,22 @@ constructor(
         selectStorageLocation(optionId)
     }
 
+    fun clearSongCache(showFeedback: Boolean = true) {
+        clearCache(StorageCacheKind.SONGS, showFeedback)
+    }
+
+    fun clearDownloads(showFeedback: Boolean = true) {
+        clearCache(StorageCacheKind.DOWNLOADS, showFeedback)
+    }
+
+    fun clearImageCache(showFeedback: Boolean = true) {
+        clearCache(StorageCacheKind.IMAGES, showFeedback)
+    }
+
+    fun clearCanvasCache(showFeedback: Boolean = true) {
+        clearCache(StorageCacheKind.CANVAS, showFeedback)
+    }
+
     private fun selectStorageLocation(optionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             migrationState.value = StorageMigrationUiModel(
@@ -216,6 +237,33 @@ constructor(
                     restartApp = result == StorageFolderUpdateResult.Success,
                 ),
             )
+        }
+    }
+
+    private fun clearCache(kind: StorageCacheKind, showFeedback: Boolean) {
+        synchronized(activeCacheClearKinds) {
+            if (!activeCacheClearKinds.add(kind)) return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = clearStorageCache(kind)
+                if (showFeedback) {
+                    val messageResId = when (result) {
+                        StorageCacheClearResult.Success -> R.string.storage_cache_cleared
+                        StorageCacheClearResult.Failed -> R.string.storage_cache_clear_failed
+                    }
+                    _effects.emit(
+                        StorageSettingsEffect(
+                            messageResId = messageResId,
+                            restartApp = false,
+                        ),
+                    )
+                }
+            } finally {
+                synchronized(activeCacheClearKinds) {
+                    activeCacheClearKinds.remove(kind)
+                }
+            }
         }
     }
 
