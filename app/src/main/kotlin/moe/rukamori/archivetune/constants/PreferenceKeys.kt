@@ -634,8 +634,9 @@ val LyricsLineBlurKey = booleanPreferencesKey("lyricsLineBlur")
 val TopSize = stringPreferencesKey("topSize")
 
 const val HISTORY_DURATION_DEFAULT = 30
-const val HISTORY_DURATION_MIN = 15
+const val HISTORY_DURATION_MIN = 5
 const val HISTORY_DURATION_MAX = 60
+val HISTORY_DURATION_RANGE = HISTORY_DURATION_MIN.toFloat()..HISTORY_DURATION_MAX.toFloat()
 val HISTORY_DURATION_LEGACY_FLOAT_KEY = floatPreferencesKey("historyDuration")
 val HistoryDuration = intPreferencesKey("historyDuration")
 
