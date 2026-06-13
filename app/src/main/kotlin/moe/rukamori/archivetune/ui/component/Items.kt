@@ -118,6 +118,7 @@ import moe.rukamori.archivetune.innertube.models.AlbumItem
 import moe.rukamori.archivetune.innertube.models.ArtistItem
 import moe.rukamori.archivetune.innertube.models.PlaylistItem
 import moe.rukamori.archivetune.innertube.models.YTItem
+import moe.rukamori.archivetune.innertube.models.displayThumbnail
 import moe.rukamori.archivetune.LocalDatabase
 import moe.rukamori.archivetune.LocalDownloadUtil
 import moe.rukamori.archivetune.LocalPlayerConnection
@@ -1307,7 +1308,7 @@ fun YouTubeListItem(
             badges = badges,
             thumbnailContent = {
                 ItemThumbnail(
-                    thumbnailUrl = item.thumbnail,
+                    thumbnailUrl = item.displayThumbnail,
                     albumIndex = albumIndex,
                     isSelected = isSelected,
                     isActive = isActive,
@@ -1324,7 +1325,7 @@ fun YouTubeListItem(
 
     if (item is SongItem && isSwipeable && swipeEnabled) {
         SwipeToSongBox(
-            mediaItem = item.copy(thumbnail = item.thumbnail).toMediaItem(),
+            mediaItem = item.copy(thumbnail = item.displayThumbnail ?: item.thumbnail).toMediaItem(),
             modifier = Modifier.fillMaxWidth()
         ) {
             content()
@@ -1396,7 +1397,7 @@ fun YouTubeGridItem(
         val shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(GridThumbnailCornerRadius)
 
         ItemThumbnail(
-            thumbnailUrl = item.thumbnail,
+            thumbnailUrl = item.displayThumbnail?: item.thumbnail,
             isActive = isActive,
             isPlaying = isPlaying,
             shape = shape,

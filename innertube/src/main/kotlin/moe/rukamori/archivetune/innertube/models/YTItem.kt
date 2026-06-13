@@ -112,6 +112,15 @@ data class ArtistItem(
         get() = "https://music.youtube.com/channel/$id"
 }
 
+val YTItem.displayThumbnail: String?
+    get() = when (this) {
+        is SongItem -> {
+            val isOnline = thumbnail?.let { it.startsWith("http") || it.startsWith("//") } ?: false
+            if (isOnline) "https://i.ytimg.com/vi/$id/maxresdefault.jpg" else thumbnail
+        }
+        else -> thumbnail
+    }
+
 fun <T : YTItem> List<T>.filterExplicit(enabled: Boolean = true) =
     if (enabled) {
         filter { !it.explicit }

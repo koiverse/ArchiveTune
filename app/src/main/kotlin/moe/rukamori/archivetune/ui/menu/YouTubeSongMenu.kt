@@ -70,6 +70,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import moe.rukamori.archivetune.innertube.YouTube
 import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.archivetune.innertube.models.displayThumbnail
 import moe.rukamori.archivetune.LocalDatabase
 import moe.rukamori.archivetune.LocalDownloadUtil
 import moe.rukamori.archivetune.LocalPlayerConnection
@@ -260,7 +261,7 @@ fun YouTubeSongMenu(
                         .clip(RoundedCornerShape(ThumbnailCornerRadius))
                 ) {
                     AsyncImage(
-                        model = song.thumbnail,
+                        model = song.displayThumbnail,
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()

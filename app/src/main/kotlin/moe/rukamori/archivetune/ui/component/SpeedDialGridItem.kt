@@ -44,6 +44,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import moe.rukamori.archivetune.innertube.models.SongItem
 import moe.rukamori.archivetune.innertube.models.YTItem
+import moe.rukamori.archivetune.innertube.models.displayThumbnail
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.ui.utils.resize
 
@@ -101,9 +102,9 @@ fun SpeedDialGridItem(
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val widthPx = with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
             val heightPx = with(density) { maxHeight.roundToPx().coerceAtLeast(1) }
-            val request = remember(item.thumbnail, widthPx, heightPx) {
+            val request = remember(item.displayThumbnail, widthPx, heightPx) {
                 ImageRequest.Builder(context)
-                    .data(item.thumbnail?.resize(widthPx, heightPx))
+                    .data(item.displayThumbnail)
                     .size(widthPx, heightPx)
                     .build()
             }
@@ -111,7 +112,7 @@ fun SpeedDialGridItem(
             AsyncImage(
                 model = request,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
 
