@@ -30,7 +30,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import timber.log.Timber
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
+import java.net.Proxy
 import java.security.MessageDigest
 import java.util.LinkedHashMap
 import java.util.Locale
@@ -41,6 +43,8 @@ object CanvasArtworkPlaybackCache {
     private const val PERSIST_FILE = "canvas_artwork_cache.json"
     private const val PERSIST_DEBOUNCE_MS = 2_000L
     private const val DOWNLOAD_BUFFER_SIZE_BYTES = 64 * 1024
+    private const val DOWNLOAD_MAX_ATTEMPTS = 4
+    private const val DOWNLOAD_RETRY_DELAY_MS = 750L
 
     private val map = LinkedHashMap<String, CanvasCacheEntry>(defaultMaxSize, 0.75f, true)
     @Volatile private var maxSize = defaultMaxSize
@@ -56,10 +60,20 @@ object CanvasArtworkPlaybackCache {
         explicitNulls = false
     }
 
-    private val client: OkHttpClient by lazy {
+    private val directClient: OkHttpClient by lazy {
+        canvasClient(proxy = null)
+    }
+
+    private val streamClient: OkHttpClient by lazy {
+        canvasClient(proxy = YouTube.streamOkHttpProxy)
+    }
+
+    private fun canvasClient(proxy: Proxy?): OkHttpClient {
         OkHttpClient
             .Builder()
-            .proxy(YouTube.streamOkHttpProxy)
+            .apply {
+                if (proxy != null) this.proxy(proxy)
+            }
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(45, TimeUnit.SECONDS)
             .callTimeout(3, TimeUnit.MINUTES)
@@ -310,9 +324,50 @@ object CanvasArtworkPlaybackCache {
 
     private suspend fun downloadToFile(url: String, target: File) {
         kotlinx.coroutines.currentCoroutineContext().ensureActive()
-        val request = Request.Builder().url(url).build()
-        client.newCall(request).execute().use { response ->
+        target.parentFile?.mkdirs()
+        var attempt = 0
+        var lastError: Throwable? = null
+        while (attempt < DOWNLOAD_MAX_ATTEMPTS) {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            try {
+                downloadToPartialFile(
+                    url = url,
+                    target = target,
+                    existingBytes = target.takeIf { file -> file.isFile }?.length()?.coerceAtLeast(0L) ?: 0L,
+                )
+                return
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                lastError = error
+                attempt += 1
+                if (attempt >= DOWNLOAD_MAX_ATTEMPTS) break
+                Timber.w(error, "Canvas download interrupted, retrying")
+                delay(DOWNLOAD_RETRY_DELAY_MS * attempt)
+            }
+        }
+        throw IOException("Canvas download failed after $DOWNLOAD_MAX_ATTEMPTS attempts", lastError)
+    }
+
+    private suspend fun downloadToPartialFile(
+        url: String,
+        target: File,
+        existingBytes: Long,
+    ) {
+        val requestBuilder = Request.Builder()
+            .url(url)
+            .header("Accept", "video/mp4,video/*;q=0.9,*/*;q=0.8")
+        if (existingBytes > 0L) {
+            requestBuilder.header("Range", "bytes=$existingBytes-")
+        }
+        val request = requestBuilder.build()
+        val callClient = if (request.url.isYouTubeMediaHost()) streamClient else directClient
+        callClient.newCall(request).execute().use { response ->
+            if (existingBytes > 0L && response.code == 416) return
             if (!response.isSuccessful) throw IOException("Canvas request failed: HTTP ${response.code}")
+            val append = existingBytes > 0L && response.code == 206
+            if (existingBytes > 0L && !append) {
+                if (target.exists() && !target.delete()) throw IOException("Failed to restart canvas video download")
+            }
             val body = response.body ?: throw IOException("Canvas response body is empty")
             val contentType = body.contentType()?.toString()?.lowercase(Locale.ROOT).orEmpty()
             if (
@@ -324,9 +379,8 @@ object CanvasArtworkPlaybackCache {
             ) {
                 throw IOException("Canvas response is not a downloadable video: $contentType")
             }
-            target.parentFile?.mkdirs()
             body.byteStream().use { input ->
-                target.outputStream().use { output ->
+                FileOutputStream(target, append).use { output ->
                     val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE_BYTES)
                     while (true) {
                         kotlinx.coroutines.currentCoroutineContext().ensureActive()
