@@ -188,6 +188,14 @@ object CanvasArtworkPlaybackCache {
         schedulePersist()
     }
 
+    fun clearAndPersist(): Boolean {
+        synchronized(this) {
+            map.clear()
+            persistJob?.cancel()
+        }
+        return writeToDisk()
+    }
+
     @Synchronized
     fun setMaxSize(value: Int) {
         maxSize = value.coerceAtLeast(0)
@@ -244,17 +252,20 @@ object CanvasArtworkPlaybackCache {
         }
     }
 
-    private fun writeToDisk() {
-        val file = cacheFile ?: return
-        try {
+    private fun writeToDisk(): Boolean {
+        val file = cacheFile ?: return true
+        return try {
             val snapshot: Map<String, CanvasArtwork>
             synchronized(this@CanvasArtworkPlaybackCache) {
                 snapshot = LinkedHashMap(map)
             }
             val raw = json.encodeToString(mapSerializer, snapshot)
+            file.parentFile?.mkdirs()
             file.writeText(raw)
+            true
         } catch (e: Exception) {
             Timber.e(e, "Failed to persist canvas cache to disk")
+            false
         }
     }
 }

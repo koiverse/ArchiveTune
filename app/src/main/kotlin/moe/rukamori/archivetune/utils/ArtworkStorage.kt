@@ -55,13 +55,15 @@ object ArtworkStorage {
         }
     }
 
-    fun clear(context: Context) {
+    fun clear(context: Context): Boolean =
         try {
             val f = fileFor(context)
+            f.parentFile?.mkdirs()
             if (f.exists()) f.writeText("[]")
+            true
         } catch (_: Exception) {
+            false
         }
-    }
 
     fun removeBySongId(context: Context, songId: String) {
         try {

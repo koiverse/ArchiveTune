@@ -359,6 +359,8 @@
     <string name="storage_folder_invalid">Select a valid folder.</string>
     <string name="storage_folder_unsupported">This folder cannot be used by the file-backed media cache.</string>
     <string name="storage_folder_not_writable">ArchiveTune cannot write cache files in this folder.</string>
+    <string name="storage_cache_cleared">Cache cleared.</string>
+    <string name="storage_cache_clear_failed">Cache could not be cleared. Check SD card access.</string>
     <string name="storage_size_ratio">%1$s / %2$s</string>
     <string name="sensitivity_percentage">%1$d%%</string>
     <string name="clear_song_cache_dialog">  Are you sure you want to clear all cached songs?</string>

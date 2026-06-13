@@ -53,7 +53,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,10 +66,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.annotation.ExperimentalCoilApi
 import coil3.imageLoader
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.LocalPlayerConnection
@@ -147,7 +145,6 @@ fun StorageSettings(
         listOf(0, 64, 128, 256, 512, 1024)
     }
 
-    val coroutineScope = rememberCoroutineScope()
     val (smartTrimmer, onSmartTrimmerChange) = rememberPreference(
         key = SmartTrimmerKey,
         defaultValue = false,
@@ -168,7 +165,7 @@ fun StorageSettings(
     var clearDownloads by remember { mutableStateOf(false) }
     var clearImageCacheDialog by remember { mutableStateOf(false) }
     var clearCanvasCacheDialog by remember { mutableStateOf(false) }
-    var imageCacheSize by remember { mutableStateOf(imageDiskCache.size) }
+    var imageCacheSize by remember { mutableStateOf(tryOrNull { imageDiskCache.size } ?: 0L) }
     var playerCacheSize by remember { mutableStateOf(0L) }
     var downloadCacheSize by remember { mutableStateOf(0L) }
     var canvasCacheSize by remember { mutableStateOf(CanvasArtworkPlaybackCache.size()) }
@@ -205,31 +202,24 @@ fun StorageSettings(
     }
     LaunchedEffect(maxImageCacheSize) {
         if (maxImageCacheSize == 0) {
-            coroutineScope.launch(Dispatchers.IO) {
-                imageDiskCache.clear()
-                moe.rukamori.archivetune.utils.ArtworkStorage.clear(context)
-            }
+            viewModel.clearImageCache(showFeedback = false)
         }
     }
     LaunchedEffect(maxSongCacheSize) {
         if (maxSongCacheSize == 0) {
-            coroutineScope.launch(Dispatchers.IO) {
-                playerCache.keys.forEach { key ->
-                    playerCache.removeResource(key)
-                }
-            }
+            viewModel.clearSongCache(showFeedback = false)
         }
     }
     LaunchedEffect(maxCanvasCacheSize) {
         CanvasArtworkPlaybackCache.setMaxSize(maxCanvasCacheSize)
         if (maxCanvasCacheSize == 0) {
-            CanvasArtworkPlaybackCache.clear()
+            viewModel.clearCanvasCache(showFeedback = false)
         }
     }
     LaunchedEffect(imageDiskCache) {
         while (isActive) {
             delay(StorageRefreshIntervalMillis)
-            imageCacheSize = imageDiskCache.size
+            imageCacheSize = tryOrNull { imageDiskCache.size } ?: 0L
         }
     }
     LaunchedEffect(playerCache, playerCacheDir) {
@@ -301,11 +291,7 @@ fun StorageSettings(
                     title = stringResource(R.string.clear_all_downloads),
                     onDismiss = { clearDownloads = false },
                     onConfirm = {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            downloadCache.keys.forEach { key ->
-                                downloadCache.removeResource(key)
-                            }
-                        }
+                        viewModel.clearDownloads()
                         clearDownloads = false
                     },
                     onCancel = { clearDownloads = false },
@@ -362,11 +348,7 @@ fun StorageSettings(
                     title = stringResource(R.string.clear_song_cache),
                     onDismiss = { clearCacheDialog = false },
                     onConfirm = {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            playerCache.keys.forEach { key ->
-                                playerCache.removeResource(key)
-                            }
-                        }
+                        viewModel.clearSongCache()
                         clearCacheDialog = false
                     },
                     onCancel = { clearCacheDialog = false },
@@ -422,10 +404,7 @@ fun StorageSettings(
                     title = stringResource(R.string.clear_image_cache),
                     onDismiss = { clearImageCacheDialog = false },
                     onConfirm = {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            imageDiskCache.clear()
-                            moe.rukamori.archivetune.utils.ArtworkStorage.clear(context)
-                        }
+                        viewModel.clearImageCache()
                         clearImageCacheDialog = false
                     },
                     onCancel = { clearImageCacheDialog = false },
@@ -481,7 +460,7 @@ fun StorageSettings(
                     title = stringResource(R.string.clear_canvas_cache),
                     onDismiss = { clearCanvasCacheDialog = false },
                     onConfirm = {
-                        CanvasArtworkPlaybackCache.clear()
+                        viewModel.clearCanvasCache()
                         clearCanvasCacheDialog = false
                     },
                     onCancel = { clearCanvasCacheDialog = false },

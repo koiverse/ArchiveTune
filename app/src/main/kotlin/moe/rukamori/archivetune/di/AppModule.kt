@@ -106,8 +106,12 @@ private class LazyCache(
     override fun isCached(key: String, position: Long, length: Long): Boolean =
         delegate().isCached(key, position, length)
 
-    override fun release() =
-        delegate().release()
+    override fun release() {
+        val cacheToRelease = synchronized(lock) {
+            cache.also { cache = null }
+        }
+        cacheToRelease?.release()
+    }
 }
 
 @Module
