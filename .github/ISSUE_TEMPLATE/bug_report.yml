@@ -1,121 +1,161 @@
 name: Bug Report
-description: Report a bug to help us improve ArchiveTune
+description: Report a reproducible ArchiveTune bug
 labels: [BUG]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve ArchiveTune.
+
+        Before submitting, verify the bug on the latest nightly build whenever possible. Stable releases may already contain bugs fixed in nightly builds, so stable-only reports need a clear reason and may be closed if they cannot be reproduced on nightly.
+
   - type: checkboxes
     id: pre-submission-checklist
     attributes:
-      label: Bug Submission Checklist
-      description: >
-        Before submitting, please ensure you have completed the following steps. 
-        Incomplete reports or reports for versions other than the latest nightly build may be closed.
+      label: Required pre-submission checklist
+      description: Reports that skip these checks are difficult to triage and may be closed.
       options:
         - label: I have tested this bug on the [latest nightly version](https://github.com/ArchiveTuneApp/ArchiveTune/actions).
           required: true
-        - label: I have searched existing issues (open and closed) to avoid duplicates.
+        - label: This report describes one specific bug, not multiple unrelated problems.
           required: true
-        - label: This report describes a single bug.
+        - label: The issue title names the affected area and the broken behavior.
           required: true
-        - label: The issue title is clear and concise.
+        - label: I understand stable-only reports may be closed if the bug is not verified on the latest nightly build.
           required: true
+
+  - type: dropdown
+    id: nightly-verification
+    attributes:
+      label: Latest nightly verification
+      description: >
+        Test the latest nightly build from GitHub Actions before reporting whenever possible.
+        Select "Confirmed on latest nightly" only if the bug still happens on that build.
+      options:
+        - Confirmed on latest nightly
+        - Stable only; I cannot test nightly
+        - Stable only; nightly build is unavailable or failed to install
+        - Stable only; bug is security, data-loss, or crash-critical
+    validations:
+      required: true
+
+  - type: input
+    id: nightly-build-source
+    attributes:
+      label: Nightly build used, or stable-only reason
+      description: >
+        If you tested nightly, paste the GitHub Actions run link, artifact name, build hash, or version.
+        If you did not test nightly, explain the blocking reason clearly.
+      placeholder: "Example: Nightly from Actions run #12345, app-mobile-universal-debug-pr-123, hash abc1234"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: release-channel
+    attributes:
+      label: Installed release channel where the bug happens
+      description: Select the build channel where you reproduced the bug.
+      options:
+        - Nightly
+        - Stable
+        - Debug/local build
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: ArchiveTune version
+      description: Found in Settings -> About, or from the APK/build artifact name.
+      placeholder: "Example: 13.4.0, debug build, or nightly hash abc1234"
+    validations:
+      required: true
 
   - type: dropdown
     id: component
     attributes:
-      label: Where does the bug happen?
-      description: Select the area of the app.
+      label: Affected area
+      description: Select the main area where the bug happens.
       options:
-        - 🎵 Music Player (Now Playing)
-        - 📚 Library / Playlists
-        - 🔍 Search
-        - ⚙️ Settings
-        - 📥 Downloads
-        - 🎨 UI / Visuals
-        - 🔌 Integrations (Discord/LastFM/ListenBrainz)
-        - 📱 Widgets / Notification
-        - ❓ Other
+        - Music player / now playing
+        - Playback queue / radio / cache
+        - Library / playlists / local media
+        - Search / browse / YouTube data
+        - Lyrics / translation / romanization
+        - Downloads
+        - Settings / preferences
+        - UI / visuals / theme
+        - Widgets / notification / shortcuts
+        - Integrations / Discord / Last.fm / ListenBrainz / Spotify
+        - Login / account / proxy
+        - Crash / startup / installation
+        - Other
     validations:
       required: true
 
   - type: dropdown
     id: frequency
     attributes:
-      label: How often does it happen?
+      label: Reproducibility
+      description: How often can you reproduce this bug with the steps below?
       options:
-        - 🔴 Every time (100%)
-        - 🟠 Often (> 50%)
-        - 🟡 Sometimes (< 50%)
-        - 🟢 Rarely (Once or twice)
+        - Every time
+        - Often
+        - Sometimes
+        - Rarely
+        - Once, but with logs or crash evidence
     validations:
       required: true
 
   - type: textarea
     id: reproduction-steps
     attributes:
-      label: Steps to Reproduce
-      description: How can we make this bug happen again?
+      label: Steps to reproduce
+      description: Provide exact steps from a clean app state when possible.
       placeholder: |
-        1. Open the app
-        2. Navigate to '...'
-        3. Tap on '....'
-        4. See error/crash
+        1. Open ArchiveTune.
+        2. Go to ...
+        3. Tap ...
+        4. Observe ...
     validations:
       required: true
 
   - type: textarea
     id: behavior-comparison
     attributes:
-      label: Expected vs. Actual Behavior
-      description: Describe what you expected to see and what actually occurred.
+      label: Expected behavior vs actual behavior
+      description: Describe what should happen and what actually happens.
       placeholder: |
-        Expected: The archive should load within 2 seconds.
-        Actual: The app freezes and eventually crashes.
+        Expected:
+
+        Actual:
     validations:
       required: true
-
-  - type: upload
-    id: visual-evidence
-    attributes:
-      label: Visual Evidence
-      description: Attach screenshots, screen recordings, or other relevant files to help diagnose UI or UX issues.
 
   - type: textarea
     id: logs
     attributes:
-      label: Logs (Critical)
-      description: |
-        Please provide `adb logcat` output or app-generated logs. 
-        **Note:** Without logs, it is often impossible to fix internal crashes.
-      placeholder: Paste your logs here or attach a .txt file.
+      label: Logs
+      description: >
+        Paste relevant adb logcat output, crash traces, or app-generated logs.
+        Remove access tokens, cookies, auth headers, account identifiers, and local file paths before submitting.
+      placeholder: "Paste logs here, or attach a text file if the log is long."
     validations:
       required: true
 
-  - type: dropdown
-    id: environment-release-channel
+  - type: textarea
+    id: visual-evidence
     attributes:
-      label: Release Channel
-      description: Select the build channel you are using.
-      options:
-        - Stable
-        - Nightly
-    validations:
-      required: true
-
-  - type: input
-    id: environment-app-version
-    attributes:
-      label: ArchiveTune Version
-      description: Found in Settings -> About.
-      placeholder: e.g., 0.5.3 (Debug)
-    validations:
-      required: true
+      label: Screenshots or screen recordings
+      description: Attach evidence for UI, playback, lyrics, widget, notification, settings, or visual bugs by dragging files into this field.
+      placeholder: "Attach files here, or describe why visual evidence is not available."
 
   - type: dropdown
     id: android-version
     attributes:
-      label: Android Version
+      label: Android version
       options:
-        - Android 16 (Preview)
+        - Android 16
         - Android 15
         - Android 14
         - Android 13
@@ -127,9 +167,18 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: device-model
+    attributes:
+      label: Device model
+      description: Include manufacturer, model, and ROM if relevant.
+      placeholder: "Example: Pixel 7 Pro, Samsung Galaxy S23, LineageOS device"
+    validations:
+      required: true
+
   - type: textarea
     id: additional-context
     attributes:
-      label: Additional Context
-      description: Anything else we should know? (e.g., specific device model, recent system updates, other apps that might be interfering).
-      placeholder: e.g., "I am using a Pixel 7 Pro running LineageOS 20."
+      label: Additional context
+      description: Add network conditions, account state, region, proxy/VPN use, local file type, playlist size, or anything else needed to reproduce the bug.
+      placeholder: "Example: Happens only on Wi-Fi with proxy enabled, or only with local FLAC files."
