@@ -233,6 +233,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import moe.rukamori.archivetune.constants.EnableHapticFeedbackKey
 import moe.rukamori.archivetune.constants.UpdateChannel
 import moe.rukamori.archivetune.constants.UpdateChannelKey
+import moe.rukamori.archivetune.constants.DevFakeVersionNameKey
 import moe.rukamori.archivetune.utils.rememberPreference
 import moe.rukamori.archivetune.playback.PlayerConnection
 import moe.rukamori.archivetune.playback.queues.LocalAlbumRadio
@@ -509,6 +510,7 @@ class MainActivity : ComponentActivity() {
                 }
 
             val updateChannel by rememberEnumPreference(UpdateChannelKey, defaultValue = UpdateChannel.STABLE)
+            val (devFakeVersionName) = rememberPreference(DevFakeVersionNameKey, defaultValue = "")
 
             LaunchedEffect(Unit) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -520,6 +522,11 @@ class MainActivity : ComponentActivity() {
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
 
+                while (playerConnection == null) {
+                    delay(100)
+                }
+                delay(500)
+
                 if (
                     BuildConfig.UPDATER_AVAILABLE &&
                     System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds
@@ -530,12 +537,17 @@ class MainActivity : ComponentActivity() {
                     } ?: UpdateChannel.STABLE
 
                     if (actualChannel != UpdateChannel.NIGHTLY) {
+                        val fakeVersionName = withContext(Dispatchers.IO) {
+                            dataStore.data.first()[DevFakeVersionNameKey].orEmpty()
+                        }
+                        val currentVersion = fakeVersionName.ifBlank { BuildConfig.VERSION_NAME }
+
                         val versionResult = when (actualChannel) {
                             UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyVersionName()
                             else -> Updater.getLatestVersionName()
                         }
                         versionResult.onSuccess {
-                            if (!Updater.isSameVersion(it, BuildConfig.VERSION_NAME)) {
+                            if (!Updater.isSameVersion(it, currentVersion)) {
                                 latestVersionName = it
                             }
                         }
@@ -618,9 +630,10 @@ class MainActivity : ComponentActivity() {
 
                     // fetch release notes and show sheet when a new version is detected
                     LaunchedEffect(latestVersionName) {
+                        val currentVersion = devFakeVersionName.ifBlank { BuildConfig.VERSION_NAME }
                         if (
                             BuildConfig.UPDATER_AVAILABLE &&
-                            !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
+                            !Updater.isSameVersion(latestVersionName, currentVersion)
                         ) {
                             val releaseNotesResult = when (updateChannel) {
                                 UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyReleaseNotes()
@@ -1558,9 +1571,10 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                     IconButton(onClick = { navController.navigate("settings") }) {
                                                         BadgedBox(badge = {
+                                                            val currentVersion = devFakeVersionName.ifBlank { BuildConfig.VERSION_NAME }
                                                             if (
                                                                 BuildConfig.UPDATER_AVAILABLE &&
-                                                                !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
+                                                                !Updater.isSameVersion(latestVersionName, currentVersion)
                                                             ) {
                                                                 Badge()
                                                             }
@@ -1986,7 +2000,7 @@ class MainActivity : ComponentActivity() {
                                         topAppBarScrollBehavior,
                                         { latestVersionName },
                                         disableAnimations,
-                                        onClearUpdateBadge = { latestVersionName = BuildConfig.VERSION_NAME },
+                                        onClearUpdateBadge = { latestVersionName = devFakeVersionName.ifBlank { BuildConfig.VERSION_NAME } },
                                     )
                                 }
                             }

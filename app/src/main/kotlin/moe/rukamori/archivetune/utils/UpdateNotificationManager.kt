@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.MainActivity
 import moe.rukamori.archivetune.R
+import moe.rukamori.archivetune.constants.DevFakeVersionNameKey
 import moe.rukamori.archivetune.constants.EnableUpdateNotificationKey
 import moe.rukamori.archivetune.constants.LastNotifiedVersionKey
 import moe.rukamori.archivetune.constants.LastUpdateCheckKey
@@ -129,8 +130,11 @@ object UpdateNotificationManager {
                     else -> Updater.getLatestVersionName()
                 }
 
+                val fakeVersionName = dataStore.data.map { it[DevFakeVersionNameKey].orEmpty() }.first()
+                val effectiveVersionName = fakeVersionName.ifBlank { BuildConfig.VERSION_NAME }
+
                 versionResult.onSuccess { latestVersion ->
-                    if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
+                    if (!Updater.isSameVersion(latestVersion, effectiveVersionName)) {
                         notifyIfNewVersion(context, latestVersion, updateChannel)
                     }
                 }
@@ -150,8 +154,10 @@ object UpdateNotificationManager {
         try {
             val dataStore = context.dataStore
             val lastNotified = dataStore.data.map { it[LastNotifiedVersionKey] ?: "" }.first()
+            val fakeVersionName = dataStore.data.map { it[DevFakeVersionNameKey].orEmpty() }.first()
+            val effectiveVersionName = fakeVersionName.ifBlank { BuildConfig.VERSION_NAME }
 
-            if (latestVersion != lastNotified && !Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
+            if (latestVersion != lastNotified && !Updater.isSameVersion(latestVersion, effectiveVersionName)) {
                 showUpdateNotification(context, latestVersion, updateChannel)
                 dataStore.edit { it[LastNotifiedVersionKey] = latestVersion }
             }
