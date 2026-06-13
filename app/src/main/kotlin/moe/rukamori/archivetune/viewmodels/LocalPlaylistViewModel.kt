@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -159,10 +159,13 @@ constructor(
     val isRefreshing = _isRefreshing.asStateFlow()
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val sortedSongs =
-                playlistSongs.first().sortedWith(compareBy({ it.map.position }, { it.map.id }))
-            database.transaction {
+                database
+                    .playlistSongs(playlistId)
+                    .first()
+                    .sortedWith(compareBy({ it.map.position }, { it.map.id }))
+            database.withTransaction {
                 sortedSongs.forEachIndexed { index, playlistSong ->
                     if (playlistSong.map.position != index) {
                         update(playlistSong.map.copy(position = index))

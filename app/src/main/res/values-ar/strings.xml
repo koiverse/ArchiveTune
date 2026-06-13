@@ -350,4 +350,8 @@
     <string name="player">مشغل</string>
     <string name="player_text_alignment">محاذاة نص المشغل</string>
     <string name="lyrics_text_position">موضع نص كلمات الأغنية</string>
+    <string name="album_backdrop">طمس الخلفية</string>
+    <string name="album_backdrop_desc">عرض العمل الفني كخلفية ضبابية على المشغل</string>
+    <string name="backdrop_blur_amount">مقدار طمس الخلفية</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

@@ -329,4 +329,8 @@
     <string name="palette_royal_purple">Kuninglik purpur</string>
     <string name="palette_lavender_dream">Lavendel</string>
     <string name="palette_grape_purple">Viinamari</string>
+    <string name="album_backdrop">Tausta hägustamine</string>
+    <string name="album_backdrop_desc">Kuva kunstiteos hägusa taustana mängijal</string>
+    <string name="backdrop_blur_amount">Tausta hägustamise määr</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

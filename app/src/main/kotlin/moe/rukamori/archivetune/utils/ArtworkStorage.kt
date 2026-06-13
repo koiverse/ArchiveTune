@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -12,6 +12,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import moe.rukamori.archivetune.storage.StorageFolderKind
+import moe.rukamori.archivetune.storage.StorageLocationRepository
 import java.io.File
 
 @Serializable
@@ -25,7 +27,8 @@ object ArtworkStorage {
     private const val FILENAME = "archivetune_saved_artworks.json"
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
-    private fun fileFor(context: Context): File = File(context.filesDir, FILENAME)
+    private fun fileFor(context: Context): File =
+        StorageLocationRepository.cacheFile(context, StorageFolderKind.ARTWORK_CACHE, FILENAME)
 
     fun loadAll(context: Context): List<SavedArtwork> {
         try {
@@ -52,13 +55,15 @@ object ArtworkStorage {
         }
     }
 
-    fun clear(context: Context) {
+    fun clear(context: Context): Boolean =
         try {
             val f = fileFor(context)
+            f.parentFile?.mkdirs()
             if (f.exists()) f.writeText("[]")
+            true
         } catch (_: Exception) {
+            false
         }
-    }
 
     fun removeBySongId(context: Context, songId: String) {
         try {

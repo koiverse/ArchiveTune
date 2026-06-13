@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -20,6 +20,8 @@ import androidx.media3.datasource.cache.SimpleCache
 import moe.rukamori.archivetune.constants.MaxSongCacheSizeKey
 import moe.rukamori.archivetune.db.InternalDatabase
 import moe.rukamori.archivetune.db.MusicDatabase
+import moe.rukamori.archivetune.storage.StorageFolderKind
+import moe.rukamori.archivetune.storage.StorageLocationRepository
 import moe.rukamori.archivetune.utils.dataStore
 import moe.rukamori.archivetune.utils.get
 import dagger.Module
@@ -104,8 +106,12 @@ private class LazyCache(
     override fun isCached(key: String, position: Long, length: Long): Boolean =
         delegate().isCached(key, position, length)
 
-    override fun release() =
-        delegate().release()
+    override fun release() {
+        val cacheToRelease = synchronized(lock) {
+            cache.also { cache = null }
+        }
+        cacheToRelease?.release()
+    }
 }
 
 @Module
@@ -137,7 +143,7 @@ object AppModule {
         }
         return LazyCache {
             SimpleCache(
-                context.filesDir.resolve("exoplayer"),
+                StorageLocationRepository.cacheDirectory(context, StorageFolderKind.SONG_CACHE),
                 evictor,
                 databaseProvider,
             )
@@ -152,6 +158,10 @@ object AppModule {
         databaseProvider: DatabaseProvider,
     ): Cache =
         LazyCache {
-            SimpleCache(context.filesDir.resolve("download"), NoOpCacheEvictor(), databaseProvider)
+            SimpleCache(
+                StorageLocationRepository.cacheDirectory(context, StorageFolderKind.DOWNLOADS),
+                NoOpCacheEvictor(),
+                databaseProvider,
+            )
         }
 }

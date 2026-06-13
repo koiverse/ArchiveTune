@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -16,10 +16,20 @@ import java.util.zip.ZipOutputStream
 operator fun File.div(child: String): File = File(this, child)
 
 fun File.directorySizeBytes(): Long {
-    if (!exists()) return 0L
-    return walkTopDown()
-        .filter { it.isFile }
-        .sumOf { it.length() }
+    val stack = ArrayDeque<File>()
+    if (!runCatching { exists() }.getOrDefault(false)) return 0L
+    stack.add(this)
+    var totalBytes = 0L
+    while (stack.isNotEmpty()) {
+        val file = stack.removeLast()
+        if (runCatching { file.isFile }.getOrDefault(false)) {
+            totalBytes += runCatching { file.length() }.getOrDefault(0L)
+            continue
+        }
+        val children = runCatching { file.listFiles() }.getOrNull() ?: continue
+        children.forEach { child -> stack.add(child) }
+    }
+    return totalBytes
 }
 
 fun InputStream.zipInputStream(): ZipInputStream = ZipInputStream(this)

@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -90,6 +90,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import kotlinx.coroutines.delay
+import moe.rukamori.archivetune.innertube.YouTube
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import moe.rukamori.archivetune.LocalAnimationsDisabled
@@ -266,8 +268,18 @@ fun HistoryScreen(
                 if (newSource == historySource) return@HistoryOverviewCard
 
                 viewModel.historySource.value = newSource
-                if (newSource == HistorySource.REMOTE && remoteHistoryState is RemoteHistoryUiState.Error) {
-                    viewModel.fetchRemoteHistory()
+                if (newSource == HistorySource.REMOTE) {
+                    when (remoteHistoryState) {
+                        is RemoteHistoryUiState.Error -> {
+                            viewModel.fetchRemoteHistory()  // error: fetch with loading (user expects feedback)
+                        }
+                        is RemoteHistoryUiState.Empty -> {
+                            viewModel.enqueueSilentFetch()  // empty: try silent fetch
+                        }
+                        else -> {
+                            // Already has data: no fetch needed
+                        }
+                    }
                 }
             },
             modifier = Modifier
@@ -389,6 +401,29 @@ fun HistoryScreen(
     LaunchedEffect(localVisibleEventIds) {
         if (selectedEventIds.any { it !in localVisibleEventIdSet }) {
             selectedEventIds = selectedEventIds.filter(localVisibleEventIdSet::contains)
+        }
+    }
+
+    // A. When screen opens + user is logged in → fetch remote history in background
+    LaunchedEffect("prefetch", isLoggedIn) {
+        if (!isLoggedIn) return@LaunchedEffect
+        if (remoteHistoryState is RemoteHistoryUiState.Success) return@LaunchedEffect
+        delay(1_000)  // wait for screen
+
+        viewModel.fetchRemoteHistorySilent()
+    }
+
+    // B. When playback sync happens → retry with backoff
+    LaunchedEffect("sync", isLoggedIn) {
+        YouTube.historySyncEvent.collect {
+            if (!isLoggedIn) return@collect
+
+            // Retry 3 times with increasing delay (handles slow internet)
+            repeat(3) { attempt ->
+                delay(3000L * (attempt + 1))  // 3s, 6s, 9s
+                viewModel.fetchRemoteHistorySilent()
+                if (remoteHistoryState is RemoteHistoryUiState.Success) return@collect
+            }
         }
     }
 

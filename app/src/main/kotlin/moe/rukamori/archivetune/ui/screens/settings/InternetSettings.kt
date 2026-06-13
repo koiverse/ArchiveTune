@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -66,6 +66,7 @@ import moe.rukamori.archivetune.constants.*
 import moe.rukamori.archivetune.innertube.YouTube
 import moe.rukamori.archivetune.ui.component.*
 import moe.rukamori.archivetune.ui.utils.backToMain
+import moe.rukamori.archivetune.utils.ProxyUtils
 import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberPreference
 import okhttp3.OkHttpClient
@@ -146,7 +147,7 @@ fun InternetSettings(
     val (customDnsUrl, onCustomDnsUrlChange) = rememberPreference(key = stringPreferencesKey("customDnsUrl"), defaultValue = "https://")
     val (proxyEnabled, onProxyEnabledChange) = rememberPreference(key = ProxyEnabledKey, defaultValue = false)
     val (proxyType, onProxyTypeChange) = rememberEnumPreference(key = ProxyTypeKey, defaultValue = Proxy.Type.HTTP)
-    val (proxyHost, onProxyHostChange) = rememberPreference(key = ProxyHostKey, defaultValue = "127.0.0.1")
+    val (proxyHost, onProxyHostChange) = rememberPreference(key = ProxyHostKey, defaultValue = "")
     val (proxyPort, onProxyPortChange) = rememberPreference(key = ProxyPortKey, defaultValue = 8080)
     val (proxyUsername, onProxyUsernameChange) = rememberPreference(key = ProxyUsernameKey, defaultValue = "")
     val (proxyPassword, onProxyPasswordChange) = rememberPreference(key = ProxyPasswordKey, defaultValue = "")
@@ -161,6 +162,7 @@ fun InternetSettings(
     var testResult by remember { mutableStateOf<String?>(null) }
 
     val dnsProviders = remember { listOf("Cloudflare", "Google", "AdGuard", "Quad9", "Custom") }
+    val proxyTypes = remember { listOf(Proxy.Type.HTTP, Proxy.Type.SOCKS) }
     val ipRotationDescription = when {
         loadingIpRotation -> stringResource(R.string.ip_rotation_loading)
         refreshingIpRotation -> stringResource(R.string.ip_rotation_refreshing)
@@ -214,15 +216,7 @@ fun InternetSettings(
                     checked = proxyEnabled,
                     onCheckedChange = {
                         onProxyEnabledChange(it)
-                        if (it) {
-                            YouTube.proxy = Proxy(proxyType, java.net.InetSocketAddress.createUnresolved(proxyHost, proxyPort))
-                            YouTube.proxyUsername = proxyUsername
-                            YouTube.proxyPassword = proxyPassword
-                        } else {
-                            YouTube.proxy = null
-                            YouTube.proxyUsername = null
-                            YouTube.proxyPassword = null
-                        }
+                        ProxyUtils.applyYouTubeProxy(it, proxyType, proxyHost, proxyPort, proxyUsername, proxyPassword)
                     },
                 )
             }
@@ -231,11 +225,11 @@ fun InternetSettings(
                 ListPreference(
                     title = { Text(stringResource(R.string.proxy_type)) },
                     selectedValue = proxyType,
-                    values = listOf(Proxy.Type.HTTP, Proxy.Type.SOCKS),
+                    values = proxyTypes,
                     valueText = { it.name },
                     onValueSelected = {
                         onProxyTypeChange(it)
-                        YouTube.proxy = Proxy(it, java.net.InetSocketAddress.createUnresolved(proxyHost, proxyPort))
+                        ProxyUtils.applyYouTubeProxy(proxyEnabled, it, proxyHost, proxyPort, proxyUsername, proxyPassword)
                     },
                 )
             }
@@ -246,7 +240,7 @@ fun InternetSettings(
                     value = proxyHost,
                     onValueChange = {
                         onProxyHostChange(it)
-                        YouTube.proxy = Proxy(proxyType, java.net.InetSocketAddress.createUnresolved(it, proxyPort))
+                        ProxyUtils.applyYouTubeProxy(proxyEnabled, proxyType, it, proxyPort, proxyUsername, proxyPassword)
                     },
                 )
             }
@@ -257,7 +251,7 @@ fun InternetSettings(
                     value = proxyPort,
                     onValueChange = {
                         onProxyPortChange(it)
-                        YouTube.proxy = Proxy(proxyType, java.net.InetSocketAddress.createUnresolved(proxyHost, it))
+                        ProxyUtils.applyYouTubeProxy(proxyEnabled, proxyType, proxyHost, it, proxyUsername, proxyPassword)
                     },
                     isInputValid = { it.toIntOrNull() in 1..65535 },
                 )
@@ -272,7 +266,7 @@ fun InternetSettings(
                         value = proxyUsername,
                         onValueChange = {
                             onProxyUsernameChange(it)
-                            YouTube.proxyUsername = it
+                            ProxyUtils.applyYouTubeProxy(proxyEnabled, proxyType, proxyHost, proxyPort, it, proxyPassword)
                         },
                     )
                 }
@@ -283,7 +277,7 @@ fun InternetSettings(
                         value = proxyPassword,
                         onValueChange = {
                             onProxyPasswordChange(it)
-                            YouTube.proxyPassword = it
+                            ProxyUtils.applyYouTubeProxy(proxyEnabled, proxyType, proxyHost, proxyPort, proxyUsername, it)
                         },
                     )
                 }
@@ -310,8 +304,14 @@ fun InternetSettings(
                             scope.launch(Dispatchers.IO) {
                                 testingProxy = true
                                 try {
-                                    val proxyAddr = java.net.InetSocketAddress.createUnresolved(proxyHost, proxyPort)
-                                    val proxy = Proxy(proxyType, proxyAddr)
+                                    val proxy = ProxyUtils.createProxyOrNull(proxyType, proxyHost, proxyPort)
+                                    if (proxy == null) {
+                                        testResult = context.getString(
+                                            R.string.proxy_connection_failed,
+                                            context.getString(R.string.proxy_connection_invalid_configuration),
+                                        )
+                                        return@launch
+                                    }
                                     val clientBuilder = OkHttpClient.Builder()
                                         .proxy(proxy)
                                         .connectTimeout(10, TimeUnit.SECONDS)
@@ -338,7 +338,7 @@ fun InternetSettings(
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    testResult = context.getString(R.string.proxy_connection_failed, e.message ?: "Unknown error")
+                                    testResult = context.getString(R.string.proxy_connection_failed, e.message ?: context.getString(R.string.error_unknown))
                                 } finally {
                                     testingProxy = false
                                 }

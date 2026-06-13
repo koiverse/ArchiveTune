@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -38,7 +38,7 @@ import kotlin.math.abs
 private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
 
     private val client = OkHttpClient.Builder()
-        .proxy(proxy)
+        .proxy(proxy ?: Proxy.NO_PROXY)
         .retryOnConnectionFailure(true)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -96,7 +96,7 @@ object NewPipeUtils {
 
     private val externalProbeClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .proxy(YouTube.proxy)
+            .proxy(YouTube.streamOkHttpProxy)
             .retryOnConnectionFailure(true)
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
@@ -130,7 +130,7 @@ object NewPipeUtils {
     )
 
     init {
-        NewPipe.init(NewPipeDownloaderImpl(YouTube.proxy))
+        NewPipe.init(NewPipeDownloaderImpl(YouTube.streamProxy))
     }
 
     fun getHiResLosslessAudioStream(query: ExternalAudioQuery): Result<ExternalAudioStream> =

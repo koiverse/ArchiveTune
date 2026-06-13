@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -554,12 +554,6 @@ fun SelectionSongMenu(
                                                 offsetByPlaylistId[cur.playlistId] = offset + 1
                                             }
                                     }
-                                }
-
-                                for ((playlistId, browseId) in browseIdByPlaylistId) {
-                                    if (browseId == null) continue
-                                    if (succeeded.none { it.playlistId == playlistId }) continue
-                                    syncUtils.syncPlaylistNow(browseId, playlistId)
                                 }
 
                                 withContext(Dispatchers.Main) {

@@ -28,7 +28,6 @@ composeReorderable = "3.1.0"
 squigglyslider = "1.0.0"
 shimmer = "1.4.0"
 palette = "1.0.0"
-cloudy = "0.5.0"
 apacheLang3 = "3.20.0"
 brotli = "0.1.2"
 desugaring = "2.1.5"
@@ -82,7 +81,6 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 shimmer = { module = "com.valentinilk.shimmer:compose-shimmer", version.ref = "shimmer" }
 
 palette = { module = "androidx.palette:palette-ktx", version.ref = "palette" }
-compose-cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 
 media3 = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
 media3-okhttp = { module = "androidx.media3:media3-datasource-okhttp", version.ref = "media3" }

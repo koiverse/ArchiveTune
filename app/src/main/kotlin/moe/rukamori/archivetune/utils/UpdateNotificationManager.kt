@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -124,9 +124,14 @@ object UpdateNotificationManager {
 
                 dataStore.edit { it[LastUpdateCheckKey] = now }
 
-                Updater.getLatestVersionName().onSuccess { latestVersion ->
+                val versionResult = when (updateChannel) {
+                    UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyVersionName()
+                    else -> Updater.getLatestVersionName()
+                }
+
+                versionResult.onSuccess { latestVersion ->
                     if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
-                        notifyIfNewVersion(context, latestVersion)
+                        notifyIfNewVersion(context, latestVersion, updateChannel)
                     }
                 }
             } catch (e: Exception) {
@@ -135,7 +140,11 @@ object UpdateNotificationManager {
         }
     }
 
-    suspend fun notifyIfNewVersion(context: Context, latestVersion: String) {
+    suspend fun notifyIfNewVersion(
+        context: Context,
+        latestVersion: String,
+        updateChannel: UpdateChannel = UpdateChannel.STABLE,
+    ) {
         if (!BuildConfig.UPDATER_AVAILABLE) return
 
         try {
@@ -143,7 +152,7 @@ object UpdateNotificationManager {
             val lastNotified = dataStore.data.map { it[LastNotifiedVersionKey] ?: "" }.first()
 
             if (latestVersion != lastNotified && !Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
-                showUpdateNotification(context, latestVersion)
+                showUpdateNotification(context, latestVersion, updateChannel)
                 dataStore.edit { it[LastNotifiedVersionKey] = latestVersion }
             }
         } catch (e: Exception) {
@@ -151,7 +160,11 @@ object UpdateNotificationManager {
         }
     }
 
-    private fun showUpdateNotification(context: Context, newVersion: String) {
+    private fun showUpdateNotification(
+        context: Context,
+        newVersion: String,
+        updateChannel: UpdateChannel = UpdateChannel.STABLE,
+    ) {
         createNotificationChannel(context)
 
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
@@ -165,7 +178,11 @@ object UpdateNotificationManager {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val downloadIntent = Intent(Intent.ACTION_VIEW, Uri.parse(Updater.getLatestDownloadUrl()))
+        val downloadUrl = when (updateChannel) {
+            UpdateChannel.DAILY_NIGHTLY -> Updater.getLatestDailyNightlyDownloadUrl()
+            else -> Updater.getLatestDownloadUrl()
+        }
+        val downloadIntent = Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl))
         val downloadPendingIntent = PendingIntent.getActivity(
             context,
             1,

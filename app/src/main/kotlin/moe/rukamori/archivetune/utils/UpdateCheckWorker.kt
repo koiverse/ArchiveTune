@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -39,11 +39,25 @@ class UpdateCheckWorker(
                 } ?: UpdateChannel.STABLE
             }.first()
 
-            if (updateChannel == UpdateChannel.NIGHTLY) return Result.success()
-
-            Updater.getLatestVersionName().onSuccess { latestVersion ->
-                if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
-                    UpdateNotificationManager.notifyIfNewVersion(applicationContext, latestVersion)
+            when (updateChannel) {
+                UpdateChannel.NIGHTLY -> return Result.success()
+                UpdateChannel.DAILY_NIGHTLY -> {
+                    Updater.getLatestDailyNightlyVersionName().onSuccess { latestVersion ->
+                        if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
+                            UpdateNotificationManager.notifyIfNewVersion(
+                                applicationContext,
+                                latestVersion,
+                                updateChannel,
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    Updater.getLatestVersionName().onSuccess { latestVersion ->
+                        if (!Updater.isSameVersion(latestVersion, BuildConfig.VERSION_NAME)) {
+                            UpdateNotificationManager.notifyIfNewVersion(applicationContext, latestVersion)
+                        }
+                    }
                 }
             }
 

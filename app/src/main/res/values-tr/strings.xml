@@ -626,4 +626,8 @@
     <string name="disable_animations_desc">Çoğu uygulama animasyonunu devre dışı bırakın. Düşük özellikli cihazlar için önerilir</string>
     <string name="music_recognition">Müzik Tanıma</string>
     <string name="pause_on_device_mute">Cihaz ses seviyesi 0 olduğunda duraklat</string>
+    <string name="album_backdrop">Arka plan bulanıklığı</string>
+    <string name="album_backdrop_desc">Sanat eserini oynatıcıda bulanık arka plan olarak göster</string>
+    <string name="backdrop_blur_amount">Arka plan bulanıklık miktarı</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

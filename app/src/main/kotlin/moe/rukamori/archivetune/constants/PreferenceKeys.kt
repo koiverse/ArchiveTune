@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -24,6 +24,9 @@ val PureBlackKey = booleanPreferencesKey("pureBlack")
 val DisableAnimationsKey = booleanPreferencesKey("disableAnimations")
 val EnableHapticFeedbackKey = booleanPreferencesKey("enableHapticFeedback")
 val UseSystemFontKey = booleanPreferencesKey("useSystemFont")
+val FontPreferenceKey = stringPreferencesKey("fontPreference")
+val CustomFontUriKey = stringPreferencesKey("customFontUri")
+val CustomFontNameKey = stringPreferencesKey("customFontName")
 val DefaultOpenTabKey = stringPreferencesKey("defaultOpenTab")
 val GridItemsSizeKey = stringPreferencesKey("gridItemSize")
 val SliderStyleKey = stringPreferencesKey("sliderStyle")
@@ -60,6 +63,10 @@ val AodAmbientIntensityKey = floatPreferencesKey("aodAmbientIntensity")
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
 val BlurRadiusKey = floatPreferencesKey("blurRadius")
+
+// Backdrop blur for detail pages
+val BackdropEnabledKey = booleanPreferencesKey("backdropEnabled")
+val BackdropBlurAmountKey = intPreferencesKey("backdropBlurAmount")
 val MiniPlayerLastAnchorKey = intPreferencesKey("miniPlayerLastAnchor")
 val MiniPlayerBackgroundStyleKey = stringPreferencesKey("miniPlayerBackgroundStyle")
 
@@ -123,6 +130,12 @@ enum class SliderStyle {
 }
 
 const val SYSTEM_DEFAULT = "SYSTEM_DEFAULT"
+
+enum class AppFontPreference {
+    DEFAULT,
+    SYSTEM,
+    CUSTOM,
+}
 
 enum class PlaylistSuggestionSource {
     PLAYLIST_TITLE,
@@ -244,6 +257,7 @@ val AutoLoadMoreKey = booleanPreferencesKey("autoLoadMore")
 val AutoDownloadOnLikeKey = booleanPreferencesKey("autoDownloadOnLike")
 val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
 val PauseOnDeviceMuteKey = booleanPreferencesKey("pauseOnDeviceMute")
+val DeviceMutePlaybackRecoveryVolumeKey = intPreferencesKey("deviceMutePlaybackRecoveryVolume")
 val AutoStartOnBluetoothKey = booleanPreferencesKey("autoStartOnBluetooth")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val WakelockKey = booleanPreferencesKey("wakelock")
@@ -269,6 +283,10 @@ val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
 val SmartTrimmerKey = booleanPreferencesKey("smartTrimmer")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
 val MaxCanvasCacheSizeKey = intPreferencesKey("maxCanvasCacheSize")
+val StorageFolderIdKey = stringPreferencesKey("storageFolderId")
+val StorageFolderTreeUriKey = stringPreferencesKey("storageFolderTreeUri")
+val StorageFolderPathKey = stringPreferencesKey("storageFolderPath")
+val StorageFolderDisplayNameKey = stringPreferencesKey("storageFolderDisplayName")
 
 val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")
 val PauseSearchHistoryKey = booleanPreferencesKey("pauseSearchHistory")
@@ -615,7 +633,12 @@ val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
 val LyricsLineBlurKey = booleanPreferencesKey("lyricsLineBlur")
 
 val TopSize = stringPreferencesKey("topSize")
-val HistoryDuration = floatPreferencesKey("historyDuration")
+
+const val HISTORY_DURATION_DEFAULT = 30
+const val HISTORY_DURATION_MIN = 15
+const val HISTORY_DURATION_MAX = 60
+val HISTORY_DURATION_LEGACY_FLOAT_KEY = floatPreferencesKey("historyDuration")
+val HistoryDuration = intPreferencesKey("historyDuration")
 
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
@@ -789,10 +812,16 @@ val GitHubReleasesJsonKey = stringPreferencesKey("github_releases_json")
 val GitHubReleasesLastCheckedAtKey = longPreferencesKey("github_releases_last_checked_at")
 val GitHubReleasesFingerprintKey = stringPreferencesKey("github_releases_fingerprint")
 
+val DailyNightlyReleasesEtagKey = stringPreferencesKey("daily_nightly_releases_etag")
+val DailyNightlyReleasesJsonKey = stringPreferencesKey("daily_nightly_releases_json")
+val DailyNightlyReleasesLastCheckedAtKey = longPreferencesKey("daily_nightly_releases_last_checked_at")
+val DailyNightlyReleasesFingerprintKey = stringPreferencesKey("daily_nightly_releases_fingerprint")
+
 val TogetherOnlineEndpointCacheKey = stringPreferencesKey("together_online_endpoint_cache")
 val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online_endpoint_last_checked_at")
 
 enum class UpdateChannel {
     STABLE,
     NIGHTLY,
+    DAILY_NIGHTLY,
 }
