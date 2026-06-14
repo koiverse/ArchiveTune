@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -13,6 +13,7 @@ import moe.rukamori.archivetune.innertube.YouTube
 import moe.rukamori.archivetune.constants.statToPeriod
 import moe.rukamori.archivetune.db.MusicDatabase
 import moe.rukamori.archivetune.db.entities.ListeningSummary
+import moe.rukamori.archivetune.db.entities.ListeningTotals
 import moe.rukamori.archivetune.ui.screens.OptionStats
 import moe.rukamori.archivetune.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -115,11 +116,20 @@ constructor(
                 )
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    private val listeningTotals =
+        periodPair()
+            .flatMapLatest { (selection, t) ->
+                database.listeningTotals(
+                    fromTimestamp = statToPeriod(selection, t),
+                    toTimestamp = toTimestamp(selection, t),
+                )
+            }.stateIn(viewModelScope, SharingStarted.Lazily, ListeningTotals(0, 0L))
+
     val listeningSummary =
-        combine(mostPlayedSongsStats, mostPlayedArtists, mostPlayedAlbums) { songs, artists, albums ->
+        combine(listeningTotals, mostPlayedSongsStats, mostPlayedArtists, mostPlayedAlbums) { totals, songs, artists, albums ->
             ListeningSummary(
-                totalPlayCount = songs.sumOf { it.songCountListened },
-                totalTimeListened = songs.sumOf { it.timeListened ?: 0L },
+                totalPlayCount = totals.totalPlayCount,
+                totalTimeListened = totals.totalTimeListened,
                 uniqueSongsCount = songs.size,
                 uniqueArtistsCount = artists.size,
                 uniqueAlbumsCount = albums.size,

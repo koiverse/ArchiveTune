@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -50,6 +50,7 @@ constructor(
             PaxsenixNeteaseLyricsProvider,
             PaxsenixSpotifyLyricsProvider,
             PaxsenixMusixmatchLyricsProvider,
+            PaxsenixYouTubeLyricsProvider,
             YouTubeSubtitleLyricsProvider,
             YouTubeLyricsProvider,
         )
@@ -232,6 +233,7 @@ constructor(
             PreferredLyricsProvider.PAXSENIX_NETEASE to PaxsenixNeteaseLyricsProvider,
             PreferredLyricsProvider.PAXSENIX_SPOTIFY to PaxsenixSpotifyLyricsProvider,
             PreferredLyricsProvider.PAXSENIX_MUSIXMATCH to PaxsenixMusixmatchLyricsProvider,
+            PreferredLyricsProvider.PAXSENIX_YOUTUBE to PaxsenixYouTubeLyricsProvider,
             PreferredLyricsProvider.UNISON to UnisonLyricsProvider,
         )
         val userOrdered = orderedEnums.mapNotNull { providerMap[it] }

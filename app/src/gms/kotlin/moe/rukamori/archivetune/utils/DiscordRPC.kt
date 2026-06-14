@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -66,7 +66,7 @@ class DiscordRPC(
     fun isRpcRunning(): Boolean = DiscordSocialPresenceClient.isStarted
 
     suspend fun stopActivity() {
-        DiscordSocialPresenceClient.clearPresence().getOrElse {
+        DiscordSocialPresenceClient.clearPresence(accessToken).getOrElse {
             Timber.tag(TAG).v(it, "clearPresence failed")
         }
     }
@@ -352,8 +352,9 @@ class DiscordRPC(
         showWhenPaused: Boolean,
     ): DiscordPresenceTimestamps {
         if (isPaused && showWhenPaused) {
+            val pausedStartMs = System.currentTimeMillis() - currentPlaybackTimeMillis.coerceAtLeast(0L)
             return DiscordPresenceTimestamps(
-                startEpochSeconds = System.currentTimeMillis() / 1000L,
+                startEpochSeconds = pausedStartMs / 1000L,
             )
         }
 

@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -15,13 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import moe.rukamori.archivetune.R
 
-// TODO: Define or import actual M3 Expressive font families if needed.
-// For now, using default FontFamily as a placeholder.
-
-// Define M3 Expressive Typography based on Material Design guidelines
-// https://m3.material.io/styles/typography/type-scale-tokens
-// Note: M3 Expressive might introduce subtle changes or new roles.
-// Referencing standard M3 roles for now, adjust if Expressive spec differs significantly.
 private fun buildTypography(fontFamily: FontFamily) =
     Typography(
         displayLarge = TextStyle(
@@ -29,7 +22,7 @@ private fun buildTypography(fontFamily: FontFamily) =
             fontWeight = FontWeight.Normal,
             fontSize = 57.sp,
             lineHeight = 64.sp,
-            letterSpacing = (-0.25).sp
+            letterSpacing = 0.sp
         ),
         displayMedium = TextStyle(
             fontFamily = fontFamily,
@@ -68,7 +61,7 @@ private fun buildTypography(fontFamily: FontFamily) =
         ),
         titleLarge = TextStyle(
             fontFamily = fontFamily,
-            fontWeight = FontWeight.Normal, // M3 uses Normal, M2 used Medium
+            fontWeight = FontWeight.Normal,
             fontSize = 22.sp,
             lineHeight = 28.sp,
             letterSpacing = 0.sp
@@ -131,7 +124,10 @@ private fun buildTypography(fontFamily: FontFamily) =
         )
     )
 
-private val AppFontFamily = FontFamily(Font(R.font.poppins))
+val AppFontFamily = FontFamily(Font(R.font.poppins))
+val LyricsFontFamily = FontFamily(Font(R.font.sfprodisplaybold))
 val AppTypography = buildTypography(AppFontFamily)
 val SystemTypography = buildTypography(FontFamily.Default)
+
+fun typographyFor(fontFamily: FontFamily) = buildTypography(fontFamily)
 

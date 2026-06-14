@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -70,15 +70,17 @@ import moe.rukamori.archivetune.innertube.pages.SearchResult
 import moe.rukamori.archivetune.innertube.pages.SearchSuggestionPage
 import moe.rukamori.archivetune.innertube.pages.SearchSummary
 import moe.rukamori.archivetune.innertube.pages.SearchSummaryPage
-import moe.rukamori.archivetune.innertube.utils.PoTokenGenerator
 import moe.rukamori.archivetune.innertube.proxy.RotatingProxyClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -110,6 +112,13 @@ object YouTube {
     private val mutableAuthState = MutableStateFlow(PlaybackAuthState.EMPTY)
 
     val authStateFlow: StateFlow<PlaybackAuthState> = mutableAuthState.asStateFlow()
+
+    private val _historySyncEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val historySyncEvent: SharedFlow<Unit> = _historySyncEvent.asSharedFlow()
+
+    fun notifyHistorySynced() {
+        _historySyncEvent.tryEmit(Unit)
+    }
 
     var authState: PlaybackAuthState
         get() = mutableAuthState.value
@@ -182,6 +191,8 @@ object YouTube {
     var streamBypassProxy: Boolean = false
     val streamProxy: Proxy?
         get() = if (streamBypassProxy) null else proxy
+    val streamOkHttpProxy: Proxy
+        get() = streamProxy ?: Proxy.NO_PROXY
     var useLoginForBrowse: Boolean
         get() = innerTube.useLoginForBrowse
         set(value) {
@@ -1388,9 +1399,6 @@ object YouTube {
     suspend fun registerPlayback(
         playlistId: String? = null,
         playbackTracking: String,
-        watchtimeTracking: String? = null,
-        atrTracking: String? = null,
-        playedTimeMs: Long = 0L,
         authState: PlaybackAuthState = currentPlaybackAuthState(),
     ) = runCatching {
         val cpn = (1..16).map {
@@ -1406,30 +1414,6 @@ object YouTube {
             cpn = cpn,
             authState = authState,
         )
-
-        watchtimeTracking
-            ?.takeIf { it.isNotBlank() }
-            ?.let { watchtimeUrl ->
-                innerTube.registerPlayback(
-                    url = watchtimeUrl,
-                    playlistId = playlistId,
-                    cpn = cpn,
-                    elapsedSeconds = playedTimeMs.coerceAtLeast(0L) / 1000.0,
-                    state = "playing",
-                    authState = authState,
-                )
-            }
-
-        atrTracking
-            ?.takeIf { it.isNotBlank() }
-            ?.let { atrUrl ->
-                innerTube.registerPlayback(
-                    url = atrUrl,
-                    playlistId = playlistId,
-                    cpn = cpn,
-                    authState = authState,
-                )
-            }
     }
 
     suspend fun next(

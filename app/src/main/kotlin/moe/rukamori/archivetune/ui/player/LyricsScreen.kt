@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -252,7 +252,7 @@ fun LyricsScreen(
         gradientColorsCache[thumbnailUrl] = gradientColors
     }
 
-    LaunchedEffect(player, playbackState) {
+    LaunchedEffect(player, playbackState, mediaMetadata.id) {
         if (playbackState != STATE_READY && playbackState != STATE_BUFFERING) return@LaunchedEffect
         while (isActive) {
             positionState.longValue = player.currentPosition.coerceAtLeast(0L)

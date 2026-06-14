@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -11,8 +11,6 @@ import android.app.Application
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
-import android.widget.Toast
-import android.widget.Toast.LENGTH_SHORT
 import androidx.datastore.preferences.core.edit
 import coil3.ImageLoader
 import coil3.PlatformContext
@@ -29,6 +27,7 @@ import moe.rukamori.archivetune.ui.theme.ThemeSeedPalette
 import moe.rukamori.archivetune.ui.theme.ThemeSeedPaletteCodec
 import moe.rukamori.archivetune.utils.dataStore
 import moe.rukamori.archivetune.utils.PreferenceStore
+import moe.rukamori.archivetune.utils.ProxyUtils
 import moe.rukamori.archivetune.utils.YTPlayerUtils
 import moe.rukamori.archivetune.utils.get
 import moe.rukamori.archivetune.utils.reportException
@@ -40,6 +39,8 @@ import moe.rukamori.archivetune.kugou.KuGou
 import moe.rukamori.archivetune.lastfm.LastFM
 import moe.rukamori.archivetune.canvas.ArchiveTuneCanvas
 import moe.rukamori.archivetune.paxsenix.PaxsenixLyrics
+import moe.rukamori.archivetune.storage.StorageFolderKind
+import moe.rukamori.archivetune.storage.StorageLocationRepository
 import moe.rukamori.archivetune.ui.player.CanvasArtworkPlaybackCache
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -51,8 +52,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import android.content.Intent
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -64,6 +63,7 @@ import java.net.Proxy
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import moe.rukamori.archivetune.utils.toPlaybackAuthState
+import moe.rukamori.archivetune.utils.potoken.BotGuardTokenGenerator
 
 @HiltAndroidApp
 class App : Application(), SingletonImageLoader.Factory {
@@ -91,6 +91,7 @@ class App : Application(), SingletonImageLoader.Factory {
             Timber.plant(Timber.DebugTree())
             return
         }
+        BotGuardTokenGenerator.initialize(this)
         PreferenceStore.start(this)
         Timber.plant(Timber.DebugTree())
         try {
@@ -99,6 +100,11 @@ class App : Application(), SingletonImageLoader.Factory {
 
         initializeCriticalSync()
         initializeDeferredAsync()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // WebView cleanup happens automatically on process death
     }
 
     private fun initializeCriticalSync() {
@@ -137,24 +143,15 @@ class App : Application(), SingletonImageLoader.Factory {
                 
                 LastFM.sessionKey = prefs[LastFMSessionKey]
 
-                if (prefs[ProxyEnabledKey] == true) {
-                    try {
-                        val host = prefs[ProxyHostKey] ?: "127.0.0.1"
-                        val port = prefs[ProxyPortKey] ?: 8080
-                        YouTube.proxy = Proxy(
-                            prefs[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP),
-                            java.net.InetSocketAddress.createUnresolved(host, port)
-                        )
-                        YouTube.proxyUsername = prefs[ProxyUsernameKey]
-                        YouTube.proxyPassword = prefs[ProxyPasswordKey]
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(this@App, "Failed to parse proxy settings.", LENGTH_SHORT).show()
-                        }
-                        reportException(e)
-                    }
-                    YouTube.streamBypassProxy = prefs[StreamBypassProxyKey] == true
-                }
+                ProxyUtils.applyYouTubeProxy(
+                    enabled = prefs[ProxyEnabledKey] == true,
+                    type = prefs[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP),
+                    host = prefs[ProxyHostKey],
+                    port = prefs[ProxyPortKey],
+                    username = prefs[ProxyUsernameKey],
+                    password = prefs[ProxyPasswordKey],
+                )
+                YouTube.streamBypassProxy = YouTube.proxy != null && prefs[StreamBypassProxyKey] == true
 
                 if (prefs[IpRotationEnabledKey] == true) {
                     try {
@@ -166,6 +163,14 @@ class App : Application(), SingletonImageLoader.Factory {
 
                 if (prefs[UseLoginForBrowse] != false) {
                     YouTube.useLoginForBrowse = true
+                }
+                
+                // Pre-warm BotGuard token generator
+                val initialVisitor = prefs[VisitorDataKey] ?: YouTube.visitorData
+                if (!initialVisitor.isNullOrBlank()) {
+                    applicationScope.launch(Dispatchers.IO) {
+                        BotGuardTokenGenerator.preWarm(initialVisitor)
+                    }
                 }
                 
                 // Apply random theme on startup if enabled
@@ -231,6 +236,10 @@ class App : Application(), SingletonImageLoader.Factory {
                     YouTube.authState = authState
                     if (previousFingerprint != authState.fingerprint) {
                         YTPlayerUtils.clearPlaybackAuthCaches()
+                        val newSessionId = authState.sessionId
+                        if (!newSessionId.isNullOrBlank()) {
+                            BotGuardTokenGenerator.preWarm(newSessionId)
+                        }
                     }
                 }
         }
@@ -290,7 +299,7 @@ class App : Application(), SingletonImageLoader.Factory {
         val imageCacheConfig = resolveImageDiskCacheConfig(dataStore[MaxImageCacheSizeKey])
 
         val diskCache = DiskCache.Builder()
-            .directory(cacheDir.resolve("coil"))
+            .directory(StorageLocationRepository.cacheDirectory(this, StorageFolderKind.IMAGE_CACHE))
             .maxSizeBytes(imageCacheConfig.maxSizeBytes)
             .build()
 

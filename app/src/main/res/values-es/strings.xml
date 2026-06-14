@@ -845,4 +845,8 @@
     <string name="widget_pause">Pausar</string>
     <string name="widget_previous">Anterior</string>
     <string name="widget_tap_to_open">Toca para abrir ArchiveTune</string>
+    <string name="album_backdrop">Desenfoque de fondo</string>
+    <string name="album_backdrop_desc">Mostrar la obra de arte como fondo borroso en el reproductor</string>
+    <string name="backdrop_blur_amount">Cantidad de desenfoque de fondo</string>
+    <string name="backdrop_blur_amount_value">%1$d%%</string>
 </resources>

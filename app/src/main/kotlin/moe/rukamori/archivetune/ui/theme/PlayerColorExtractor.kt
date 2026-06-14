@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -66,7 +66,9 @@ object PlayerColorExtractor {
             android.graphics.Color.colorToHSV(swatch.rgb, hsv)
             (hsv[1] * swatch.population).toDouble()
         }.toFloat() / totalPopulation.toFloat()
-        val isGreyscaleImage = weightedExtractedSaturation < 0.18f
+        
+        val dominantColor = availableColors.firstOrNull() ?: Color(fallbackColor)
+        val isGreyscaleImage = weightedExtractedSaturation < 0.22f || isNearGray(dominantColor)
 
         if (isGreyscaleImage) {
             availableColors.clear()
@@ -210,7 +212,7 @@ object PlayerColorExtractor {
     private fun isNearGray(color: Color): Boolean {
         val hsv = FloatArray(3)
         android.graphics.Color.colorToHSV(color.toArgb(), hsv)
-        return hsv[1] < 0.08f || hsv[2] < 0.08f
+        return hsv[1] < 0.15f || hsv[2] < 0.08f
     }
     
     /**
@@ -222,3 +224,4 @@ object PlayerColorExtractor {
         const val IMAGE_SIZE = 200
     }
 }
+

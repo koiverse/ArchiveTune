@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -318,6 +318,51 @@ object PaxsenixLyrics {
         throw IllegalStateException("Spotify lyrics unavailable")
     }
 
+    suspend fun getYouTubeLyrics(
+        title: String,
+        artist: String,
+        durationSeconds: Int,
+    ): Result<String> = runCatching {
+        val durationMs = resolveDurationMs(durationSeconds)
+        val query = "$title $artist"
+        System.err.println("PaxsenixLyrics: Requesting YouTube lyrics for: $query (Duration: $durationSeconds)")
+
+        val searchResponse = client.get("youtube/search") {
+            parameter("q", query)
+        }
+        if (searchResponse.status != HttpStatusCode.OK) {
+            System.err.println("PaxsenixLyrics: YouTube search failed with status: ${searchResponse.status}")
+            throw IllegalStateException("YouTube lyrics unavailable")
+        }
+
+        val items = searchResponse.body<List<PaxsenixSearchItem>>()
+        val bestMatch = if (durationMs > 0) {
+            items.minByOrNull { abs(it.durationMs - durationMs) }
+        } else {
+            items.firstOrNull()
+        }
+
+        if (bestMatch != null) {
+            val diff = abs(bestMatch.durationMs - durationMs)
+            System.err.println("PaxsenixLyrics: Best YouTube match: ${bestMatch.name ?: bestMatch.title} (ID: ${bestMatch.realId}, Duration: ${bestMatch.durationMs}, Diff: $diff)")
+            if (durationMs <= 0 || (diff < 10000)) {
+                val lyricsResponse = client.get("youtube/lyrics") {
+                    parameter("id", bestMatch.realId)
+                }
+                System.err.println("PaxsenixLyrics: YouTube lyrics status: ${lyricsResponse.status}")
+                if (lyricsResponse.status == HttpStatusCode.OK) {
+                    val data = cleanJsonLyrics(lyricsResponse.body<String>())
+                    if (data.isNotBlank() && !data.contains("\"error\"") && !data.contains("\"isError\"")) {
+                        System.err.println("PaxsenixLyrics: SUCCESS from YouTube")
+                        return@runCatching data
+                    }
+                    System.err.println("PaxsenixLyrics: YouTube returned error: ${data.take(200)}")
+                }
+            }
+        }
+        throw IllegalStateException("YouTube lyrics unavailable")
+    }
+
     suspend fun getMusixmatchLyrics(
         title: String,
         artist: String,
@@ -331,15 +376,16 @@ object PaxsenixLyrics {
             parameter("q", query)
             parameter("t", title)
             parameter("a", artist)
-            parameter("duration", durationSeconds.toString())
+            parameter("d", durationSeconds.toString())
             parameter("type", "word")
         }
         if (mxmWord.status == HttpStatusCode.OK) {
             val data = cleanJsonLyrics(mxmWord.body<String>())
-            if (data.isNotBlank() && !data.contains("\"error\"")) {
+            if (data.isNotBlank() && !data.contains("\"error\"") && !data.contains("\"isError\"")) {
                 System.err.println("PaxsenixLyrics: SUCCESS from Musixmatch (Word)")
                 return@runCatching data
             }
+            System.err.println("PaxsenixLyrics: Musixmatch (Word) returned server error: ${data.take(200)}")
         }
 
         // Fallback to default
@@ -347,15 +393,16 @@ object PaxsenixLyrics {
             parameter("q", query)
             parameter("t", title)
             parameter("a", artist)
-            parameter("duration", durationSeconds.toString())
+            parameter("d", durationSeconds.toString())
         }
         System.err.println("PaxsenixLyrics: Musixmatch lyrics status: ${mxmLyrics.status}")
         if (mxmLyrics.status == HttpStatusCode.OK) {
             val data = cleanJsonLyrics(mxmLyrics.body<String>())
-            if (data.isNotBlank() && !data.contains("\"error\"")) {
+            if (data.isNotBlank() && !data.contains("\"error\"") && !data.contains("\"isError\"")) {
                 System.err.println("PaxsenixLyrics: SUCCESS from Musixmatch")
                 return@runCatching data
             }
+            System.err.println("PaxsenixLyrics: Musixmatch returned server error: ${data.take(200)}")
         }
         throw IllegalStateException("Musixmatch lyrics unavailable")
     }

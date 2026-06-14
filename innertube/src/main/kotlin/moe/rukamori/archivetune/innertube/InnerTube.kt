@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -51,7 +51,11 @@ class InnerTube {
     private var httpClient = createClient()
 
     private companion object {
+        const val HTTP_HEADER_ACCEPT_LANGUAGE = "Accept-Language"
+        const val HTTP_HEADER_CACHE_CONTROL = "Cache-Control"
         const val PLAYBACK_TELEMETRY_VER = "2"
+        const val PLAYBACK_TELEMETRY_ACCEPT_LANGUAGE = "en-US,en;q=0.9"
+        const val PLAYBACK_TELEMETRY_CACHE_CONTROL = "no-cache"
     }
 
     var locale = YouTubeLocale(
@@ -156,6 +160,8 @@ class InnerTube {
                 val sel = this@InnerTube.proxySelector
                 if (sel != null) {
                     proxySelector(sel)
+                } else if (this@InnerTube.proxy == null) {
+                    proxy(Proxy.NO_PROXY)
                 } else if (this@InnerTube.proxy != null && !proxyUsername.isNullOrBlank() && !proxyPassword.isNullOrBlank()) {
                     proxyAuthenticator { _, response ->
                         val credential = okhttp3.Credentials.basic(proxyUsername!!, proxyPassword!!)
@@ -212,7 +218,11 @@ class InnerTube {
         authState: PlaybackAuthState = currentAuthState(),
     ) {
         val requestOrigin = client.requestOrigin()
+        contentType(ContentType.Application.Json)
         headers {
+            append(HttpHeaders.Accept, ContentType.Application.Json.toString())
+            append(HTTP_HEADER_ACCEPT_LANGUAGE, PLAYBACK_TELEMETRY_ACCEPT_LANGUAGE)
+            append(HTTP_HEADER_CACHE_CONTROL, PLAYBACK_TELEMETRY_CACHE_CONTROL)
             append("X-Goog-Api-Format-Version", "1")
             append("X-YouTube-Client-Name", client.clientId)
             append("X-YouTube-Client-Version", client.clientVersion)
@@ -390,48 +400,22 @@ class InnerTube {
         url: String,
         cpn: String,
         playlistId: String?,
-        elapsedSeconds: Double? = null,
-        state: String? = null,
         client: YouTubeClient = YouTubeClient.WEB_REMIX,
         authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
         httpClient.get(url) {
             ytPlaybackTrackingClient(client, authState = authState)
-            parameterIfMissing(url, "ver", "2")
-            parameterIfMissing(url, "c", client.clientName)
-            parameterIfMissing(url, "cpn", cpn)
-
-            if (elapsedSeconds != null) {
-                val seconds = elapsedSeconds.coerceAtLeast(0.0)
-                val formattedSeconds = seconds.toStatsParameter()
-                parameterIfMissing(url, "st", "0")
-                parameterIfMissing(url, "et", formattedSeconds)
-                parameterIfMissing(url, "rt", formattedSeconds)
-                parameterIfMissing(url, "rti", formattedSeconds)
-            }
-
-            if (!state.isNullOrBlank()) {
-                parameterIfMissing(url, "state", state)
-            }
+            parameter("ver", PLAYBACK_TELEMETRY_VER)
+            parameter("c", client.clientName)
+            parameter("cpn", cpn)
+            parameter("prettyPrint", false)
 
             if (playlistId != null) {
-                parameterIfMissing(url, "list", playlistId)
-                parameterIfMissing(url, "referrer", "https://music.youtube.com/playlist?list=$playlistId")
+                parameter("list", playlistId)
+                parameter("referrer", "https://music.youtube.com/playlist?list=$playlistId")
             }
         }
     }
-
-    private fun HttpRequestBuilder.parameterIfMissing(url: String, name: String, value: String) {
-        if (!url.hasQueryParameter(name)) {
-            parameter(name, value)
-        }
-    }
-
-    private fun Double.toStatsParameter(): String =
-        String.format(Locale.US, "%.3f", this).trimEnd('0').trimEnd('.').ifBlank { "0" }
-
-    private fun String.hasQueryParameter(name: String): Boolean =
-        runCatching { toHttpUrl().queryParameter(name) != null }.getOrDefault(false)
 
     suspend fun browse(
         client: YouTubeClient,

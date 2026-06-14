@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -93,6 +93,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import moe.rukamori.archivetune.R
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_DEFAULT
+import moe.rukamori.archivetune.constants.HISTORY_DURATION_RANGE
 import kotlin.math.roundToInt
 
 val LocalPreferenceInGroup = compositionLocalOf { false }
@@ -721,16 +723,16 @@ fun SliderPreference(
     modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
     icon: (@Composable () -> Unit)? = null,
-    value: Float,
-    onValueChange: (Float) -> Unit,
+    value: Int,
+    onValueChange: (Int) -> Unit,
     isEnabled: Boolean = true,
 ) {
     var showDialog by remember {
         mutableStateOf(false)
     }
 
-    var sliderValue by remember {
-        mutableFloatStateOf(value)
+    var sliderValue by remember(value) {
+        mutableFloatStateOf(value.toFloat())
     }
 
     if (showDialog) {
@@ -751,14 +753,14 @@ fun SliderPreference(
             onDismiss = { showDialog = false },
             onConfirm = {
                 showDialog = false
-                onValueChange.invoke(sliderValue)
+                onValueChange.invoke(sliderValue.roundToInt())
             },
             onCancel = {
-                sliderValue = value
+                sliderValue = value.toFloat()
                 showDialog = false
             },
             onReset = {
-                sliderValue = 30f
+                sliderValue = HISTORY_DURATION_DEFAULT.toFloat()
             },
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -775,7 +777,7 @@ fun SliderPreference(
 
                     val sliderState = rememberSliderState(
                         value = sliderValue,
-                        valueRange = 15f..60f,
+                        valueRange = HISTORY_DURATION_RANGE,
                         onValueChangeFinished = {},
                     )
                     sliderState.onValueChange = { sliderValue = it }
@@ -799,7 +801,7 @@ fun SliderPreference(
     PreferenceEntry(
         modifier = modifier,
         title = title,
-        description = value.roundToInt().toString(),
+        description = value.toString(),
         icon = icon,
         onClick = { showDialog = true },
         isEnabled = isEnabled,

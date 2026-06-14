@@ -1,6 +1,6 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
@@ -17,6 +17,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.exoplayer.offline.Download
+import com.google.common.collect.ImmutableList
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.ai.AiServiceConfig
 import moe.rukamori.archivetune.ai.AiTextService
@@ -64,6 +65,10 @@ import moe.rukamori.archivetune.extensions.filterExplicit
 import moe.rukamori.archivetune.extensions.filterExplicitAlbums
 import moe.rukamori.archivetune.extensions.reversed
 import moe.rukamori.archivetune.extensions.toEnum
+import moe.rukamori.archivetune.library.LibraryTopMix
+import moe.rukamori.archivetune.library.LibraryTopMixId
+import moe.rukamori.archivetune.library.ObserveLibraryTopMixesUseCase
+import moe.rukamori.archivetune.models.MediaMetadata
 import moe.rukamori.archivetune.models.toMediaMetadata
 import moe.rukamori.archivetune.playback.DownloadUtil
 import moe.rukamori.archivetune.utils.SyncUtils
@@ -75,6 +80,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -91,6 +97,7 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 @HiltViewModel
 class LibrarySongsViewModel
@@ -435,11 +442,30 @@ constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
     private val syncUtils: SyncUtils,
+    observeLibraryTopMixes: ObserveLibraryTopMixesUseCase,
 ) : ViewModel() {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
     private val _buildYourMixState = MutableStateFlow<BuildYourMixUiState>(BuildYourMixUiState.Idle)
     val buildYourMixState = _buildYourMixState.asStateFlow()
+
+    val topMixesUiState =
+        observeLibraryTopMixes()
+            .map<List<LibraryTopMix>, LibraryTopMixesUiState> { mixes ->
+                if (mixes.isEmpty()) {
+                    LibraryTopMixesUiState.Empty
+                } else {
+                    LibraryTopMixesUiState.Success(
+                        mixes = ImmutableList.copyOf(mixes.map { it.toUiModel() }),
+                    )
+                }
+            }
+            .catch { throwable ->
+                if (throwable is CancellationException) throw throwable
+                reportException(throwable)
+                emit(LibraryTopMixesUiState.Error(context.getString(R.string.build_your_mix_empty_library)))
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryTopMixesUiState.Loading)
 
     val isBuildYourMixAvailable =
         context.dataStore.data
@@ -832,6 +858,37 @@ constructor(
         }
     }
 }
+
+@Immutable
+sealed interface LibraryTopMixesUiState {
+    data object Loading : LibraryTopMixesUiState
+
+    @Immutable
+    data class Success(
+        val mixes: ImmutableList<LibraryTopMixUiModel>,
+    ) : LibraryTopMixesUiState
+
+    data object Empty : LibraryTopMixesUiState
+
+    @Immutable
+    data class Error(
+        val message: String,
+    ) : LibraryTopMixesUiState
+}
+
+@Immutable
+data class LibraryTopMixUiModel(
+    val id: LibraryTopMixId,
+    val tracks: ImmutableList<MediaMetadata>,
+    val previewArtworkUrls: ImmutableList<String>,
+)
+
+private fun LibraryTopMix.toUiModel() =
+    LibraryTopMixUiModel(
+        id = id,
+        tracks = ImmutableList.copyOf(tracks),
+        previewArtworkUrls = ImmutableList.copyOf(previewArtworkUrls),
+    )
 
 enum class BuildYourMixBasis(
     val promptLabel: String,

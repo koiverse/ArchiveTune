@@ -1,231 +1,457 @@
 /*
  * ArchiveTune (2026)
- * © Chartreux Westia — github.com/koiverse
+ * © Rukamori — github.com/rukamori
  * GPL-3.0 License | Contributors: see git history
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
 package moe.rukamori.archivetune.ui.screens.library
 
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import moe.rukamori.archivetune.LocalDatabase
 import moe.rukamori.archivetune.R
+import moe.rukamori.archivetune.constants.AppBarHeight
 import moe.rukamori.archivetune.constants.ChipSortTypeKey
-import moe.rukamori.archivetune.constants.DisableBlurKey
 import moe.rukamori.archivetune.constants.LibraryFilter
-import moe.rukamori.archivetune.constants.ShowTagsInLibraryKey
-import moe.rukamori.archivetune.ui.component.ChipsRow
-import moe.rukamori.archivetune.ui.component.TagsFilterChips
 import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberPreference
 
 @Composable
 fun LibraryScreen(navController: NavController) {
     var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
-    val (disableBlur) = rememberPreference(DisableBlurKey, false)
-
     val database = LocalDatabase.current
-    val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, true)
-    val (selectedTagIds, onSelectedTagIdsChange) = rememberPlaylistTagFilterState(database)
+    val (selectedTagIds) = rememberPlaylistTagFilterState(database)
 
-    val filterContent = @Composable {
-        Column {
-            Row {
-                ChipsRow(
-                    chips =
-                    listOf(
-                        LibraryFilter.PLAYLISTS to stringResource(R.string.filter_playlists),
-                        LibraryFilter.SONGS to stringResource(R.string.filter_songs),
-                        LibraryFilter.ALBUMS to stringResource(R.string.filter_albums),
-                        LibraryFilter.ARTISTS to stringResource(R.string.filter_artists),
-                    ),
-                    currentValue = filterType,
-                    onValueUpdate = {
-                        filterType =
-                            if (filterType == it) {
-                                LibraryFilter.LIBRARY
-                            } else {
-                                it
-                            }
-                    },
-                    icons = mapOf(
-                        LibraryFilter.PLAYLISTS to R.drawable.queue_music,
-                        LibraryFilter.SONGS to R.drawable.music_note,
-                        LibraryFilter.ALBUMS to R.drawable.album,
-                        LibraryFilter.ARTISTS to R.drawable.person,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
+    val pagerState = rememberPagerState(
+        initialPage = remember {
+            when (filterType) {
+                LibraryFilter.LIBRARY -> 0
+                LibraryFilter.PLAYLISTS -> 1
+                LibraryFilter.SONGS -> 2
+                LibraryFilter.ARTISTS -> 3
+                LibraryFilter.ALBUMS -> 4
+                else -> 0
+            }
+        }
+    ) { 5 }
+
+    val currentFilter = when (pagerState.currentPage) {
+        0 -> LibraryFilter.LIBRARY
+        1 -> LibraryFilter.PLAYLISTS
+        2 -> LibraryFilter.SONGS
+        3 -> LibraryFilter.ARTISTS
+        4 -> LibraryFilter.ALBUMS
+        else -> LibraryFilter.LIBRARY
+    }
+
+    // Dynamic header content based on selection
+    val headerTitle = when (currentFilter) {
+        LibraryFilter.LIBRARY -> stringResource(R.string.library_title)
+        LibraryFilter.PLAYLISTS -> stringResource(R.string.playlists)
+        LibraryFilter.SONGS -> stringResource(R.string.songs)
+        LibraryFilter.ARTISTS -> stringResource(R.string.artists)
+        LibraryFilter.ALBUMS -> stringResource(R.string.albums)
+        else -> stringResource(R.string.library_title)
+    }
+
+    val headerSubtitle = when (currentFilter) {
+        LibraryFilter.LIBRARY -> stringResource(R.string.library_subtitle)
+        LibraryFilter.PLAYLISTS -> stringResource(R.string.library_playlists_subtitle)
+        LibraryFilter.SONGS -> stringResource(R.string.library_songs_subtitle)
+        LibraryFilter.ARTISTS -> stringResource(R.string.library_artists_subtitle)
+        LibraryFilter.ALBUMS -> stringResource(R.string.library_albums_subtitle)
+        else -> stringResource(R.string.library_subtitle)
+    }
+
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+
+    val maxHeaderHeight = 90.dp
+    val maxHeaderOffsetPx = with(density) { maxHeaderHeight.toPx() }
+    var headerOffsetPx by rememberSaveable { mutableStateOf(0f) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                // Scrolling down the page (dragging finger up, delta < 0): collapse header first
+                if (delta < 0) {
+                    val newOffset = headerOffsetPx + delta
+                    val oldOffset = headerOffsetPx
+                    headerOffsetPx = newOffset.coerceIn(-maxHeaderOffsetPx, 0f)
+                    val consumedY = headerOffsetPx - oldOffset
+                    return Offset(0f, consumedY)
+                }
+                return Offset.Zero
             }
 
-            if (showTagsInLibrary) {
-                TagsFilterChips(
-                    database = database,
-                    selectedTags = selectedTagIds,
-                    onTagToggle = { tag ->
-                        val newTags = if (tag.id in selectedTagIds) {
-                            selectedTagIds - tag.id
-                        } else {
-                            selectedTagIds + tag.id
-                        }
-                        onSelectedTagIdsChange(newTags)
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                val delta = available.y
+                // Scrolling up the page (dragging finger down, delta > 0): expand header ONLY if list is at top
+                if (delta > 0) {
+                    val newOffset = headerOffsetPx + delta
+                    val oldOffset = headerOffsetPx
+                    headerOffsetPx = newOffset.coerceIn(-maxHeaderOffsetPx, 0f)
+                    val consumedY = headerOffsetPx - oldOffset
+                    return Offset(0f, consumedY)
+                }
+                return Offset.Zero
             }
         }
     }
 
-    // Capture M3 Expressive colors from theme outside drawBehind
-    val color1 = MaterialTheme.colorScheme.primary
-    val color2 = MaterialTheme.colorScheme.secondary
-    val color3 = MaterialTheme.colorScheme.tertiary
-    val color4 = MaterialTheme.colorScheme.primaryContainer
-    val color5 = MaterialTheme.colorScheme.secondaryContainer
-    val surfaceColor = MaterialTheme.colorScheme.surface
+    // Only collapse the header after the first few items have scrolled past
+    // We use a larger header height so the collapse feels more gradual
+
+    val headerHeight = maxHeaderHeight + with(density) { headerOffsetPx.toDp() }
+    val progress = 1f + (headerOffsetPx / maxHeaderOffsetPx)
 
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        // M3E Mesh gradient background layer at the top
-        if (!disableBlur) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(top = AppBarHeight)
+                .nestedScroll(nestedScrollConnection)
+        ) {
+            // Main Top Header Section
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.7f) // Cover top 70% of screen
-                    .align(Alignment.TopCenter)
-                    .zIndex(-1f) // Place behind all content
-                .drawBehind {
-                    val width = size.width
-                    val height = size.height
-                    
-                    // Create mesh gradient with 5 color blobs for more variation
-                    // First color blob - top left
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                color1.copy(alpha = 0.38f),
-                                color1.copy(alpha = 0.24f),
-                                color1.copy(alpha = 0.14f),
-                                color1.copy(alpha = 0.06f),
-                                Color.Transparent
-                            ),
-                            center = Offset(width * 0.15f, height * 0.1f),
-                            radius = width * 0.55f
-                        )
-                    )
-                    
-                    // Second color blob - top right
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                color2.copy(alpha = 0.34f),
-                                color2.copy(alpha = 0.2f),
-                                color2.copy(alpha = 0.11f),
-                                color2.copy(alpha = 0.05f),
-                                Color.Transparent
-                            ),
-                            center = Offset(width * 0.85f, height * 0.2f),
-                            radius = width * 0.65f
-                        )
-                    )
-                    
-                    // Third color blob - middle left
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                color3.copy(alpha = 0.3f),
-                                color3.copy(alpha = 0.17f),
-                                color3.copy(alpha = 0.09f),
-                                color3.copy(alpha = 0.04f),
-                                Color.Transparent
-                            ),
-                            center = Offset(width * 0.3f, height * 0.45f),
-                            radius = width * 0.6f
-                        )
-                    )
-                    
-                    // Fourth color blob - middle right
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                color4.copy(alpha = 0.26f),
-                                color4.copy(alpha = 0.14f),
-                                color4.copy(alpha = 0.08f),
-                                color4.copy(alpha = 0.03f),
-                                Color.Transparent
-                            ),
-                            center = Offset(width * 0.7f, height * 0.5f),
-                            radius = width * 0.7f
-                        )
-                    )
-                    
-                    // Fifth color blob - bottom center (helps with smooth fade)
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                color5.copy(alpha = 0.22f),
-                                color5.copy(alpha = 0.12f),
-                                color5.copy(alpha = 0.06f),
-                                color5.copy(alpha = 0.02f),
-                                Color.Transparent
-                            ),
-                            center = Offset(width * 0.5f, height * 0.75f),
-                            radius = width * 0.8f
-                        )
-                    )
-                    
-                    // Add a final vertical gradient overlay to ensure smooth bottom fade
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                surfaceColor.copy(alpha = 0.22f),
-                                surfaceColor.copy(alpha = 0.55f),
-                                surfaceColor
-                            ),
-                            startY = height * 0.4f,
-                            endY = height
-                        )
+                    .height(headerHeight)
+                    .clipToBounds()
+                    .graphicsLayer { alpha = progress }
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 16.dp, bottom = 4.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = headerTitle,
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 32.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = headerSubtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            }
+
+            val tabListState = rememberLazyListState()
+            val coroutineScope = rememberCoroutineScope()
+
+            // Sync Pager -> Preference & lazy list centering
+            LaunchedEffect(pagerState.currentPage) {
+                headerOffsetPx = 0f
+                val targetFilter = when (pagerState.currentPage) {
+                    0 -> LibraryFilter.LIBRARY
+                    1 -> LibraryFilter.PLAYLISTS
+                    2 -> LibraryFilter.SONGS
+                    3 -> LibraryFilter.ARTISTS
+                    4 -> LibraryFilter.ALBUMS
+                    else -> LibraryFilter.LIBRARY
+                }
+                if (filterType != targetFilter) {
+                    filterType = targetFilter
+                }
+
+                // Centering the tab chip scroll alignment
+                val tabWidth = when (targetFilter) {
+                    LibraryFilter.LIBRARY -> 116.dp
+                    LibraryFilter.PLAYLISTS -> 132.dp
+                    LibraryFilter.SONGS -> 102.dp
+                    LibraryFilter.ARTISTS -> 116.dp
+                    LibraryFilter.ALBUMS -> 110.dp
+                    else -> 116.dp
+                }
+                val screenWidth = configuration.screenWidthDp.dp
+                val targetOffsetDp = (screenWidth - tabWidth) / 2
+                val targetOffsetPx = with(density) { targetOffsetDp.roundToPx() }
+                
+                tabListState.animateScrollToItem(pagerState.currentPage, scrollOffset = -targetOffsetPx)
+            }
+
+            // Expressive Tab Chips Row
+            LazyRow(
+                state = tabListState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                item {
+                    ExpressiveTabChip(
+                        label = stringResource(R.string.filter_library),
+                        iconRes = R.drawable.graphic_eq,
+                        selected = pagerState.currentPage == 0,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(0)
+                            }
+                        }
                     )
                 }
-        ) {}
-        }
+                item {
+                    ExpressiveTabChip(
+                        label = stringResource(R.string.playlists),
+                        iconRes = R.drawable.queue_music,
+                        selected = pagerState.currentPage == 1,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(1)
+                            }
+                        }
+                    )
+                }
+                item {
+                    ExpressiveTabChip(
+                        label = stringResource(R.string.songs),
+                        iconRes = R.drawable.music_note,
+                        selected = pagerState.currentPage == 2,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(2)
+                            }
+                        }
+                    )
+                }
+                item {
+                    ExpressiveTabChip(
+                        label = stringResource(R.string.artists),
+                        iconRes = R.drawable.person,
+                        selected = pagerState.currentPage == 3,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(3)
+                            }
+                        }
+                    )
+                }
+                item {
+                    ExpressiveTabChip(
+                        label = stringResource(R.string.albums),
+                        iconRes = R.drawable.album,
+                        selected = pagerState.currentPage == 4,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(4)
+                            }
+                        }
+                    )
+                }
+            }
 
-        when (filterType) {
-            LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent, selectedTagIds = selectedTagIds)
-            LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent, selectedTagIds = selectedTagIds)
-            LibraryFilter.SONGS -> LibrarySongsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY })
+            Spacer(modifier = Modifier.height(8.dp))
 
-            LibraryFilter.ALBUMS -> LibraryAlbumsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY })
-
-            LibraryFilter.ARTISTS -> LibraryArtistsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY })
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) { page ->
+                when (page) {
+                    0 -> {
+                        LibraryMixScreen(
+                            navController = navController,
+                            filterContent = {},
+                            selectedTagIds = selectedTagIds,
+                            onTabSelected = { targetFilter ->
+                                coroutineScope.launch {
+                                    val targetPage = when (targetFilter) {
+                                        LibraryFilter.LIBRARY -> 0
+                                        LibraryFilter.PLAYLISTS -> 1
+                                        LibraryFilter.SONGS -> 2
+                                        LibraryFilter.ARTISTS -> 3
+                                        LibraryFilter.ALBUMS -> 4
+                                        else -> 0
+                                    }
+                                    pagerState.animateScrollToPage(targetPage)
+                                }
+                            }
+                        )
+                    }
+                    1 -> {
+                        LibraryPlaylistsScreen(
+                            navController = navController,
+                            filterContent = {},
+                            selectedTagIds = selectedTagIds
+                        )
+                    }
+                    2 -> {
+                        LibrarySongsScreen(
+                            navController = navController,
+                            onDeselect = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            }
+                        )
+                    }
+                    3 -> {
+                        LibraryArtistsScreen(
+                            navController = navController,
+                            onDeselect = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            }
+                        )
+                    }
+                    4 -> {
+                        LibraryAlbumsScreen(
+                            navController = navController,
+                            onDeselect = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }
+
+@Composable
+fun ExpressiveTabChip(
+    label: String,
+    iconRes: Int,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else if (selected) 1.05f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "TabChipScale"
+    )
+
+    val bgColor by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "TabChipBgColor"
+    )
+
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "TabChipContentColor"
+    )
+
+    Row(
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(CircleShape)
+            .background(bgColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = label,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp
+            ),
+            color = contentColor
+        )
+    }
+}
+
