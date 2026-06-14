@@ -948,4 +948,13 @@
     <string name="album_backdrop_desc">Tampilkan karya seni sebagai latar belakang buram di pemutar</string>
     <string name="backdrop_blur_amount">Jumlah buram latar belakang</string>
     <string name="backdrop_blur_amount_value">%1$d%%</string>
+    <string name="library_title">Pustaka Anda</string>
+    <string name="library_subtitle">Musik Anda, diatur untuk Anda</string>
+    <string name="library_playlists_subtitle">Semua playlist Anda, diatur untuk Anda</string>
+    <string name="library_songs_subtitle">Semua lagu Anda, diatur untuk Anda</string>
+    <string name="library_artists_subtitle">Semua artis Anda, di satu tempat</string>
+    <string name="library_albums_subtitle">Semua album Anda, tersusun rapi</string>
+    <string name="most_played_badge">PALING SERING DIPUTAR</string>
+    <string name="favorite_songs_title">Lagu Favorit</string>
+    <string name="play_all">Putar semua</string>
 </resources>
