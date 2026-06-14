@@ -276,24 +276,16 @@ Interested in building the project or contributing? ArchiveTune is built on a hi
 
 ---
 
-### ⭐ Support the Project
-ArchiveTune is free and open-source. If it brings you joy, consider supporting its development!
-##### Tribe
-<a href="https://koiiverse.cloud/donate" target="_blank">
-  <img src="https://github.com/ArchiveTuneApp/ArchiveTune/blob/dev/assets/tribe.png?raw=true" alt="Buy Me a Coffee" width="160" />
-</a>
+### Open-Source Acknowledgments
 
----
+ArchiveTune is made possible by the work of many open-source projects and communities:
 
-## 🤝 Acknowledgments
-
-We stand on the shoulders of open-source giants:
-- **Metrolist** by [Mostafa Alagamy](https://github.com/mostafaalagamy/Metrolist) For Base framework.
-- **SimpMusic** by [maxrave-dev](https://github.com/maxrave-dev/SimpMusic) For Lyrics API Provider.
-- [BetterLyrics](https://better-lyrics.boidu.dev/) For word-by-word Lyrics API Provider & Artwork Provider.
+- **Metrolist** by [Mostafa Alagamy](https://github.com/mostafaalagamy/Metrolist) for the base framework.
+- **SimpMusic** by [maxrave-dev](https://github.com/maxrave-dev/SimpMusic) for the lyrics API provider.
+- [BetterLyrics](https://better-lyrics.boidu.dev/) for word-by-word lyrics, unison and artwork provider support.
 - [Material Color Utilities](https://github.com/material-foundation/material-color-utilities)
-- [Read You](https://github.com/Ashinch/ReadYou) and [Seal](https://github.com/JunkFood02/Seal) for Ui Components.
-- The global community of translators and beta testers.
+- [Read You](https://github.com/Ashinch/ReadYou) and [Seal](https://github.com/JunkFood02/Seal) for UI component inspiration.
+- Translators, beta testers, contributors, and community members who continue to support the project.
 
 ---
 
