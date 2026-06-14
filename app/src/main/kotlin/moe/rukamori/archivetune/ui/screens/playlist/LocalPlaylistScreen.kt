@@ -221,7 +221,6 @@ fun LocalPlaylistScreen(
 
     if (showAssignTagsDialog && playlist != null) {
         AssignTagsDialog(
-            database = database,
             playlistId = playlist!!.id,
             onDismiss = { showAssignTagsDialog = false }
         )

@@ -361,7 +361,6 @@ fun PlaylistMenu(
 
     if (showAssignTagsDialog) {
         AssignTagsDialog(
-            database = database,
             playlistId = playlist.id,
             onDismiss = { 
                 showAssignTagsDialog = false

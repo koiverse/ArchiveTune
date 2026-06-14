@@ -114,7 +114,6 @@ fun LibraryScreen(navController: NavController) {
 
     if (showTagsManagementDialog) {
         TagsManagementDialog(
-            database = database,
             onDismiss = { showTagsManagementDialog = false },
         )
     }
