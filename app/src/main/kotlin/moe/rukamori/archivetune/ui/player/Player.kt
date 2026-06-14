@@ -440,6 +440,9 @@ fun BottomSheetPlayer(
     var duration by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.duration)
     }
+    var lyricsSyncOffset by rememberSaveable(mediaMetadata?.id) {
+        mutableIntStateOf(0)
+    }
     var sliderPosition by remember(mediaMetadata?.id) {
         mutableStateOf<Long?>(null)
     }
@@ -1644,6 +1647,8 @@ fun BottomSheetPlayer(
                 visible = isLyricsScreenVisible,
                 mediaMetadata = metadata,
                 navController = navController,
+                lyricsSyncOffset = lyricsSyncOffset,
+                onLyricsSyncOffsetChange = { lyricsSyncOffset = it },
                 onDismiss = { isLyricsScreenVisible = false },
                 onQueueClick = {
                     isLyricsScreenVisible = false
@@ -1687,6 +1692,8 @@ private fun MikoLyricsTransition(
     visible: Boolean,
     mediaMetadata: MediaMetadata,
     navController: NavController,
+    lyricsSyncOffset: Int,
+    onLyricsSyncOffsetChange: (Int) -> Unit,
     onDismiss: () -> Unit,
     onQueueClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1731,6 +1738,8 @@ private fun MikoLyricsTransition(
                     mediaMetadata = mediaMetadata,
                     onBackClick = onDismiss,
                     navController = navController,
+                    lyricsSyncOffset = lyricsSyncOffset,
+                    onLyricsSyncOffsetChange = onLyricsSyncOffsetChange,
                     onQueueClick = onQueueClick,
                 )
             }
