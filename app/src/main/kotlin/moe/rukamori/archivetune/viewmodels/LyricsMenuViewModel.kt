@@ -30,6 +30,7 @@ import moe.rukamori.archivetune.db.entities.LyricsEntity
 import moe.rukamori.archivetune.extensions.toEnum
 import moe.rukamori.archivetune.lyrics.LyricsHelper
 import moe.rukamori.archivetune.lyrics.LyricsResult
+import moe.rukamori.archivetune.lyrics.LyricsUtils
 import moe.rukamori.archivetune.models.MediaMetadata
 import moe.rukamori.archivetune.utils.NetworkConnectivityObserver
 import moe.rukamori.archivetune.utils.dataStore
@@ -136,10 +137,16 @@ constructor(
         source: LyricsEntity.Source = LyricsEntity.Source.USER_EDIT,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
+            val lyricsToSave = when (source) {
+                LyricsEntity.Source.REMOTE,
+                LyricsEntity.Source.USER_SELECTION -> LyricsUtils.lyricsOrNotFound(lyrics)
+                LyricsEntity.Source.USER_EDIT,
+                LyricsEntity.Source.AI_TRANSLATION -> lyrics
+            }
             database.query {
                 replaceLyrics(
                     id = mediaMetadata.id,
-                    lyrics = lyrics,
+                    lyrics = lyricsToSave,
                     source = source.value,
                 )
             }

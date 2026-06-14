@@ -90,6 +90,7 @@ import moe.rukamori.archivetune.constants.AiProvider
 import moe.rukamori.archivetune.constants.AiProviderKey
 import moe.rukamori.archivetune.db.entities.LyricsEntity
 import moe.rukamori.archivetune.lyrics.LyricsUtils.displayLyricsText
+import moe.rukamori.archivetune.lyrics.LyricsUtils.hasMeaningfulLyricsContent
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isLineSyncedLrc
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isTtml
 import moe.rukamori.archivetune.models.MediaMetadata
@@ -271,6 +272,9 @@ fun LyricsMenu(
 
     if (showSearchResultDialog) {
         val isLoading by viewModel.isLoading.collectAsState()
+        val renderableResults = remember(results) {
+            results.filter { result -> hasMeaningfulLyricsContent(result.lyrics) }
+        }
 
         ListDialog(
             onDismiss = {
@@ -294,9 +298,9 @@ fun LyricsMenu(
                             ),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        AnimatedVisibility(visible = results.isNotEmpty()) {
+                        AnimatedVisibility(visible = renderableResults.isNotEmpty()) {
                             Text(
-                                text = "${results.size} ${stringResource(R.string.search)}",
+                                text = "${renderableResults.size} ${stringResource(R.string.search)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 2.dp)
@@ -311,8 +315,14 @@ fun LyricsMenu(
                 }
             }
 
-            itemsIndexed(results) { index, result ->
+            itemsIndexed(renderableResults) { index, result ->
                 val isExpanded = index == expandedItemIndex
+                val isSyncedLyrics = remember(result.lyrics) {
+                    isLineSyncedLrc(result.lyrics) || isTtml(result.lyrics)
+                }
+                val isTtmlLyrics = remember(result.lyrics) {
+                    isTtml(result.lyrics)
+                }
 
                 Surface(
                     modifier = Modifier
@@ -341,8 +351,7 @@ fun LyricsMenu(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         val displayLyrics = remember(result.lyrics) {
-                            val raw = result.lyrics.trim()
-                            displayLyricsText(raw).ifBlank { raw }
+                            displayLyricsText(result.lyrics)
                         }
 
                         Text(
@@ -376,7 +385,7 @@ fun LyricsMenu(
                                     )
                                 }
 
-                                if (isLineSyncedLrc(result.lyrics) || isTtml(result.lyrics)) {
+                                if (isSyncedLyrics) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
                                         color = MaterialTheme.colorScheme.primaryContainer,
@@ -401,7 +410,7 @@ fun LyricsMenu(
                                     }
                                 }
 
-                                if (isTtml(result.lyrics)) {
+                                if (isTtmlLyrics) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
                                         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -447,7 +456,7 @@ fun LyricsMenu(
                 }
             }
 
-            if (isLoading && results.isEmpty()) {
+            if (isLoading && renderableResults.isEmpty()) {
                 item {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -468,7 +477,7 @@ fun LyricsMenu(
                 }
             }
 
-            if (!isLoading && results.isEmpty()) {
+            if (!isLoading && renderableResults.isEmpty()) {
                 item {
                     Column(
                         modifier = Modifier

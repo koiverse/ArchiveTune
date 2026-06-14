@@ -131,8 +131,9 @@ constructor(
 
                 try {
                     provider.getAllLyrics(mediaId, songTitle, songArtists, songAlbum, duration) lyricsCallback@{ lyrics ->
-                        if (!isMeaningfulLyrics(lyrics)) return@lyricsCallback
-                        val result = LyricsResult(provider.name, lyrics)
+                        val normalizedLyrics = LyricsUtils.lyricsOrNotFound(lyrics)
+                        if (normalizedLyrics == LYRICS_NOT_FOUND) return@lyricsCallback
+                        val result = LyricsResult(provider.name, normalizedLyrics)
                         allResult += result
                         callback(result)
                     }
@@ -206,7 +207,7 @@ constructor(
                 mediaMetadata.duration,
             ).fold(
                 onSuccess = { lyrics ->
-                    lyrics.takeIf(::isMeaningfulLyrics)
+                    LyricsUtils.lyricsOrNotFound(lyrics).takeIf { it != LYRICS_NOT_FOUND }
                 },
                 onFailure = {
                     reportException(it)
@@ -242,22 +243,7 @@ constructor(
     }
 
     private fun isMeaningfulLyrics(lyrics: String): Boolean {
-        val normalized =
-            lyrics
-                .replace("\uFEFF", "")
-                .replace(INVISIBLE_CHARS_REGEX, "")
-                .trim { it.isWhitespace() || it == '\u00A0' }
-
-        if (normalized.isEmpty()) return false
-        if (normalized == LYRICS_NOT_FOUND) return false
-
-        val remaining =
-            TIMESTAMP_REGEX
-                .replace(normalized, "")
-                .replace(INVISIBLE_CHARS_REGEX, "")
-                .trim { it.isWhitespace() || it == '\u00A0' }
-
-        return remaining.any { !it.isWhitespace() && it != '\u00A0' }
+        return LyricsUtils.hasMeaningfulLyricsContent(lyrics)
     }
 
     fun cancelCurrentLyricsJob() {
@@ -283,8 +269,6 @@ constructor(
 
     companion object {
         private const val MAX_CACHE_SIZE = 16
-        private val TIMESTAMP_REGEX = Regex("""\[[0-9]{1,2}:[0-9]{2}(?:\.[0-9]{1,3})?]""")
-        private val INVISIBLE_CHARS_REGEX = Regex("""[\u200B\u200C\u200D\u2060\u00AD]""")
     }
 }
 
