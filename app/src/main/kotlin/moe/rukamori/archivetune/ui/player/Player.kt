@@ -262,6 +262,7 @@ internal class DeviceMusicVolumeController(
         volumeFraction = readVolumeFraction()
     }
 
+    @JvmName("setDeviceMusicVolumeFraction")
     fun setVolumeFraction(fraction: Float) {
         val safeFraction = fraction.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: volumeFraction
         val volumeRange = (maxVolume - minVolume).coerceAtLeast(1)
