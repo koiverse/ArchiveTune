@@ -155,7 +155,7 @@ constructor(
                     return@combine PlaylistTagsScreenState.Error(messageResId)
                 }
 
-                val tags = snapshot.tags.mapToUiModels()
+                val tags = snapshot.tags.mapTagsToUiModels()
                 val validTagIds = snapshot.tags.mapTo(LinkedHashSet()) { tag -> tag.id }
                 val validPlaylistIds = snapshot.playlists.mapTo(LinkedHashSet()) { playlist -> playlist.id }
                 val selected = controls.selectedTagIds
@@ -165,7 +165,7 @@ constructor(
                 val success = PlaylistTagsScreenState.Success(
                     tags = ImmutableList.copyOf(tags),
                     selectedTagIds = ImmutableSet.copyOf(selected),
-                    playlists = ImmutableList.copyOf(snapshot.playlists.mapToUiModels()),
+                    playlists = ImmutableList.copyOf(snapshot.playlists.mapPlaylistsToUiModels()),
                     selectedBulkTagIds = ImmutableSet.copyOf(controls.selectedBulkTagIds.sanitize(validTagIds)),
                     selectedBulkPlaylistIds = ImmutableSet.copyOf(
                         controls.selectedBulkPlaylistIds.sanitize(validPlaylistIds),
@@ -386,7 +386,7 @@ constructor(
             PlaylistTagsScreenState.Loading -> emptyList()
         }
 
-    private fun List<PlaylistTagModel>.mapToUiModels(): List<PlaylistTagUiModel> =
+    private fun List<PlaylistTagModel>.mapTagsToUiModels(): List<PlaylistTagUiModel> =
         map { tag ->
             PlaylistTagUiModel(
                 id = tag.id,
@@ -395,7 +395,7 @@ constructor(
             )
         }
 
-    private fun List<PlaylistTagPlaylistModel>.mapToUiModels(): List<PlaylistTagPlaylistUiModel> =
+    private fun List<PlaylistTagPlaylistModel>.mapPlaylistsToUiModels(): List<PlaylistTagPlaylistUiModel> =
         map { playlist ->
             PlaylistTagPlaylistUiModel(
                 id = playlist.id,
