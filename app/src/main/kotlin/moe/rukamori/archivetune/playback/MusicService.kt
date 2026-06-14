@@ -2392,6 +2392,31 @@ class MusicService :
         return false
     }
 
+    private fun isCacheCorruptionError(error: PlaybackException): Boolean {
+        if (
+            error.errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED ||
+            error.errorCode == PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE
+        ) {
+            var throwable: Throwable? = error.cause
+            while (throwable != null) {
+                if (throwable is java.io.EOFException) return true
+                if (throwable is java.io.IOException &&
+                    throwable.message?.contains("unexpected end of stream", ignoreCase = true) == true
+                ) {
+                    return true
+                }
+                if (throwable is java.lang.IllegalStateException || throwable is java.lang.IllegalArgumentException) {
+                    val stackTrace = throwable.stackTrace
+                    if (stackTrace.any { it.className.startsWith("androidx.media3.extractor") }) {
+                        return true
+                    }
+                }
+                throwable = throwable.cause
+            }
+        }
+        return false
+    }
+
     private fun retryPlaybackAfterStreamFailure(
         mediaId: String,
         isFullyCachedMedia: Boolean,
@@ -5259,6 +5284,24 @@ private fun onMediaItemTransitionInternal() {
         val retryableStreamFailure = findRetryableStreamFailure(error)
         if (retryableStreamFailure != null) {
             if (retryPlaybackAfterStreamFailure(currentMediaId, isFullyCachedMedia, retryableStreamFailure)) {
+                return
+            }
+        }
+
+        if (!isLocalMedia && isCacheCorruptionError(error)) {
+            Timber.tag("MusicService").w(
+                "Cache corruption / truncated stream for %s; clearing caches and retrying from current position",
+                currentMediaId,
+            )
+            playbackUrlCache.remove(currentMediaId)
+            YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
+            scope.launch(Dispatchers.IO) {
+                runCatching { playerCache.removeResource(currentMediaId) }
+                runCatching { downloadCache.removeResource(currentMediaId) }
+            }
+            if (playbackStreamRecoveryTracker.registerRetryAttempt(currentMediaId)) {
+                player.seekTo(player.currentMediaItemIndex, player.currentPosition.coerceAtLeast(0L))
+                player.prepare()
                 return
             }
         }
