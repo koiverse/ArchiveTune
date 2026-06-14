@@ -548,7 +548,7 @@ fun Thumbnail(
                                             ?: item.mediaMetadata.artworkUri?.toString()
                                         val thumbnailBgBlurEnabled = backdropEnabled && !disableBlur && backdropBlurAmount > 0
 
-                                        if (thumbnailBgBlurEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                        if (!shouldCropArtwork && thumbnailBgBlurEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                             val blurRadiusPx = (backdropBlurAmount * 60 / 100f).coerceAtMost(60f)
                                             AsyncImage(
                                                 model = thumbnailBgRequest,
@@ -556,17 +556,16 @@ fun Thumbnail(
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier
                                                     .fillMaxSize()
-                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
                                                     .graphicsLayer(
                                                         renderEffect = BlurEffect(radiusX = blurRadiusPx, radiusY = blurRadiusPx),
                                                         alpha = 0.6f,
                                                     )
                                             )
-                                        } else if (thumbnailBgBlurEnabled) {
+                                        } else if (!shouldCropArtwork && thumbnailBgBlurEnabled) {
                                             ThumbnailBgBlurApi30(
                                                 imageUrl = thumbnailBgUrl,
                                                 blurAmount = backdropBlurAmount,
-                                                shouldCropArtwork = shouldCropArtwork,
+                                                shouldCropArtwork = false,
                                             )
                                         }
 
