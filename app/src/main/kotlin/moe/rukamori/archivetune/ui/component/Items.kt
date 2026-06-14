@@ -1363,7 +1363,7 @@ fun YouTubeGridItem(
     fillMaxWidth: Boolean = false,
 ) {
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
-    val isYtVideo = item.displayThumbnail?.contains("/vi/") == true
+    val isYtVideo = item.displayThumbnail?.contains("i.ytimg.com") == true
     val effectiveRatio = if (cropThumbnailToSquare && isYtVideo) 1f else thumbnailRatio
     GridItem(
         title = {
@@ -1544,7 +1544,7 @@ fun ItemThumbnail(
     val density = LocalDensity.current
 
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
-    val isYtVideo = thumbnailUrl?.contains("/vi/") == true
+    val isYtVideo = thumbnailUrl?.contains("i.ytimg.com") == true
     val effectiveRatio = if (cropThumbnailToSquare && isYtVideo) 1f else thumbnailRatio
     val effectiveContentScale = if (cropThumbnailToSquare && isYtVideo) ContentScale.Crop else ContentScale.Fit
 
@@ -1660,7 +1660,7 @@ fun LocalThumbnail(
     val context = LocalContext.current
     val density = LocalDensity.current
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
-    val isYtVideo = thumbnailUrl?.contains("/vi/") == true
+    val isYtVideo = thumbnailUrl?.contains("i.ytimg.com") == true
     val effectiveRatio = if (cropThumbnailToSquare && isYtVideo) 1f else thumbnailRatio
     val effectiveContentScale = if (cropThumbnailToSquare && isYtVideo) ContentScale.Crop else ContentScale.Fit
 
