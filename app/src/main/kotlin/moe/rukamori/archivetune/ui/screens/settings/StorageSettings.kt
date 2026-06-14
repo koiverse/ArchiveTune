@@ -138,11 +138,11 @@ fun StorageSettings(
     val cacheSizeValues = remember {
         listOf(0, 128, 256, 512, 1024, 2048, 4096, 8192)
     }
-    val songCacheSizeValues = remember {
+    val cacheSizeValuesWithUnlimited = remember {
         cacheSizeValues + (-1)
     }
     val canvasCacheSizeValues = remember {
-        listOf(0, 64, 128, 256, 512, 1024)
+        listOf(0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, -1)
     }
 
     val (smartTrimmer, onSmartTrimmerChange) = rememberPreference(
@@ -168,7 +168,6 @@ fun StorageSettings(
     var imageCacheSize by remember { mutableStateOf(tryOrNull { imageDiskCache.size } ?: 0L) }
     var playerCacheSize by remember { mutableStateOf(0L) }
     var downloadCacheSize by remember { mutableStateOf(0L) }
-    var canvasCacheSize by remember { mutableStateOf(0) }
     var canvasCacheBytes by remember { mutableStateOf(0L) }
 
     val maxImageCacheSizeBytes = if (maxImageCacheSize > 0) {
@@ -199,7 +198,8 @@ fun StorageSettings(
     )
     val canvasCacheProgress by animateFloatAsState(
         targetValue = if (maxCanvasCacheSize > 0) {
-            (canvasCacheSize.toFloat() / maxCanvasCacheSize).coerceIn(0f, 1f)
+            val maxCanvasCacheSizeBytes = cacheSizeMegabytesToBytes(maxCanvasCacheSize)
+            (canvasCacheBytes.toFloat() / maxCanvasCacheSizeBytes).coerceIn(0f, 1f)
         } else {
             0f
         },
@@ -254,11 +254,9 @@ fun StorageSettings(
     }
     LaunchedEffect(Unit) {
         while (isActive) {
-            val (size, bytes) = withContext(Dispatchers.IO) {
-                CanvasArtworkPlaybackCache.size() to CanvasArtworkPlaybackCache.byteSize()
+            canvasCacheBytes = withContext(Dispatchers.IO) {
+                CanvasArtworkPlaybackCache.byteSize()
             }
-            canvasCacheSize = size
-            canvasCacheBytes = bytes
             delay(StorageRefreshIntervalMillis)
         }
     }
@@ -335,7 +333,7 @@ fun StorageSettings(
                             )
                         },
                         selectedValue = maxSongCacheSize,
-                        values = songCacheSizeValues,
+                        values = cacheSizeValuesWithUnlimited,
                         valueText = {
                             when (it) {
                                 0 -> stringResource(R.string.disable)
@@ -376,14 +374,16 @@ fun StorageSettings(
                 item {
                     ListPreference(
                         title = { Text(stringResource(R.string.max_image_cache_size)) },
-                        description = if (maxImageCacheSize > 0) {
-                            stringResource(
-                                R.string.storage_size_ratio,
-                                formatFileSize(imageCacheSize),
-                                formatFileSize(maxImageCacheSizeBytes),
-                            )
-                        } else {
-                            stringResource(R.string.disable)
+                        description = when {
+                            maxImageCacheSize < 0 -> stringResource(R.string.size_used, formatFileSize(imageCacheSize))
+                            maxImageCacheSize > 0 -> {
+                                stringResource(
+                                    R.string.storage_size_ratio,
+                                    formatFileSize(imageCacheSize),
+                                    formatFileSize(maxImageCacheSizeBytes),
+                                )
+                            }
+                            else -> stringResource(R.string.disable)
                         },
                         icon = {
                             Icon(
@@ -392,10 +392,11 @@ fun StorageSettings(
                             )
                         },
                         selectedValue = maxImageCacheSize,
-                        values = cacheSizeValues,
+                        values = cacheSizeValuesWithUnlimited,
                         valueText = {
                             when (it) {
                                 0 -> stringResource(R.string.disable)
+                                -1 -> stringResource(R.string.unlimited)
                                 else -> formatFileSize(cacheSizeMegabytesToBytes(it))
                             }
                         },
@@ -432,14 +433,16 @@ fun StorageSettings(
                 item {
                     ListPreference(
                         title = { Text(stringResource(R.string.max_cache_size)) },
-                        description = if (maxCanvasCacheSize > 0) {
-                            stringResource(
-                                R.string.canvas_cache_usage,
-                                formatFileSize(canvasCacheBytes),
-                                stringResource(R.string.canvas_cache_items, maxCanvasCacheSize),
-                            )
-                        } else {
-                            stringResource(R.string.disable)
+                        description = when {
+                            maxCanvasCacheSize < 0 -> stringResource(R.string.size_used, formatFileSize(canvasCacheBytes))
+                            maxCanvasCacheSize > 0 -> {
+                                stringResource(
+                                    R.string.storage_size_ratio,
+                                    formatFileSize(canvasCacheBytes),
+                                    formatFileSize(cacheSizeMegabytesToBytes(maxCanvasCacheSize)),
+                                )
+                            }
+                            else -> stringResource(R.string.disable)
                         },
                         icon = {
                             Icon(
@@ -452,7 +455,8 @@ fun StorageSettings(
                         valueText = {
                             when (it) {
                                 0 -> stringResource(R.string.disable)
-                                else -> stringResource(R.string.canvas_cache_items, it)
+                                -1 -> stringResource(R.string.unlimited)
+                                else -> formatFileSize(cacheSizeMegabytesToBytes(it))
                             }
                         },
                         onValueSelected = onMaxCanvasCacheSizeChange,

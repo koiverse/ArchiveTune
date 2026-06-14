@@ -94,7 +94,7 @@ import moe.rukamori.archivetune.viewmodels.LibraryMixViewModel
 @Composable
 fun LibraryMixScreen(
     navController: NavController,
-    filterContent: @Composable () -> Unit,
+    filterContent: (@Composable () -> Unit)?,
     selectedTagIds: Set<String>,
     onTabSelected: (LibraryFilter) -> Unit,
     viewModel: LibraryMixViewModel = hiltViewModel(),
@@ -455,6 +455,13 @@ fun LibraryMixScreen(
                         )
                     },
                 )
+            }
+
+            val playlistTagFilterContent = filterContent
+            if (playlistTagFilterContent != null) {
+                item(key = "playlist_tag_filters") {
+                    playlistTagFilterContent()
+                }
             }
 
             // Playlists Row

@@ -119,7 +119,7 @@ import androidx.compose.foundation.layout.only
 @Composable
 fun LibraryPlaylistsScreen(
     navController: NavController,
-    filterContent: @Composable () -> Unit,
+    filterContent: (@Composable () -> Unit)?,
     selectedTagIds: Set<String>,
     viewModel: LibraryPlaylistsViewModel = hiltViewModel(),
 ) {
@@ -303,6 +303,11 @@ fun LibraryPlaylistsScreen(
                         )
                     }
                 }
+            }
+
+            val playlistTagFilterContent = filterContent
+            if (playlistTagFilterContent != null) {
+                playlistTagFilterContent()
             }
 
             Spacer(modifier = Modifier.height(8.dp))
