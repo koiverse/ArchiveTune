@@ -773,6 +773,14 @@ fun SliderPreference(
                         style = MaterialTheme.typography.bodyLarge,
                     )
 
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        text = stringResource(R.string.history_duration_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+
                     Spacer(Modifier.height(16.dp))
 
                     val sliderState = rememberSliderState(
@@ -801,7 +809,7 @@ fun SliderPreference(
     PreferenceEntry(
         modifier = modifier,
         title = title,
-        description = value.toString(),
+        description = stringResource(R.string.history_duration_seconds, value),
         icon = icon,
         onClick = { showDialog = true },
         isEnabled = isEnabled,
