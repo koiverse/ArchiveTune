@@ -1363,7 +1363,8 @@ fun YouTubeGridItem(
     fillMaxWidth: Boolean = false,
 ) {
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
-    val effectiveRatio = if (cropThumbnailToSquare) 1f else thumbnailRatio
+    val isYtVideo = item.displayThumbnail?.contains("/vi/") == true
+    val effectiveRatio = if (cropThumbnailToSquare && isYtVideo) 1f else thumbnailRatio
     GridItem(
         title = {
             Text(
@@ -1543,8 +1544,9 @@ fun ItemThumbnail(
     val density = LocalDensity.current
 
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
-    val effectiveRatio = if (cropThumbnailToSquare) 1f else thumbnailRatio
-    val effectiveContentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit
+    val isYtVideo = thumbnailUrl?.contains("/vi/") == true
+    val effectiveRatio = if (cropThumbnailToSquare && isYtVideo) 1f else thumbnailRatio
+    val effectiveContentScale = if (cropThumbnailToSquare && isYtVideo) ContentScale.Crop else ContentScale.Fit
 
     BoxWithConstraints(
         contentAlignment = Alignment.Center,
@@ -1578,7 +1580,6 @@ fun ItemThumbnail(
                     url = thumbnailUrl,
                     contentDescription = null,
                     contentScale = effectiveContentScale,
-                    modifier = Modifier.fillMaxSize(),
                     widthPx = widthPx,
                     heightPx = heightPx,
                 )
@@ -1659,8 +1660,9 @@ fun LocalThumbnail(
     val context = LocalContext.current
     val density = LocalDensity.current
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
-    val effectiveRatio = if (cropThumbnailToSquare) 1f else thumbnailRatio
-    val effectiveContentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit
+    val isYtVideo = thumbnailUrl?.contains("/vi/") == true
+    val effectiveRatio = if (cropThumbnailToSquare && isYtVideo) 1f else thumbnailRatio
+    val effectiveContentScale = if (cropThumbnailToSquare && isYtVideo) ContentScale.Crop else ContentScale.Fit
 
     BoxWithConstraints(
         contentAlignment = Alignment.Center,
