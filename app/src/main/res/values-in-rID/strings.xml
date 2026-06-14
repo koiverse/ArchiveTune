@@ -957,4 +957,7 @@
     <string name="most_played_badge">PALING SERING DIPUTAR</string>
     <string name="favorite_songs_title">Lagu Favorit</string>
     <string name="play_all">Putar semua</string>
+    <string name="chill_mix">Mix Santai</string>
+    <string name="chill_mix_desc">Melodi yang menenangkan untuk bersantai</string>
+    <string name="focus_mix">Mix Fokus</string>
 </resources>
