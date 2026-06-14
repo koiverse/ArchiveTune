@@ -583,8 +583,10 @@ fun Thumbnail(
                                         AsyncImage(
                                             model = thumbnailArtworkRequest,
                                             contentDescription = null,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier.fillMaxSize()
+                                            contentScale = if (shouldCropArtwork) ContentScale.Crop else ContentScale.Fit,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
                                         )
 
                                         if (shouldAnimateCanvas && (!primaryCanvasUrl.isNullOrBlank() || !fallbackCanvasUrl.isNullOrBlank())) {
