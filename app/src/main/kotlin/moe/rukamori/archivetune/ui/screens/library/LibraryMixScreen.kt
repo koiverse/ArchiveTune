@@ -980,16 +980,26 @@ private fun LibraryTopMixCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
-                    mix.previewArtworkUrls.forEach { artworkUrl ->
-                        AsyncImage(
-                            model = artworkUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-                        )
+                    mix.tracks.take(3).forEach { track ->
+                        val artworkUrl = track.thumbnailUrl
+                        if (artworkUrl == null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                            )
+                        } else {
+                            AsyncImage(
+                                model = artworkUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                            )
+                        }
                     }
                 }
 

@@ -19,10 +19,14 @@ import java.time.LocalDate
 import kotlin.random.Random
 
 private const val LibraryTopMixTrackLimit = 50
-private const val LibraryTopMixPreviewLimit = 3
 private const val LibraryTopMixAffinityTrackLimit = 40
 private const val ArtistAffinityScore = 6
 private const val AlbumAffinityScore = 3
+private val LibraryTopMixIds = listOf(
+    LibraryTopMixId.DAILY,
+    LibraryTopMixId.CHILL,
+    LibraryTopMixId.FOCUS,
+)
 
 class ObserveLibraryTopMixesUseCase
 @Inject
@@ -47,66 +51,63 @@ constructor(
                 listenedTracks = affinityTracks,
                 excludedTrackIds = excludedTrackIds,
             )
-            val allocatedTrackIds = LinkedHashSet<String>()
 
-            listOfNotNull(
-                buildMix(
-                    id = LibraryTopMixId.DAILY,
-                    candidates = candidates,
-                    allocatedTrackIds = allocatedTrackIds,
-                ),
-                buildMix(
-                    id = LibraryTopMixId.CHILL,
-                    candidates = candidates,
-                    allocatedTrackIds = allocatedTrackIds,
-                ),
-                buildMix(
-                    id = LibraryTopMixId.FOCUS,
-                    candidates = candidates,
-                    minimumScore = ArtistAffinityScore,
-                    allocatedTrackIds = allocatedTrackIds,
-                ),
-            )
+            buildMixes(candidates)
         }.flowOn(Dispatchers.Default)
 
-    private fun buildMix(
-        id: LibraryTopMixId,
+    private fun buildMixes(
         candidates: List<ScoredTrack>,
-        allocatedTrackIds: MutableSet<String>,
-        minimumScore: Int = 0,
-    ): LibraryTopMix? {
+    ): List<LibraryTopMix> {
         val affinityCandidates = candidates
             .filter { it.score > 0 }
             .ifEmpty { candidates }
+        val randomizedCandidates = LibraryTopMixIds.associateWith { id ->
+            randomizedByAffinity(
+                id = id,
+                candidates = affinityCandidates,
+            )
+        }
+        val candidateIndexes = LibraryTopMixIds.associateWith { 0 }.toMutableMap()
+        val selectedTracks = LibraryTopMixIds.associateWith { mutableListOf<MediaMetadata>() }
+        val allocatedTrackIds = LinkedHashSet<String>()
 
-        val eligibleCandidates = affinityCandidates
-            .filterNot { it.track.id in allocatedTrackIds }
-            .filter { it.score >= minimumScore }
-            .ifEmpty {
-                affinityCandidates.filterNot { it.track.id in allocatedTrackIds }
+        var madeProgress = true
+        while (madeProgress && selectedTracks.values.any { it.size < LibraryTopMixTrackLimit }) {
+            madeProgress = false
+            LibraryTopMixIds.forEach { id ->
+                val tracks = selectedTracks.getValue(id)
+                if (tracks.size < LibraryTopMixTrackLimit) {
+                    val candidatesForMix = randomizedCandidates.getValue(id)
+                    var index = candidateIndexes.getValue(id)
+                    var selectedTrack: MediaMetadata? = null
+
+                    while (index < candidatesForMix.size && selectedTrack == null) {
+                        val candidate = candidatesForMix[index]
+                        index += 1
+                        if (allocatedTrackIds.add(candidate.track.id)) {
+                            selectedTrack = candidate.track
+                        }
+                    }
+
+                    candidateIndexes[id] = index
+                    selectedTrack?.let { track ->
+                        tracks += track
+                        madeProgress = true
+                    }
+                }
             }
+        }
 
-        val tracks = randomizedByAffinity(
-            id = id,
-            candidates = eligibleCandidates,
-        )
-            .take(LibraryTopMixTrackLimit)
-
-        if (tracks.isEmpty()) return null
-        allocatedTrackIds.addAll(tracks.map { it.id })
-
-        return LibraryTopMix(
-            id = id,
-            tracks = ImmutableList.copyOf(tracks),
-            previewArtworkUrls = ImmutableList.copyOf(
-                tracks
-                    .asSequence()
-                    .mapNotNull { it.thumbnailUrl }
-                    .distinct()
-                    .take(LibraryTopMixPreviewLimit)
-                    .toList(),
-            ),
-        )
+        return LibraryTopMixIds.mapNotNull { id ->
+            selectedTracks.getValue(id)
+                .takeIf { it.isNotEmpty() }
+                ?.let { tracks ->
+                    LibraryTopMix(
+                        id = id,
+                        tracks = ImmutableList.copyOf(tracks),
+                    )
+                }
+        }
     }
 
     private fun scoreLibraryCandidates(
@@ -130,14 +131,13 @@ constructor(
     private fun randomizedByAffinity(
         id: LibraryTopMixId,
         candidates: List<ScoredTrack>,
-    ): List<MediaMetadata> {
+    ): List<ScoredTrack> {
         val random = Random(seedFor(id, candidates))
         return candidates
             .groupBy { it.score }
             .toSortedMap(compareByDescending<Int> { it })
             .values
             .flatMap { group -> group.shuffled(random) }
-            .map { it.track }
     }
 
     private fun distinctTracks(vararg groups: List<MediaMetadata>): List<MediaMetadata> {

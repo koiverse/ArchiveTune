@@ -880,14 +880,12 @@ sealed interface LibraryTopMixesUiState {
 data class LibraryTopMixUiModel(
     val id: LibraryTopMixId,
     val tracks: ImmutableList<MediaMetadata>,
-    val previewArtworkUrls: ImmutableList<String>,
 )
 
 private fun LibraryTopMix.toUiModel() =
     LibraryTopMixUiModel(
         id = id,
         tracks = ImmutableList.copyOf(tracks),
-        previewArtworkUrls = ImmutableList.copyOf(previewArtworkUrls),
     )
 
 enum class BuildYourMixBasis(

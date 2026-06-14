@@ -54,7 +54,6 @@ constructor(
                         songs
                             .filterExplicit(hideExplicit)
                             .asReversed()
-                            .take(LibraryTopMixCandidateLimit)
                             .map { it.toMediaMetadata() }
                     }
             }
@@ -82,7 +81,6 @@ constructor(
                     .map { songs ->
                         songs
                             .filterExplicit(hideExplicit)
-                            .take(LibraryTopMixCandidateLimit)
                             .map { it.toMediaMetadata() }
                     }
             }
