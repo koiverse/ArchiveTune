@@ -52,17 +52,14 @@ fun YTFallbackImage(
                 if (widthPx != null && heightPx != null) {
                     builder.size(widthPx, heightPx)
                 }
-                builder
-                    .listener {
-                        onError { _, _ -> urlIndex++ }
-                    }
-                    .build()
+                builder.build()
             }
             AsyncImage(
                 model = request,
                 contentDescription = contentDescription,
                 contentScale = contentScale,
                 modifier = modifier,
+                onError = { urlIndex++ },
             )
         } else {
             Box(
