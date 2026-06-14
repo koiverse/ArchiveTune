@@ -622,7 +622,7 @@
 
     <!-- About Screen -->
     <string name="about_lead_developer">Lead Developer</string>
-    <string name="about_archive_tune_team">ArchiveTune Team</string>
+    <string name="about_archive_tune_team">Team</string>
     <string name="about_respecter">Respecter</string>
     <string name="about_contributors">Contributors</string>
     <string name="about_position_lead_dev">Eh?</string>

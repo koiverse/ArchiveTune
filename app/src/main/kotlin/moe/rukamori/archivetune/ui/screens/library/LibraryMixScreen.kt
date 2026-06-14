@@ -21,7 +21,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
 import moe.rukamori.archivetune.constants.LibraryFilter
-import moe.rukamori.archivetune.ui.screens.library.rememberArtworkGradient
+import moe.rukamori.archivetune.constants.ShowSpotifyPlaylistsKey
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -81,11 +81,13 @@ import moe.rukamori.archivetune.LocalDatabase
 import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
 import moe.rukamori.archivetune.LocalPlayerConnection
 import moe.rukamori.archivetune.R
-import moe.rukamori.archivetune.db.entities.Playlist
-import moe.rukamori.archivetune.db.entities.PlaylistEntity
 import moe.rukamori.archivetune.playback.queues.ListQueue
+import moe.rukamori.archivetune.spotify.SpotifyLibraryViewModel
+import moe.rukamori.archivetune.spotify.SpotifyMapper
+import moe.rukamori.archivetune.spotify.models.SpotifyPlaylist
 import moe.rukamori.archivetune.ui.component.ExpressivePullToRefreshBox
 import moe.rukamori.archivetune.library.LibraryTopMixId
+import moe.rukamori.archivetune.utils.rememberPreference
 import moe.rukamori.archivetune.viewmodels.LibraryTopMixUiModel
 import moe.rukamori.archivetune.viewmodels.LibraryTopMixesUiState
 import moe.rukamori.archivetune.viewmodels.LibraryMixViewModel
@@ -98,6 +100,7 @@ fun LibraryMixScreen(
     selectedTagIds: Set<String>,
     onTabSelected: (LibraryFilter) -> Unit,
     viewModel: LibraryMixViewModel = hiltViewModel(),
+    spotifyLibraryViewModel: SpotifyLibraryViewModel = hiltViewModel(),
 ) {
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -112,6 +115,8 @@ fun LibraryMixScreen(
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val topMixesUiState by viewModel.topMixesUiState.collectAsStateWithLifecycle()
+    val spotifyPlaylists by spotifyLibraryViewModel.playlists.collectAsStateWithLifecycle()
+    val (showSpotifyPlaylists) = rememberPreference(ShowSpotifyPlaylistsKey, false)
     
     val filteredPlaylistIds by database.playlistIdsByTags(
         if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList(),
@@ -123,6 +128,13 @@ fun LibraryMixScreen(
             val matchesName = !name.contains("episode", ignoreCase = true)
             val matchesTags = selectedTagIds.isEmpty() || playlist.id in filteredPlaylistIds
             matchesName && matchesTags
+        }
+    }
+    val visibleSpotifyPlaylists = remember(showSpotifyPlaylists, spotifyPlaylists) {
+        if (showSpotifyPlaylists) {
+            spotifyPlaylists
+        } else {
+            emptyList()
         }
     }
 
@@ -465,7 +477,7 @@ fun LibraryMixScreen(
             }
 
             // Playlists Row
-            if (visiblePlaylists.isNotEmpty()) {
+            if (visiblePlaylists.isNotEmpty() || visibleSpotifyPlaylists.isNotEmpty()) {
                 item(key = "your_playlists") {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
@@ -499,7 +511,11 @@ fun LibraryMixScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            items(visiblePlaylists.take(8)) { playlist ->
+                            items(
+                                items = visiblePlaylists.take(8),
+                                key = { playlist -> "playlist_${playlist.id}" },
+                                contentType = { "library_playlist" },
+                            ) { playlist ->
                                 val cardBgColor = rememberArtworkCardColor(
                                     thumbnailUrl = playlist.thumbnails.getOrNull(0),
                                     fallbackColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -591,6 +607,19 @@ fun LibraryMixScreen(
                                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                     )
                                 }
+                            }
+
+                            items(
+                                items = visibleSpotifyPlaylists.take(8),
+                                key = { playlist -> "spotify_playlist_${playlist.id}" },
+                                contentType = { "library_spotify_playlist" },
+                            ) { playlist ->
+                                SpotifyPlaylistCompactCard(
+                                    playlist = playlist,
+                                    onClick = {
+                                        navController.navigate("spotify_playlist/${playlist.id}")
+                                    },
+                                )
                             }
 
                             // Ending "More" card
@@ -735,6 +764,87 @@ fun LibraryMixScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SpotifyPlaylistCompactCard(
+    playlist: SpotifyPlaylist,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val thumbnailUrl = remember(playlist) { SpotifyMapper.getPlaylistThumbnail(playlist) }
+    val cardBgColor = rememberArtworkCardColor(
+        thumbnailUrl = thumbnailUrl,
+        fallbackColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    )
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "SpotifyPlaylistCompactCardScale",
+    )
+
+    Column(
+        modifier = modifier
+            .width(130.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(32.dp))
+            .background(cardBgColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(106.dp)
+                .clip(RoundedCornerShape(24.dp)),
+        ) {
+            AsyncImage(
+                model = thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(6.dp)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.spotify_icon),
+                    contentDescription = stringResource(R.string.spotify_account),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = playlist.name,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = "${playlist.tracks?.total ?: 0} ${stringResource(R.string.tracks_label)}",
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+        )
     }
 }
 
