@@ -87,11 +87,13 @@ android {
         create("foss") {
             dimension = "distribution"
             buildConfigField("String", "DISTRIBUTION", "\"foss\"")
+            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
             buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
         }
         create("izzy") {
             dimension = "distribution"
             buildConfigField("String", "DISTRIBUTION", "\"izzy\"")
+            buildConfigField("boolean", "DISCORD_SOCIAL_ENABLED", "false")
             buildConfigField("boolean", "UPDATER_AVAILABLE", "false")
         }
         create("mobile") {

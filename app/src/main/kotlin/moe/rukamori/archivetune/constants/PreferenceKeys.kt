@@ -676,6 +676,16 @@ val RepeatModeKey = intPreferencesKey("repeatMode")
 val SearchSourceKey = stringPreferencesKey("searchSource")
 val SwipeThumbnailKey = booleanPreferencesKey("swipeThumbnail")
 val SwipeSensitivityKey = floatPreferencesKey("swipeSensitivity")
+val SwipeUpActionKey = stringPreferencesKey("swipeUpAction")
+
+enum class SwipeUpAction {
+    LYRICS,
+    QUEUE,
+    ARTIST,
+    ALBUM,
+    SONG_INFO,
+    NONE
+}
 
 enum class SearchSource {
     LOCAL,
