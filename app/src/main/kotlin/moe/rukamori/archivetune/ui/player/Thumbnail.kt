@@ -553,7 +553,7 @@ fun Thumbnail(
                                             AsyncImage(
                                                 model = thumbnailBgRequest,
                                                 contentDescription = null,
-                                                contentScale = ContentScale.FillBounds,
+                                                contentScale = ContentScale.Crop,
                                                 modifier = Modifier
                                                     .fillMaxSize()
                                                     .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
@@ -567,16 +567,6 @@ fun Thumbnail(
                                                 imageUrl = thumbnailBgUrl,
                                                 blurAmount = backdropBlurAmount,
                                                 shouldCropArtwork = shouldCropArtwork,
-                                            )
-                                        } else {
-                                            AsyncImage(
-                                                model = thumbnailBgRequest,
-                                                contentDescription = null,
-                                                contentScale = ContentScale.FillBounds,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .let { if (shouldCropArtwork) it.aspectRatio(1f) else it }
-                                                    .graphicsLayer(alpha = 0.6f)
                                             )
                                         }
 
@@ -702,14 +692,14 @@ private fun ThumbnailBgBlurApi30(
         Image(
             painter = BitmapPainter(loadedBitmap.asImageBitmap()),
             contentDescription = null,
-            contentScale = ContentScale.FillBounds,
+            contentScale = ContentScale.Crop,
             modifier = modifier,
         )
     } else {
         AsyncImage(
             model = rememberOfflineArtworkImageRequest(imageUrl),
             contentDescription = null,
-            contentScale = ContentScale.FillBounds,
+            contentScale = ContentScale.Crop,
             modifier = modifier,
         )
     }
