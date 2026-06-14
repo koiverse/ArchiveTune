@@ -904,4 +904,17 @@
     <string name="play_all">Tout lire</string>
     <string name="offline_shortcut">Hors ligne</string>
     <string name="cached">En cache</string>
+    <string name="local_files">Fichiers Locaux</string>
+    <string name="downloaded_desc">Téléchargé</string>
+    <string name="instant_playback">Lecture immédiate</string>
+    <string name="on_device">Sur l\'appareil</string>
+    <string name="recently_played">Joués récemment</string>
+    <string name="daily_mix_1_desc">Ambiance décontractée, concentration et rythmes de fond</string>
+    <string name="daily_mix_1">Compilation du Jour 1</string>
+    <string name="chill_mix">Chill Mix</string>
+    <string name="chill_mix_desc">Des mélodies apaisantes pour se détendre</string>
+    <string name="focus_mix">Focus Mix</string>
+    <string name="focus_mix_desc">Des rythmes lo-fi pour favoriser la concentration</string>
+    <string name="your_playlists">Vos Playlists</string>
+    <string name="see_all">Tout afficher</string>
 </resources>
