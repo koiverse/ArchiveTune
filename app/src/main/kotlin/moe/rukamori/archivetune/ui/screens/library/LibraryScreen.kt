@@ -32,16 +32,19 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,11 +68,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.core.graphics.toColorInt
 import moe.rukamori.archivetune.LocalDatabase
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.AppBarHeight
 import moe.rukamori.archivetune.constants.ChipSortTypeKey
 import moe.rukamori.archivetune.constants.LibraryFilter
+import moe.rukamori.archivetune.constants.ShowTagsInLibraryKey
+import moe.rukamori.archivetune.db.entities.TagEntity
+import moe.rukamori.archivetune.ui.component.TagsManagementDialog
 import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberPreference
 
@@ -77,7 +84,18 @@ import moe.rukamori.archivetune.utils.rememberPreference
 fun LibraryScreen(navController: NavController) {
     var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
     val database = LocalDatabase.current
-    val (selectedTagIds) = rememberPlaylistTagFilterState(database)
+    val (selectedTagIds, onSelectedTagIdsChange) = rememberPlaylistTagFilterState(database)
+    val allTags by database.allTags().collectAsState(initial = emptyList())
+    val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, defaultValue = true)
+    var showTagsManagementDialog by rememberSaveable { mutableStateOf(false) }
+    val activeSelectedTagIds = if (showTagsInLibrary) selectedTagIds else emptySet()
+
+    if (showTagsManagementDialog) {
+        TagsManagementDialog(
+            database = database,
+            onDismiss = { showTagsManagementDialog = false },
+        )
+    }
 
     val pagerState = rememberPagerState(
         initialPage = remember {
@@ -324,8 +342,19 @@ fun LibraryScreen(navController: NavController) {
                     0 -> {
                         LibraryMixScreen(
                             navController = navController,
-                            filterContent = {},
-                            selectedTagIds = selectedTagIds,
+                            filterContent = if (showTagsInLibrary) {
+                                {
+                                    PlaylistTagFilterRow(
+                                        tags = allTags,
+                                        selectedTagIds = selectedTagIds,
+                                        onSelectedTagIdsChange = onSelectedTagIdsChange,
+                                        onManageTagsClick = { showTagsManagementDialog = true },
+                                    )
+                                }
+                            } else {
+                                null
+                            },
+                            selectedTagIds = activeSelectedTagIds,
                             onTabSelected = { targetFilter ->
                                 coroutineScope.launch {
                                     val targetPage = when (targetFilter) {
@@ -344,8 +373,19 @@ fun LibraryScreen(navController: NavController) {
                     1 -> {
                         LibraryPlaylistsScreen(
                             navController = navController,
-                            filterContent = {},
-                            selectedTagIds = selectedTagIds
+                            filterContent = if (showTagsInLibrary) {
+                                {
+                                    PlaylistTagFilterRow(
+                                        tags = allTags,
+                                        selectedTagIds = selectedTagIds,
+                                        onSelectedTagIdsChange = onSelectedTagIdsChange,
+                                        onManageTagsClick = { showTagsManagementDialog = true },
+                                    )
+                                }
+                            } else {
+                                null
+                            },
+                            selectedTagIds = activeSelectedTagIds,
                         )
                     }
                     2 -> {
@@ -381,6 +421,148 @@ fun LibraryScreen(navController: NavController) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PlaylistTagFilterRow(
+    tags: List<TagEntity>,
+    selectedTagIds: Set<String>,
+    onSelectedTagIdsChange: (Set<String>) -> Unit,
+    onManageTagsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        item(key = "all_playlist_tags", contentType = "playlist_tag_filter_action") {
+            PlaylistTagFilterChip(
+                label = stringResource(R.string.filter_all),
+                selected = selectedTagIds.isEmpty(),
+                iconRes = R.drawable.filter_alt,
+                onClick = { onSelectedTagIdsChange(emptySet()) },
+            )
+        }
+
+        items(
+            items = tags,
+            key = TagEntity::id,
+            contentType = { "playlist_tag_filter" },
+        ) { tag ->
+            PlaylistTagFilterChip(
+                label = tag.name,
+                selected = tag.id in selectedTagIds,
+                accentColor = remember(tag.color) {
+                    runCatching { Color(tag.color.toColorInt()) }.getOrDefault(Color.Unspecified)
+                },
+                onClick = {
+                    val nextSelection = if (tag.id in selectedTagIds) {
+                        selectedTagIds - tag.id
+                    } else {
+                        selectedTagIds + tag.id
+                    }
+                    onSelectedTagIdsChange(nextSelection)
+                },
+            )
+        }
+
+        item(key = "manage_playlist_tags", contentType = "playlist_tag_filter_action") {
+            PlaylistTagFilterChip(
+                label = stringResource(R.string.manage_tags),
+                selected = false,
+                iconRes = R.drawable.add,
+                onClick = onManageTagsClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlaylistTagFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconRes: Int? = null,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+) {
+    val resolvedAccentColor = if (accentColor == Color.Unspecified) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        accentColor
+    }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else if (selected) 1.05f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "PlaylistTagFilterChipScale",
+    )
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "PlaylistTagFilterChipContainerColor",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "PlaylistTagFilterChipContentColor",
+    )
+
+    Row(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .heightIn(min = 48.dp)
+            .clip(CircleShape)
+            .background(containerColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        if (iconRes != null) {
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(if (selected) contentColor else resolvedAccentColor),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = contentColor,
+        )
     }
 }
 
