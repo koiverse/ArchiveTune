@@ -122,7 +122,7 @@ class DiscordRPC(
             default = song.artists.joinToString { it.name }.ifBlank { appName },
         ).toDiscordText(maxLength = 128, fallback = appName)
 
-        val baseSongUrl = "https://music.youtube.com/watch?v=${song.song.id}"
+        val baseSongUrl = song.youtubeMusicUrl()
         val resolvedImages = DiscordImageResolver.resolveImagesForSong(context, song)
         val largeImageType = context.dataStore[DiscordLargeImageTypeKey] ?: "thumbnail"
         val largeImageCustomUrl = context.dataStore[DiscordLargeImageCustomUrlKey] ?: ""
@@ -338,8 +338,10 @@ class DiscordRPC(
 
     private fun resolveUrl(source: String, song: Song, custom: String): String? =
         when (source.lowercase()) {
-            "songurl" -> "https://music.youtube.com/watch?v=${song.song.id}"
-            "artisturl" -> song.artists.firstOrNull()?.id?.let { "https://music.youtube.com/channel/$it" }
+            "songurl" -> song.youtubeMusicUrl()
+            "artisturl" -> song.artists.firstOrNull()?.id
+                ?.takeUnless { song.song.isLocal || it.startsWith("LOCAL_ARTIST_") || it.isLocalMediaId() }
+                ?.let { "https://music.youtube.com/channel/$it" }
             "albumurl" -> song.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
             "custom" -> custom.normalizeUrl()
             else -> null
@@ -398,4 +400,9 @@ class DiscordRPC(
 
     private fun String.toButtonLabel(): String =
         trim().take(32).ifBlank { context.getString(R.string.app_name) }
+
+    private fun Song.youtubeMusicUrl(): String? =
+        song.id
+            .takeUnless { song.isLocal || it.isLocalMediaId() }
+            ?.let { "https://music.youtube.com/watch?v=$it" }
 }

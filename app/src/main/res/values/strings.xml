@@ -252,9 +252,15 @@
     <string name="edit_lyrics">Edit lyrics</string>
     <string name="search_lyrics">Search lyrics</string>
     <string name="lyrics_synced_badge">Synced</string>
+    <string name="lyrics_search_plain_badge">Plain</string>
+    <string name="lyrics_searching_providers">Searching providers</string>
+    <string name="lyrics_search_still_searching">Still searching</string>
+    <string name="lyrics_search_results_count">%1$d results</string>
+    <string name="lyrics_search_result_stats">%1$d lines, %2$d chars</string>
     <string name="edit_song">Edit song</string>
     <string name="song_title">Song title</string>
     <string name="song_artists">Song artists</string>
+    <string name="unsupported_language">Unsupported language: %1$s</string>
     <string name="error_song_title_empty">Song title cannot be empty.</string>
     <string name="error_song_artist_empty">Song artist cannot be empty.</string>
     <string name="save">Save</string>

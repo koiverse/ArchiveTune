@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -54,6 +55,7 @@ internal fun CanvasArtworkPlayer(
     val initial = primary ?: fallback ?: return
     var currentUrl by remember(initial) { mutableStateOf(initial) }
     var isVideoReady by remember(initial) { mutableStateOf(false) }
+    val shouldPlay by rememberUpdatedState(isPlaying)
 
     val okHttpClient =
         remember {
@@ -117,9 +119,7 @@ internal fun CanvasArtworkPlayer(
         }
 
     LaunchedEffect(isPlaying) {
-        if (exoPlayer.playWhenReady != isPlaying) {
-            exoPlayer.playWhenReady = isPlaying
-        }
+        exoPlayer.setCanvasPlayback(isPlaying)
     }
 
     DisposableEffect(exoPlayer, primary, fallback) {
@@ -139,6 +139,25 @@ internal fun CanvasArtworkPlayer(
 
                 override fun onRenderedFirstFrame() {
                     isVideoReady = true
+                }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (!shouldPlay) return
+                    when (playbackState) {
+                        Player.STATE_READY -> {
+                            if (!exoPlayer.isPlaying) exoPlayer.play()
+                        }
+                        Player.STATE_ENDED -> {
+                            exoPlayer.seekTo(0)
+                            exoPlayer.play()
+                        }
+                    }
+                }
+
+                override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                    if (shouldPlay && !playWhenReady) {
+                        exoPlayer.setCanvasPlayback(isPlaying = true)
+                    }
                 }
             }
         exoPlayer.addListener(listener)
@@ -167,7 +186,7 @@ internal fun CanvasArtworkPlayer(
         exoPlayer.stop()
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
-        exoPlayer.playWhenReady = isPlaying
+        exoPlayer.setCanvasPlayback(isPlaying)
     }
 
     DisposableEffect(exoPlayer) {
@@ -201,3 +220,12 @@ private fun Int.toContentScale(): ContentScale =
         AspectRatioFrameLayout.RESIZE_MODE_FIT -> ContentScale.Fit
         else -> ContentScale.Fit
     }
+
+private fun ExoPlayer.setCanvasPlayback(isPlaying: Boolean) {
+    if (isPlaying) {
+        if (playbackState == Player.STATE_ENDED) seekTo(0)
+        play()
+    } else {
+        pause()
+    }
+}

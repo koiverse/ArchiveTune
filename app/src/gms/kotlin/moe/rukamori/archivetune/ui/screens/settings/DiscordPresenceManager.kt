@@ -8,289 +8,210 @@
 package moe.rukamori.archivetune.ui.screens.settings
 
 import android.content.Context
-import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import moe.rukamori.archivetune.db.entities.Song
 import moe.rukamori.archivetune.discord.DiscordOAuthRepository
-import moe.rukamori.archivetune.discord.DiscordSocialPresenceClient
-import moe.rukamori.archivetune.utils.DiscordRPC
 import moe.rukamori.archivetune.utils.DiscordImageResolver
+import moe.rukamori.archivetune.utils.DiscordRPC
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 object DiscordPresenceManager {
+    private const val LOG_TAG = "DiscordPresenceManager"
+    private const val IMAGE_RESOLUTION_TIMEOUT_MS = 8_000L
+    private const val STOP_TIMEOUT_MS = 5_000L
+    private const val MAX_CONSECUTIVE_FAILURES = 3
+    private const val FAILED_REFRESH_LOCKOUT_MS = 60_000L
+
     private val started = AtomicBoolean(false)
+    private val updateGeneration = AtomicLong(0L)
+    private val rpcMutex = Mutex()
+    private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private var scope: CoroutineScope? = null
-    private var job: Job? = null
+    private var refreshJob: Job? = null
     private var lifecycleObserver: LifecycleEventObserver? = null
     private var rpcInstance: DiscordRPC? = null
     private var rpcToken: String? = null
-    private val logTag = "DiscordPresenceManager"
 
-    // Stored start parameters so we can restart the updater later.
-    // We intentionally store the application Context (or whatever the caller passed) — callers
-    // should prefer passing an Application context to avoid leaking Activities.
     private var lastStartContext: Context? = null
     private var lastToken: String? = null
     private var lastSongProvider: (() -> Song?)? = null
     private var lastPositionProvider: (() -> Long)? = null
     private var lastIsPausedProvider: (() -> Boolean)? = null
-    private var lastIntervalProvider: (() -> Long)? = null
-    private var lastPresenceUpdateTime = 0L
-    private const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L // 20 seconds debounce
     private var consecutiveFailures = 0
-    private const val MAX_CONSECUTIVE_FAILURES = 3
-    private var lastRestartTime = 0L
-    private const val MIN_RESTART_INTERVAL = 30_000L 
-    private var lastFailedRestartDueToParams = 0L
-    private const val FAILED_RESTART_LOCKOUT = 60_000L
+    private var lastFailedRefreshDueToParams = 0L
 
+    private val lastRpcStartTimeState = MutableStateFlow<Long?>(null)
+    val lastRpcStartTimeFlow = lastRpcStartTimeState.asStateFlow()
+    val lastRpcStartTime: Long? get() = lastRpcStartTimeState.value
 
-    // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
-    private val _lastRpcStartTime = MutableStateFlow<Long?>(null)
-    val lastRpcStartTimeFlow = _lastRpcStartTime.asStateFlow()
-    val lastRpcStartTime: Long? get() = _lastRpcStartTime.value
+    private val lastRpcEndTimeState = MutableStateFlow<Long?>(null)
+    val lastRpcEndTimeFlow = lastRpcEndTimeState.asStateFlow()
+    val lastRpcEndTime: Long? get() = lastRpcEndTimeState.value
 
-    private val _lastRpcEndTime = MutableStateFlow<Long?>(null)
-    val lastRpcEndTimeFlow = _lastRpcEndTime.asStateFlow()
-    val lastRpcEndTime: Long? get() = _lastRpcEndTime.value
-    private val rpcMutex = Mutex()
-
-    /** Public helper to update the last RPC timestamps from callers. */
     fun setLastRpcTimestamps(start: Long?, end: Long?) {
-        _lastRpcStartTime.value = start
-        _lastRpcEndTime.value = end
+        lastRpcStartTimeState.value = start
+        lastRpcEndTimeState.value = end
     }
 
-    suspend fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
+    private suspend fun getOrCreateRpc(context: Context, token: String): DiscordRPC {
         val activeToken = DiscordOAuthRepository.getValidAccessToken(context) ?: token
         if (rpcInstance == null || rpcToken != activeToken) {
-            try {
-                rpcInstance?.stopActivity()
-            } catch (ex: Exception) {
-                Timber.tag(logTag).v(ex, "failed to stopActivity on previous RPC instance")
-            }
-
-            try {
-                rpcInstance?.closeRPC()
-            } catch (ex: Exception) {
-                Timber.tag(logTag).v(ex, "failed to close previous RPC instance")
-            }
+            runCatching { rpcInstance?.stopActivity() }
+                .onFailure { Timber.tag(LOG_TAG).v(it, "failed to stop previous activity") }
+            runCatching { rpcInstance?.closeRPC() }
+                .onFailure { Timber.tag(LOG_TAG).v(it, "failed to close previous RPC instance") }
 
             rpcInstance = DiscordRPC(context.applicationContext, activeToken)
             rpcToken = activeToken
         }
-        return rpcInstance!!
+        return rpcInstance ?: error("Discord RPC instance was not created")
     }
 
-    /**
-     * Core updater: update or clear Discord presence.
-     */
     suspend fun updatePresence(
         context: Context,
         token: String,
         song: Song?,
         positionMs: Long,
         isPaused: Boolean,
+    ): Boolean = updatePresence(
+        context = context,
+        token = token,
+        song = song,
+        positionMs = positionMs,
+        isPaused = isPaused,
+        generation = updateGeneration.incrementAndGet(),
+    )
+
+    private suspend fun updatePresence(
+        context: Context,
+        token: String,
+        song: Song?,
+        positionMs: Long,
+        isPaused: Boolean,
+        generation: Long,
     ): Boolean = withContext(Dispatchers.IO) {
+        val appContext = context.applicationContext
         rpcMutex.withLock {
+            if (generation != updateGeneration.get()) {
+                Timber.tag(LOG_TAG).d("skipped stale presence update")
+                return@withLock true
+            }
+
             try {
-                val activeToken = DiscordOAuthRepository.getValidAccessToken(context) ?: token
+                val activeToken = DiscordOAuthRepository.getValidAccessToken(appContext) ?: token
                 if (activeToken.isBlank()) {
-                    Timber.tag(logTag).w("updatePresence skipped (token missing)")
+                    Timber.tag(LOG_TAG).w("updatePresence skipped because token is missing")
                     return@withLock false
                 }
 
                 if (song == null) {
-                    val rpc = getOrCreateRpc(context, activeToken)
+                    val rpc = getOrCreateRpc(appContext, activeToken)
                     rpc.stopActivity()
-                    Timber.tag(logTag).d("cleared presence (no song)")
+                    setLastRpcTimestamps(null, null)
                     consecutiveFailures = 0
+                    Timber.tag(LOG_TAG).d("cleared presence because no song is active")
                     return@withLock true
                 }
 
-                try {
-                    withTimeout(8_000L) {
-                        DiscordImageResolver.resolveImagesForSong(context, song)
+                runCatching {
+                    withTimeout(IMAGE_RESOLUTION_TIMEOUT_MS) {
+                        DiscordImageResolver.resolveImagesForSong(appContext, song)
                     }
-                } catch (e: Exception) {
-                    Timber.tag(logTag).v(e, "image resolution for presence failed or timed out")
+                }.onFailure {
+                    Timber.tag(LOG_TAG).v(it, "image resolution for presence failed or timed out")
                 }
 
-                val rpc = getOrCreateRpc(context, activeToken)
-                val result = rpc.updateSong(song, positionMs, isPaused)
+                if (generation != updateGeneration.get()) {
+                    Timber.tag(LOG_TAG).d("skipped stale presence update after image resolution")
+                    return@withLock true
+                }
+
+                val rpc = getOrCreateRpc(appContext, activeToken)
+                val result = rpc.updateSong(
+                    song = song,
+                    currentPlaybackTimeMillis = positionMs,
+                    isPaused = isPaused,
+                )
                 if (result.isSuccess) {
                     consecutiveFailures = 0
-                    Timber.tag(logTag).d(
-                        "updatePresence success (song=%s, paused=%s)",
-                        song.song.title,
-                        isPaused
-                    )
-
-                    if (!isPaused) {
-                        val now = System.currentTimeMillis()
-                        val calculatedStartTime = now - positionMs
-                        val calculatedEndTime = calculatedStartTime + song.song.duration * 1000L
-                        setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
-                    }
+                    updateLastTimestamps(song = song, positionMs = positionMs, isPaused = isPaused)
+                    Timber.tag(LOG_TAG).d("updated presence song=%s paused=%s", song.song.title, isPaused)
                     true
                 } else {
                     consecutiveFailures++
-                    Timber.tag(logTag).w("updatePresence failed silently — updateSong returned failure (consecutive=%d)", consecutiveFailures)
+                    Timber.tag(LOG_TAG).w(
+                        "updatePresence returned failure consecutive=%d",
+                        consecutiveFailures,
+                    )
                     false
                 }
-            } catch (ex: Exception) {
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
                 consecutiveFailures++
-                Timber.tag(logTag).e(ex, "updatePresence failed (consecutive=%d)", consecutiveFailures)
+                Timber.tag(LOG_TAG).e(error, "updatePresence failed consecutive=%d", consecutiveFailures)
                 false
             }
         }
     }
 
-    /**
-     * Start background updater.
-     */
     fun start(
         context: Context,
         token: String,
         songProvider: () -> Song?,
         positionProvider: () -> Long,
         isPausedProvider: () -> Boolean,
-        intervalProvider: () -> Long
     ) {
-        lastStartContext = context
+        lastStartContext = context.applicationContext
         lastToken = token
         lastSongProvider = songProvider
         lastPositionProvider = positionProvider
         lastIsPausedProvider = isPausedProvider
-        lastIntervalProvider = intervalProvider
 
-        if (started.getAndSet(true)) return
-
-        resetFailureCount()
-        scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        job = scope!!.launch {
-            // Perform an immediate first update (or at the first second of the interval).
-            try {
-                // switch to Main for player access
-                val (firstSong, firstPosition, firstIsPaused) = withContext(Dispatchers.Main) {
-                    Triple(songProvider(), positionProvider(), isPausedProvider())
+        if (!started.getAndSet(true)) {
+            consecutiveFailures = 0
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            lifecycleObserver = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_DESTROY) {
+                    stop()
                 }
-
-                // Try resolving and persisting image URLs before update so DiscordRPC can use saved artwork immediately.
-                try {
-                    firstSong?.let { song ->
-                        DiscordImageResolver.resolveImagesForSong(context, song)
-                    }
-                } catch (e: Exception) {
-                    Timber.tag(logTag).v(e, "initial image resolution failed")
-                }
-
-                // Run the first update immediately
-                try {
-                    val firstResult = updatePresence(
-                        context = context,
-                        token = token,
-                        song = firstSong,
-                        positionMs = firstPosition,
-                        isPaused = firstIsPaused,
-                    )
-                    Timber.tag(logTag).d("initial updatePresence result=%s songId=%s", firstResult, firstSong?.song?.id)
-                } catch (e: Exception) {
-                    Timber.tag(logTag).e(e, "initial updatePresence failed")
-                }
-            } catch (e: Exception) {
-                Timber.tag(logTag).e(e, "initial first-run failed")
             }
-
-            while (isActive) {
-                try {
-                    // switch to Main for player access
-                    val (song, position, isPaused) = withContext(Dispatchers.Main) {
-                        Triple(songProvider(), positionProvider(), isPausedProvider())
-                    }
-
-                    val success = updatePresence(
-                        context = context,
-                        token = token,
-                        song = song,
-                        positionMs = position,
-                        isPaused = isPaused,
-                    )
-
-                    // optional: handle `success` if needed
-                } catch (e: CancellationException) {
-                    Timber.tag(logTag).d("updater cancelled")
-                    break
-                } catch (e: Exception) {
-                    Timber.tag(logTag).e(e, "loop error → ${e.message}")
-                }
-
-                val delayMs = intervalProvider()
-                if (delayMs <= 0L) break
-                delay(delayMs)
-            }
+            ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver!!)
         }
 
-        lifecycleObserver = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_DESTROY) {
-                stop()
-            }
-        }
-        ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver!!)
+        requestProviderUpdate()
     }
 
-    /**
-     * Restart the manager using the most recent parameters passed to `start()`.
-     * Returns true if restart was scheduled, false if there were no stored parameters or too many recent failures.
-     */
     fun restart(): Boolean {
-        val now = System.currentTimeMillis()
-        if (now - lastRestartTime < MIN_RESTART_INTERVAL) {
-            Timber.tag(logTag).w("restart skipped (too soon since last restart, wait %dms)", MIN_RESTART_INTERVAL - (now - lastRestartTime))
-            return false
-        }
         if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-            Timber.tag(logTag).w("restart skipped (too many consecutive failures: %d)", consecutiveFailures)
+            Timber.tag(LOG_TAG).w("presence refresh skipped after repeated failures")
             return false
         }
-
-        val ctx = lastStartContext
-        val token = lastToken
-        val songProv = lastSongProvider
-        val posProv = lastPositionProvider
-        val pausedProv = lastIsPausedProvider
-        val intervalProv = lastIntervalProvider
-
-        if (ctx == null || token == null || songProv == null || posProv == null || pausedProv == null || intervalProv == null) {
-            if (now - lastFailedRestartDueToParams < FAILED_RESTART_LOCKOUT) {
-                Timber.tag(logTag).w("restart skipped (lockout after missing params, wait %dms)", FAILED_RESTART_LOCKOUT - (now - lastFailedRestartDueToParams))
-                return false
-            }
-            lastFailedRestartDueToParams = now
-            Timber.tag(logTag).w("restart skipped (missing previous start parameters)")
-            return false
-        }
-
-        lastRestartTime = now
-        lastFailedRestartDueToParams = 0L
-        stop()
-        start(ctx, token, songProv, posProv, pausedProv, intervalProv)
-        Timber.tag(logTag).d("restarted")
-        return true
+        return requestProviderUpdate()
     }
-    
+
     fun resetFailureCount() {
         consecutiveFailures = 0
     }
 
-    /** Run update immediately. */
     suspend fun updateNow(
         context: Context,
         token: String,
@@ -305,36 +226,97 @@ object DiscordPresenceManager {
         isPaused = isPaused,
     )
 
-    /** Stop the manager. */
     fun stop() {
         if (!started.getAndSet(false)) return
-        
+
+        updateGeneration.incrementAndGet()
+        refreshJob?.cancel()
+        refreshJob = null
+        scope?.cancel()
+        scope = null
+
+        lifecycleObserver?.let { observer ->
+            ProcessLifecycleOwner.get().lifecycle.removeObserver(observer)
+        }
+        lifecycleObserver = null
+
         val rpcToClose = rpcInstance
         rpcInstance = null
         rpcToken = null
-        
-        job?.cancel()
-        job = null
-        scope?.cancel()
-        scope = null
-        lifecycleObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
-        lifecycleObserver = null
+        setLastRpcTimestamps(null, null)
 
         if (rpcToClose != null) {
-            try {
-                runBlocking {
-                    withTimeout(5_000L) {
-                        rpcToClose.stopActivity()
-                        rpcToClose.closeRPC()
+            cleanupScope.launch {
+                rpcMutex.withLock {
+                    runCatching {
+                        withTimeout(STOP_TIMEOUT_MS) {
+                            rpcToClose.stopActivity()
+                            rpcToClose.closeRPC()
+                        }
+                    }.onFailure {
+                        Timber.tag(LOG_TAG).v(it, "stop cleanup failed or timed out")
                     }
                 }
-            } catch (ex: Exception) {
-                Timber.tag(logTag).v(ex, "stop cleanup failed or timed out")
             }
         }
 
-        Timber.tag(logTag).d("stopped")
+        Timber.tag(LOG_TAG).d("stopped")
     }
 
     fun isRunning(): Boolean = started.get()
+
+    private fun requestProviderUpdate(): Boolean {
+        val now = System.currentTimeMillis()
+        val context = lastStartContext
+        val token = lastToken
+        val songProvider = lastSongProvider
+        val positionProvider = lastPositionProvider
+        val isPausedProvider = lastIsPausedProvider
+
+        if (context == null || token == null || songProvider == null || positionProvider == null || isPausedProvider == null) {
+            if (now - lastFailedRefreshDueToParams < FAILED_REFRESH_LOCKOUT_MS) {
+                Timber.tag(LOG_TAG).w("presence refresh skipped during missing-params lockout")
+                return false
+            }
+            lastFailedRefreshDueToParams = now
+            Timber.tag(LOG_TAG).w("presence refresh skipped because start parameters are missing")
+            return false
+        }
+
+        val activeScope = scope ?: return false
+        val generation = updateGeneration.incrementAndGet()
+        refreshJob?.cancel()
+        refreshJob = activeScope.launch {
+            try {
+                val (song, positionMs, isPaused) = withContext(Dispatchers.Main.immediate) {
+                    Triple(songProvider(), positionProvider(), isPausedProvider())
+                }
+                updatePresence(
+                    context = context,
+                    token = token,
+                    song = song,
+                    positionMs = positionMs,
+                    isPaused = isPaused,
+                    generation = generation,
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                consecutiveFailures++
+                Timber.tag(LOG_TAG).e(error, "provider presence refresh failed")
+            }
+        }
+        return true
+    }
+
+    private fun updateLastTimestamps(song: Song, positionMs: Long, isPaused: Boolean) {
+        val durationMs = song.song.duration.takeIf { it > 0 }?.toLong()?.times(1000L)
+        if (isPaused || durationMs == null) {
+            setLastRpcTimestamps(null, null)
+            return
+        }
+
+        val startMs = System.currentTimeMillis() - positionMs.coerceAtLeast(0L)
+        setLastRpcTimestamps(startMs, startMs + durationMs)
+    }
 }

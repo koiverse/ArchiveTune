@@ -32,6 +32,7 @@ object LyricsUtils {
     val LINE_REGEX = "((\\[\\d\\d:\\d\\d\\.\\d{2,3}\\] ?)+)(.+)".toRegex()
     val TIME_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\]".toRegex()
     private val WHITESPACE_REGEX = "\\s+".toRegex()
+    private val INVISIBLE_CHARS_REGEX = Regex("""[\u200B\u200C\u200D\u2060\u00AD]""")
     private const val NBSP = '\u00A0'
     private const val GENERIC_ROMANIZATION_TRANSFORM = "Any-Latin; Latin-ASCII"
     private val OTHER_ROMANIZATION_EXCLUDED_SCRIPTS = setOf(
@@ -140,7 +141,7 @@ object LyricsUtils {
     }
 
     fun isTtml(lyrics: String): Boolean {
-        val trimmed = lyrics.trim()
+        val trimmed = normalizeLyricsText(lyrics)
         if (!trimmed.startsWith("<")) return false
 
         return trimmed.contains("<tt", ignoreCase = true) ||
@@ -151,7 +152,7 @@ object LyricsUtils {
         lyrics.lineSequence().any { line -> LINE_REGEX.matches(line.trim()) }
 
     fun parseTtml(lyrics: String, durationSeconds: Int? = null): List<LyricsEntry> {
-        val parsedLines = TTMLParser.parseTTML(lyrics)
+        val parsedLines = TTMLParser.parseTTML(normalizeLyricsText(lyrics))
         if (parsedLines.isEmpty()) return emptyList()
         val scale = 1.0
 
@@ -193,16 +194,35 @@ object LyricsUtils {
         return result.sorted()
     }
 
-    fun displayLyricsText(lyrics: String): String {
+    fun normalizeLyricsText(lyrics: String): String {
         val raw = lyrics
             .replace("\uFEFF", "")
+            .replace(INVISIBLE_CHARS_REGEX, "")
             .trim { it.isWhitespace() || it == NBSP }
 
+        val unwrapped = stripCodeFence(raw)
+        val normalized = if (isEscapedTtml(unwrapped)) {
+            unwrapped
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&#39;", "'")
+                .replace("&apos;", "'")
+        } else {
+            unwrapped
+        }
+
+        return normalized.trim { it.isWhitespace() || it == NBSP }
+    }
+
+    fun displayLyricsText(lyrics: String): String {
+        val raw = normalizeLyricsText(lyrics)
         if (raw.isEmpty() || raw == LyricsEntity.LYRICS_NOT_FOUND) return ""
 
         val visibleLines = when {
             isTtml(raw) -> runCatching { parseTtml(raw).map { it.text } }.getOrElse { emptyList() }
             isLineSyncedLrc(raw) -> runCatching { parseLyrics(raw).map { it.text } }.getOrElse { emptyList() }
+            raw.startsWith("<") -> emptyList()
             else -> raw.lines()
         }
 
@@ -217,6 +237,36 @@ object LyricsUtils {
     }
 
     fun hasMeaningfulLyricsContent(lyrics: String): Boolean = displayLyricsText(lyrics).isNotEmpty()
+
+    fun lyricsOrNotFound(lyrics: String): String {
+        val normalized = normalizeLyricsText(lyrics)
+        return normalized.takeIf(::hasMeaningfulLyricsContent) ?: LyricsEntity.LYRICS_NOT_FOUND
+    }
+
+    private fun stripCodeFence(lyrics: String): String {
+        if (!lyrics.startsWith("```")) return lyrics
+
+        val lines = lyrics.lines()
+        if (lines.size <= 1) return lyrics
+
+        val bodyLines = lines.drop(1).let { remainingLines ->
+            if (remainingLines.lastOrNull()?.trim() == "```") {
+                remainingLines.dropLast(1)
+            } else {
+                remainingLines
+            }
+        }
+
+        return bodyLines.joinToString("\n").trim { it.isWhitespace() || it == NBSP }
+    }
+
+    private fun isEscapedTtml(lyrics: String): Boolean {
+        val trimmed = lyrics.trimStart()
+        return trimmed.startsWith("&lt;tt", ignoreCase = true) ||
+                trimmed.contains("&lt;tt", ignoreCase = true) ||
+                trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true) &&
+                trimmed.contains("&lt;", ignoreCase = true)
+    }
 
     fun insertInstrumentalBreaks(entries: List<LyricsEntry>, songDurationMs: Long = 0L): List<LyricsEntry> {
         if (entries.isEmpty()) return entries

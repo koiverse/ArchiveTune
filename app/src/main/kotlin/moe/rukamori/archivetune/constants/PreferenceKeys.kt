@@ -317,8 +317,6 @@ val DiscordActivityButton2EnabledKey = booleanPreferencesKey("discordActivityBut
 val DiscordShowWhenPausedKey = booleanPreferencesKey("discordShowWhenPaused")
 // Activity type for Discord presence (PLAYING, STREAMING, LISTENING, WATCHING, COMPETING)
 val DiscordActivityTypeKey = stringPreferencesKey("discordActivityType")
-val DiscordPresenceIntervalValueKey = intPreferencesKey("discordPresenceIntervalValue")
-val DiscordPresenceIntervalUnitKey = stringPreferencesKey("discordPresenceIntervalUnit") // "S", "M", "H"
 val DiscordPresenceStatusKey = stringPreferencesKey("discordPresenceStatus") // "ONLINE", "IDLE", "DND", "INVISIBLE"
 
 // Discord image selection keys

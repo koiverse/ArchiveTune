@@ -21,5 +21,4 @@ enum class LibraryTopMixId {
 data class LibraryTopMix(
     val id: LibraryTopMixId,
     val tracks: ImmutableList<MediaMetadata>,
-    val previewArtworkUrls: ImmutableList<String>,
 )

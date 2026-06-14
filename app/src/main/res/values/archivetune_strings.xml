@@ -367,8 +367,6 @@
     <string name="clear_image_cache_dialog">  Are you sure you want to clear all cached image?</string>
     <string name="clear_downloads_dialog">  Are you sure you want to clear all downloads?</string>
     <string name="canvas_cache">Canvas Cache</string>
-    <string name="canvas_cache_items">%d items</string>
-    <string name="canvas_cache_usage">%1$s / %2$s</string>
     <string name="clear_canvas_cache">Clear canvas cache</string>
     <string name="clear_canvas_cache_dialog">Are you sure you want to clear all cached canvas?</string>
     <string name="disable">Disable</string>
@@ -384,6 +382,8 @@
     <string name="past_year">Past year</string>
     <string name="top_length">My Top list length</string>
     <string name="history_duration">History duration</string>
+    <string name="history_duration_desc">Minimum playback time to count a song as listened</string>
+    <string name="history_duration_seconds">%1$s s</string>
     <string name="information">Information</string>
     <string name="description">Description</string>
     <string name="numbers">Numbers</string>
@@ -622,7 +622,7 @@
 
     <!-- About Screen -->
     <string name="about_lead_developer">Lead Developer</string>
-    <string name="about_archive_tune_team">ArchiveTune Team</string>
+    <string name="about_archive_tune_team">Team</string>
     <string name="about_respecter">Respecter</string>
     <string name="about_contributors">Contributors</string>
     <string name="about_position_lead_dev">Eh?</string>
