@@ -174,6 +174,8 @@ import moe.rukamori.archivetune.constants.PlayerHorizontalPadding
 import moe.rukamori.archivetune.constants.QueuePeekHeight
 import moe.rukamori.archivetune.constants.SliderStyle
 import moe.rukamori.archivetune.constants.SliderStyleKey
+import moe.rukamori.archivetune.constants.SwipeUpAction
+import moe.rukamori.archivetune.constants.SwipeUpActionKey
 import moe.rukamori.archivetune.extensions.togglePlayPause
 import moe.rukamori.archivetune.extensions.toggleRepeatMode
 import moe.rukamori.archivetune.db.entities.FormatEntity
@@ -650,6 +652,36 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
+    val swipeUpAction by rememberEnumPreference(SwipeUpActionKey, defaultValue = SwipeUpAction.Lyrics)
+
+    val handleSwipeUp = {
+        when (swipeUpAction) {
+            SwipeUpAction.Lyrics -> isLyricsScreenVisible = true
+            SwipeUpAction.Queue -> queueSheetState.expandSoft()
+            SwipeUpAction.Artist -> {
+                val firstArtistId = mediaMetadata?.artists?.firstOrNull()?.id
+                if (!firstArtistId.isNullOrBlank()) {
+                    state.collapseSoft()
+                    navController.navigate("artist/$firstArtistId")
+                }
+            }
+            SwipeUpAction.Album -> {
+                if (mediaMetadata?.album != null) {
+                    state.snapTo(state.collapsedBound)
+                    navController.navigate("album/${mediaMetadata?.album?.id}")
+                }
+            }
+            SwipeUpAction.SongInfo -> {
+                mediaMetadata?.id?.let { id ->
+                    bottomSheetPageState.show {
+                        ShowMediaInfo(id)
+                    }
+                }
+            }
+            SwipeUpAction.None -> {}
+        }
+    }
+
     BackHandler(
         enabled =
         isLyricsScreenVisible ||
@@ -979,6 +1011,7 @@ fun BottomSheetPlayer(
                 context = context,
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
+                onSwipeUp = handleSwipeUp,
                 currentFormat = if (playerDesignStyle == PlayerDesignStyle.V7) currentFormat else null,
             )
         }
@@ -1129,6 +1162,7 @@ fun BottomSheetPlayer(
                                     onSliderValueChange = onSliderValueChange,
                                     onSliderValueChangeFinished = onSliderValueChangeFinished,
                                     onVolumeChange = onPlayerVolumeChange,
+                                    onSwipeUp = handleSwipeUp,
                                     landscape = true,
                                 )
                             }
@@ -1169,6 +1203,7 @@ fun BottomSheetPlayer(
                                 onSliderValueChange = onSliderValueChange,
                                 onSliderValueChangeFinished = onSliderValueChangeFinished,
                                 onVolumeChange = onPlayerVolumeChange,
+                                onSwipeUp = handleSwipeUp,
                                 landscape = true,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -1207,6 +1242,7 @@ fun BottomSheetPlayer(
                             onLyricsClick = { isLyricsScreenVisible = true },
                             onSliderValueChange = onSliderValueChange,
                             onSliderValueChangeFinished = onSliderValueChangeFinished,
+                            onSwipeUp = handleSwipeUp,
                             landscape = true,
                             modifier = Modifier
                                 .fillMaxSize()
@@ -1383,6 +1419,7 @@ fun BottomSheetPlayer(
                                     onSliderValueChange = onSliderValueChange,
                                     onSliderValueChangeFinished = onSliderValueChangeFinished,
                                     onVolumeChange = onPlayerVolumeChange,
+                                    onSwipeUp = handleSwipeUp,
                                 )
                             }
 
@@ -1422,6 +1459,7 @@ fun BottomSheetPlayer(
                                 onSliderValueChange = onSliderValueChange,
                                 onSliderValueChangeFinished = onSliderValueChangeFinished,
                                 onVolumeChange = onPlayerVolumeChange,
+                                onSwipeUp = handleSwipeUp,
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(bottom = queueSheetState.collapsedBound)
@@ -1459,6 +1497,7 @@ fun BottomSheetPlayer(
                             onLyricsClick = { isLyricsScreenVisible = true },
                             onSliderValueChange = onSliderValueChange,
                             onSliderValueChangeFinished = onSliderValueChangeFinished,
+                            onSwipeUp = handleSwipeUp,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(bottom = queueSheetState.collapsedBound)
