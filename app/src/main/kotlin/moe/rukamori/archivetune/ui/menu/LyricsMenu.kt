@@ -886,13 +886,7 @@ private fun LyricsSearchResultItem(
                     painter = painterResource(
                         if (isExpanded) R.drawable.expand_less else R.drawable.expand_more,
                     ),
-                    contentDescription = stringResource(
-                        if (isExpanded) {
-                            R.string.lyrics_search_collapse_result
-                        } else {
-                            R.string.lyrics_search_expand_result
-                        },
-                    ),
+                    contentDescription = null,
                 )
             }
         },
