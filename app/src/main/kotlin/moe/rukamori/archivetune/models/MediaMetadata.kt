@@ -110,7 +110,9 @@ fun SongItem.toMediaMetadata() =
             )
         },
         duration = duration ?: -1,
-        thumbnailUrl = displayThumbnail ?: thumbnail,
+        thumbnailUrl = displayThumbnail?.let {
+            if ("maxresdefault" in it) it.replace("maxresdefault", "mqdefault") else it
+        } ?: thumbnail,
         album =
         album?.let {
             MediaMetadata.Album(

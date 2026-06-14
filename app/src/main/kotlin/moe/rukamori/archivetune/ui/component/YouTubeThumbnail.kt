@@ -23,6 +23,7 @@ import coil3.request.allowHardware
 import moe.rukamori.archivetune.R
 
 private val ytVideoIdRegex = Regex("/vi/([^/]+)/")
+private val resolvedThumbnailIndex = mutableMapOf<String, Int>()
 
 @Composable
 fun YTFallbackImage(
@@ -39,10 +40,11 @@ fun YTFallbackImage(
         val urls = remember(videoId) {
             listOf(
                 "https://i.ytimg.com/vi/$videoId/maxresdefault.jpg",
-                "https://i.ytimg.com/vi/$videoId/hqdefault.jpg",
+                "https://i.ytimg.com/vi/$videoId/mqdefault.jpg",
             )
         }
-        var urlIndex by remember { mutableStateOf(0) }
+        val cachedIndex = resolvedThumbnailIndex.getOrElse(videoId) { 0 }
+        var urlIndex by remember(videoId) { mutableStateOf(cachedIndex) }
 
         if (urlIndex < urls.size) {
             val request = remember(urls[urlIndex], widthPx, heightPx) {
@@ -60,6 +62,7 @@ fun YTFallbackImage(
                 contentScale = contentScale,
                 modifier = modifier,
                 onError = { urlIndex++ },
+                onSuccess = { resolvedThumbnailIndex[videoId] = urlIndex },
             )
         } else {
             Box(
