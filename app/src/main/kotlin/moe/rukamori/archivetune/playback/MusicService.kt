@@ -249,6 +249,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.pow
@@ -413,6 +414,7 @@ class MusicService :
     private var audioNormalizationEnabled = true
     var playerVolume = MutableStateFlow(1f)
     private val audioFocusVolumeFactor = MutableStateFlow(1f)
+    private var effectiveVolumeRampJob: Job? = null
     private var crossfadeEnabled = false
     private var crossfadeDurationMs = 0L
     private var crossfadeGapless = false
@@ -553,7 +555,7 @@ class MusicService :
 
     private var consecutivePlaybackErr = 0
 
-    val maxSafeGainFactor = 1.414f // +3 dB
+    val maxSafeGainFactor = MAX_AUDIO_NORMALIZATION_FACTOR
     @Volatile
     private var hasCalledStartForeground = false
 
@@ -856,7 +858,7 @@ class MusicService :
         combine(playerVolume, normalizeFactor, audioFocusVolumeFactor) { playerVolume, normalizeFactor, audioFocusVolumeFactor ->
             calculateEffectivePlayerVolume(playerVolume, normalizeFactor, audioFocusVolumeFactor)
         }.collectLatest(scope) { finalVolume ->
-            applyEffectiveVolume(finalVolume)
+            updateEffectiveVolume(finalVolume)
         }
 
         playerVolume.debounce(1000).collect(ioScope) { volume ->
@@ -1455,6 +1457,57 @@ class MusicService :
         return calculateEffectivePlayerVolume(playerVolume.value, targetNormalizeFactor, audioFocusVolumeFactor.value)
     }
 
+    private fun updateEffectiveVolume(finalVolume: Float) {
+        if (!::player.isInitialized || !shouldRampEffectiveVolume(finalVolume)) {
+            applyEffectiveVolumeImmediately(finalVolume)
+            return
+        }
+
+        val startVolume = player.volume.takeIf { it.isFinite() }?.coerceIn(0f, maxSafeGainFactor) ?: finalVolume
+        val targetVolume = finalVolume.coerceIn(0f, maxSafeGainFactor)
+        if (abs(targetVolume - startVolume) <= EFFECTIVE_VOLUME_RAMP_MIN_DELTA) {
+            applyEffectiveVolumeImmediately(targetVolume)
+            return
+        }
+
+        effectiveVolumeRampJob?.cancel()
+        effectiveVolumeRampJob =
+            scope.launch {
+                val durationMs =
+                    if (targetVolume > startVolume) {
+                        EFFECTIVE_VOLUME_RAMP_UP_MS
+                    } else {
+                        EFFECTIVE_VOLUME_RAMP_DOWN_MS
+                    }
+                val startedAtMs = android.os.SystemClock.elapsedRealtime()
+                while (isActive) {
+                    val elapsedMs = android.os.SystemClock.elapsedRealtime() - startedAtMs
+                    val progress = (elapsedMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+                    val easedProgress = progress * progress * (3f - (2f * progress))
+                    val interpolatedVolume = startVolume + ((targetVolume - startVolume) * easedProgress)
+                    applyEffectiveVolume(interpolatedVolume)
+                    if (progress >= 1f) break
+                    delay(EFFECTIVE_VOLUME_RAMP_FRAME_MS)
+                }
+                applyEffectiveVolume(targetVolume)
+                effectiveVolumeRampJob = null
+            }
+    }
+
+    private fun shouldRampEffectiveVolume(finalVolume: Float): Boolean {
+        if (isCrossfading || crossfadeHandoffInProgress) return false
+        if (!shouldKeepPlaybackAudible()) return false
+        if (!finalVolume.isFinite()) return false
+        if (player.volume <= STUCK_MUTED_VOLUME_EPSILON) return false
+        return true
+    }
+
+    private fun applyEffectiveVolumeImmediately(finalVolume: Float = currentEffectivePlayerVolume()) {
+        effectiveVolumeRampJob?.cancel()
+        effectiveVolumeRampJob = null
+        applyEffectiveVolume(finalVolume)
+    }
+
     private fun applyEffectiveVolume(finalVolume: Float = currentEffectivePlayerVolume()) {
         crossfadeBaseVolume = finalVolume
         val incomingPlayer = secondaryCrossfadePlayer
@@ -1488,7 +1541,7 @@ class MusicService :
             expectedVolume,
             player.volume,
         )
-        applyEffectiveVolume(expectedVolume)
+        applyEffectiveVolumeImmediately(expectedVolume)
     }
 
     private fun updateAudiblePlaybackRecovery() {
@@ -1807,7 +1860,7 @@ class MusicService :
                 crossfadeProgress = 0f
                 crossfadePlaybackRequested = false
                 releaseSecondaryCrossfadePlayer()
-                applyEffectiveVolume()
+                applyEffectiveVolumeImmediately()
             }
         }
 
@@ -1817,7 +1870,7 @@ class MusicService :
         crossfadeIncomingBaseVolume = 1f
         crossfadePlaybackRequested = false
         releaseSecondaryCrossfadePlayer()
-        applyEffectiveVolume()
+        applyEffectiveVolumeImmediately()
         updateAudiblePlaybackRecovery()
         scheduleCrossfade()
     }
@@ -1912,7 +1965,7 @@ class MusicService :
         }
         releaseSecondaryCrossfadePlayer()
         if (resetVolume && ::player.isInitialized) {
-            applyEffectiveVolume()
+            applyEffectiveVolumeImmediately()
         }
     }
 
@@ -1941,11 +1994,6 @@ class MusicService :
         val loudnessDb = format?.normalizationLoudnessDb()
         if (loudnessDb == null || !loudnessDb.isFinite()) {
             Timber.tag("AudioNormalization").w("Normalization enabled but no valid loudness data available - no normalization applied")
-            return 1f
-        }
-
-        if (loudnessDb <= 0f) {
-            Timber.tag("AudioNormalization").d("Content is not above normalization target - using factor 1.0")
             return 1f
         }
 
@@ -1984,7 +2032,7 @@ class MusicService :
     }
 
     private fun FormatEntity.normalizationLoudnessDb(): Float? =
-        sequenceOf(loudnessDb, perceptualLoudnessDb)
+        sequenceOf(perceptualLoudnessDb, loudnessDb)
             .mapNotNull { it?.toFloat() }
             .firstOrNull { it.isFinite() }
 
@@ -6175,6 +6223,8 @@ private fun onMediaItemTransitionInternal() {
 
     override fun onDestroy() {
         super.onDestroy()
+        effectiveVolumeRampJob?.cancel()
+        effectiveVolumeRampJob = null
         cancelCrossfade(resetVolume = false, resetPauseAtEnd = true)
         audioRouteRecoveryJob?.cancel()
         if (audioDeviceCallbackRegistered) {
@@ -6369,7 +6419,11 @@ private fun onMediaItemTransitionInternal() {
         const val DEVICE_MUTE_PLAYBACK_NOTICE_INTERVAL_MS = 1_200L
         const val MIN_AUDIO_FOCUS_VOLUME_FACTOR = 0.2f
         const val MIN_AUDIO_NORMALIZATION_FACTOR = 0.25f
-        const val MAX_AUDIO_NORMALIZATION_FACTOR = 1f
+        const val MAX_AUDIO_NORMALIZATION_FACTOR = 1.414f
+        const val EFFECTIVE_VOLUME_RAMP_FRAME_MS = 16L
+        const val EFFECTIVE_VOLUME_RAMP_UP_MS = 350L
+        const val EFFECTIVE_VOLUME_RAMP_DOWN_MS = 180L
+        const val EFFECTIVE_VOLUME_RAMP_MIN_DELTA = 0.015f
         const val MIN_CROSSFADE_DURATION_MS = 500L
         const val CROSSFADE_END_GUARD_MS = 150L
         const val CROSSFADE_PREPARE_AHEAD_MS = 30_000L
