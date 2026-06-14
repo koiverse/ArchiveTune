@@ -142,7 +142,12 @@ fun LyricsScreen(
 
     val playbackState by playerConnection.playbackState.collectAsStateWithLifecycle()
     val isPlaying by playerConnection.isPlaying.collectAsStateWithLifecycle()
-    val playerVolume by playerConnection.service.playerVolume.collectAsStateWithLifecycle()
+    val deviceMusicVolumeController = rememberDeviceMusicVolumeController()
+    val onVolumeChange = remember(deviceMusicVolumeController) {
+        { volume: Float ->
+            deviceMusicVolumeController.setVolumeFraction(volume)
+        }
+    }
     val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
 
     val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
@@ -329,7 +334,7 @@ fun LyricsScreen(
                             sliderPosition = sliderPosition,
                             isPlaying = isPlaying,
                             isLoading = isLoading,
-                            volume = playerVolume,
+                            volume = deviceMusicVolumeController.volumeFraction,
                             onPositionChange = { sliderPosition = it },
                             onPositionChangeFinished = {
                                 sliderPosition?.let {
@@ -338,9 +343,7 @@ fun LyricsScreen(
                                 }
                                 sliderPosition = null
                             },
-                            onVolumeChange = {
-                                playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
-                            },
+                            onVolumeChange = onVolumeChange,
                             onPreviousClick = {
                                 hapticClick()
                                 playerConnection.seekToPrevious()
@@ -373,7 +376,7 @@ fun LyricsScreen(
                     sliderPosition = sliderPosition,
                     isPlaying = isPlaying,
                     isLoading = isLoading,
-                    volume = playerVolume,
+                    volume = deviceMusicVolumeController.volumeFraction,
                     onPositionChange = { sliderPosition = it },
                     onPositionChangeFinished = {
                         sliderPosition?.let {
@@ -382,9 +385,7 @@ fun LyricsScreen(
                         }
                         sliderPosition = null
                     },
-                    onVolumeChange = {
-                        playerConnection.service.playerVolume.value = it.coerceIn(0f, 1f)
-                    },
+                    onVolumeChange = onVolumeChange,
                     onPreviousClick = {
                         hapticClick()
                         playerConnection.seekToPrevious()
