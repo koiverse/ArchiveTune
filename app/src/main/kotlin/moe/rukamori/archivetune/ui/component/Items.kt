@@ -1361,47 +1361,50 @@ fun YouTubeGridItem(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
     fillMaxWidth: Boolean = false,
-) = GridItem(
-    title = {
-        Text(
-            text = item.title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = if (item is ArtistItem) TextAlign.Center else TextAlign.Start,
-            modifier = Modifier.basicMarquee().fillMaxWidth()
-        )
-    },
-    subtitle = {
-        val subtitle = when (item) {
-            is SongItem -> joinByBullet(item.artists.joinToString { it.name }, makeTimeString(item.duration?.times(1000L)))
-            is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
-            is ArtistItem -> null
-            is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
-        }
-        if (subtitle != null) {
+) {
+    val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
+    val effectiveRatio = if (cropThumbnailToSquare) 1f else thumbnailRatio
+    GridItem(
+        title = {
             Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary,
-                maxLines = 2,
+                text = item.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = if (item is ArtistItem) TextAlign.Center else TextAlign.Start,
+                modifier = Modifier.basicMarquee().fillMaxWidth()
             )
-        }
-    },
-    badges = badges,
-    thumbnailContent = {
-        val database = LocalDatabase.current
-        val playerConnection = LocalPlayerConnection.current ?: return@GridItem
-        val shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(GridThumbnailCornerRadius)
+        },
+        subtitle = {
+            val subtitle = when (item) {
+                is SongItem -> joinByBullet(item.artists.joinToString { it.name }, makeTimeString(item.duration?.times(1000L)))
+                is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
+                is ArtistItem -> null
+                is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
+            }
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        badges = badges,
+        thumbnailContent = {
+            val database = LocalDatabase.current
+            val playerConnection = LocalPlayerConnection.current ?: return@GridItem
+            val shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(GridThumbnailCornerRadius)
 
-        ItemThumbnail(
-            thumbnailUrl = item.displayThumbnail?: item.thumbnail,
-            isActive = isActive,
-            isPlaying = isPlaying,
-            shape = shape,
-            thumbnailRatio = thumbnailRatio
+            ItemThumbnail(
+                thumbnailUrl = item.displayThumbnail?: item.thumbnail,
+                isActive = isActive,
+                isPlaying = isPlaying,
+                shape = shape,
+                thumbnailRatio = effectiveRatio
         )
 
         if (item is SongItem && !isActive) {
@@ -1430,10 +1433,11 @@ fun YouTubeGridItem(
             }
         )
     },
-    thumbnailRatio = thumbnailRatio,
+    thumbnailRatio = effectiveRatio,
     fillMaxWidth = fillMaxWidth,
     modifier = modifier
 )
+}
 
 @Composable
 fun LocalSongsGrid(
@@ -1538,11 +1542,15 @@ fun ItemThumbnail(
     val context = LocalContext.current
     val density = LocalDensity.current
 
+    val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
+    val effectiveRatio = if (cropThumbnailToSquare) 1f else thumbnailRatio
+    val effectiveContentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit
+
     BoxWithConstraints(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxSize()
-            .aspectRatio(thumbnailRatio)
+            .aspectRatio(effectiveRatio)
             .clip(shape)
     ) {
         val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
@@ -1569,7 +1577,7 @@ fun ItemThumbnail(
                 YTFallbackImage(
                     url = thumbnailUrl,
                     contentDescription = null,
-                    contentScale = ContentScale.Fit,
+                    contentScale = effectiveContentScale,
                     modifier = Modifier.fillMaxSize(),
                     widthPx = widthPx,
                     heightPx = heightPx,
@@ -1650,11 +1658,14 @@ fun LocalThumbnail(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
+    val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
+    val effectiveRatio = if (cropThumbnailToSquare) 1f else thumbnailRatio
+    val effectiveContentScale = if (cropThumbnailToSquare) ContentScale.Crop else ContentScale.Fit
 
     BoxWithConstraints(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .aspectRatio(thumbnailRatio)
+            .aspectRatio(effectiveRatio)
             .clip(shape)
     ) {
         val widthPx = if (maxWidth == Dp.Infinity) null else with(density) { maxWidth.roundToPx().coerceAtLeast(1) }
@@ -1662,7 +1673,7 @@ fun LocalThumbnail(
         YTFallbackImage(
             url = thumbnailUrl,
             contentDescription = null,
-            contentScale = ContentScale.Fit,
+            contentScale = effectiveContentScale,
             modifier = Modifier.fillMaxSize(),
             widthPx = widthPx,
             heightPx = heightPx,
