@@ -1271,7 +1271,8 @@ fun BottomSheetPlayer(
                             Thumbnail(
                                 sliderPositionProvider = { sliderPosition },
                                 modifier = Modifier.size(thumbnailSize),
-                                isPlayerExpanded = state.isExpanded
+                                isPlayerExpanded = state.isExpanded,
+                                onSwipeUp = handleSwipeUp,
                             )
                         }
                         Column(
@@ -1528,7 +1529,8 @@ fun BottomSheetPlayer(
                             Thumbnail(
                                 sliderPositionProvider = { sliderPosition },
                                 modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                isPlayerExpanded = state.isExpanded
+                                isPlayerExpanded = state.isExpanded,
+                                onSwipeUp = handleSwipeUp,
                             )
                         }
 
