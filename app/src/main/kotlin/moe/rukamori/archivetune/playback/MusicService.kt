@@ -409,6 +409,8 @@ class MusicService :
         }.flowOn(Dispatchers.IO)
 
     private val normalizeFactor = MutableStateFlow(1f)
+    private val audioNormalizationFactorCache = ConcurrentHashMap<String, Float>()
+    private var audioNormalizationEnabled = true
     var playerVolume = MutableStateFlow(1f)
     private val audioFocusVolumeFactor = MutableStateFlow(1f)
     private var crossfadeEnabled = false
@@ -421,6 +423,7 @@ class MusicService :
     private var isCrossfading = false
     private var crossfadeHandoffInProgress = false
     private var crossfadeBaseVolume = 1f
+    private var crossfadeIncomingBaseVolume = 1f
     private var crossfadeProgress = 0f
     private var crossfadePlaybackRequested = false
     private var lyricsPreloadManager: LyricsPreloadManager? = null
@@ -998,15 +1001,21 @@ class MusicService :
             }
 
         combine(
+            currentMediaMetadata
+                .map { it?.id }
+                .distinctUntilChanged(),
             currentFormat,
             dataStore.data
                 .map { it[AudioNormalizationKey] ?: true }
                 .distinctUntilChanged(),
-        ) { format, normalizeAudio ->
-            format to normalizeAudio
-        }.collectLatest(scope) { (format, normalizeAudio) ->
-            normalizeFactor.value = calculateAudioNormalizationFactor(format, normalizeAudio)
+        ) { mediaId, format, normalizeAudio ->
+            normalizeAudio to resolveAudioNormalizationFactor(mediaId, format, normalizeAudio)
         }
+            .distinctUntilChanged()
+            .collectLatest(scope) { (normalizeAudio, factor) ->
+                audioNormalizationEnabled = normalizeAudio
+                normalizeFactor.value = factor
+            }
 
         dataStore.data
             .map { it[DiscordTokenKey] to (it[EnableDiscordRPCKey] ?: true) }
@@ -1427,7 +1436,7 @@ class MusicService :
     ): Float {
         val safePlayerVolume = playerVolume.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: 1f
         val safeNormalizeFactor =
-            normalizeFactor.takeIf { it.isFinite() }?.coerceIn(MIN_AUDIO_NORMALIZATION_FACTOR, maxSafeGainFactor) ?: 1f
+            normalizeFactor.takeIf { it.isFinite() }?.coerceIn(MIN_AUDIO_NORMALIZATION_FACTOR, MAX_AUDIO_NORMALIZATION_FACTOR) ?: 1f
         val safeAudioFocusVolumeFactor =
             audioFocusVolumeFactor.takeIf { it.isFinite() }?.coerceIn(MIN_AUDIO_FOCUS_VOLUME_FACTOR, 1f) ?: 1f
         return (safePlayerVolume * safeNormalizeFactor * safeAudioFocusVolumeFactor).coerceIn(0f, maxSafeGainFactor)
@@ -1436,11 +1445,25 @@ class MusicService :
     private fun currentEffectivePlayerVolume(): Float =
         calculateEffectivePlayerVolume(playerVolume.value, normalizeFactor.value, audioFocusVolumeFactor.value)
 
+    private fun currentEffectivePlayerVolumeForMediaId(mediaId: String): Float {
+        val targetNormalizeFactor =
+            if (audioNormalizationEnabled) {
+                audioNormalizationFactorCache[mediaId] ?: 1f
+            } else {
+                1f
+            }
+        return calculateEffectivePlayerVolume(playerVolume.value, targetNormalizeFactor, audioFocusVolumeFactor.value)
+    }
+
     private fun applyEffectiveVolume(finalVolume: Float = currentEffectivePlayerVolume()) {
         crossfadeBaseVolume = finalVolume
         val incomingPlayer = secondaryCrossfadePlayer
         if (isCrossfading && incomingPlayer != null) {
-            applyCrossfadeVolumes(crossfadeProgress, finalVolume, player, incomingPlayer)
+            val incomingBaseVolume =
+                secondaryCrossfadeTarget?.let { currentEffectivePlayerVolumeForMediaId(it.mediaId) }
+                    ?: finalVolume
+            crossfadeIncomingBaseVolume = incomingBaseVolume
+            applyCrossfadeVolumes(crossfadeProgress, finalVolume, incomingBaseVolume, player, incomingPlayer)
             return
         }
         if (::player.isInitialized) {
@@ -1488,14 +1511,15 @@ class MusicService :
 
     private fun applyCrossfadeVolumes(
         progress: Float,
-        baseVolume: Float,
+        outgoingBaseVolume: Float,
+        incomingBaseVolume: Float,
         outgoingPlayer: ExoPlayer,
         incomingPlayer: ExoPlayer,
     ) {
         val clampedProgress = progress.coerceIn(0f, 1f)
         val radians = clampedProgress.toDouble() * (PI / 2.0)
-        outgoingPlayer.volume = (baseVolume * cos(radians).toFloat()).coerceIn(0f, maxSafeGainFactor)
-        incomingPlayer.volume = (baseVolume * sin(radians).toFloat()).coerceIn(0f, maxSafeGainFactor)
+        outgoingPlayer.volume = (outgoingBaseVolume * cos(radians).toFloat()).coerceIn(0f, maxSafeGainFactor)
+        incomingPlayer.volume = (incomingBaseVolume * sin(radians).toFloat()).coerceIn(0f, maxSafeGainFactor)
     }
 
     private fun scheduleCrossfade() {
@@ -1671,6 +1695,7 @@ class MusicService :
                 isCrossfading = true
                 crossfadeProgress = 0f
                 crossfadeBaseVolume = currentEffectivePlayerVolume()
+                crossfadeIncomingBaseVolume = currentEffectivePlayerVolumeForMediaId(target.mediaId)
                 crossfadePlaybackRequested = player.playWhenReady
                 player.pauseAtEndOfMediaItems = true
 
@@ -1701,7 +1726,13 @@ class MusicService :
                             incomingPlayer.playWhenReady = true
                             elapsedMs = (elapsedMs + (nowMs - lastTickMs)).coerceAtMost(durationMs)
                             crossfadeProgress = (elapsedMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-                            applyCrossfadeVolumes(crossfadeProgress, crossfadeBaseVolume, player, incomingPlayer)
+                            applyCrossfadeVolumes(
+                                crossfadeProgress,
+                                crossfadeBaseVolume,
+                                crossfadeIncomingBaseVolume,
+                                player,
+                                incomingPlayer,
+                            )
                         } else {
                             incomingPlayer.pause()
                         }
@@ -1783,6 +1814,7 @@ class MusicService :
         isCrossfading = false
         crossfadeHandoffInProgress = false
         crossfadeProgress = 0f
+        crossfadeIncomingBaseVolume = 1f
         crossfadePlaybackRequested = false
         releaseSecondaryCrossfadePlayer()
         applyEffectiveVolume()
@@ -1873,6 +1905,7 @@ class MusicService :
         isCrossfading = false
         crossfadeHandoffInProgress = false
         crossfadeProgress = 0f
+        crossfadeIncomingBaseVolume = 1f
         crossfadePlaybackRequested = false
         if (::player.isInitialized && resetPauseAtEnd) {
             player.pauseAtEndOfMediaItems = false
@@ -1905,16 +1938,21 @@ class MusicService :
             return 1f
         }
 
-        val loudnessDb = (format?.loudnessDb ?: format?.perceptualLoudnessDb)?.toFloat()
+        val loudnessDb = format?.normalizationLoudnessDb()
         if (loudnessDb == null || !loudnessDb.isFinite()) {
             Timber.tag("AudioNormalization").w("Normalization enabled but no valid loudness data available - no normalization applied")
+            return 1f
+        }
+
+        if (loudnessDb <= 0f) {
+            Timber.tag("AudioNormalization").d("Content is not above normalization target - using factor 1.0")
             return 1f
         }
 
         val rawFactor = 10f.pow(-loudnessDb / 20)
         val factor =
             if (rawFactor.isFinite()) {
-                rawFactor.coerceIn(MIN_AUDIO_NORMALIZATION_FACTOR, maxSafeGainFactor)
+                rawFactor.coerceIn(MIN_AUDIO_NORMALIZATION_FACTOR, MAX_AUDIO_NORMALIZATION_FACTOR)
             } else {
                 1f
             }
@@ -1925,6 +1963,30 @@ class MusicService :
         Timber.tag("AudioNormalization").i("Applying normalization factor: $factor")
         return factor
     }
+
+    private fun resolveAudioNormalizationFactor(
+        mediaId: String?,
+        format: FormatEntity?,
+        normalizeAudio: Boolean,
+    ): Float {
+        val currentMediaId = mediaId?.takeIf { it.isNotBlank() } ?: return 1f
+        if (!normalizeAudio) {
+            return 1f
+        }
+
+        if (format?.id == currentMediaId) {
+            val factor = calculateAudioNormalizationFactor(format, normalizeAudio = true)
+            audioNormalizationFactorCache[currentMediaId] = factor
+            return factor
+        }
+
+        return audioNormalizationFactorCache[currentMediaId] ?: 1f
+    }
+
+    private fun FormatEntity.normalizationLoudnessDb(): Float? =
+        sequenceOf(loudnessDb, perceptualLoudnessDb)
+            .mapNotNull { it?.toFloat() }
+            .firstOrNull { it.isFinite() }
 
     private fun shouldKeepPlaybackAudible(): Boolean {
         if (!::player.isInitialized) return false
@@ -5291,6 +5353,9 @@ private fun onMediaItemTransitionInternal() {
         val storedFormat = runBlocking(Dispatchers.IO) {
             database.format(mediaId).first()
         }
+        storedFormat?.let { format ->
+            audioNormalizationFactorCache[mediaId] = calculateAudioNormalizationFactor(format, normalizeAudio = true)
+        }
         val knownContentLength =
             contentLengthCache[mediaId] ?: storedFormat?.contentLength?.takeIf { it > 0L } ?: runCatching {
                 downloadCache
@@ -5499,20 +5564,32 @@ private fun onMediaItemTransitionInternal() {
             Timber.tag("AudioNormalization").w("No loudness data available from YouTube for video: $mediaId")
         }
 
+        val formatEntity =
+            FormatEntity(
+                id = mediaId,
+                itag = format.itag,
+                mimeType = format.mimeType.split(";")[0],
+                codecs = resolvedCodecs,
+                bitrate = format.bitrate,
+                sampleRate = format.audioSampleRate,
+                contentLength = resolvedContentLength,
+                loudnessDb = loudnessDb,
+                perceptualLoudnessDb = perceptualLoudnessDb,
+                playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
+            )
+        val resolvedNormalizationFactor = calculateAudioNormalizationFactor(formatEntity, normalizeAudio = true)
+        audioNormalizationFactorCache[mediaId] = resolvedNormalizationFactor
+        scope.launch {
+            if (currentMediaMetadata.value?.id == mediaId &&
+                dataStore.get(AudioNormalizationKey, true)
+            ) {
+                normalizeFactor.value = resolvedNormalizationFactor
+            }
+        }
+
         database.query {
             upsert(
-                FormatEntity(
-                    id = mediaId,
-                    itag = format.itag,
-                    mimeType = format.mimeType.split(";")[0],
-                    codecs = resolvedCodecs,
-                    bitrate = format.bitrate,
-                    sampleRate = format.audioSampleRate,
-                    contentLength = resolvedContentLength,
-                    loudnessDb = loudnessDb,
-                    perceptualLoudnessDb = perceptualLoudnessDb,
-                    playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
-                )
+                formatEntity
             )
         }
         scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
@@ -6292,6 +6369,7 @@ private fun onMediaItemTransitionInternal() {
         const val DEVICE_MUTE_PLAYBACK_NOTICE_INTERVAL_MS = 1_200L
         const val MIN_AUDIO_FOCUS_VOLUME_FACTOR = 0.2f
         const val MIN_AUDIO_NORMALIZATION_FACTOR = 0.25f
+        const val MAX_AUDIO_NORMALIZATION_FACTOR = 1f
         const val MIN_CROSSFADE_DURATION_MS = 500L
         const val CROSSFADE_END_GUARD_MS = 150L
         const val CROSSFADE_PREPARE_AHEAD_MS = 30_000L
