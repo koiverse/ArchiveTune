@@ -11,16 +11,7 @@ import android.app.SearchManager
 import android.content.Intent
 import android.content.res.Configuration
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,47 +31,57 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.*
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
-import java.util.Locale
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.launch
-import me.bush.translator.Translator
-import me.bush.translator.Language
-import moe.rukamori.archivetune.utils.TranslatorLanguages
-import moe.rukamori.archivetune.utils.TranslatorLang
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import moe.rukamori.archivetune.LocalDatabase
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import me.bush.translator.Language
+import me.bush.translator.Translator
 import moe.rukamori.archivetune.R
 import moe.rukamori.archivetune.constants.AiApiKeyKey
 import moe.rukamori.archivetune.constants.AiApiValidationStatus
@@ -89,9 +90,6 @@ import moe.rukamori.archivetune.constants.AiCustomEndpointKey
 import moe.rukamori.archivetune.constants.AiProvider
 import moe.rukamori.archivetune.constants.AiProviderKey
 import moe.rukamori.archivetune.db.entities.LyricsEntity
-import moe.rukamori.archivetune.lyrics.LyricsUtils.displayLyricsText
-import moe.rukamori.archivetune.lyrics.LyricsUtils.hasMeaningfulLyricsContent
-import moe.rukamori.archivetune.lyrics.LyricsUtils.isLineSyncedLrc
 import moe.rukamori.archivetune.lyrics.LyricsUtils.isTtml
 import moe.rukamori.archivetune.models.MediaMetadata
 import moe.rukamori.archivetune.ui.component.DefaultDialog
@@ -102,7 +100,12 @@ import moe.rukamori.archivetune.ui.component.NewActionGrid
 import moe.rukamori.archivetune.ui.component.TextFieldDialog
 import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberPreference
+import moe.rukamori.archivetune.utils.TranslatorLang
+import moe.rukamori.archivetune.utils.TranslatorLanguages
+import moe.rukamori.archivetune.viewmodels.LyricsSearchResultUiModel
+import moe.rukamori.archivetune.viewmodels.LyricsSearchScreenState
 import moe.rukamori.archivetune.viewmodels.LyricsMenuViewModel
+import java.util.Locale
 import java.util.UUID
 import kotlin.math.roundToInt
 
@@ -118,7 +121,6 @@ fun LyricsMenu(
     viewModel: LyricsMenuViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val database = LocalDatabase.current
 
     var showEditDialog by rememberSaveable {
         mutableStateOf(false)
@@ -127,7 +129,7 @@ fun LyricsMenu(
     var showTranslateDialog by rememberSaveable { mutableStateOf(false) }
     var showLyricsSyncOffsetDialog by rememberSaveable { mutableStateOf(false) }
     var showRefetchLoadingDialog by rememberSaveable { mutableStateOf(false) }
-    val isRefetching by viewModel.isRefetching.collectAsState()
+    val isRefetching by viewModel.isRefetching.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(isRefetching) {
@@ -178,16 +180,19 @@ fun LyricsMenu(
             )
         }
 
-    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsState()
-    val results by viewModel.results.collectAsState()
-    val isAiTranslating by viewModel.isAiTranslating.collectAsState()
+    val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsStateWithLifecycle()
+    val lyricsSearchState by viewModel.lyricsSearchState.collectAsStateWithLifecycle()
+    val isAiTranslating by viewModel.isAiTranslating.collectAsStateWithLifecycle()
     val (aiProvider) = rememberEnumPreference(AiProviderKey, AiProvider.NONE)
     val (aiApiKey) = rememberPreference(AiApiKeyKey, "")
     val (aiCustomEndpoint) = rememberPreference(AiCustomEndpointKey, "")
     val (aiValidationStatus) = rememberEnumPreference(AiApiValidationStatusKey, AiApiValidationStatus.UNKNOWN)
-    var expandedItemIndex by rememberSaveable { mutableStateOf(-1) }
+    var expandedSearchResultId by rememberSaveable { mutableStateOf<String?>(null) }
+    val expandedSearchResult = (lyricsSearchState as? LyricsSearchScreenState.Success)
+        ?.results
+        ?.firstOrNull { result -> result.id == expandedSearchResultId }
     val isTranslateEnabled = !isTtml(lyricsProvider()?.lyrics.orEmpty()) &&
-        (results.getOrNull(expandedItemIndex)?.let { !isTtml(it.lyrics) } ?: true)
+        (expandedSearchResult?.let { !it.isWordSynced } ?: true)
     val currentLyrics = lyricsProvider()?.lyrics.orEmpty()
     val isAiProviderConfigured = aiProvider != AiProvider.NONE
     val isAiTranslationEnabled = currentLyrics.isNotBlank() &&
@@ -271,249 +276,27 @@ fun LyricsMenu(
     }
 
     if (showSearchResultDialog) {
-        val isLoading by viewModel.isLoading.collectAsState()
-        val renderableResults = remember(results) {
-            results.filter { result -> hasMeaningfulLyricsContent(result.lyrics) }
-        }
-
-        ListDialog(
-            onDismiss = {
-                expandedItemIndex = -1
-                showSearchResultDialog = false
+        LyricsSearchResultDialog(
+            state = lyricsSearchState,
+            expandedResultId = expandedSearchResultId,
+            onExpandedResultChange = { resultId ->
+                expandedSearchResultId = if (expandedSearchResultId == resultId) null else resultId
             },
-        ) {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.search_lyrics),
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        AnimatedVisibility(visible = renderableResults.isNotEmpty()) {
-                            Text(
-                                text = "${renderableResults.size} ${stringResource(R.string.search)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
-                        }
-                    }
-                    if (isLoading) {
-                        LoadingIndicator(
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-            }
-
-            itemsIndexed(renderableResults) { index, result ->
-                val isExpanded = index == expandedItemIndex
-                val isSyncedLyrics = remember(result.lyrics) {
-                    isLineSyncedLrc(result.lyrics) || isTtml(result.lyrics)
-                }
-                val isTtmlLyrics = remember(result.lyrics) {
-                    isTtml(result.lyrics)
-                }
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .animateContentSize(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        ),
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isExpanded)
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                    else
-                        MaterialTheme.colorScheme.surfaceContainerLow,
-                    onClick = {
-                        onDismiss()
-                        viewModel.cancelSearch()
-                        viewModel.updateLyrics(
-                            mediaMetadata = searchMediaMetadata,
-                            lyrics = result.lyrics,
-                            source = LyricsEntity.Source.USER_SELECTION,
-                        )
-                    }
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        val displayLyrics = remember(result.lyrics) {
-                            displayLyricsText(result.lyrics)
-                        }
-
-                        Text(
-                            text = displayLyrics,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = if (isExpanded) Int.MAX_VALUE else 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(bottom = 12.dp),
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                                ) {
-                                    Text(
-                                        text = result.providerName,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        maxLines = 1,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-
-                                if (isSyncedLyrics) {
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.sync),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                text = stringResource(R.string.lyrics_synced_badge),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            )
-                                        }
-                                    }
-                                }
-
-                                if (isTtmlLyrics) {
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.lyrics),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                text = stringResource(R.string.lyrics_word_sync),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    expandedItemIndex = if (isExpanded) -1 else index
-                                },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    painter = painterResource(
-                                        if (isExpanded) R.drawable.expand_less else R.drawable.expand_more
-                                    ),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (isLoading && renderableResults.isEmpty()) {
-                item {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 48.dp),
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            LoadingIndicator()
-                            Spacer(Modifier.height(16.dp))
-                            Text(
-                                text = stringResource(R.string.search) + "...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (!isLoading && renderableResults.isEmpty()) {
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(
-                                    painter = painterResource(R.drawable.music_note),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = context.getString(R.string.lyrics_not_found),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            }
-
-            item {
-                Spacer(Modifier.height(8.dp))
-            }
-        }
+            onResultSelected = { result ->
+                onDismiss()
+                viewModel.cancelSearch()
+                viewModel.updateLyrics(
+                    mediaMetadata = searchMediaMetadata,
+                    lyrics = result.lyrics,
+                    source = LyricsEntity.Source.USER_SELECTION,
+                )
+            },
+            onDismiss = {
+                expandedSearchResultId = null
+                showSearchResultDialog = false
+                viewModel.resetSearchState()
+            },
+        )
     }
 
     if (showLyricsSyncOffsetDialog) {
@@ -583,8 +366,7 @@ fun LyricsMenu(
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
-    // Translate dialog moved outside of action list
-        if (showTranslateDialog) {
+    if (showTranslateDialog) {
             val initialText = lyricsProvider()?.lyrics.orEmpty()
             val (textFieldValue, setTextFieldValue) =
                 rememberSaveable(stateSaver = TextFieldValue.Saver) {
@@ -642,7 +424,7 @@ fun LyricsMenu(
                                     if (lang == null) {
                                         Toast.makeText(
                                             context,
-                                            "Unsupported language: $languageName",
+                                            context.getString(R.string.unsupported_language, languageName),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         return@launch
@@ -812,7 +594,7 @@ fun LyricsMenu(
                     }
                 }
             }
-        }
+    }
 
     LazyColumn(
         userScrollEnabled = true,
@@ -916,6 +698,383 @@ fun LyricsMenu(
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun LyricsSearchResultDialog(
+    state: LyricsSearchScreenState,
+    expandedResultId: String?,
+    onExpandedResultChange: (String) -> Unit,
+    onResultSelected: (LyricsSearchResultUiModel) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ListDialog(onDismiss = onDismiss) {
+        item(contentType = "lyrics_search_header") {
+            LyricsSearchResultHeader(state = state)
+    }
+
+        when (state) {
+            LyricsSearchScreenState.Loading -> {
+                item(contentType = "lyrics_search_loading") {
+                    LyricsSearchLoadingContent()
+                }
+            }
+
+            LyricsSearchScreenState.Empty -> {
+                item(contentType = "lyrics_search_empty") {
+                    LyricsSearchEmptyContent()
+                }
+            }
+
+            is LyricsSearchScreenState.Error -> {
+                item(contentType = "lyrics_search_error") {
+                    LyricsSearchErrorContent(messageResId = state.messageResId)
+                }
+            }
+
+            is LyricsSearchScreenState.Success -> {
+                itemsIndexed(
+                    items = state.results,
+                    key = { _, result -> result.id },
+                    contentType = { _, _ -> "lyrics_search_result" },
+                ) { index, result ->
+                    LyricsSearchResultItem(
+                        result = result,
+                        index = index,
+                        count = state.results.size,
+                        isExpanded = result.id == expandedResultId,
+                        onExpandedChange = { onExpandedResultChange(result.id) },
+                        onResultSelected = { onResultSelected(result) },
+                    )
+                }
+
+                if (state.isSearching) {
+                    item(contentType = "lyrics_search_footer_loading") {
+                        LyricsSearchFooterLoading()
+                    }
+                }
+            }
+        }
+
+        item(contentType = "lyrics_search_bottom_spacing") {
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun LyricsSearchResultHeader(
+    state: LyricsSearchScreenState,
+) {
+    val subtitle = when (state) {
+        LyricsSearchScreenState.Loading -> stringResource(R.string.lyrics_searching_providers)
+        LyricsSearchScreenState.Empty -> stringResource(R.string.lyrics_not_found)
+        is LyricsSearchScreenState.Error -> stringResource(state.messageResId)
+        is LyricsSearchScreenState.Success -> stringResource(
+            R.string.lyrics_search_results_count,
+            state.results.size,
+        )
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.manage_search),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(32.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.search_lyrics),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (state == LyricsSearchScreenState.Loading ||
+                state is LyricsSearchScreenState.Success && state.isSearching
+            ) {
+                LoadingIndicator(
+                    modifier = Modifier.size(32.dp),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun LyricsSearchResultItem(
+    result: LyricsSearchResultUiModel,
+    index: Int,
+    count: Int,
+    isExpanded: Boolean,
+    onExpandedChange: () -> Unit,
+    onResultSelected: () -> Unit,
+) {
+    val motionScheme = MaterialTheme.motionScheme
+    val lyricsType = when {
+        result.isWordSynced -> stringResource(R.string.lyrics_word_sync)
+        result.isLineSynced -> stringResource(R.string.lyrics_synced_badge)
+        else -> stringResource(R.string.lyrics_search_plain_badge)
+    }
+    val stats = stringResource(
+        R.string.lyrics_search_result_stats,
+        result.lineCount,
+        result.characterCount,
+    )
+
+    SegmentedListItem(
+        selected = isExpanded,
+        onClick = onResultSelected,
+        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = ListItemDefaults.SegmentedGap)
+            .animateContentSize(animationSpec = motionScheme.defaultSpatialSpec()),
+        colors = ListItemDefaults.segmentedColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+        ),
+        leadingContent = {
+            LyricsSearchTypeIcon(result = result)
+        },
+        overlineContent = {
+            Text(
+                text = result.providerName,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        supportingContent = {
+            LyricsSearchResultSupportingContent(
+                preview = result.preview,
+                lyricsType = lyricsType,
+                stats = stats,
+                isExpanded = isExpanded,
+            )
+        },
+        trailingContent = {
+            IconButton(
+                onClick = onExpandedChange,
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    painter = painterResource(
+                        if (isExpanded) R.drawable.expand_less else R.drawable.expand_more,
+                    ),
+                    contentDescription = null,
+                    ),
+                )
+            }
+        },
+    ) {
+        Text(
+            text = lyricsType,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun LyricsSearchTypeIcon(
+    result: LyricsSearchResultUiModel,
+) {
+    val icon = when {
+        result.isWordSynced -> R.drawable.lyrics
+        result.isLineSynced -> R.drawable.sync
+        else -> R.drawable.format_align_left
+    }
+
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        modifier = Modifier.size(48.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LyricsSearchResultSupportingContent(
+    preview: String,
+    lyricsType: String,
+    stats: String,
+    isExpanded: Boolean,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = preview,
+            maxLines = if (isExpanded) 8 else 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        if (isExpanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                LyricsSearchMetadataLine(
+                    icon = R.drawable.info,
+                    text = lyricsType,
+                )
+                LyricsSearchMetadataLine(
+                    icon = R.drawable.text_fields,
+                    text = stats,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LyricsSearchMetadataLine(
+    icon: Int,
+    text: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun LyricsSearchLoadingContent() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        LoadingIndicator(modifier = Modifier.size(40.dp))
+        Text(
+            text = stringResource(R.string.lyrics_searching_providers),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun LyricsSearchFooterLoading() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+    ) {
+        LoadingIndicator(modifier = Modifier.size(24.dp))
+        Text(
+            text = stringResource(R.string.lyrics_search_still_searching),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun LyricsSearchEmptyContent() {
+    LyricsSearchMessageContent(
+        icon = R.drawable.search_off,
+        text = stringResource(R.string.lyrics_not_found),
+        containerColor = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+    )
+}
+
+@Composable
+private fun LyricsSearchErrorContent(
+    messageResId: Int,
+) {
+    LyricsSearchMessageContent(
+        icon = R.drawable.error,
+        text = stringResource(messageResId),
+        containerColor = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+    )
+}
+
+@Composable
+private fun LyricsSearchMessageContent(
+    icon: Int,
+    text: String,
+    containerColor: Color,
+    contentColor: Color,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 40.dp, horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = containerColor,
+            modifier = Modifier.size(56.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

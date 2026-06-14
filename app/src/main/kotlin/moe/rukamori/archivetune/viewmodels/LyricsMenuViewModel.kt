@@ -8,9 +8,12 @@
 package moe.rukamori.archivetune.viewmodels
 
 import android.content.Context
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.common.collect.ImmutableList
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import moe.rukamori.archivetune.R
@@ -35,6 +38,7 @@ import moe.rukamori.archivetune.models.MediaMetadata
 import moe.rukamori.archivetune.utils.NetworkConnectivityObserver
 import moe.rukamori.archivetune.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -43,10 +47,41 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
- 
+import moe.rukamori.archivetune.lyrics.LyricsUtils.displayLyricsText
+import moe.rukamori.archivetune.lyrics.LyricsUtils.isLineSyncedLrc
+import moe.rukamori.archivetune.lyrics.LyricsUtils.isTtml
+
 import javax.inject.Inject
+
+sealed interface LyricsSearchScreenState {
+    data object Loading : LyricsSearchScreenState
+
+    @Immutable
+    data class Success(
+        val results: ImmutableList<LyricsSearchResultUiModel>,
+        val isSearching: Boolean,
+    ) : LyricsSearchScreenState
+
+    data object Empty : LyricsSearchScreenState
+
+    @Immutable
+    data class Error(
+        @StringRes val messageResId: Int,
+    ) : LyricsSearchScreenState
+}
+
+@Immutable
+data class LyricsSearchResultUiModel(
+    val id: String,
+    val providerName: String,
+    val lyrics: String,
+    val preview: String,
+    val lineCount: Int,
+    val characterCount: Int,
+    val isLineSynced: Boolean,
+    val isWordSynced: Boolean,
+)
 
 @HiltViewModel
 class LyricsMenuViewModel
@@ -58,8 +93,8 @@ constructor(
     private val networkConnectivity: NetworkConnectivityObserver,
 ) : ViewModel() {
     private var job: Job? = null
-    val results = MutableStateFlow(emptyList<LyricsResult>())
-    val isLoading = MutableStateFlow(false)
+    private val _lyricsSearchState = MutableStateFlow<LyricsSearchScreenState>(LyricsSearchScreenState.Empty)
+    val lyricsSearchState: StateFlow<LyricsSearchScreenState> = _lyricsSearchState.asStateFlow()
     val isRefetching = MutableStateFlow(false)
     val isAiTranslating = MutableStateFlow(false)
 
@@ -75,12 +110,11 @@ constructor(
                 _isNetworkAvailable.value = isConnected
             }
         }
-        
-        // Set initial state using synchronous check
+
         _isNetworkAvailable.value = try {
             networkConnectivity.isCurrentlyConnected()
         } catch (e: Exception) {
-            true // Assume connected as fallback
+            true
         }
     }
 
@@ -91,23 +125,48 @@ constructor(
         album: String?,
         duration: Int,
     ) {
-        isLoading.value = true
-        results.value = emptyList()
         job?.cancel()
+        lyricsHelper.cancelCurrentLyricsJob()
+        _lyricsSearchState.value = LyricsSearchScreenState.Loading
         job =
             viewModelScope.launch(Dispatchers.IO) {
-                lyricsHelper.getAllLyrics(mediaId, title, artist, album, duration) { result ->
-                    results.update {
-                        it + result
+                val resultModels = mutableListOf<LyricsSearchResultUiModel>()
+                try {
+                    lyricsHelper.getAllLyrics(mediaId, title, artist, album, duration) { result ->
+                        val model = result.toUiModel(resultModels.size)
+                        if (model.preview.isBlank()) return@getAllLyrics
+
+                        resultModels += model
+                        _lyricsSearchState.value = LyricsSearchScreenState.Success(
+                            results = ImmutableList.copyOf(resultModels),
+                            isSearching = true,
+                        )
                     }
+                    _lyricsSearchState.value = if (resultModels.isEmpty()) {
+                        LyricsSearchScreenState.Empty
+                    } else {
+                        LyricsSearchScreenState.Success(
+                            results = ImmutableList.copyOf(resultModels),
+                            isSearching = false,
+                        )
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    _lyricsSearchState.value = LyricsSearchScreenState.Error(R.string.error_unknown)
                 }
-                isLoading.value = false
             }
     }
 
     fun cancelSearch() {
         job?.cancel()
         job = null
+        lyricsHelper.cancelCurrentLyricsJob()
+    }
+
+    fun resetSearchState() {
+        cancelSearch()
+        _lyricsSearchState.value = LyricsSearchScreenState.Empty
     }
 
     fun refetchLyrics(
@@ -198,5 +257,22 @@ constructor(
                 isAiTranslating.value = false
             }
         }
+    }
+
+    private fun LyricsResult.toUiModel(index: Int): LyricsSearchResultUiModel {
+        val preview = displayLyricsText(lyrics)
+        val lineCount = preview.lineSequence().count { it.isNotBlank() }
+        val isTtmlLyrics = isTtml(lyrics)
+
+        return LyricsSearchResultUiModel(
+            id = "${providerName}_${lyrics.hashCode()}_$index",
+            providerName = providerName,
+            lyrics = lyrics,
+            preview = preview,
+            lineCount = lineCount,
+            characterCount = preview.length,
+            isLineSynced = !isTtmlLyrics && isLineSyncedLrc(lyrics),
+            isWordSynced = isTtmlLyrics,
+        )
     }
 }
