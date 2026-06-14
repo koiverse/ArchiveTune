@@ -960,4 +960,18 @@
     <string name="chill_mix">Mix Santai</string>
     <string name="chill_mix_desc">Melodi yang menenangkan untuk bersantai</string>
     <string name="focus_mix">Mix Fokus</string>
+    <string name="focus_mix_desc">lo-fi beats untuk konsentrasi</string>
+    <string name="your_playlists">Playlist Anda</string>
+    <string name="see_all">Lihat semua</string>
+    <string name="your_artists">Artis Anda</string>
+    <string name="your_albums">Album Anda</string>
+    <string name="all_songs">Semua Lagu</string>
+    <string name="newest_first">Terbaru dahulu</string>
+    <string name="oldest_first">Terlama dahulu</string>
+    <string name="sort_artist">Artis</string>
+    <string name="most_played_sort">Sering diputar</string>
+    <string name="recently_added">Baru ditambahkan</string>
+    <string name="sort_descending">Urutkan menurun</string>
+    <string name="sort_ascending">Urutkan menaik</string>
+    <string name="your_collection">Koleksi Anda</string>
 </resources>
