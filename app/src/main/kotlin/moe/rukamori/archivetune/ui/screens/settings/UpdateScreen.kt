@@ -903,7 +903,6 @@ fun UpdateScreen(
             icon = {
                 LoadingIndicator(
                     modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp,
                 )
             },
             title = {
